@@ -78,7 +78,7 @@ print_multi_option_status(){
   feature="$1"
   feature_status=${!1}
   declare -a VAR_OPTS=()
-  
+
   declare VAR_OPTS=$1_OPTIONS[@]
   VAR_OPTS=$1_OPTIONS[@]
 
@@ -95,7 +95,7 @@ ToggleMultiOption(){
   feature="$1"
   feature_status=${!1}
   declare -a VAR_OPTS=()
-  
+
   declare VAR_OPTS=$1_OPTIONS[@]
   #echo -e "${RED}${feature_status}${NO_COLOR} (${VAR_OPTS_VAL})"
   VAR_OPTS=$1_OPTIONS[@]
@@ -365,6 +365,7 @@ show_supported_features() {
   echo "U. OPC-UA Support...............$(print_feature_status OPC_ENABLED)"
   echo "W. SQL Support..................$(print_feature_status SQL_ENABLED)"
   echo "X. Openwsman Support ...........$(print_feature_status OPENWSMAN_ENABLED)"
+  echo "Y. Azure Support ...............$(print_feature_status AZURE_ENABLED)"
   echo "****************************************"
   echo "            Build Options."
   echo "****************************************"
@@ -415,6 +416,7 @@ read_feature_options(){
     u) ToggleFeature OPC_ENABLED ;;
     w) ToggleFeature SQL_ENABLED ;;
     x) ToggleFeature OPENWSMAN_ENABLED ;;
+    y) ToggleFeature AZURE_ENABLED ;;
     1) ToggleFeature TESTS_DISABLED ;;
     2) EnableAllFeatures ;;
     3) ToggleFeature JNI_ENABLED;;
