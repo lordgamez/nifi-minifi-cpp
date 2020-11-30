@@ -193,6 +193,11 @@ class DockerTestCluster(SingleNodeDockerCluster):
         server_metadata = json.loads(metadata_json)
         return server_metadata["contentType"] == content_type and metadata == server_metadata["userMetadata"]
 
+    def check_azure_storage_server_data(self):
+        data_file = subprocess.check_output(["docker", "exec", "azure-storage-server", "find", "/data/__blobstorage__", "-type", "f"]).decode(sys.stdout.encoding).strip()
+        file_data = subprocess.check_output(["docker", "exec", "azure-storage-server", "cat", data_file]).decode(sys.stdout.encoding)
+        return self.test_data in file_data
+
     def is_s3_bucket_empty(self):
         s3_mock_dir = subprocess.check_output(["docker", "exec", "s3-server", "find", "/tmp/", "-type", "d", "-name", "s3mock*"]).decode(sys.stdout.encoding).strip()
         ls_result = subprocess.check_output(["docker", "exec", "s3-server", "ls", s3_mock_dir + "/test_bucket/"]).decode(sys.stdout.encoding)
@@ -213,7 +218,7 @@ class DockerTestCluster(SingleNodeDockerCluster):
                 check_count += 1
                 time.sleep(1)
         return False
-    
+
     def put_file_contents(self, contents, file_abs_path):
         logging.info('Writing %d bytes of content to file: %s', len(contents), file_abs_path)
         with open(file_abs_path, 'wb') as test_input_file:
