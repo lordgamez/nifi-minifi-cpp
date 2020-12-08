@@ -28,6 +28,7 @@ class SingleNodeDockerCluster(Cluster):
         self.containers = OrderedDict()
         self.images = []
         self.tmp_files = []
+        self.test_dir = os.environ['PYTHONPATH'].split(':')[-1]  # Based on DockerVerify.sh
 
         # Get docker client
         self.client = docker.from_env()
@@ -66,6 +67,8 @@ class SingleNodeDockerCluster(Cluster):
             self.deploy_http_proxy()
         elif engine == 's3-server':
             self.deploy_s3_server()
+        elif engine == 'mqtt-broker':
+            self.deploy_mqtt_broker()
         else:
             raise Exception('invalid flow engine: \'%s\'' % engine)
 
@@ -180,8 +183,7 @@ class SingleNodeDockerCluster(Cluster):
                     )
         self.containers[zookeeper.name] = zookeeper
 
-        test_dir = os.environ['PYTHONPATH'].split(':')[-1] # Based on DockerVerify.sh
-        broker_image = self.build_image_by_path(test_dir + "/resources/kafka_broker", 'minifi-kafka')
+        broker_image = self.build_image_by_path(self.test_dir + "/resources/kafka_broker", 'minifi-kafka')
         broker = self.client.containers.run(
                     broker_image[0],
                     detach=True,
@@ -204,6 +206,37 @@ class SingleNodeDockerCluster(Cluster):
                     network=self.network.name,
                     )
         self.containers[consumer.name] = consumer
+
+    def deploy_mqtt_broker(self):
+        logging.info('Creating and running docker containers for MQTT broker...')
+
+        dockerfile = dedent("""FROM {base_image}
+                COPY mosquitto_test.conf /mosquitto/data/mosquitto_test.conf
+                CMD ["/usr/sbin/mosquitto", "--verbose", "--config-file", "/mosquitto/data/mosquitto_test.conf"]
+                """.format(base_image='eclipse-mosquitto'))
+
+        conf_path = self.test_dir + '/resources/mqtt_broker/mosquitto_test.conf'
+
+        with open(conf_path, 'rb') as conf_file:
+            context_files = [
+                {
+                    'name': 'mosquitto_test.conf',
+                    'size': os.stat(conf_path).st_size,
+                    'file_obj': conf_file
+                }
+            ]
+
+            configured_image = self.build_image(dockerfile, context_files)
+
+        mqtt_broker = self.client.containers.run(
+                    configured_image[0],
+                    detach=True,
+                    name='mqtt-broker',
+                    network=self.network.name,
+                    ports={'1883/tcp': 1883},
+                    )
+        self.containers[mqtt_broker.name] = mqtt_broker
+
 
     def deploy_http_proxy(self):
         logging.info('Creating and running http-proxy docker container...')

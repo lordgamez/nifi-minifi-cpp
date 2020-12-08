@@ -16,11 +16,15 @@
 # under the License.
 
 # Create a custom build target called "docker" that will invoke DockerBuild.sh and create the NiFi-MiNiFi-CPP Docker image
+
+set(DOCKER_UID 1000 CACHE STRING "UID to use in Docker")
+set(DOCKER_GID 1000 CACHE STRING "GID to use in Docker")
+
 add_custom_target(
     docker
     COMMAND ${CMAKE_SOURCE_DIR}/docker/DockerBuild.sh
-        -u 1000
-        -g 1000
+        -u ${DOCKER_UID}
+        -g ${DOCKER_GID}
         -v ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}
         -c IMAGE_TYPE=release
         -c ENABLE_ALL=${ENABLE_ALL}
@@ -61,8 +65,8 @@ add_custom_target(
 add_custom_target(
     docker-minimal
     COMMAND ${CMAKE_SOURCE_DIR}/docker/DockerBuild.sh
-        -u 1000
-        -g 1000
+        -u ${DOCKER_UID}
+        -g ${DOCKER_GID}
         -v ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}
         -i minimal
         -c DOCKER_BASE_IMAGE=${DOCKER_BASE_IMAGE}
@@ -84,8 +88,8 @@ add_custom_target(
 add_custom_target(
     debian
     COMMAND ${CMAKE_SOURCE_DIR}/docker/DockerBuild.sh
-        -u 1000
-        -g 1000
+        -u ${DOCKER_UID}
+        -g ${DOCKER_GID}
         -v ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}
         -i release
         -c ENABLE_JNI=${ENABLE_JNI}
@@ -97,8 +101,8 @@ add_custom_target(
 add_custom_target(
     fedora
     COMMAND ${CMAKE_SOURCE_DIR}/docker/DockerBuild.sh
-        -u 1000
-        -g 1000
+        -u ${DOCKER_UID}
+        -g ${DOCKER_GID}
         -v ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}
         -i release
         -c ENABLE_JNI=${ENABLE_JNI}
@@ -110,8 +114,8 @@ add_custom_target(
 add_custom_target(
     u18
     COMMAND ${CMAKE_SOURCE_DIR}/docker/DockerBuild.sh
-        -u 1000
-        -g 1000
+        -u ${DOCKER_UID}
+        -g ${DOCKER_GID}
         -v ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}
         -i release
         -c ENABLE_JNI=${ENABLE_JNI}
@@ -123,8 +127,8 @@ add_custom_target(
 add_custom_target(
     u16
     COMMAND ${CMAKE_SOURCE_DIR}/docker/DockerBuild.sh
-        -u 1000
-        -g 1000
+        -u ${DOCKER_UID}
+        -g ${DOCKER_GID}
         -v ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}
         -i release
         -c ENABLE_JNI=${ENABLE_JNI}

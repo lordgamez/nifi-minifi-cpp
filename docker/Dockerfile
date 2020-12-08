@@ -54,7 +54,8 @@ RUN apk --update --no-cache upgrade && apk --update --no-cache add gcc \
   bzip2-dev \
   python3-dev \
   patch \
-  doxygen
+  doxygen \
+  automake
 
 ENV USER minificpp
 ENV MINIFI_BASE_DIR /opt/minifi
@@ -77,7 +78,7 @@ FROM build_deps AS build_minimal
 RUN cd ${MINIFI_BASE_DIR} \
   && mkdir build \
   && cd build \
-  && cmake -DDISABLE_LIBARCHIVE=ON -DDISABLE_SCRIPTING=ON -DENABLE_LIBRDKAFKA=ON -DSKIP_TESTS=true -DCMAKE_BUILD_TYPE=MinSizeRel .. \
+  && cmake -DDISABLE_LIBARCHIVE=ON -DDISABLE_SCRIPTING=ON -DENABLE_LIBRDKAFKA=ON -DENABLE_MQTT=ON -DSKIP_TESTS=true -DCMAKE_BUILD_TYPE=MinSizeRel .. \
   && make -j$(nproc) package \
   && tar -xzvf ${MINIFI_BASE_DIR}/build/nifi-minifi-cpp-${MINIFI_VERSION}-bin.tar.gz -C ${MINIFI_BASE_DIR}
 

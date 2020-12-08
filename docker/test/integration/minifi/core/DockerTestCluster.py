@@ -6,6 +6,7 @@ import subprocess
 import sys
 import time
 import uuid
+import re
 
 from os.path import join
 from threading import Event
@@ -202,12 +203,15 @@ class DockerTestCluster(SingleNodeDockerCluster):
         logging.info('Removing %s from output folder', os.path.join(self.tmp_test_output_dir, dir))
         shutil.rmtree(os.path.join(self.tmp_test_output_dir, dir))
 
-    def wait_for_container_logs(self, container_name, log, timeout, count=1):
+    def wait_for_container_logs(self, container_name, log, timeout, count=1, use_regex=False):
         logging.info('Waiting for logs `%s` in container `%s`', log, container_name)
         container = self.containers[container_name]
         check_count = 0
         while check_count <= timeout:
-            if container.logs().decode("utf-8").count(log) == count:
+            decoded_logs = container.logs().decode("utf-8")
+            if not use_regex and decoded_logs.count(log) == count:
+                return True
+            elif use_regex and len(re.findall(log, decoded_logs)) == count:
                 return True
             else:
                 check_count += 1

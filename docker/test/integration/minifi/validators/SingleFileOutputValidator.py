@@ -40,5 +40,7 @@ class SingleFileOutputValidator(FileOutputValidator):
 
                 if self.expected_content in contents:
                     self.valid = True
+        elif not self.expected_content:
+            self.valid = True
 
         return self.valid

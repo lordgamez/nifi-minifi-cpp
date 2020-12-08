@@ -56,6 +56,8 @@ from .processors.PutFile import PutFile
 from .processors.PutS3Object import PutS3Object
 from .processors.DeleteS3Object import DeleteS3Object
 from .processors.FetchS3Object import FetchS3Object
+from .processors.PublishMQTT import PublishMQTT
+from .processors.ConsumeMQTT import ConsumeMQTT
 
 from .validators.OutputValidator import OutputValidator
 from .validators.EmptyFilesOutPutValidator import EmptyFilesOutPutValidator
