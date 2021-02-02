@@ -28,6 +28,7 @@ set build_coap=OFF
 set build_jni=OFF
 set build_SQL=OFF
 set build_AWS=OFF
+set build_azure=OFF
 set test_custom_wel_provider=OFF
 set generator="Visual Studio 15 2017"
 set cpack=OFF
