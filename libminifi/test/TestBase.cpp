@@ -71,8 +71,6 @@ std::shared_ptr<core::Processor> TestPlan::addProcessor(const std::shared_ptr<co
   }
   std::lock_guard<std::recursive_mutex> guard(mutex);
 
-  utils::Identifier uuid = utils::IdGenerator::getIdGenerator()->generate();
-
   processor->setStreamFactory(stream_factory);
   // initialize the processor
   processor->initialize();

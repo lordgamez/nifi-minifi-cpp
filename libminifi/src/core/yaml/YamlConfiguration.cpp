@@ -768,8 +768,7 @@ void YamlConfiguration::parsePortYaml(YAML::Node *portNode, core::ProcessGroup *
   }
 }
 
-void YamlConfiguration::parsePropertyValueSequence(const std::string& propertyName, const YAML::Node& propertyValueNode, std::shared_ptr<core::ConfigurableComponent> processor,
-    const std::string &yaml_section) {
+void YamlConfiguration::parsePropertyValueSequence(const std::string& propertyName, const YAML::Node& propertyValueNode, std::shared_ptr<core::ConfigurableComponent> processor) {
   for (auto iter : propertyValueNode) {
     if (iter.IsDefined()) {
       YAML::Node nodeVal = iter.as<YAML::Node>();
@@ -862,14 +861,13 @@ void YamlConfiguration::parseSingleProperty(const std::string& propertyName, con
   }
 }
 
-void YamlConfiguration::parsePropertyNodeElement(const std::string& propertyName, const YAML::Node& propertyValueNode, std::shared_ptr<core::ConfigurableComponent> processor,
-    const std::string &yaml_section) {
+void YamlConfiguration::parsePropertyNodeElement(const std::string& propertyName, const YAML::Node& propertyValueNode, std::shared_ptr<core::ConfigurableComponent> processor) {
   logger_->log_trace("Encountered %s", propertyName);
   if (propertyValueNode.IsNull() || !propertyValueNode.IsDefined()) {
     return;
   }
   if (propertyValueNode.IsSequence()) {
-    parsePropertyValueSequence(propertyName, propertyValueNode, processor, yaml_section);
+    parsePropertyValueSequence(propertyName, propertyValueNode, processor);
   } else {
     parseSingleProperty(propertyName, propertyValueNode, processor);
   }
@@ -882,7 +880,7 @@ void YamlConfiguration::parsePropertiesNodeYaml(YAML::Node *propertiesNode, std:
   for (const auto propertyElem : *propertiesNode) {
     const std::string propertyName = propertyElem.first.as<std::string>();
     const YAML::Node propertyValueNode = propertyElem.second;
-    parsePropertyNodeElement(propertyName, propertyValueNode, processor, yaml_section);
+    parsePropertyNodeElement(propertyName, propertyValueNode, processor);
   }
 
   validateComponentProperties(processor, component_name, yaml_section);
