@@ -79,6 +79,7 @@ class SingleNodeDockerCluster(Cluster):
                 USER root
                 ADD config.yml {minifi_root}/conf/config.yml
                 RUN chown minificpp:minificpp {minifi_root}/conf/config.yml
+                RUN sed -i -e 's/INFO/DEBUG/g' {minifi_root}/conf/minifi-log.properties
                 USER minificpp
                 """.format(name=name,hostname=name,
                            base_image='apacheminificpp:' + self.minifi_version,

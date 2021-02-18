@@ -71,4 +71,4 @@ export PATH
 PYTHONPATH="${PYTHONPATH}:${docker_dir}/test/integration"
 export PYTHONPATH
 
-exec pytest -s -v "${docker_dir}"/test/integration
+exec pytest --log-cli-level=10 -s -v "${docker_dir}"/test/integration/test_mqtt.py
