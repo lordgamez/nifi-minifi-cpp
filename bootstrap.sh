@@ -324,6 +324,7 @@ add_dependency OPC_ENABLED "mbedtls"
 
 USE_SHARED_LIBS=${TRUE}
 TESTS_DISABLED=${FALSE}
+FAIL_ON_WARNINGS=${FALSE}
 
 ## name, default, values
 add_multi_option BUILD_PROFILE "RelWithDebInfo" "RelWithDebInfo" "Debug" "MinSizeRel" "Release"
@@ -408,7 +409,7 @@ CMAKE_REVISION=`echo $CMAKE_VERSION | cut -d. -f3`
 
 CMAKE_BUILD_COMMAND="${CMAKE_COMMAND} "
 
-if [ "${USE_NINJA}" = "${TRUE}" ]; then 
+if [ "${USE_NINJA}" = "${TRUE}" ]; then
 	 echo "use ninja"
    CMAKE_BUILD_COMMAND="${CMAKE_BUILD_COMMAND} -DFORCE_COLORED_OUTPUT=ON -GNinja "
 fi
@@ -460,13 +461,13 @@ build_cmake_command(){
     # user may have disabled tests previously, so let's force them to be re-enabled
     CMAKE_BUILD_COMMAND="${CMAKE_BUILD_COMMAND} -DSKIP_TESTS= "
   fi
-  
+
   if [ "${USE_SHARED_LIBS}" = "${TRUE}" ]; then
     CMAKE_BUILD_COMMAND="${CMAKE_BUILD_COMMAND} -DUSE_SHARED_LIBS=ON "
   else
     CMAKE_BUILD_COMMAND="${CMAKE_BUILD_COMMAND} -DUSE_SHARED_LIBS= "
   fi
-  
+
 
 
   if [ "${PORTABLE_BUILD}" = "${TRUE}" ]; then
@@ -481,8 +482,14 @@ build_cmake_command(){
     CMAKE_BUILD_COMMAND="${CMAKE_BUILD_COMMAND} -DBUILD_ROCKSDB= "
   fi
 
+  if [ "${FAIL_ON_WARNINGS}" = "${TRUE}" ]; then
+    CMAKE_BUILD_COMMAND="${CMAKE_BUILD_COMMAND} -DFAIL_ON_WARNINGS=ON "
+  else
+    CMAKE_BUILD_COMMAND="${CMAKE_BUILD_COMMAND} -DFAIL_ON_WARNINGS=OFF"
+  fi
+
   CMAKE_BUILD_COMMAND="${CMAKE_BUILD_COMMAND} -DBUILD_IDENTIFIER=${BUILD_IDENTIFIER}"
-  
+
     CMAKE_BUILD_COMMAND="${CMAKE_BUILD_COMMAND} -DCMAKE_BUILD_TYPE=${BUILD_PROFILE}"
 
   add_os_flags
