@@ -148,7 +148,7 @@ int64_t S3WrapperBase::writeFetchedBody(Aws::IOStream& source, const int64_t dat
 
   int64_t write_size = 0;
   while (write_size < data_size) {
-    auto next_write_size = (std::min)(static_cast<uint64_t>(data_size - write_size), BUFFER_SIZE);
+    auto next_write_size = (std::min)(gsl::narrow<uint64_t>(data_size - write_size), BUFFER_SIZE);
     if (!source.read(reinterpret_cast<char*>(buffer.data()), next_write_size)) {
       return -1;
     }
