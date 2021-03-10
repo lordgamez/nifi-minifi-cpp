@@ -872,6 +872,9 @@ add_custom_target(linter
 			${CMAKE_SOURCE_DIR}/encrypt-config/ --
 			${CMAKE_SOURCE_DIR}/encrypt-config/
 	DEPENDS ${extensions})
+
+add_custom_target(flake8
+	COMMAND ${CMAKE_SOURCE_DIR}/run_flake8.sh ${CMAKE_SOURCE_DIR})
 endif(NOT WIN32)
 
 # Custom target to download and run Apache Release Audit Tool (RAT)
