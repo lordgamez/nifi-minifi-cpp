@@ -155,7 +155,7 @@ TEST_CASE("Flow shutdown waits for a while", "[TestFlow2]") {
 
   // wait for the source processor to enqueue its flowFiles
   auto flowFilesEnqueued = [&] {return root->getTotalFlowFileCount() == 3;};
-  REQUIRE(verifyWithBusyWait(std::chrono::milliseconds{200}, flowFilesEnqueued));
+  REQUIRE(verifyWithBusyWait(std::chrono::milliseconds{500}, flowFilesEnqueued));
 
   REQUIRE(sourceProc->trigger_count.load() == 1);
 
@@ -192,7 +192,7 @@ TEST_CASE("Flow stopped after grace period", "[TestFlow3]") {
 
   // wait for the source processor to enqueue its flowFiles
   auto flowFilesEnqueued = [&] {return root->getTotalFlowFileCount() == 3;};
-  REQUIRE(verifyWithBusyWait(std::chrono::milliseconds{200}, flowFilesEnqueued));
+  REQUIRE(verifyWithBusyWait(std::chrono::milliseconds{500}, flowFilesEnqueued));
 
   REQUIRE(sourceProc->trigger_count.load() == 1);
 
@@ -231,7 +231,7 @@ TEST_CASE("Extend the waiting period during shutdown", "[TestFlow4]") {
 
   // wait for the source processor to enqueue its flowFiles
   auto flowFilesEnqueued = [&] {return root->getTotalFlowFileCount() == 3;};
-  REQUIRE(verifyWithBusyWait(std::chrono::milliseconds{200}, flowFilesEnqueued));
+  REQUIRE(verifyWithBusyWait(std::chrono::milliseconds{500}, flowFilesEnqueued));
 
   REQUIRE(sourceProc->trigger_count.load() == 1);
 
