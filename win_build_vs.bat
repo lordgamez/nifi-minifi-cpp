@@ -70,6 +70,12 @@ if [%skiptests%] NEQ [ON] (
     ctest --timeout 300 --parallel 8 -C %cmake_build_type% --output-on-failure
     IF !ERRORLEVEL! NEQ 0 ( popd & exit /b !ERRORLEVEL! )
 )
+
+set try_counter=0
+:repeat
+ctest --timeout 300 --parallel 8 -R FlowControllerTests -C %cmake_build_type% --output-on-failure && set /A try_counter+=1 && echo "TRY %try_counter%" && goto :repeat
+echo Failure!
+
 popd
 goto :eof
 
