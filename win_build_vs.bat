@@ -69,7 +69,7 @@ if [%cpack%] EQU [ON] (
 
 set try_counter=0
 :repeat
-ctest --timeout 300 --parallel 8 -R FlowControllerTests -C %cmake_build_type% --output-on-failure && set /A try_counter+=1 && echo "TRY %try_counter%" && goto :repeat
+ctest --timeout 300 --parallel 8 -C %cmake_build_type% --output-on-failure && set /A try_counter+=1 && echo "TRY %try_counter%" && goto :repeat
 echo Failure!
 
 popd
