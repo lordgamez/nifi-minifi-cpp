@@ -22,6 +22,10 @@ if (TENSORFLOW_PATH)
   message("-- Checking for TensorFlow in provided TENSORFLOW_PATH: ${TENSORFLOW_PATH}")
 endif()
 
+if (GOOGLE_PROTOBUF_PATH)
+  message("-- Checking for TensorFlow in provided GOOGLE_PROTOBUF_PATH: ${GOOGLE_PROTOBUF_PATH}")
+endif()
+
 find_path(TENSORFLOW_INCLUDE_DIR
           NAMES
           tensorflow/core
@@ -32,6 +36,7 @@ find_path(TENSORFLOW_INCLUDE_DIR
           /usr/include/tensorflow
           /usr/local/include/google/tensorflow
           /usr/local/include/tensorflow
+          /usr/local/include/tensorflow/bazel-bin/tensorflow/include
           /usr/include/google/tensorflow)
 
 find_library(TENSORFLOW_CC_LIBRARY NAMES tensorflow_cc
@@ -42,20 +47,28 @@ find_library(TENSORFLOW_CC_LIBRARY NAMES tensorflow_cc
              /usr/local/lib
              /usr/local/lib/tensorflow_cc)
 
-find_library(TENSORFLOW_FRAMEWORK_LIBRARY NAMES tensorflow_framework
-             HINTS
-             ${TENSORFLOW_PATH}
-             ${TENSORFLOW_PATH}/bazel-bin/tensorflow
-             /usr/lib
-             /usr/local/lib
-             /usr/local/lib/tensorflow_cc)
+find_path(GOOGLE_PROTOBUF_INCLUDE NAMES google/protobuf
+          HINTS
+          ${TENSORFLOW_PATH}/src
+          /usr/include/tensorflow/src
+          /usr/local/include/google/tensorflow/src
+          /usr/local/include/tensorflow/src
+          /usr/local/include/tensorflow/bazel-bin/tensorflow/include/src
+          /usr/include/google/tensorflow/src)
 
-find_package_handle_standard_args(TENSORFLOW DEFAULT_MSG TENSORFLOW_INCLUDE_DIR TENSORFLOW_CC_LIBRARY TENSORFLOW_FRAMEWORK_LIBRARY)
+find_library(GOOGLE_PROTOBUF_LIBRARY NAMES protobuf
+             HINTS
+             ${GOOGLE_PROTOBUF_PATH}
+             /usr/lib
+             /usr/lib/x86_64-linux-gnu
+             /usr/local/lib)
+
+find_package_handle_standard_args(TENSORFLOW DEFAULT_MSG TENSORFLOW_INCLUDE_DIR TENSORFLOW_CC_LIBRARY GOOGLE_PROTOBUF_INCLUDE GOOGLE_PROTOBUF_LIBRARY)
 
 if(TENSORFLOW_FOUND)
     message("-- Found TensorFlow includes: ${TENSORFLOW_INCLUDE_DIR}")
-    message("-- Found TensorFlow libraries: ${TENSORFLOW_CC_LIBRARY} ${TENSORFLOW_FRAMEWORK_LIBRARY}")
-    set(TENSORFLOW_LIBRARIES ${TENSORFLOW_CC_LIBRARY} ${TENSORFLOW_FRAMEWORK_LIBRARY})
+    message("-- Found Google Protobuf includes: ${GOOGLE_PROTOBUF_INCLUDE}")
+    set(TENSORFLOW_LIBRARIES ${TENSORFLOW_CC_LIBRARY})
     set(TENSORFLOW_INCLUDE_DIRS
         ${TENSORFLOW_INCLUDE_DIR}
         ${TENSORFLOW_INCLUDE_DIR}/bazel-genfiles
@@ -63,9 +76,10 @@ if(TENSORFLOW_FOUND)
         ${TENSORFLOW_INCLUDE_DIR}/tensorflow/contrib/makefile/downloads/eigen
         ${TENSORFLOW_INCLUDE_DIR}/tensorflow/contrib/makefile/downloads/gemmlowp
         ${TENSORFLOW_INCLUDE_DIR}/tensorflow/contrib/makefile/downloads/nsync/public
-        ${TENSORFLOW_INCLUDE_DIR}/tensorflow/contrib/makefile/gen/protobuf-host/include)
+        ${TENSORFLOW_INCLUDE_DIR}/tensorflow/contrib/makefile/gen/protobuf-host/include
+        ${GOOGLE_PROTOBUF_INCLUDE})
 else()
-  message(FATAL_ERROR "TensorFlow was not found. Check or set TENSORFLOW_PATH to TensorFlow build, Install libtensorflow_cc.so and headers into the system, or disable the TensorFlow extension.")
+  message(FATAL_ERROR "TensorFlow or Google Protobuf dependency was not found. Check or set TENSORFLOW_PATH to TensorFlow build, Install libtensorflow_cc.so, libprotobuf.so and headers into the system, or disable the TensorFlow extension.")
 endif()
 
 mark_as_advanced(TENSORFLOW_INCLUDE_DIR TENSORFLOW_CC_LIBRARY TENSORFLOW_FRAMEWORK_LIBRARY)
