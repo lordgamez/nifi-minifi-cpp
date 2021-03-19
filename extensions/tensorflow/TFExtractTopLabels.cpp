@@ -46,10 +46,10 @@ void TFExtractTopLabels::initialize() {
   setSupportedRelationships(std::move(relationships));
 }
 
-void TFExtractTopLabels::onSchedule(core::ProcessContext *context, core::ProcessSessionFactory *sessionFactory) {
+void TFExtractTopLabels::onSchedule(core::ProcessContext* /*context*/, core::ProcessSessionFactory* /*sessionFactory*/) {
 }
 
-void TFExtractTopLabels::onTrigger(const std::shared_ptr<core::ProcessContext> &context,
+void TFExtractTopLabels::onTrigger(const std::shared_ptr<core::ProcessContext>& /*context*/,
                                    const std::shared_ptr<core::ProcessSession> &session) {
   auto flow_file = session->get();
 
@@ -86,7 +86,10 @@ void TFExtractTopLabels::onTrigger(const std::shared_ptr<core::ProcessContext> &
     session->read(flow_file, &tensor_cb);
 
     tensorflow::Tensor input;
-    input.FromProto(*input_tensor_proto);
+    if (!input.FromProto(*input_tensor_proto)) {
+      // failure deliberately ignored at this time
+      // added to avoid warn_unused_result build errors
+    }
     auto input_flat = input.flat<float>();
 
     std::vector<std::pair<uint64_t, float>> scores;
@@ -100,7 +103,7 @@ void TFExtractTopLabels::onTrigger(const std::shared_ptr<core::ProcessContext> &
       return a.second > b.second;
     });
 
-    for (int i = 0; i < 5 && i < scores.size(); i++) {
+    for (std::size_t i = 0; i < 5 && i < scores.size(); i++) {
       if (!labels || scores[i].first > labels->size()) {
         logger_->log_error("Label index is out of range (are the correct labels loaded?); routing to retry...");
         session->transfer(flow_file, Retry);
@@ -122,7 +125,7 @@ void TFExtractTopLabels::onTrigger(const std::shared_ptr<core::ProcessContext> &
 }
 
 int64_t TFExtractTopLabels::LabelsReadCallback::process(const std::shared_ptr<io::BaseStream>& stream) {
-  int64_t total_read = 0;
+  size_t total_read = 0;
   std::string label;
   uint64_t max_label_len = 65536;
   label.resize(max_label_len);
@@ -133,8 +136,11 @@ int64_t TFExtractTopLabels::LabelsReadCallback::process(const std::shared_ptr<io
 
   while (total_read < stream->size()) {
     auto read = stream->read(reinterpret_cast<uint8_t *>(&buf[0]), static_cast<int>(buf_size));
+    if (read < 0) {
+      return -1;
+    }
 
-    for (auto i = 0; i < read; i++) {
+    for (size_t i = 0; i < static_cast<size_t>(read); i++) {
       if (buf[i] == '\n' || total_read + i == stream->size()) {
         labels_->emplace_back(label.substr(0, label_size));
         label_size = 0;
@@ -156,7 +162,7 @@ int64_t TFExtractTopLabels::TensorReadCallback::process(const std::shared_ptr<io
   auto num_read = stream->read(reinterpret_cast<uint8_t *>(&tensor_proto_buf[0]),
                                    static_cast<int>(stream->size()));
 
-  if (num_read != stream->size()) {
+  if (static_cast<uint64_t>(num_read) != stream->size()) {
     throw std::runtime_error("TensorReadCallback failed to fully read flow file input stream");
   }
 

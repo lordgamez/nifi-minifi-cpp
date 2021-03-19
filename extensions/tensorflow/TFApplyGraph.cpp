@@ -63,7 +63,7 @@ void TFApplyGraph::initialize() {
   setSupportedRelationships(std::move(relationships));
 }
 
-void TFApplyGraph::onSchedule(core::ProcessContext *context, core::ProcessSessionFactory *sessionFactory) {
+void TFApplyGraph::onSchedule(core::ProcessContext *context, core::ProcessSessionFactory* /*sessionFactory*/) {
   context->getProperty(InputNode.getName(), input_node_);
 
   if (input_node_.empty()) {
@@ -77,8 +77,8 @@ void TFApplyGraph::onSchedule(core::ProcessContext *context, core::ProcessSessio
   }
 }
 
-void TFApplyGraph::onTrigger(const std::shared_ptr<core::ProcessContext> &context,
-                             const std::shared_ptr<core::ProcessSession> &session) {
+void TFApplyGraph::onTrigger(const std::shared_ptr<core::ProcessContext>& /*context*/,
+                             const std::shared_ptr<core::ProcessSession>& session) {
   auto flow_file = session->get();
 
   if (!flow_file) {
@@ -150,7 +150,10 @@ void TFApplyGraph::onTrigger(const std::shared_ptr<core::ProcessContext> &contex
     TensorReadCallback tensor_cb(input_tensor_proto);
     session->read(flow_file, &tensor_cb);
     tensorflow::Tensor input;
-    input.FromProto(*input_tensor_proto);
+    if (!input.FromProto(*input_tensor_proto)) {
+      // failure deliberately ignored at this time
+      // added to avoid warn_unused_result build errors
+    }
     std::vector<tensorflow::Tensor> outputs;
     auto status = ctx->tf_session->Run({{input_node_, input}}, {output_node_}, {}, &outputs);
 
@@ -194,7 +197,7 @@ int64_t TFApplyGraph::GraphReadCallback::process(const std::shared_ptr<io::BaseS
   auto num_read = stream->read(reinterpret_cast<uint8_t *>(&graph_proto_buf[0]),
                                    static_cast<int>(stream->size()));
 
-  if (num_read != stream->size()) {
+  if (static_cast<uint64_t>(num_read) != stream->size()) {
     throw std::runtime_error("GraphReadCallback failed to fully read flow file input stream");
   }
 
@@ -208,7 +211,7 @@ int64_t TFApplyGraph::TensorReadCallback::process(const std::shared_ptr<io::Base
   auto num_read = stream->read(reinterpret_cast<uint8_t *>(&tensor_proto_buf[0]),
                                    static_cast<int>(stream->size()));
 
-  if (num_read != stream->size()) {
+  if (static_cast<uint64_t>(num_read) != stream->size()) {
     throw std::runtime_error("TensorReadCallback failed to fully read flow file input stream");
   }
 
@@ -221,7 +224,7 @@ int64_t TFApplyGraph::TensorWriteCallback::process(const std::shared_ptr<io::Bas
   auto num_wrote = stream->write(reinterpret_cast<uint8_t *>(&tensor_proto_buf[0]),
                                      static_cast<int>(tensor_proto_buf.size()));
 
-  if (num_wrote != tensor_proto_buf.size()) {
+  if (static_cast<uint64_t>(num_wrote) != tensor_proto_buf.size()) {
     throw std::runtime_error("TensorWriteCallback failed to fully write flow file output stream");
   }
 

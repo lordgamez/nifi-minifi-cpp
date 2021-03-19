@@ -115,7 +115,7 @@ void TFConvertImageToTensor::initialize() {
   setSupportedRelationships(std::move(relationships));
 }
 
-void TFConvertImageToTensor::onSchedule(core::ProcessContext *context, core::ProcessSessionFactory *sessionFactory) {
+void TFConvertImageToTensor::onSchedule(core::ProcessContext* context, core::ProcessSessionFactory* /*sessionFactory*/) {
   context->getProperty(ImageFormat.getName(), input_format_);
 
   if (input_format_.empty()) {
@@ -189,8 +189,8 @@ void TFConvertImageToTensor::onSchedule(core::ProcessContext *context, core::Pro
   }
 }
 
-void TFConvertImageToTensor::onTrigger(const std::shared_ptr<core::ProcessContext> &context,
-                                       const std::shared_ptr<core::ProcessSession> &session) {
+void TFConvertImageToTensor::onTrigger(const std::shared_ptr<core::ProcessContext>& /*context*/,
+                                       const std::shared_ptr<core::ProcessSession>& session) {
   auto flow_file = session->get();
 
   if (!flow_file) {
@@ -325,7 +325,7 @@ int64_t TFConvertImageToTensor::ImageReadCallback::process(const std::shared_ptr
   auto num_read = stream->read(tensor_->flat<unsigned char>().data(),
                                    static_cast<int>(stream->size()));
 
-  if (num_read != stream->size()) {
+  if (static_cast<uint64_t>(num_read) != stream->size()) {
     throw std::runtime_error("TensorReadCallback failed to fully read flow file input stream");
   }
 
@@ -337,7 +337,7 @@ int64_t TFConvertImageToTensor::TensorWriteCallback::process(const std::shared_p
   auto num_wrote = stream->write(reinterpret_cast<uint8_t *>(&tensor_proto_buf[0]),
                                      static_cast<int>(tensor_proto_buf.size()));
 
-  if (num_wrote != tensor_proto_buf.size()) {
+  if (static_cast<uint64_t>(num_wrote) != tensor_proto_buf.size()) {
     std::string msg = "TensorWriteCallback failed to fully write flow file output stream; Expected ";
     msg.append(std::to_string(tensor_proto_buf.size()));
     msg.append(" and wrote ");
