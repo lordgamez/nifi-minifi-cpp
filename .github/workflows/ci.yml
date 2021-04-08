@@ -174,7 +174,10 @@ jobs:
           docker run --rm lordgamez/tensorflow-cc-binaries:ubuntu-20.04 > tensorflow_binaries.tar.gz
           tar -xf tensorflow_binaries.tar.gz -C ~/
       - id: build
-        run: ./bootstrap.sh -e -t && cd build && cmake -DUSE_SHARED_LIBS= -DCMAKE_BUILD_TYPE=Release -DTENSORFLOW_INCLUDE_PATH=~/tensorflow_binaries/tensorflow_include/include -DTENSORFLOW_LIB_PATH=~/tensorflow_binaries/libs -DGOOGLE_PROTOBUF_LIB_PATH=~/tensorflow_binaries/libs -DENABLE_TENSORFLOW=ON -DENABLE_BUSTACHE=ON -DENABLE_SQL=ON -DENABLE_PCAP=ON -DSTRICT_GSL_CHECKS=AUDIT -DFAIL_ON_WARNINGS=ON .. && make -j4 VERBOSE=1  && make test ARGS="--timeout 300 -j2 --output-on-failure"
+        run: >
+          ./bootstrap.sh -e -t && cd build && cmake -DUSE_SHARED_LIBS= -DCMAKE_BUILD_TYPE=Release -DTENSORFLOW_INCLUDE_PATH=~/tensorflow_binaries/tensorflow_include/include -DTENSORFLOW_LIB_PATH=~/tensorflow_binaries/libs
+          -DGOOGLE_PROTOBUF_LIB_PATH=~/tensorflow_binaries/libs -DENABLE_TENSORFLOW=ON -DENABLE_BUSTACHE=ON -DENABLE_SQL=ON -DENABLE_PCAP=ON -DSTRICT_GSL_CHECKS=AUDIT -DFAIL_ON_WARNINGS=ON .. && make -j4 VERBOSE=1
+          && make test ARGS="--timeout 300 -j2 --output-on-failure"
   ubuntu_20_04_all_clang:
     name: "ubuntu-20.04-all-clang"
     runs-on: ubuntu-20.04
@@ -196,8 +199,15 @@ jobs:
           sudo apt install -y ccache libfl-dev libpcap-dev libboost-all-dev openjdk-8-jdk maven libusb-1.0-0-dev libpng-dev libgps-dev libsqliteodbc
           sudo ln -s /usr/lib/x86_64-linux-gnu/odbc/libsqlite3odbc.so /usr/lib/x86_64-linux-gnu/libsqlite3odbc.so
           echo "PATH=/usr/lib/ccache:$PATH" >> $GITHUB_ENV
+          docker pull lordgamez/tensorflow-cc-binaries:ubuntu-20.04
+          docker run --rm lordgamez/tensorflow-cc-binaries:ubuntu-20.04 > tensorflow_binaries.tar.gz
+          tar -xf tensorflow_binaries.tar.gz -C ~/
       - id: build
-        run: ./bootstrap.sh -e -t && cd build  && cmake -DUSE_SHARED_LIBS= -DCMAKE_BUILD_TYPE=Release -DENABLE_JNI=ON -DENABLE_SENSORS=ON -DENABLE_OPENWSMAN=ON -DENABLE_OPENCV=ON -DENABLE_MQTT=ON -DENABLE_GPS=ON -DENABLE_USB_CAMERA=ON -DENABLE_LIBRDKAFKA=ON -DENABLE_OPC=ON -DENABLE_SFTP=ON -DENABLE_MQTT=ON -DENABLE_COAP=ON -DENABLE_PYTHON=ON -DENABLE_SQL=ON -DENABLE_AWS=ON -DSTRICT_GSL_CHECKS=AUDIT -DFAIL_ON_WARNINGS=ON -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ .. &&  cmake --build . --parallel 4  && make test ARGS="--timeout 300 -j8 --output-on-failure"
+        run: >
+          ./bootstrap.sh -e -t && cd build && cmake -DUSE_SHARED_LIBS= -DCMAKE_BUILD_TYPE=Release -DTENSORFLOW_INCLUDE_PATH=~/tensorflow_binaries/tensorflow_include/include -DTENSORFLOW_LIB_PATH=~/tensorflow_binaries/libs
+          -DGOOGLE_PROTOBUF_LIB_PATH=~/tensorflow_binaries/libs -DENABLE_TENSORFLOW=ON -DENABLE_JNI=ON -DENABLE_SENSORS=ON -DENABLE_OPENWSMAN=ON -DENABLE_OPENCV=ON -DENABLE_MQTT=ON -DENABLE_GPS=ON -DENABLE_USB_CAMERA=ON
+          -DENABLE_LIBRDKAFKA=ON -DENABLE_OPC=ON -DENABLE_SFTP=ON -DENABLE_MQTT=ON -DENABLE_COAP=ON -DENABLE_PYTHON=ON -DENABLE_SQL=ON -DENABLE_AWS=ON -DSTRICT_GSL_CHECKS=AUDIT -DFAIL_ON_WARNINGS=ON
+          -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ .. &&  cmake --build . --parallel 4  && make test ARGS="--timeout 300 -j8 --output-on-failure"
   ubuntu_16_04_all:
     name: "ubuntu-16.04-all"
     runs-on: ubuntu-16.04
