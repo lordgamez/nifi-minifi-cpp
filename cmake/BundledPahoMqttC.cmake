@@ -21,10 +21,10 @@ function(use_bundled_pahomqttc SOURCE_DIR BINARY_DIR)
 
     # Define byproducts
     if (WIN32)
-        set(BYPRODUCT "lib/libpaho-mqtt3cs-static.lib")
+        set(BYPRODUCT "lib/libpaho-mqtt3cs.lib")
     else()
         include(GNUInstallDirs)
-        set(BYPRODUCT "${CMAKE_INSTALL_LIBDIR}/libpaho-mqtt3cs-static.a")
+        set(BYPRODUCT "${CMAKE_INSTALL_LIBDIR}/libpaho-mqtt3cs.a")
     endif()
 
     # Set build options
@@ -44,7 +44,7 @@ function(use_bundled_pahomqttc SOURCE_DIR BINARY_DIR)
     ExternalProject_Add(
             paho.mqtt.c-external
             GIT_REPOSITORY "https://github.com/eclipse/paho.mqtt.c.git"
-            GIT_TAG "6aa07f575bc9369402b1b252fd280373f8d585ef" # This is not a tagged/released version, but the exact one that was in our repo.
+            GIT_TAG "v1.3.8"
             SOURCE_DIR "${BINARY_DIR}/thirdparty/paho.mqtt.c-src"
             LIST_SEPARATOR % # This is needed for passing semicolon-separated lists
             CMAKE_ARGS ${PAHOMQTTC_CMAKE_ARGS}
