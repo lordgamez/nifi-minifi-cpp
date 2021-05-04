@@ -55,6 +55,11 @@ class ConsumeKafka : public core::Processor {
   static core::Property MaxPollTime;
   static core::Property SessionTimeout;
 
+  static core::Property SecurityCA;
+  static core::Property SecurityCert;
+  static core::Property SecurityPrivateKey;
+  static core::Property SecurityPrivateKeyPassword;
+
   // Supported Relationships
   static const core::Relationship Success;
 
@@ -157,6 +162,7 @@ class ConsumeKafka : public core::Processor {
 
   std::string kafka_brokers_;
   std::string security_protocol_;
+  // TODO(hunyadi): replace this with variant on security protocol
   std::vector<std::string> topic_names_;
   std::string topic_name_format_;
   bool honor_transactions_;
@@ -170,6 +176,8 @@ class ConsumeKafka : public core::Processor {
   std::size_t max_poll_records_;
   std::chrono::milliseconds max_poll_time_milliseconds_;
   std::chrono::milliseconds session_timeout_milliseconds_;
+
+  utils::SSL_data ssl_data_;
 
   std::unique_ptr<rd_kafka_t, utils::rd_kafka_consumer_deleter> consumer_;
   std::unique_ptr<rd_kafka_conf_t, utils::rd_kafka_conf_deleter> conf_;

@@ -108,6 +108,8 @@ class SingleNodeDockerCluster(Cluster):
             self.deploy_minifi_cpp_flow()
         elif self.engine == 'kafka-broker':
             self.deploy_kafka_broker()
+        elif self.engine == 'kafka-broker-ssl':
+            self.deploy_kafka_broker_ssl()
         elif self.engine == 'http-proxy':
             self.deploy_http_proxy()
         elif self.engine == 's3-server':
@@ -214,8 +216,7 @@ class SingleNodeDockerCluster(Cluster):
         logging.info('Adding container \'%s\'', container.name)
         self.containers[container.name] = container
 
-    def deploy_kafka_broker(self):
-        logging.info('Creating and running docker containers for kafka broker...')
+    def deploy_zookeeper(self):
         zookeeper = self.client.containers.run(
             self.client.images.pull("wurstmeister/zookeeper:3.4.6"),
             detach=True,
@@ -224,6 +225,10 @@ class SingleNodeDockerCluster(Cluster):
             ports={'2181/tcp': 2181})
         logging.info('Adding container \'%s\'', zookeeper.name)
         self.containers[zookeeper.name] = zookeeper
+
+    def deploy_kafka_broker(self):
+        logging.info('Creating and running docker containers for kafka broker...')
+        self.deploy_zookeeper()
 
         test_dir = os.environ['PYTHONPATH'].split(':')[-1]  # Based on DockerVerify.sh
         broker_image = self.build_image_by_path(test_dir + "/resources/kafka_broker", 'minifi-kafka')
@@ -240,6 +245,40 @@ class SingleNodeDockerCluster(Cluster):
                 "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,SSL:SSL",
                 "KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka-broker:9092,SSL://kafka-broker:9093,PLAINTEXT_HOST://localhost:29092",
                 "KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181"])
+        logging.info('Adding container \'%s\'', broker.name)
+        self.containers[broker.name] = broker
+
+    def deploy_kafka_broker_ssl(self):
+        logging.info('Creating and running docker containers for kafka broker...')
+        self.deploy_zookeeper()
+
+        test_dir = os.environ['PYTHONPATH'].split(':')[-1]  # Based on DockerVerify.sh
+        broker_image = self.build_image_by_path(test_dir + "/resources/kafka_broker_ssl", 'minifi-kafka')
+        broker = self.client.containers.run(
+            broker_image[0],
+            detach=True,
+            name='kafka-broker',
+            network=self.network.name,
+            ports={'9093/tcp': 9093, '29093/tcp': 29093},
+            environment=[
+                "KAFKA_BROKER_ID=1",
+                "ALLOW_PLAINTEXT_LISTENER=no",
+                "KAFKA_AUTO_CREATE_TOPICS_ENABLE=true",
+                "KAFKA_SSL_KEYSTORE_LOCATION=/tmp/resources/keystore.jks",
+                "KAFKA_SSL_KEYSTORE_PASSWORD=rxytnlepGW+UamFTGbCHOElVt+SCxGDi6e5CZaI0Eyc",
+                "KAFKA_SSL_KEY_PASSWORD=rxytnlepGW+UamFTGbCHOElVt+SCxGDi6e5CZaI0Eyc",
+                "KAFKA_SSL_TRUSTSTORE_LOCATION=/tmp/resources/truststore.jks",
+                "KAFKA_SSL_TRUSTSTORE_PASSWORD=4lwDbeUn1tae01hKUogcB+NSkM1AqxFyf0L7KBKb5K8",
+                "KAFKA_LISTENERS=SSL://kafka-broker:9093,SSL_HOST://0.0.0.0:29093",
+                "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=SSL:SSL,SSL_HOST:SSL",
+                "KAFKA_SECURITY_INTER_BROKER_PROTOCOL=SSL",
+                "KAFKA_ADVERTISED_LISTENERS=SSL://kafka-broker:9093,SSL_HOST://localhost:29093",
+                "KAFKA_HEAP_OPTS=-Xms512m -Xmx1g",
+                "KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181",
+                "SSL_CLIENT_AUTH=none"],
+            volumes=self.vols,
+            sysctls={"net.ipv6.conf.all.disable_ipv6": "1"})
+
         logging.info('Adding container \'%s\'', broker.name)
         self.containers[broker.name] = broker
 
