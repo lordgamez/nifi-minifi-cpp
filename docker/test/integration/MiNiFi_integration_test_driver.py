@@ -96,7 +96,7 @@ class MiNiFi_integration_test():
             logging.info("Starting cluster %s with an engine of %s", cluster.get_name(), cluster.get_engine())
             cluster.set_directory_bindings(self.docker_directory_bindings.get_directory_bindings(self.test_id))
             cluster.deploy_flow()
-        for cluster_name, cluster in self.clusters.items():
+        for _, cluster in self.clusters.items():
             startup_success = True
             logging.info("Engine: %s", cluster.get_engine())
             if cluster.get_engine() == "minifi-cpp":
@@ -111,6 +111,8 @@ class MiNiFi_integration_test():
                 startup_success = cluster.wait_for_app_logs("Started S3MockApplication", 120)
             elif cluster.get_engine() == "azure-storage-server":
                 startup_success = cluster.wait_for_app_logs("Azurite Queue service is successfully listening at", 120)
+            elif cluster.get_engine() == "postgresql-server":
+                startup_success = cluster.wait_for_app_logs("database system is ready to accept connections", 120)
             if not startup_success:
                 cluster.log_nifi_output()
             assert startup_success
@@ -217,3 +219,7 @@ class MiNiFi_integration_test():
     def check_azure_storage_server_data(self, cluster_name, object_data):
         cluster = self.acquire_cluster(cluster_name)
         assert cluster.check_azure_storage_server_data(object_data)
+
+    def check_query_results(self, cluster_name, query, number_of_rows, timeout_seconds):
+        cluster = self.acquire_cluster(cluster_name)
+        assert cluster.check_query_results(query, number_of_rows, timeout_seconds)

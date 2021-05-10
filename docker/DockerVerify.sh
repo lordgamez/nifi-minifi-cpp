@@ -96,4 +96,7 @@ exec
   behave "${BEHAVE_OPTS[@]}" "features/s3.feature" -n "A MiNiFi instance can download s3 bucket objects via a http-proxy" &&
   behave "${BEHAVE_OPTS[@]}" "features/s3.feature" -n "A MiNiFi instance can list an S3 bucket directly" &&
   behave "${BEHAVE_OPTS[@]}" "features/s3.feature" -n "A MiNiFi instance can list an S3 bucket objects via a http-proxy" &&
-  behave "${BEHAVE_OPTS[@]}" "features/azure_storage.feature" -n "A MiNiFi instance can upload data to Azure blob storage"
+  behave "${BEHAVE_OPTS[@]}" "features/azure_storage.feature" -n "A MiNiFi instance can upload data to Azure blob storage" &&
+  behave "${BEHAVE_OPTS[@]}" "features/sql.feature" -n "A MiNiFi instance can insert data to test table with PutSQL processor" &&
+  behave "${BEHAVE_OPTS[@]}" "features/sql.feature" -n "A MiNiFi instance can query to test table with ExecuteSQL processor" &&
+  behave "${BEHAVE_OPTS[@]}" "features/sql.feature" -n "A MiNiFi instance can query to test table with QueryDatabaseTable processor"

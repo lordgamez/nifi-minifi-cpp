@@ -129,6 +129,17 @@ class DockerTestCluster(SingleNodeDockerCluster):
         ls_result = subprocess.check_output(["docker", "exec", "s3-server", "ls", s3_mock_dir + "/test_bucket/"]).decode(self.get_stdout_encoding())
         return not ls_result
 
+    def query_postgres_server(self, query, number_of_rows):
+        return str(number_of_rows) + " rows" in subprocess.check_output(["docker", "exec", "postgresql-server", "psql", "-U", "postgres", "-c", query]).decode(self.get_stdout_encoding()).strip()
+
+    def check_query_results(self, query, number_of_rows, timeout_seconds):
+        start_time = time.perf_counter()
+        while (time.perf_counter() - start_time) < timeout_seconds:
+            if self.query_postgres_server(query, number_of_rows):
+                return True
+            time.sleep(2)
+        return False
+
     def wait_for_container_logs(self, container_name, log, timeout, count=1):
         logging.info('Waiting for logs `%s` in container `%s`', log, container_name)
         container = self.containers[container_name]
