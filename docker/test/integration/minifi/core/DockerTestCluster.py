@@ -84,7 +84,7 @@ class DockerTestCluster(SingleNodeDockerCluster):
         return False
 
     def log_nifi_output(self):
-        for container_name, container in self.containers.items():
+        for _, container in self.containers.items():
             logs = self.get_app_log(container.id)
             if logs is not None:
                 for line in logs.decode("utf-8").splitlines():
