@@ -57,8 +57,10 @@ class KafkaTestProducer {
     setKafkaConfigurationField(*conf, "compression.codec", "snappy");
     setKafkaConfigurationField(*conf, "batch.num.messages", "1");
     setKafkaConfigurationField(*conf, "security.protocol", "ssl");
-    setKafkaConfigurationField(*conf, "ssl.ca.location", "/home/hunyadix/Documents/Projects/nifi-minifi-cpp_4/src/docker/test/integration/resources/kafka_broker_ssl/conf/certs/nifi-cert.pem");
-    setKafkaConfigurationField(*conf, "ssl.certificate.location", "/home/hunyadix/Documents/Projects/nifi-minifi-cpp_4/src/docker/test/integration/resources/kafka_broker_ssl/conf/certs/client_cert.crt");
+    setKafkaConfigurationField(*conf, "ssl.ca.location", utils::file::FileUtils::get_executable_dir() + "/../../../docker/test/integration/resources/kafka_broker/conf/certs/ca-cert");
+    setKafkaConfigurationField(*conf, "ssl.certificate.location", utils::file::FileUtils::get_executable_dir() + "/../../../docker/test/integration/resources/kafka_broker/conf/certs/client_LMN_client.pem");
+    setKafkaConfigurationField(*conf, "ssl.key.location", utils::file::FileUtils::get_executable_dir() + "/../../../docker/test/integration/resources/kafka_broker/conf/certs/client_LMN_client.key");
+    setKafkaConfigurationField(*conf, "ssl.key.password", "abcdefgh");
 
     if (transactional) {
       setKafkaConfigurationField(*conf, "transactional.id", "ConsumeKafkaTest_transaction_id");
@@ -278,10 +280,10 @@ class ConsumeKafkaPropertiesTest : public ConsumeKafkaTest {
     plan_->setProperty(consume_kafka, ConsumeKafka::KafkaBrokers.getName(), kafka_brokers);
     plan_->setProperty(consume_kafka, ConsumeKafka::SecurityProtocol.getName(), security_protocol);
     if (security_protocol == ConsumeKafka::SECURITY_PROTOCOL_SSL) {
-      plan_->setProperty(consume_kafka, ConsumeKafka::SecurityCA.getName(), "/home/hunyadix/Documents/Projects/nifi-minifi-cpp_4/src/docker/test/integration/resources/kafka_broker_ssl/conf/certs/nifi-cert.pem");
-      plan_->setProperty(consume_kafka, ConsumeKafka::SecurityCert.getName(), "/home/hunyadix/Documents/Projects/nifi-minifi-cpp_4/src/docker/test/integration/resources/kafka_broker_ssl/conf/certs/client_cert.crt");
-      // plan_->setProperty(consume_kafka, ConsumeKafka::SecurityPrivateKey.getName(), "/tmp/certs/client_key.key");
-      // plan_->setProperty(consume_kafka, ConsumeKafka::SecurityPrivateKeyPassword.getName(), "");
+      plan_->setProperty(consume_kafka, ConsumeKafka::SecurityCA.getName(), utils::file::FileUtils::get_executable_dir() + "/../../../docker/test/integration/resources/kafka_broker/conf/certs/ca-cert");
+      plan_->setProperty(consume_kafka, ConsumeKafka::SecurityCert.getName(), utils::file::FileUtils::get_executable_dir() + "/../../../docker/test/integration/resources/kafka_broker/conf/certs/client_LMN_client.pem");
+      plan_->setProperty(consume_kafka, ConsumeKafka::SecurityPrivateKey.getName(), utils::file::FileUtils::get_executable_dir() + "/../../../docker/test/integration/resources/kafka_broker/conf/certs/client_LMN_client.key");
+      plan_->setProperty(consume_kafka, ConsumeKafka::SecurityPrivateKeyPassword.getName(), "abcdefgh");
     }
 
     plan_->setProperty(consume_kafka, ConsumeKafka::TopicNames.getName(), topic_names);

@@ -64,10 +64,8 @@ class ConsumeKafka : public core::Processor {
   static const core::Relationship Success;
 
   // Security Protocol allowable values
-  static constexpr char const* SECURITY_PROTOCOL_PLAINTEXT = "PLAINTEXT";
-  static constexpr char const* SECURITY_PROTOCOL_SSL = "SSL";
-  static constexpr char const* SECURITY_PROTOCOL_SASL_PLAINTEXT = "SASL_PLAINTEXT";
-  static constexpr char const* SECURITY_PROTOCOL_SASL_SSL = "SASL_SSL";
+  static constexpr char const* SECURITY_PROTOCOL_PLAINTEXT = "plaintext";
+  static constexpr char const* SECURITY_PROTOCOL_SSL = "ssl";
 
   // Topic Name Format allowable values
   static constexpr char const* TOPIC_FORMAT_NAMES = "Names";

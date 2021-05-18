@@ -255,17 +255,18 @@ Feature: Sending data to using Kafka streaming platform using PublishKafka
 
   Scenario: ConsumeKafka receives data via SSL
     Given a ConsumeKafka processor set up in a "kafka-consumer-flow" flow
-    And ssl certificates are placed in "/tmp/resources" with cert name "cert.pem" and key name "key.pem"
     And these processor properties are set:
       | processor name | property name        | property value                             |
       | ConsumeKafka   | Kafka Brokers        | kafka-broker:9093                          |
       | ConsumeKafka   | Security Protocol    | ssl                                        |
-      | ConsumeKafka   | Security CA          | /tmp/resources/nifi-cert.pem               |
-      | ConsumeKafka   | Security Cert        | /tmp/resources/client_cert.crt             |
+      | ConsumeKafka   | Security CA          | /tmp/resources/certs/ca-cert               |
+      | ConsumeKafka   | Security Cert        | /tmp/resources/certs/client_LMN_client.pem |
+      | ConsumeKafka   | Security Private Key | /tmp/resources/certs/client_LMN_client.key |
+      | ConsumeKafka   | Security Pass Phrase | abcdefgh                                   |
     And a PutFile processor with the "Directory" property set to "/tmp/output" in the "kafka-consumer-flow" flow
     And the "success" relationship of the ConsumeKafka processor is connected to the PutFile
 
-    And a kafka broker "broker" set up to communicate via SSL is set up in correspondence with the third-party kafka publisher
+    And a kafka broker "broker" is set up in correspondence with the publisher flow
 
     When all instances start up
     And a message with content "Alice's Adventures in Wonderland" is published to the "ConsumeKafkaTest" topic using an ssl connection

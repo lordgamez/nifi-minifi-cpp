@@ -65,8 +65,8 @@ core::Property ConsumeKafka::KafkaBrokers(core::PropertyBuilder::createProperty(
   ->build());
 
 core::Property ConsumeKafka::SecurityProtocol(core::PropertyBuilder::createProperty("Security Protocol")
-  ->withDescription("This property is currently not supported. Protocol used to communicate with brokers. Corresponds to Kafka's 'security.protocol' property.")
-  ->withAllowableValues<std::string>({SECURITY_PROTOCOL_PLAINTEXT, SECURITY_PROTOCOL_SSL, SECURITY_PROTOCOL_SASL_PLAINTEXT, SECURITY_PROTOCOL_SASL_SSL })
+  ->withDescription("Protocol used to communicate with brokers. Corresponds to Kafka's 'security.protocol' property.")
+  ->withAllowableValues<std::string>({SECURITY_PROTOCOL_PLAINTEXT, SECURITY_PROTOCOL_SSL})
   ->withDefaultValue(SECURITY_PROTOCOL_PLAINTEXT)
   ->isRequired(true)
   ->build());
@@ -343,8 +343,8 @@ void ConsumeKafka::configure_new_connection(const core::ProcessContext& context)
   rd_kafka_conf_set_rebalance_cb(conf_.get(), rebalance_cb);
 
   // Uncomment this for librdkafka debug logs:
-  // logger_->log_info("Enabling all debug logs for kafka consumer.");
-  // setKafkaConfigurationField(*conf_, "debug", "all");
+  logger_->log_info("Enabling all debug logs for kafka consumer.");
+  setKafkaConfigurationField(*conf_, "debug", "all");
 
   setKafkaConfigurationField(*conf_, "bootstrap.servers", kafka_brokers_);
   setKafkaConfigurationField(*conf_, "allow.auto.create.topics", "true");
@@ -354,8 +354,8 @@ void ConsumeKafka::configure_new_connection(const core::ProcessContext& context)
     setKafkaConfigurationField(*conf_, "security.protocol", "ssl");
     setKafkaConfigurationField(*conf_, "ssl.ca.location", ssl_data_.ca_loc);
     setKafkaConfigurationField(*conf_, "ssl.certificate.location", ssl_data_.cert_loc);
-    // setKafkaConfigurationField(*conf_, "ssl.key.location", ssl_data_.key_loc);
-    // setKafkaConfigurationField(*conf_, "ssl.key.password", ssl_data_.key_pw);
+    setKafkaConfigurationField(*conf_, "ssl.key.location", ssl_data_.key_loc);
+    setKafkaConfigurationField(*conf_, "ssl.key.password", ssl_data_.key_pw);
   }
 
   setKafkaConfigurationField(*conf_, "enable.auto.commit", "false");

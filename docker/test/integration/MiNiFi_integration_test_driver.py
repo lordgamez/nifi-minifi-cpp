@@ -114,8 +114,6 @@ class MiNiFi_integration_test():
             startup_success = cluster.wait_for_app_logs("Starting Flow Controller...", 120)
         elif cluster.get_engine() == "kafka-broker":
             startup_success = cluster.wait_for_app_logs("Kafka startTimeMs", 120)
-        elif cluster.get_engine() == "kafka-broker-ssl":
-            startup_success = cluster.wait_for_app_logs("Kafka startTimeMs", 120)
         elif cluster.get_engine() == "http-proxy":
             startup_success = cluster.wait_for_app_logs("Accepting HTTP Socket connections at", 120)
         elif cluster.get_engine() == "s3-server":
