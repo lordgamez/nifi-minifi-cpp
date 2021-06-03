@@ -66,6 +66,7 @@ After the build directory it will take optional parameters modifying the CMake c
 | /Z | Enables Azure |
 | /L | Enables Linter |
 | /PDH | Enables Performance Monitor |
+| /RO | Use real ODBC driver in tests instead of mock SQL driver |
 | /M | Creates installer with merge modules |
 | /64 | Creates 64-bit build instead of a 32-bit one |
 | /D | Builds RelWithDebInfo build instead of Release |
