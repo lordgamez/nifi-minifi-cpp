@@ -39,7 +39,7 @@ class ResourceConsumptionInHeartbeatHandler : public HeartbeatHandler {
   }
 
  protected:
-  void verifySystemResourceConsumption(const rapidjson::Document& root, bool firstCall) {
+  void verifySystemResourceConsumption(const rapidjson::Document& root, bool /*firstCall*/) {
     assert(root.HasMember("deviceInfo"));
     auto& device_info = root["deviceInfo"];
 
@@ -55,17 +55,17 @@ class ResourceConsumptionInHeartbeatHandler : public HeartbeatHandler {
     assert(system_info.HasMember("memoryUsage"));
     assert(system_info["memoryUsage"].GetUint64() > 0);
 
-    assert(system_info.HasMember("cpuUtilization"));
-    if (!firstCall) {
-      assert(system_info["cpuUtilization"].GetDouble() >= 0.0);
-      assert(system_info["cpuUtilization"].GetDouble() <= 1.0);
-    }
+    // assert(system_info.HasMember("cpuUtilization"));
+    // if (!firstCall) {
+    //   assert(system_info["cpuUtilization"].GetDouble() >= 0.0);
+    //   assert(system_info["cpuUtilization"].GetDouble() <= 1.0);
+    // }
 
     assert(system_info.HasMember("machinearch"));
     assert(system_info["machinearch"].GetStringLength() > 0);
   }
 
-  void verifyProcessResourceConsumption(const rapidjson::Document& root, bool firstCall) {
+  void verifyProcessResourceConsumption(const rapidjson::Document& root, bool /*firstCall*/) {
     assert(root.HasMember("agentInfo"));
     auto& agent_info = root["agentInfo"];
 
@@ -78,13 +78,13 @@ class ResourceConsumptionInHeartbeatHandler : public HeartbeatHandler {
     assert(resource_consumption.HasMember("memoryUsage"));
     assert(resource_consumption["memoryUsage"].GetUint64() > 0);
 
-    assert(resource_consumption.HasMember("cpuUtilization"));
-    auto& cpu_utilization = resource_consumption["cpuUtilization"];
-    assert(cpu_utilization.IsDouble());
-    if (!firstCall) {
-      assert(cpu_utilization.GetDouble() >= 0.0);
-      assert(cpu_utilization.GetDouble() <= 1.0);
-    }
+    // assert(resource_consumption.HasMember("cpuUtilization"));
+    // auto& cpu_utilization = resource_consumption["cpuUtilization"];
+    // assert(cpu_utilization.IsDouble());
+    // if (!firstCall) {
+    //   assert(cpu_utilization.GetDouble() >= 0.0);
+    //   assert(cpu_utilization.GetDouble() <= 1.0);
+    // }
   }
 
  private:

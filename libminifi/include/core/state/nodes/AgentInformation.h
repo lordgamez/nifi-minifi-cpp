@@ -542,7 +542,7 @@ class AgentStatus : public StateMonitorNode {
     SerializedResponseNode resource_consumption;
     resource_consumption.name = "resourceConsumption";
     resource_consumption.children.push_back(serializeAgentMemoryUsage());
-    resource_consumption.children.push_back(serializeAgentCPUUsage());
+    // resource_consumption.children.push_back(serializeAgentCPUUsage());
     return resource_consumption;
   }
 

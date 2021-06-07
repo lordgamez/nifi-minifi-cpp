@@ -426,7 +426,7 @@ class DeviceInfoNode : public DeviceInformation {
     systemInfo.children.push_back(serializeTotalPhysicalMemoryInformation());
     systemInfo.children.push_back(serializeArchitectureInformation());
     systemInfo.children.push_back(serializePhysicalMemoryUsageInformation());
-    systemInfo.children.push_back(serializeSystemCPUUsageInformation());
+    // systemInfo.children.push_back(serializeSystemCPUUsageInformation());
 
     return systemInfo;
   }

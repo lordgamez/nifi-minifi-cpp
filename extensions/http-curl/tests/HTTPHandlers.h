@@ -27,6 +27,7 @@
 #include "CivetStream.h"
 #include "io/CRCStream.h"
 #include "rapidjson/document.h"
+#include "rapidjson/error/en.h"
 #include "HTTPUtils.h"
 #include "ServerAwareHandler.h"
 #include "utils/gsl.h"
@@ -422,11 +423,19 @@ class HeartbeatHandler : public ServerAwareHandler {
 
   void verify(struct mg_connection *conn) {
     auto post_data = readPayload(conn);
+    if (!isServerRunning()) {
+      return;
+    }
     if (!IsNullOrEmpty(post_data)) {
       rapidjson::Document root;
       rapidjson::ParseResult ok = root.Parse(post_data.data(), post_data.size());
-      assert(ok);
-      (void)ok;  // unused in release builds
+      if (!ok) {
+        fprintf(stderr, "JSON: %s\n",
+                post_data.c_str());
+        fprintf(stderr, "JSON parse error: %s (%lu)\n",
+                rapidjson::GetParseError_En(ok.Code()), ok.Offset());
+        throw std::runtime_error("Invalid JSON detected in request");
+      }
       std::string operation = root["operation"].GetString();
       if (operation == "heartbeat") {
         handleHeartbeat(root, conn);
