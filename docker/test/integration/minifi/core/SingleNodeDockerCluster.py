@@ -28,6 +28,7 @@ class SingleNodeDockerCluster(Cluster):
 
     def __del__(self):
         del self.containers
+        logging.info('Cleaning up network: %s', self.network.name)
         self.network.remove()
 
     def set_directory_bindings(self, bindings):
