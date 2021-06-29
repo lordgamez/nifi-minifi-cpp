@@ -58,7 +58,7 @@ class KafkaTestProducer {
     setKafkaConfigurationField(*conf, "batch.num.messages", "1");
     setKafkaConfigurationField(*conf, "security.protocol", "ssl");
     setKafkaConfigurationField(*conf, "ssl.ca.location", utils::file::FileUtils::get_executable_dir() + "/../../../docker/test/integration/resources/kafka_broker/conf/certs/ca-cert");
-    setKafkaConfigurationField(*conf, "ssl.certificate.location", utils::file::FileUtils::get_executable_dir() + "/../../../docker/test/integration/resources/kafka_broker/conf/certs/client_LMN_client.pem");
+    setKafkaConfigurationField(*conf, "ssl.certificate.location", utils::file::FileUtils::get_executable_dir() + "/../../../docker/test/integration/resources/kafka_broker/conf/certs/client_LMN_client.pem");  // NOLINT
     setKafkaConfigurationField(*conf, "ssl.key.location", utils::file::FileUtils::get_executable_dir() + "/../../../docker/test/integration/resources/kafka_broker/conf/certs/client_LMN_client.key");
     setKafkaConfigurationField(*conf, "ssl.key.password", "abcdefgh");
 
@@ -280,9 +280,9 @@ class ConsumeKafkaPropertiesTest : public ConsumeKafkaTest {
     plan_->setProperty(consume_kafka, ConsumeKafka::KafkaBrokers.getName(), kafka_brokers);
     plan_->setProperty(consume_kafka, ConsumeKafka::SecurityProtocol.getName(), security_protocol);
     if (security_protocol == ConsumeKafka::SECURITY_PROTOCOL_SSL) {
-      plan_->setProperty(consume_kafka, ConsumeKafka::SecurityCA.getName(), utils::file::FileUtils::get_executable_dir() + "/../../../docker/test/integration/resources/kafka_broker/conf/certs/ca-cert");
-      plan_->setProperty(consume_kafka, ConsumeKafka::SecurityCert.getName(), utils::file::FileUtils::get_executable_dir() + "/../../../docker/test/integration/resources/kafka_broker/conf/certs/client_LMN_client.pem");
-      plan_->setProperty(consume_kafka, ConsumeKafka::SecurityPrivateKey.getName(), utils::file::FileUtils::get_executable_dir() + "/../../../docker/test/integration/resources/kafka_broker/conf/certs/client_LMN_client.key");
+      plan_->setProperty(consume_kafka, ConsumeKafka::SecurityCA.getName(), utils::file::FileUtils::get_executable_dir() + "/../../../docker/test/integration/resources/kafka_broker/conf/certs/ca-cert");  // NOLINT
+      plan_->setProperty(consume_kafka, ConsumeKafka::SecurityCert.getName(), utils::file::FileUtils::get_executable_dir() + "/../../../docker/test/integration/resources/kafka_broker/conf/certs/client_LMN_client.pem");  // NOLINT
+      plan_->setProperty(consume_kafka, ConsumeKafka::SecurityPrivateKey.getName(), utils::file::FileUtils::get_executable_dir() + "/../../../docker/test/integration/resources/kafka_broker/conf/certs/client_LMN_client.key");  // NOLINT
       plan_->setProperty(consume_kafka, ConsumeKafka::SecurityPrivateKeyPassword.getName(), "abcdefgh");
     }
 
