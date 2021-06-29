@@ -519,3 +519,8 @@ def step_impl(context, cluster_name):
 @then("the object on the \"{cluster_name}\" Azure storage server is \"{object_data}\"")
 def step_impl(context, cluster_name, object_data):
     context.test.check_azure_storage_server_data(cluster_name, object_data)
+
+
+@then("the Minifi logs in the \"{cluster_name}\" contain the following message: \"{log_message}\" in less than {duration}")
+def step_impl(context, cluster_name, log_message, duration):
+    context.test.check_minifi_logs_for_message(cluster_name, log_message, timeparse(duration))

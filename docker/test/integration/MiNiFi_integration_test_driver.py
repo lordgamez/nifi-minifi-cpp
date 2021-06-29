@@ -266,3 +266,7 @@ class MiNiFi_integration_test():
     def wait_for_kafka_consumer_to_be_registered(self, cluster_name):
         cluster = self.acquire_cluster(cluster_name)
         assert cluster.wait_for_kafka_consumer_to_be_registered()
+
+    def check_minifi_logs_for_message(self, cluster_name, log_message, timeout_seconds):
+        cluster = self.acquire_cluster(cluster_name)
+        assert cluster.wait_for_app_logs(log_message, timeout_seconds)
