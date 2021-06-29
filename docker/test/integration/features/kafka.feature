@@ -272,4 +272,4 @@ Feature: Sending data to using Kafka streaming platform using PublishKafka
     And a message with content "Alice's Adventures in Wonderland" is published to the "ConsumeKafkaTest" topic using an ssl connection
     And a message with content "Lewis Carroll" is published to the "ConsumeKafkaTest" topic using an ssl connection
 
-    Then two flowfiles with the contents "Alice's Adventures in Wonderland" and "Lewis Carroll" are placed in the monitored directory in less than 450 seconds
+    Then two flowfiles with the contents "Alice's Adventures in Wonderland" and "Lewis Carroll" are placed in the monitored directory in less than 60 seconds
