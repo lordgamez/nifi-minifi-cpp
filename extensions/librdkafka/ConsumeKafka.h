@@ -160,7 +160,6 @@ class ConsumeKafka : public core::Processor {
 
   std::string kafka_brokers_;
   std::string security_protocol_;
-  // TODO(hunyadi): replace this with variant on security protocol
   std::vector<std::string> topic_names_;
   std::string topic_name_format_;
   bool honor_transactions_;
