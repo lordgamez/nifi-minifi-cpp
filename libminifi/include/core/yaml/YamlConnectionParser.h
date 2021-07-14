@@ -51,6 +51,7 @@ class YamlConnectionParser {
   utils::Identifier getDestinationUUIDFromYaml() const;
   uint64_t getFlowFileExpirationFromYaml() const;
   bool getDropEmptyFromYaml() const;
+
  private:
   void addNewRelationshipToConnection(const std::string& relationship_name, const std::shared_ptr<minifi::Connection>& connection) const;
   void addFunnelConnection(const std::shared_ptr<minifi::Connection>& connection) const;
