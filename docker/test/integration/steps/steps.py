@@ -358,8 +358,8 @@ def step_impl(context):
 @given("an ssl context service set up for {producer_name} and {consumer_name}")
 def step_impl(context, producer_name, consumer_name):
     root_ca_cert, root_ca_key = make_ca("root CA")
-    minifi_cert, minifi_key = make_cert("minifi-cpp-flow", root_ca_cert, root_ca_key)
-    secondary_cert, secondary_key = make_cert("secondary", root_ca_cert, root_ca_key)
+    minifi_cert, minifi_key = make_cert("minifi-cpp-flow", root_ca_cert, root_ca_key, False)
+    secondary_cert, secondary_key = make_cert("secondary", root_ca_cert, root_ca_key, True)
     secondary_pem_file = '/tmp/resources/secondary.pem'
     minifi_crt_file = '/tmp/resources/minifi-cpp-flow.crt'
     minifi_key_file = '/tmp/resources/minifi-cpp-flow.key'
@@ -522,8 +522,8 @@ def step_impl(context):
 @given("SSL is enabled for the Splunk HEC and the SSL context service is set up for PutSplunkHTTP and QuerySplunkIndexingStatus")
 def step_impl(context):
     root_ca_cert, root_ca_key = make_ca("root CA")
-    minifi_cert, minifi_key = make_cert("minifi-cpp-flow", root_ca_cert, root_ca_key)
-    splunk_cert, splunk_key = make_cert("splunk", root_ca_cert, root_ca_key)
+    minifi_cert, minifi_key = make_cert("minifi-cpp-flow", root_ca_cert, root_ca_key, False)
+    splunk_cert, splunk_key = make_cert("splunk", root_ca_cert, root_ca_key, True)
     minifi_crt_file = '/tmp/resources/minifi-cpp-flow.pem'
     minifi_key_file = '/tmp/resources/minifi-cpp-flow.key'
     root_ca_crt_file = '/tmp/resources/root_ca.pem'
