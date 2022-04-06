@@ -30,7 +30,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include <regex>
 
 #include "range/v3/action/sort.hpp"
 #include "range/v3/range/conversion.hpp"
@@ -42,6 +41,7 @@
 #include "utils/file/PathUtils.h"
 #include "utils/TimeUtil.h"
 #include "utils/StringUtils.h"
+#include "utils/RegexUtils.h"
 #include "utils/ProcessorConfigUtils.h"
 #include "TextFragmentUtils.h"
 #include "TailFile.h"
@@ -631,10 +631,9 @@ std::vector<TailState> TailFile::findAllRotatedFiles(const TailState &state) con
 
   std::vector<TailStateWithMtime> matched_files_with_mtime;
   auto collect_matching_files = [&](const std::string &path, const std::string &file_name) -> bool {
-    std::regex pattern_regex(pattern);
-    if (file_name != state.file_name_ && std::regex_match(file_name, pattern_regex)) {
-      std::string full_file_name = path + utils::file::get_separator() + file_name;
-      TailStateWithMtime::TimePoint mtime{utils::file::last_write_time_point(full_file_name)};
+    if (file_name != state.file_name_ && utils::Regex::matchesFullInput(pattern, file_name)) {
+      std::string full_file_name = path + utils::file::FileUtils::get_separator() + file_name;
+      TailStateWithMtime::TimePoint mtime{utils::file::FileUtils::last_write_time_point(full_file_name)};
       logger_->log_debug("File %s with mtime %" PRId64 " matches rolling filename pattern %s, so we are reading it", file_name, int64_t{mtime.time_since_epoch().count()}, pattern);
       matched_files_with_mtime.emplace_back(TailState{path, file_name}, mtime);
     }
@@ -653,10 +652,9 @@ std::vector<TailState> TailFile::findRotatedFilesAfterLastReadTime(const TailSta
 
   std::vector<TailStateWithMtime> matched_files_with_mtime;
   auto collect_matching_files = [&](const std::string &path, const std::string &file_name) -> bool {
-    std::regex pattern_regex(pattern);
-    if (file_name != state.file_name_ && std::regex_match(file_name, pattern_regex)) {
-      std::string full_file_name = path + utils::file::get_separator() + file_name;
-      TailStateWithMtime::TimePoint mtime{utils::file::last_write_time_point(full_file_name)};
+    if (file_name != state.file_name_ && utils::Regex::matchesFullInput(pattern, file_name)) {
+      std::string full_file_name = path + utils::file::FileUtils::get_separator() + file_name;
+      TailStateWithMtime::TimePoint mtime{utils::file::FileUtils::last_write_time_point(full_file_name)};
       logger_->log_debug("File %s with mtime %" PRId64 " matches rolling filename pattern %s", file_name, int64_t{mtime.time_since_epoch().count()}, pattern);
       if (mtime >= std::chrono::time_point_cast<std::chrono::seconds>(state.last_read_time_)) {
         logger_->log_debug("File %s has mtime >= last read time, so we are going to read it", file_name);
@@ -867,9 +865,8 @@ void TailFile::checkForRemovedFiles() {
   for (const auto &kv : tail_states_) {
     const std::string &full_file_name = kv.first;
     const TailState &state = kv.second;
-    std::regex pattern_regex(file_to_tail_);
-    if (utils::file::file_size(state.fileNameWithPath()) == 0u ||
-        !std::regex_match(state.file_name_, pattern_regex)) {
+    if (utils::file::FileUtils::file_size(state.fileNameWithPath()) == 0u ||
+        !utils::Regex::matchesFullInput(file_to_tail_, state.file_name_)) {
       file_names_to_remove.push_back(full_file_name);
     }
   }
@@ -881,9 +878,8 @@ void TailFile::checkForRemovedFiles() {
 
 void TailFile::checkForNewFiles(core::ProcessContext& context) {
   auto add_new_files_callback = [&](const std::string &path, const std::string &file_name) -> bool {
-    std::string full_file_name = path + utils::file::get_separator() + file_name;
-    std::regex file_to_tail_regex(file_to_tail_);
-    if (!containsKey(tail_states_, full_file_name) && std::regex_match(file_name, file_to_tail_regex)) {
+    std::string full_file_name = path + utils::file::FileUtils::get_separator() + file_name;
+    if (!containsKey(tail_states_, full_file_name) && utils::Regex::matchesFullInput(file_to_tail_, file_name)) {
       tail_states_.emplace(full_file_name, TailState{path, file_name});
     }
     return true;

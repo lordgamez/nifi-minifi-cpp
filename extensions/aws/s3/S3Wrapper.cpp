@@ -27,6 +27,7 @@
 #include "S3ClientRequestSender.h"
 #include "utils/StringUtils.h"
 #include "utils/file/FileUtils.h"
+#include "utils/RegexUtils.h"
 #include "utils/gsl.h"
 
 namespace org {
@@ -56,12 +57,12 @@ void S3Wrapper::setCannedAcl(Aws::S3::Model::PutObjectRequest& request, const st
 }
 
 Expiration S3Wrapper::getExpiration(const std::string& expiration) {
-  std::regex expr("expiry-date=\"(.*)\", rule-id=\"(.*)\"");
-  std::smatch matches;
-  const bool matched = std::regex_search(expiration, matches, expr);
-  if (!matched || matches.size() < 3)
+  minifi::utils::Regex expr("expiry-date=\"(.*)\", rule-id=\"(.*)\"");
+  const auto match = expr.match(expiration);
+  const auto& results = expr.getResult();
+  if (!match || results.size() < 3)
     return Expiration{};
-  return Expiration{matches[1], matches[2]};
+  return Expiration{results[1], results[2]};
 }
 
 std::string S3Wrapper::getEncryptionString(Aws::S3::Model::ServerSideEncryption encryption) {

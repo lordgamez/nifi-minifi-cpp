@@ -17,7 +17,6 @@
 
 #include <fstream>
 #include <optional>
-#include <regex>
 #include <string>
 
 #include "ConfigFileEncryptor.h"
@@ -25,6 +24,7 @@
 
 #include "TestBase.h"
 #include "Catch.h"
+#include "utils/RegexUtils.h"
 
 using org::apache::nifi::minifi::encrypt_config::ConfigFile;
 using org::apache::nifi::minifi::encrypt_config::encryptSensitivePropertiesInFile;
@@ -43,11 +43,10 @@ bool check_encryption(const ConfigFile& test_file, const std::string& property_n
   const auto encryption_type = test_file.getValue(property_name + ".protected");
   if (!encryption_type || *encryption_type != utils::crypto::EncryptionType::name()) { return false; }
 
-  auto length = base64_length(utils::crypto::EncryptionType::nonceLength()) +
-      utils::crypto::EncryptionType::separator().size() +
-      base64_length(original_value_length + utils::crypto::EncryptionType::macLength());
-  std::regex pattern("[0-9A-Za-z/+=|]{" + std::to_string(length) + "}");
-  return std::regex_match(*encrypted_value, pattern);
+    auto length = base64_length(utils::crypto::EncryptionType::nonceLength()) +
+        utils::crypto::EncryptionType::separator().size() +
+        base64_length(original_value_length + utils::crypto::EncryptionType::macLength());
+    return utils::Regex::matchesFullInput("[0-9A-Za-z/+=|]{" + std::to_string(length) + "}", *encrypted_value);
 }
 }  // namespace
 
