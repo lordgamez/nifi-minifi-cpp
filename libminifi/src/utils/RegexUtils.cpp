@@ -32,7 +32,7 @@ Regex::Regex() : Regex::Regex("") {}
 Regex::Regex(const std::string &value) : Regex::Regex(value, {}) {}
 
 Regex::Regex(const std::string &value,
-                           const std::vector<Regex::Mode> &mode)
+             const std::vector<Regex::Mode> &mode)
     : regexStr_(value),
       valid_(false) {
   if (regexStr_.empty())
@@ -71,6 +71,13 @@ Regex::Regex(const std::string &value,
     regerror(err_code, &compiledRegex_, msg.data(), msg.size());
     throw Exception(REGEX_EXCEPTION, std::string(msg.begin(), msg.end()));
   }
+  err_code = regcomp(&compiledFullInputRegex_, ('^' + regexStr_ + '$').c_str(), regex_mode_);
+  if (err_code) {
+    const size_t sz = regerror(err_code, &compiledFullInputRegex_, nullptr, 0);
+    std::vector<char> msg(sz);
+    regerror(err_code, &compiledFullInputRegex_, msg.data(), msg.size());
+    throw Exception(REGEX_EXCEPTION, std::string(msg.begin(), msg.end()));
+  }
   valid_ = true;
   int maxGroups = std::count(regexStr_.begin(), regexStr_.end(), '(') + 1;
   matches_.resize(maxGroups);
@@ -100,9 +107,12 @@ Regex& Regex::operator=(Regex&& other) {
   regex_mode_ = other.regex_mode_;
   matches_ = std::move(other.matches_);
 #else
-  if (valid_)
+  if (valid_) {
     regfree(&compiledRegex_);
+    regfree(&compiledFullInputRegex_);
+  }
   compiledRegex_ = other.compiledRegex_;
+  compiledFullInputRegex_ = other.compiledFullInputRegex_;
   regex_mode_ = other.regex_mode_;
   matches_ = std::move(other.matches_);
 #endif
@@ -113,8 +123,10 @@ Regex& Regex::operator=(Regex&& other) {
 
 Regex::~Regex() {
 #ifndef NO_MORE_REGFREEE
-  if (valid_)
+  if (valid_) {
     regfree(&compiledRegex_);
+    regfree(&compiledFullInputRegex_);
+  }
 #endif
 }
 
@@ -134,7 +146,13 @@ bool Regex::match(const std::string &pattern) {
   }
   return false;
 #else
-  if (regexec(&compiledRegex_, pattern.c_str(), matches_.size(),
+  return match(pattern, compiledRegex_);
+#endif
+}
+
+#ifndef NO_MORE_REGFREEE
+bool Regex::match(const std::string &pattern, const regex_t& regex) {
+  if (regexec(&regex, pattern.c_str(), matches_.size(),
               matches_.data(), 0) == 0) {
     for (const auto &m : matches_) {
       if (m.rm_so == -1) {
@@ -151,6 +169,14 @@ bool Regex::match(const std::string &pattern) {
     return true;
   }
   return false;
+}
+#endif
+
+bool Regex::matchesFullInput(const std::string &input) {
+#ifdef NO_MORE_REGFREEE
+  return std::regex_match(input, compiledRegex_);
+#else
+  return match(input, compiledFullInputRegex_);
 #endif
 }
 

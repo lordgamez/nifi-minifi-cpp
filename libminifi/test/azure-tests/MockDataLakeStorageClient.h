@@ -85,7 +85,6 @@ class MockDataLakeStorageClient : public org::apache::nifi::minifi::azure::stora
   }
 
   std::vector<Azure::Storage::Files::DataLake::Models::PathItem> listDirectory(const org::apache::nifi::minifi::azure::storage::ListAzureDataLakeStorageParameters& params) override {
-    list_params_ = params;
     std::vector<Azure::Storage::Files::DataLake::Models::PathItem> result;
     Azure::Storage::Files::DataLake::Models::PathItem diritem;
     diritem.IsDirectory = true;
@@ -108,6 +107,7 @@ class MockDataLakeStorageClient : public org::apache::nifi::minifi::azure::stora
     result.push_back(diritem);
     result.push_back(item1);
     result.push_back(item2);
+    list_params_ = &params;
     return result;
   }
 
@@ -147,8 +147,8 @@ class MockDataLakeStorageClient : public org::apache::nifi::minifi::azure::stora
     return fetch_params_;
   }
 
-  org::apache::nifi::minifi::azure::storage::ListAzureDataLakeStorageParameters getPassedListParams() const {
-    return list_params_;
+  const org::apache::nifi::minifi::azure::storage::ListAzureDataLakeStorageParameters& getPassedListParams() const {
+    return *list_params_;
   }
 
  private:
@@ -164,5 +164,5 @@ class MockDataLakeStorageClient : public org::apache::nifi::minifi::azure::stora
   org::apache::nifi::minifi::azure::storage::PutAzureDataLakeStorageParameters put_params_;
   org::apache::nifi::minifi::azure::storage::DeleteAzureDataLakeStorageParameters delete_params_;
   org::apache::nifi::minifi::azure::storage::FetchAzureDataLakeStorageParameters fetch_params_;
-  org::apache::nifi::minifi::azure::storage::ListAzureDataLakeStorageParameters list_params_;
+  const org::apache::nifi::minifi::azure::storage::ListAzureDataLakeStorageParameters* list_params_;
 };

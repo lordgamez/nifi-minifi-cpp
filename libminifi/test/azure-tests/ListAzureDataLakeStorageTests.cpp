@@ -99,7 +99,7 @@ TEST_CASE_METHOD(ListAzureDataLakeStorageTestsFixture, "List all files every tim
   test_controller_.runSession(plan_, true);
   using org::apache::nifi::minifi::utils::verifyLogLinePresenceInPollTime;
   auto run_assertions = [this]() {
-    auto passed_params = mock_data_lake_storage_client_ptr_->getPassedListParams();
+    const auto& passed_params = mock_data_lake_storage_client_ptr_->getPassedListParams();
     CHECK(passed_params.credentials.buildConnectionString() == CONNECTION_STRING);
     CHECK(passed_params.file_system_name == FILESYSTEM_NAME);
     CHECK(passed_params.directory_name == DIRECTORY_NAME);
@@ -127,7 +127,7 @@ TEST_CASE_METHOD(ListAzureDataLakeStorageTestsFixture, "Do not list same files t
   plan_->setProperty(list_azure_data_lake_storage_, minifi::azure::processors::ListAzureDataLakeStorage::RecurseSubdirectories.getName(), "false");
   test_controller_.runSession(plan_, true);
   using org::apache::nifi::minifi::utils::verifyLogLinePresenceInPollTime;
-  auto passed_params = mock_data_lake_storage_client_ptr_->getPassedListParams();
+  const auto& passed_params = mock_data_lake_storage_client_ptr_->getPassedListParams();
   CHECK(passed_params.credentials.buildConnectionString() == CONNECTION_STRING);
   CHECK(passed_params.file_system_name == FILESYSTEM_NAME);
   CHECK(passed_params.directory_name == DIRECTORY_NAME);
@@ -154,7 +154,7 @@ TEST_CASE_METHOD(ListAzureDataLakeStorageTestsFixture, "Do not list filtered fil
   plan_->setProperty(list_azure_data_lake_storage_, minifi::azure::processors::ListAzureDataLakeStorage::FileFilter.getName(), "item1.*g");
   test_controller_.runSession(plan_, true);
   using org::apache::nifi::minifi::utils::verifyLogLinePresenceInPollTime;
-  auto passed_params = mock_data_lake_storage_client_ptr_->getPassedListParams();
+  const auto& passed_params = mock_data_lake_storage_client_ptr_->getPassedListParams();
   CHECK(passed_params.credentials.buildConnectionString() == CONNECTION_STRING);
   CHECK(passed_params.file_system_name == FILESYSTEM_NAME);
   CHECK(passed_params.directory_name == DIRECTORY_NAME);
@@ -177,7 +177,7 @@ TEST_CASE_METHOD(ListAzureDataLakeStorageTestsFixture, "Do not list filtered pat
   plan_->setProperty(list_azure_data_lake_storage_, minifi::azure::processors::ListAzureDataLakeStorage::PathFilter.getName(), "su.*");
   test_controller_.runSession(plan_, true);
   using org::apache::nifi::minifi::utils::verifyLogLinePresenceInPollTime;
-  auto passed_params = mock_data_lake_storage_client_ptr_->getPassedListParams();
+  const auto& passed_params = mock_data_lake_storage_client_ptr_->getPassedListParams();
   CHECK(passed_params.credentials.buildConnectionString() == CONNECTION_STRING);
   CHECK(passed_params.file_system_name == FILESYSTEM_NAME);
   CHECK(passed_params.directory_name == DIRECTORY_NAME);

@@ -33,7 +33,7 @@
 namespace org::apache::nifi::minifi::azure::storage {
 
 namespace {
-bool matchesPathFilter(std::string_view base_directory, const std::optional<std::regex>& path_regex, std::string path) {
+bool matchesPathFilter(std::string_view base_directory, std::optional<utils::Regex>& path_regex, std::string path) {
   gsl_Expects(utils::implies(!base_directory.empty(), minifi::utils::StringUtils::startsWith(path, base_directory)));
   if (!path_regex) {
     return true;
@@ -43,15 +43,15 @@ bool matchesPathFilter(std::string_view base_directory, const std::optional<std:
     path = path.size() == base_directory.size() ? "" : path.substr(base_directory.size() + 1);
   }
 
-  return std::regex_match(path, *path_regex);
+  return path_regex->matchesFullInput(path);
 }
 
-bool matchesFileFilter(const std::optional<std::regex>& file_regex, const std::string& filename) {
+bool matchesFileFilter(std::optional<utils::Regex>& file_regex, const std::string& filename) {
   if (!file_regex) {
     return true;
   }
 
-  return std::regex_match(filename, *file_regex);
+  return file_regex->matchesFullInput(filename);
 }
 }  // namespace
 
@@ -102,7 +102,7 @@ std::optional<uint64_t> AzureDataLakeStorage::fetchFile(const FetchAzureDataLake
   }
 }
 
-std::optional<ListDataLakeStorageResult> AzureDataLakeStorage::listDirectory(const ListAzureDataLakeStorageParameters& params) {
+std::optional<ListDataLakeStorageResult> AzureDataLakeStorage::listDirectory(ListAzureDataLakeStorageParameters& params) {
   try {
     auto list_res = data_lake_storage_client_->listDirectory(params);
 

@@ -82,3 +82,20 @@ TEST_CASE("Regex::matchesFullInput works correctly", "[matchesFullInput]") {
   REQUIRE(Regex::matchesFullInput("(in|out)put", "input") == true);
   REQUIRE(Regex::matchesFullInput("inpu[aeiou]*", "input") == false);
 }
+
+TEST_CASE("Regex::matchesFullInput member works correctly", "[matchesFullInput]") {
+  Regex rgx1("");
+  REQUIRE(rgx1.matchesFullInput("") == true);
+  Regex rgx2("");
+  REQUIRE(rgx2.matchesFullInput("input") == false);
+  Regex rgx3(".*");
+  REQUIRE(rgx3.matchesFullInput("input") == true);
+  Regex rgx4("np");
+  REQUIRE(rgx4.matchesFullInput("input") == false);
+  Regex rgx5(".*np.*");
+  REQUIRE(rgx5.matchesFullInput("input") == true);
+  Regex rgx6("(in|out)put");
+  REQUIRE(rgx6.matchesFullInput("input") == true);
+  Regex rgx7("inpu[aeiou]*");
+  REQUIRE(rgx7.matchesFullInput("input") == false);
+}

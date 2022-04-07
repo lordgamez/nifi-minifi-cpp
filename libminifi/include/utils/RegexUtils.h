@@ -22,7 +22,7 @@
 #include <string>
 #include <vector>
 
-#if defined(__GNUC__) && (__GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ < 9))
+#if defined(__GNUC__)
 #include <regex.h>
 #else
 #include <regex>
@@ -49,6 +49,7 @@ class Regex {
   Regex& operator=(Regex&& other);
   ~Regex();
   bool match(const std::string &pattern);
+  bool matchesFullInput(const std::string &pattern);
   const std::vector<std::string>& getResult() const;
   const std::string& getSuffix() const;
 
@@ -62,14 +63,14 @@ class Regex {
   bool valid_;
 
 #ifdef NO_MORE_REGFREEE
-
   std::regex compiledRegex_;
   std::regex_constants::syntax_option_type regex_mode_;
   std::smatch matches_;
-
 #else
+  bool match(const std::string &pattern, const regex_t& regex);
 
   regex_t compiledRegex_;
+  regex_t compiledFullInputRegex_;
   int regex_mode_;
   std::vector<regmatch_t> matches_;
 
