@@ -72,7 +72,7 @@ class SMatch {
   friend bool regexMatch(const std::string &pattern, SMatch& match, const Regex& regex);
   friend bool regexSearch(const std::string &pattern, SMatch& match, const Regex& regex);
 
-public:
+ public:
 #ifdef NO_MORE_REGFREEE
   const decltype(matches_.suffix())& suffix() const;
   const decltype(matches_[0])& operator[](std::size_t index) const;
@@ -105,7 +105,6 @@ class Regex {
   std::regex compiled_regex_;
   std::regex_constants::syntax_option_type regex_mode_;
 #else
-
   regex_t compiled_regex_;
   regex_t compiled_full_input_regex_;
   int regex_mode_;
