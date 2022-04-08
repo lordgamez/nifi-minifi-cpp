@@ -20,16 +20,16 @@
 #include <fstream>
 #include <streambuf>
 #include <iostream>
-#include <regex>
 #include <iomanip>
 #include "utils/StringUtils.h"
+#include "utils/RegexUtils.h"
 
 int generateC2Docs(const std::string &inputfile, const std::string &output) {
   std::ifstream inf(inputfile);
   std::string input((std::istreambuf_iterator<char>(inf)), std::istreambuf_iterator<char>());
-  std::smatch m;
-  std::smatch n;
-  std::regex e("## ([A-Za-z]+)\\s+### Description\\s");
+  org::apache::nifi::minifi::utils::SMatch m;
+  org::apache::nifi::minifi::utils::SMatch n;
+  org::apache::nifi::minifi::utils::Regex e("## ([A-Za-z]+)\\s+### Description\\s");
 
   std::ofstream outputFile(output);
   outputFile << "/*" \
@@ -62,7 +62,7 @@ int generateC2Docs(const std::string &inputfile, const std::string &output) {
              "      static std::map<std::string,std::string>  extensions; \n"
              "       if (extensions.empty()){ \n";
 
-  while (std::regex_search(input, m, e)) {
+  while (org::apache::nifi::minifi::utils::regexSearch(input, m, e)) {
     auto processor = m[1].str();
 
     input = m.suffix().str();
