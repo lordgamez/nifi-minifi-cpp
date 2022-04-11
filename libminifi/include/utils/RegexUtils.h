@@ -38,7 +38,7 @@ class SMatch {
 #ifdef NO_MORE_REGFREEE
   std::smatch matches_;
 #else
-  struct RegmatchWrapper {
+  struct Regmatch {
     operator std::string() const {
       return str();
     }
@@ -50,7 +50,7 @@ class SMatch {
       return std::string(pattern.begin() + match.rm_so, pattern.begin() + match.rm_eo);
     }
 
-    const regmatch_t& match;
+    regmatch_t match;
     std::string_view pattern;
   };
 
@@ -65,7 +65,13 @@ class SMatch {
 
     std::string suffix;
   };
-  std::vector<regmatch_t> matches_;
+
+  void clear() {
+    matches_.clear();
+    pattern_.clear();
+  }
+
+  std::vector<Regmatch> matches_;
   std::string pattern_;
 #endif
 
@@ -76,9 +82,42 @@ class SMatch {
 #ifdef NO_MORE_REGFREEE
   const decltype(matches_.suffix())& suffix() const;
   const decltype(matches_[0])& operator[](std::size_t index) const;
+
+  typedef Iterator std::smatch::iterator;
+  Iterator begin() { return matches_.begin(); }
+  Iterator end() { return matches_.end(); }
 #else
+  struct Iterator {
+    using iterator_category = std::forward_iterator_tag;
+    using difference_type   = std::ptrdiff_t;
+    using value_type        = Regmatch;
+    using pointer           = value_type*;
+    using reference         = value_type&;
+
+    Iterator() : regmatch_(nullptr) {
+    }
+
+    Iterator(Regmatch* regmatch)
+      : regmatch_(regmatch) {
+    }
+
+    reference operator*() const { return *regmatch_; }
+    pointer operator->() { return regmatch_; }
+
+    Iterator& operator++() { regmatch_++; return *this; }
+    Iterator operator++(int) { Iterator tmp = *this; ++(*this); return tmp; }
+
+    friend bool operator== (const Iterator& a, const Iterator& b) { return a.regmatch_ == b.regmatch_; };
+    friend bool operator!= (const Iterator& a, const Iterator& b) { return a.regmatch_ != b.regmatch_; };
+
+   private:
+    pointer regmatch_;
+  };
+
   SuffixWrapper suffix() const;
-  RegmatchWrapper operator[](std::size_t index) const;
+  const Regmatch& operator[](std::size_t index) const;
+  Iterator begin() { return Iterator(&matches_[0]); }
+  Iterator end() { return Iterator(&matches_[matches_.size()]); }
 #endif
   std::size_t size() const;
 };

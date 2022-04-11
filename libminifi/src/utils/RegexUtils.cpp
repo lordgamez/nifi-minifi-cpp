@@ -28,10 +28,10 @@ const decltype(SMatch::matches_.suffix())& SMatch::suffix() const {
   return matches_.suffix();
 #else
 SMatch::SuffixWrapper SMatch::suffix() const {
-  if ((size_t) matches_[0].rm_eo >= pattern_.size()) {
+  if ((size_t) matches_[0].match.rm_eo >= pattern_.size()) {
     return SuffixWrapper{std::string()};
   } else {
-    return SuffixWrapper{pattern_.substr(matches_[0].rm_eo)};
+    return SuffixWrapper{pattern_.substr(matches_[0].match.rm_eo)};
   }
 #endif
 }
@@ -40,8 +40,8 @@ SMatch::SuffixWrapper SMatch::suffix() const {
 const decltype(SMatch::matches_[0])& SMatch::operator[](std::size_t index) const {
   return matches_[index];
 #else
-SMatch::RegmatchWrapper SMatch::operator[](std::size_t index) const {
-  return RegmatchWrapper{matches_[index], pattern_};
+const SMatch::Regmatch& SMatch::operator[](std::size_t index) const {
+  return matches_[index];
 #endif
 }
 
@@ -51,7 +51,7 @@ std::size_t SMatch::size() const {
 #else
   std::size_t count = 0;
   for (const auto &m : matches_) {
-    if (m.rm_so == -1) {
+    if (m.match.rm_so == -1) {
       break;
     }
     ++count;
@@ -217,10 +217,16 @@ bool regexSearch(const std::string &pattern, SMatch& match, const Regex& regex) 
 #ifdef NO_MORE_REGFREEE
   return std::regex_search(pattern,  match.matches_, regex.compiled_regex_);
 #else
+  match.clear();
+  std::vector<regmatch_t> regmatches;
   int maxGroups = std::count(regex.regex_str_.begin(), regex.regex_str_.end(), '(') + 1;
-  match.matches_.resize(maxGroups);
+  regmatches.resize(maxGroups);
+  bool result = regexec(&regex.compiled_regex_, pattern.c_str(), regmatches.size(), regmatches.data(), 0) == 0;
   match.pattern_ = pattern;
-  return regexec(&regex.compiled_regex_, pattern.c_str(), match.matches_.size(), match.matches_.data(), 0) == 0;
+  for (auto regmatch : regmatches) {
+    match.matches_.push_back(SMatch::Regmatch{regmatch, match.pattern_});
+  }
+  return result;
 #endif
 }
 
@@ -245,10 +251,16 @@ bool regexMatch(const std::string &pattern, SMatch& match, const Regex& regex) {
 #ifdef NO_MORE_REGFREEE
   return std::regex_match(pattern, match.matches_, regex.compiled_regex_);
 #else
+  match.clear();
+  std::vector<regmatch_t> regmatches;
   int maxGroups = std::count(regex.regex_str_.begin(), regex.regex_str_.end(), '(') + 1;
-  match.matches_.resize(maxGroups);
+  regmatches.resize(maxGroups);
+  bool result = regexec(&regex.compiled_full_input_regex_, pattern.c_str(), regmatches.size(), regmatches.data(), 0) == 0;
   match.pattern_ = pattern;
-  return regexec(&regex.compiled_full_input_regex_, pattern.c_str(), match.matches_.size(), match.matches_.data(), 0) == 0;
+  for (auto regmatch : regmatches) {
+    match.matches_.push_back(SMatch::Regmatch{regmatch, match.pattern_});
+  }
+  return result;
 #endif
 }
 
