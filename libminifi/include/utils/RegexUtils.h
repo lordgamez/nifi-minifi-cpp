@@ -38,47 +38,8 @@ class Regex;
 using SMatch = std::smatch;
 #else
 class SMatch {
- private:
-  struct Regmatch {
-    operator std::string() const {
-      return str();
-    }
-
-    std::string str() const {
-      if (match.rm_so == -1) {
-        return "";
-      }
-      return std::string(pattern.begin() + match.rm_so, pattern.begin() + match.rm_eo);
-    }
-
-    regmatch_t match;
-    std::string_view pattern;
-  };
-
-  struct SuffixWrapper {
-    operator std::string() const {
-      return str();
-    }
-
-    std::string str() const {
-      return suffix;
-    }
-
-    std::string suffix;
-  };
-
-  void clear() {
-    matches_.clear();
-    pattern_.clear();
-  }
-
-  std::vector<Regmatch> matches_;
-  std::string pattern_;
-
-  friend bool regexMatch(const std::string &pattern, SMatch& match, const Regex& regex);
-  friend bool regexSearch(const std::string &pattern, SMatch& match, const Regex& regex);
-  friend utils::SMatch getLastRegexMatch(const std::string& str, const utils::Regex& pattern);
-
+  struct Regmatch;
+  struct SuffixWrapper;
  public:
   struct Iterator {
     using iterator_category = std::forward_iterator_tag;
@@ -113,17 +74,47 @@ class SMatch {
   Iterator end() { return Iterator(&matches_[matches_.size()]); }
 
   std::size_t size() const;
-  bool ready() const {
-    return !matches_.empty();
-  }
+  bool ready() const;
+  std::size_t position(std::size_t index) const;
+  std::size_t length(std::size_t index) const;
 
-  std::size_t position(std::size_t index) const {
-    return matches_.at(index).match.rm_so;
-  }
+ private:
+  struct Regmatch {
+    operator std::string() const {
+      return str();
+    }
 
-  std::size_t length(std::size_t index) const {
-    return matches_.at(index).match.rm_eo - matches_.at(index).match.rm_so;
-  }
+    std::string str() const {
+      if (match.rm_so == -1) {
+        return "";
+      }
+      return std::string(pattern.begin() + match.rm_so, pattern.begin() + match.rm_eo);
+    }
+
+    regmatch_t match;
+    std::string_view pattern;
+  };
+
+  struct SuffixWrapper {
+    operator std::string() const {
+      return str();
+    }
+
+    std::string str() const {
+      return suffix;
+    }
+
+    std::string suffix;
+  };
+
+  void clear();
+
+  std::vector<Regmatch> matches_;
+  std::string pattern_;
+
+  friend bool regexMatch(const std::string &pattern, SMatch& match, const Regex& regex);
+  friend bool regexSearch(const std::string &pattern, SMatch& match, const Regex& regex);
+  friend utils::SMatch getLastRegexMatch(const std::string& str, const utils::Regex& pattern);
 };
 #endif
 
@@ -149,6 +140,8 @@ class Regex {
   std::regex compiled_regex_;
   std::regex_constants::syntax_option_type regex_mode_;
 #else
+  void compileRegex(regex_t& regex, const std::string& regex_string) const;
+
   regex_t compiled_regex_;
   regex_t compiled_full_input_regex_;
   int regex_mode_;

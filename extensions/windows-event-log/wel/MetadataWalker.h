@@ -97,7 +97,7 @@ class MetadataWalker : public pugi::xml_tree_walker {
 
   const WindowsEventLogMetadata& windows_event_log_metadata_;
   std::string log_name_;
-  utils::RegexUtils regex_;
+  utils::Regex regex_;
   std::string regex_str_;
   bool update_xml_;
   bool resolve_;

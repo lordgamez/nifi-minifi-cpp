@@ -36,7 +36,6 @@
 #include "utils/FailurePolicy.h"
 #include "utils/gsl.h"
 #include "utils/meta/detected.h"
-#include "utils/RegexUtils.h"
 
 namespace org::apache::nifi::minifi {
 namespace utils {

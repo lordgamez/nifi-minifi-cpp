@@ -17,9 +17,19 @@
  */
 
 #include "utils/RegexUtils.h"
-#include "Exception.h"
+
 #include <iostream>
 #include <vector>
+
+#include "Exception.h"
+
+namespace {
+
+std::size_t getMaxGroupCountOfRegex(const std::string& regex) {
+  return std::count(regex.begin(), regex.end(), '(') + 1;
+}
+
+}  // namespace
 
 namespace org::apache::nifi::minifi::utils {
 
@@ -45,6 +55,23 @@ std::size_t SMatch::size() const {
     ++count;
   }
   return count;
+}
+
+bool SMatch::ready() const {
+  return !matches_.empty();
+}
+
+std::size_t SMatch::position(std::size_t index) const {
+  return matches_.at(index).match.rm_so;
+}
+
+std::size_t SMatch::length(std::size_t index) const {
+  return matches_.at(index).match.rm_eo - matches_.at(index).match.rm_so;
+}
+
+void SMatch::clear() {
+  matches_.clear();
+  pattern_.clear();
 }
 #endif
 
@@ -73,7 +100,6 @@ Regex::Regex(const std::string &value,
         break;
     }
   }
-  // Compile
 #ifdef NO_MORE_REGFREEE
   try {
     compiled_regex_ = std::regex(regex_str_, regex_mode_);
@@ -82,20 +108,8 @@ Regex::Regex(const std::string &value,
     throw Exception(REGEX_EXCEPTION, e.what());
   }
 #else
-  int err_code = regcomp(&compiled_regex_, regex_str_.c_str(), regex_mode_);
-  if (err_code) {
-    const size_t sz = regerror(err_code, &compiled_regex_, nullptr, 0);
-    std::vector<char> msg(sz);
-    regerror(err_code, &compiled_regex_, msg.data(), msg.size());
-    throw Exception(REGEX_EXCEPTION, std::string(msg.begin(), msg.end()));
-  }
-  err_code = regcomp(&compiled_full_input_regex_, ('^' + regex_str_ + '$').c_str(), regex_mode_);
-  if (err_code) {
-    const size_t sz = regerror(err_code, &compiled_full_input_regex_, nullptr, 0);
-    std::vector<char> msg(sz);
-    regerror(err_code, &compiled_full_input_regex_, msg.data(), msg.size());
-    throw Exception(REGEX_EXCEPTION, std::string(msg.begin(), msg.end()));
-  }
+  compileRegex(compiled_regex_, regex_str_);
+  compileRegex(compiled_full_input_regex_, '^' + regex_str_ + '$');
   valid_ = true;
 #endif
 }
@@ -115,29 +129,16 @@ Regex& Regex::operator=(const Regex& other) {
   }
 
   regex_str_ = other.regex_str_;
+  regex_mode_ = other.regex_mode_;
 #ifdef NO_MORE_REGFREEE
   compiled_regex_ = other.compiled_regex_;
-  regex_mode_ = other.regex_mode_;
 #else
   if (valid_) {
     regfree(&compiled_regex_);
     regfree(&compiled_full_input_regex_);
   }
-  regex_mode_ = other.regex_mode_;
-  int err_code = regcomp(&compiled_regex_, regex_str_.c_str(), regex_mode_);
-  if (err_code) {
-    const size_t sz = regerror(err_code, &compiled_regex_, nullptr, 0);
-    std::vector<char> msg(sz);
-    regerror(err_code, &compiled_regex_, msg.data(), msg.size());
-    throw Exception(REGEX_EXCEPTION, std::string(msg.begin(), msg.end()));
-  }
-  err_code = regcomp(&compiled_full_input_regex_, ('^' + regex_str_ + '$').c_str(), regex_mode_);
-  if (err_code) {
-    const size_t sz = regerror(err_code, &compiled_full_input_regex_, nullptr, 0);
-    std::vector<char> msg(sz);
-    regerror(err_code, &compiled_full_input_regex_, msg.data(), msg.size());
-    throw Exception(REGEX_EXCEPTION, std::string(msg.begin(), msg.end()));
-  }
+  compileRegex(compiled_regex_, regex_str_);
+  compileRegex(compiled_full_input_regex_, '^' + regex_str_ + '$');
 #endif
   valid_ = other.valid_;
   return *this;
@@ -158,9 +159,9 @@ Regex& Regex::operator=(Regex&& other) {
   }
 
   regex_str_ = std::move(other.regex_str_);
+  regex_mode_ = other.regex_mode_;
 #ifdef NO_MORE_REGFREEE
   compiled_regex_ = std::move(other.compiled_regex_);
-  regex_mode_ = other.regex_mode_;
 #else
   if (valid_) {
     regfree(&compiled_regex_);
@@ -168,7 +169,6 @@ Regex& Regex::operator=(Regex&& other) {
   }
   compiled_regex_ = other.compiled_regex_;
   compiled_full_input_regex_ = other.compiled_full_input_regex_;
-  regex_mode_ = other.regex_mode_;
 #endif
   valid_ = other.valid_;
   other.valid_ = false;
@@ -184,6 +184,18 @@ Regex::~Regex() {
 #endif
 }
 
+#ifndef NO_MORE_REGFREEE
+void Regex::compileRegex(regex_t& regex, const std::string& regex_string) const {
+  int err_code = regcomp(&regex, regex_string.c_str(), regex_mode_);
+  if (err_code) {
+    const size_t size = regerror(err_code, &regex, nullptr, 0);
+    std::vector<char> msg(size);
+    regerror(err_code, &regex, msg.data(), msg.size());
+    throw Exception(REGEX_EXCEPTION, std::string(msg.begin(), msg.end()));
+  }
+}
+#endif
+
 bool regexSearch(const std::string &pattern, const Regex& regex) {
   if (!regex.valid_) {
     return false;
@@ -192,8 +204,7 @@ bool regexSearch(const std::string &pattern, const Regex& regex) {
   return std::regex_search(pattern, regex.compiled_regex_);
 #else
   std::vector<regmatch_t> match;
-  int maxGroups = std::count(regex.regex_str_.begin(), regex.regex_str_.end(), '(') + 1;
-  match.resize(maxGroups);
+  match.resize(getMaxGroupCountOfRegex(regex.regex_str_));
   return regexec(&regex.compiled_regex_, pattern.c_str(), match.size(), match.data(), 0) == 0;
 #endif
 }
@@ -207,11 +218,10 @@ bool regexSearch(const std::string &pattern, SMatch& match, const Regex& regex) 
 #else
   match.clear();
   std::vector<regmatch_t> regmatches;
-  int maxGroups = std::count(regex.regex_str_.begin(), regex.regex_str_.end(), '(') + 1;
-  regmatches.resize(maxGroups);
+  regmatches.resize(getMaxGroupCountOfRegex(regex.regex_str_));
   bool result = regexec(&regex.compiled_regex_, pattern.c_str(), regmatches.size(), regmatches.data(), 0) == 0;
   match.pattern_ = pattern;
-  for (auto regmatch : regmatches) {
+  for (const auto& regmatch : regmatches) {
     match.matches_.push_back(SMatch::Regmatch{regmatch, match.pattern_});
   }
   return result;
@@ -226,8 +236,7 @@ bool regexMatch(const std::string &pattern, const Regex& regex) {
   return std::regex_match(pattern, regex.compiled_regex_);
 #else
   std::vector<regmatch_t> match;
-  int maxGroups = std::count(regex.regex_str_.begin(), regex.regex_str_.end(), '(') + 1;
-  match.resize(maxGroups);
+  match.resize(getMaxGroupCountOfRegex(regex.regex_str_));
   return regexec(&regex.compiled_full_input_regex_, pattern.c_str(), match.size(), match.data(), 0) == 0;
 #endif
 }
@@ -241,11 +250,10 @@ bool regexMatch(const std::string &pattern, SMatch& match, const Regex& regex) {
 #else
   match.clear();
   std::vector<regmatch_t> regmatches;
-  int maxGroups = std::count(regex.regex_str_.begin(), regex.regex_str_.end(), '(') + 1;
-  regmatches.resize(maxGroups);
+  regmatches.resize(getMaxGroupCountOfRegex(regex.regex_str_));
   bool result = regexec(&regex.compiled_full_input_regex_, pattern.c_str(), regmatches.size(), regmatches.data(), 0) == 0;
   match.pattern_ = pattern;
-  for (auto regmatch : regmatches) {
+  for (const auto& regmatch : regmatches) {
     match.matches_.push_back(SMatch::Regmatch{regmatch, match.pattern_});
   }
   return result;
