@@ -21,8 +21,9 @@
 #include <string>
 #include <string_view>
 #include <vector>
+#include <cstddef>
 
-#if defined(__GNUC__)
+#if defined(__GLIBCXX__) || defined(__GLIBCPP__)
 #include <regex.h>
 #else
 #include <regex>
@@ -33,11 +34,11 @@ namespace org::apache::nifi::minifi::utils {
 
 class Regex;
 
+#ifdef NO_MORE_REGFREEE
+using SMatch = std::smatch;
+#else
 class SMatch {
  private:
-#ifdef NO_MORE_REGFREEE
-  std::smatch matches_;
-#else
   struct Regmatch {
     operator std::string() const {
       return str();
@@ -73,21 +74,12 @@ class SMatch {
 
   std::vector<Regmatch> matches_;
   std::string pattern_;
-#endif
 
   friend bool regexMatch(const std::string &pattern, SMatch& match, const Regex& regex);
   friend bool regexSearch(const std::string &pattern, SMatch& match, const Regex& regex);
   friend utils::SMatch getLastRegexMatch(const std::string& str, const utils::Regex& pattern);
 
  public:
-#ifdef NO_MORE_REGFREEE
-  const decltype(matches_.suffix())& suffix() const;
-  const decltype(matches_[0])& operator[](std::size_t index) const;
-
-  typedef Iterator std::smatch::iterator;
-  Iterator begin() { return matches_.begin(); }
-  Iterator end() { return matches_.end(); }
-#else
   struct Iterator {
     using iterator_category = std::forward_iterator_tag;
     using difference_type   = std::ptrdiff_t;
@@ -119,33 +111,21 @@ class SMatch {
   const Regmatch& operator[](std::size_t index) const;
   Iterator begin() { return Iterator(&matches_[0]); }
   Iterator end() { return Iterator(&matches_[matches_.size()]); }
-#endif
 
   std::size_t size() const;
   bool ready() const {
-#ifdef NO_MORE_REGFREEE
-    return matches_.ready();
-#else
     return !matches_.empty();
-#endif
   }
 
   std::size_t position(std::size_t index) const {
-#ifdef NO_MORE_REGFREEE
-    return matches_.position(index);
-#else
-    return matches_[index].match.rm_so;
-#endif
+    return matches_.at(index).match.rm_so;
   }
 
   std::size_t length(std::size_t index) const {
-#ifdef NO_MORE_REGFREEE
-    return matches_.length(index);
-#else
     return matches_.at(index).match.rm_eo - matches_.at(index).match.rm_so;
-#endif
   }
 };
+#endif
 
 class Regex {
  public:
@@ -174,7 +154,6 @@ class Regex {
   int regex_mode_;
 #endif
 
-  friend class SMatch;
   friend bool regexMatch(const std::string &pattern, const Regex& regex);
   friend bool regexMatch(const std::string &pattern, SMatch& match, const Regex& regex);
   friend bool regexSearch(const std::string &pattern, const Regex& regex);

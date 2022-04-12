@@ -425,10 +425,12 @@ bool RouteText::matchSegment(MatchingContext& context, const Segment& segment, c
       return utils::StringUtils::equals(segment.value_, context.getStringProperty(prop), case_policy_ == CasePolicy::CASE_SENSITIVE);
     }
     case Matching::CONTAINS_REGEX: {
-      return utils::regexSearch(std::string(segment.value_), context.getRegexProperty(prop));
+      std::string segment_str = std::string(segment.value_);
+      return utils::regexSearch(segment_str, context.getRegexProperty(prop));
     }
     case Matching::MATCHES_REGEX: {
-      return utils::regexMatch(std::string(segment.value_), context.getRegexProperty(prop));
+      std::string segment_str = std::string(segment.value_);
+      return utils::regexMatch(segment_str, context.getRegexProperty(prop));
     }
   }
   throw Exception(PROCESSOR_EXCEPTION, "Unknown matching strategy");
@@ -439,7 +441,8 @@ std::optional<std::string> RouteText::getGroup(const std::string_view& segment) 
     return std::nullopt;
   }
   utils::SMatch match_result;
-  if (!utils::regexMatch(std::string(segment), match_result, group_regex_.value())) {
+  std::string segment_str = std::string(segment);
+  if (!utils::regexMatch(segment_str, match_result, group_regex_.value())) {
     return group_fallback_;
   }
   // WARNING!! using a temporary std::string causes the omission of delimiters
@@ -447,8 +450,6 @@ std::optional<std::string> RouteText::getGroup(const std::string_view& segment) 
   const std::string comma = ", ";
   // unused capturing groups default to empty string
   auto to_string = [] (const auto& submatch) -> std::string {return submatch;};
-  // static_assert(std::input_or_output_iterator<utils::SMatch::Iterator>);
-  // static_assert(std::ranges::input_range<utils::SMatch::Iterator>);
   return ranges::views::tail(match_result)  // only join the capture groups
     | ranges::views::transform(to_string)
     | ranges::views::cache1

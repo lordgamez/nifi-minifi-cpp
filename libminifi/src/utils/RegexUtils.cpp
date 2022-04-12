@@ -23,32 +23,20 @@
 
 namespace org::apache::nifi::minifi::utils {
 
-#ifdef NO_MORE_REGFREEE
-const decltype(SMatch::matches_.suffix())& SMatch::suffix() const {
-  return matches_.suffix();
-#else
+#ifndef NO_MORE_REGFREEE
 SMatch::SuffixWrapper SMatch::suffix() const {
   if ((size_t) matches_[0].match.rm_eo >= pattern_.size()) {
     return SuffixWrapper{std::string()};
   } else {
     return SuffixWrapper{pattern_.substr(matches_[0].match.rm_eo)};
   }
-#endif
 }
 
-#ifdef NO_MORE_REGFREEE
-const decltype(SMatch::matches_[0])& SMatch::operator[](std::size_t index) const {
-  return matches_[index];
-#else
 const SMatch::Regmatch& SMatch::operator[](std::size_t index) const {
   return matches_[index];
-#endif
 }
 
 std::size_t SMatch::size() const {
-#ifdef NO_MORE_REGFREEE
-  return matches_.size();
-#else
   std::size_t count = 0;
   for (const auto &m : matches_) {
     if (m.match.rm_so == -1) {
@@ -57,8 +45,8 @@ std::size_t SMatch::size() const {
     ++count;
   }
   return count;
-#endif
 }
+#endif
 
 Regex::Regex() : Regex::Regex("") {}
 
@@ -215,7 +203,7 @@ bool regexSearch(const std::string &pattern, SMatch& match, const Regex& regex) 
     return false;
   }
 #ifdef NO_MORE_REGFREEE
-  return std::regex_search(pattern,  match.matches_, regex.compiled_regex_);
+  return std::regex_search(pattern, match, regex.compiled_regex_);
 #else
   match.clear();
   std::vector<regmatch_t> regmatches;
@@ -249,7 +237,7 @@ bool regexMatch(const std::string &pattern, SMatch& match, const Regex& regex) {
     return false;
   }
 #ifdef NO_MORE_REGFREEE
-  return std::regex_match(pattern, match.matches_, regex.compiled_regex_);
+  return std::regex_match(pattern, match, regex.compiled_regex_);
 #else
   match.clear();
   std::vector<regmatch_t> regmatches;
@@ -266,15 +254,13 @@ bool regexMatch(const std::string &pattern, SMatch& match, const Regex& regex) {
 
 SMatch getLastRegexMatch(const std::string& pattern, const utils::Regex& regex) {
 #ifdef NO_MORE_REGFREEE
-  auto matches = std::sregex_iterator(str.begin(), str.end(), regex);
+  auto matches = std::sregex_iterator(pattern.begin(), pattern.end(), regex.compiled_regex_);
   std::smatch last_match;
   while (matches != std::sregex_iterator()) {
     last_match = *matches;
     matches = std::next(matches);
   }
-  SMatch result;
-  result.matches_ = last_match;
-  return result;
+  return last_match;
 #else
   SMatch search_result;
   SMatch last_match;
