@@ -264,4 +264,36 @@ bool regexMatch(const std::string &pattern, SMatch& match, const Regex& regex) {
 #endif
 }
 
+SMatch getLastRegexMatch(const std::string& pattern, const utils::Regex& regex) {
+#ifdef NO_MORE_REGFREEE
+  auto matches = std::sregex_iterator(str.begin(), str.end(), regex);
+  std::smatch last_match;
+  while (matches != std::sregex_iterator()) {
+    last_match = *matches;
+    matches = std::next(matches);
+  }
+  SMatch result;
+  result.matches_ = last_match;
+  return result;
+#else
+  SMatch search_result;
+  SMatch last_match;
+  auto current_str = pattern;
+  while (regexSearch(current_str, search_result, regex)) {
+    last_match = search_result;
+    current_str = search_result.suffix();
+  }
+
+  auto diff = pattern.size() - last_match.pattern_.size();
+  last_match.pattern_ = pattern;
+  for (auto& match : last_match.matches_) {
+    if (match.match.rm_so >= 0) {
+      match.match.rm_so += diff;
+      match.match.rm_eo += diff;
+    }
+  }
+  return last_match;
+#endif
+}
+
 }  // namespace org::apache::nifi::minifi::utils

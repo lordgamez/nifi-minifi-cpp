@@ -77,6 +77,7 @@ class SMatch {
 
   friend bool regexMatch(const std::string &pattern, SMatch& match, const Regex& regex);
   friend bool regexSearch(const std::string &pattern, SMatch& match, const Regex& regex);
+  friend utils::SMatch getLastRegexMatch(const std::string& str, const utils::Regex& pattern);
 
  public:
 #ifdef NO_MORE_REGFREEE
@@ -97,7 +98,7 @@ class SMatch {
     Iterator() : regmatch_(nullptr) {
     }
 
-    Iterator(Regmatch* regmatch)
+    explicit Iterator(Regmatch* regmatch)
       : regmatch_(regmatch) {
     }
 
@@ -107,8 +108,8 @@ class SMatch {
     Iterator& operator++() { regmatch_++; return *this; }
     Iterator operator++(int) { Iterator tmp = *this; ++(*this); return tmp; }
 
-    friend bool operator== (const Iterator& a, const Iterator& b) { return a.regmatch_ == b.regmatch_; };
-    friend bool operator!= (const Iterator& a, const Iterator& b) { return a.regmatch_ != b.regmatch_; };
+    friend bool operator== (const Iterator& a, const Iterator& b) { return a.regmatch_ == b.regmatch_; }
+    friend bool operator!= (const Iterator& a, const Iterator& b) { return a.regmatch_ != b.regmatch_; }
 
    private:
     pointer regmatch_;
@@ -119,7 +120,31 @@ class SMatch {
   Iterator begin() { return Iterator(&matches_[0]); }
   Iterator end() { return Iterator(&matches_[matches_.size()]); }
 #endif
+
   std::size_t size() const;
+  bool ready() const {
+#ifdef NO_MORE_REGFREEE
+    return matches_.ready();
+#else
+    return !matches_.empty();
+#endif
+  }
+
+  std::size_t position(std::size_t index) const {
+#ifdef NO_MORE_REGFREEE
+    return matches_.position(index);
+#else
+    return matches_[index].match.rm_so;
+#endif
+  }
+
+  std::size_t length(std::size_t index) const {
+#ifdef NO_MORE_REGFREEE
+    return matches_.length(index);
+#else
+    return matches_.at(index).match.rm_eo - matches_.at(index).match.rm_so;
+#endif
+  }
 };
 
 class Regex {
@@ -154,6 +179,7 @@ class Regex {
   friend bool regexMatch(const std::string &pattern, SMatch& match, const Regex& regex);
   friend bool regexSearch(const std::string &pattern, const Regex& regex);
   friend bool regexSearch(const std::string &pattern, SMatch& match, const Regex& regex);
+  friend SMatch getLastRegexMatch(const std::string& pattern, const utils::Regex& regex);
 };
 
 bool regexMatch(const std::string &pattern, const Regex& regex);
@@ -161,5 +187,13 @@ bool regexMatch(const std::string &pattern, SMatch& match, const Regex& regex);
 
 bool regexSearch(const std::string &pattern, const Regex& regex);
 bool regexSearch(const std::string &pattern, SMatch& match, const Regex& regex);
+
+/**
+ * Returns the last match of a regular expression within the given string
+ * @param pattern incoming string
+ * @param regex the regex to be matched
+ * @return the last valid SMatch or a default constructed SMatch (ready() != true) if no matches have been found
+ */
+SMatch getLastRegexMatch(const std::string& pattern, const utils::Regex& regex);
 
 }  // namespace org::apache::nifi::minifi::utils

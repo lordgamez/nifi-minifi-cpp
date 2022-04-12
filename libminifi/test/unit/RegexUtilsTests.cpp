@@ -104,3 +104,26 @@ TEST_CASE("TestRegexUtils::regexMatch works with groups", "[matchesFullInput]") 
   REQUIRE(matches[2].str() == "all the way");
   REQUIRE("" == matches.suffix().str());
 }
+
+TEST_CASE("TestRegexUtils::getLastRegexMatch works correctly", "[getLastRegexMatch]") {
+  utils::Regex pattern("<[0-9]+>");
+  {
+    std::string content = "Foo";
+    auto last_match = minifi::utils::getLastRegexMatch(content, pattern);
+    REQUIRE_FALSE(last_match.ready());
+  }
+  {
+    std::string content = "<1> Foo";
+    auto last_match = minifi::utils::getLastRegexMatch(content, pattern);
+    REQUIRE(last_match.ready());
+    CHECK(last_match.length(0) == 3);
+    CHECK(last_match.position(0) == 0);
+  }
+  {
+    std::string content = "<1> Foo<2> Bar<3> Baz<10> Qux";
+    auto last_match = minifi::utils::getLastRegexMatch(content, pattern);
+    REQUIRE(last_match.ready());
+    CHECK(last_match.length(0) == 4);
+    CHECK(last_match.position(0) == 21);
+  }
+}
