@@ -20,6 +20,7 @@
 #include "core/ProcessContext.h"
 #include "core/ProcessSession.h"
 #include "core/Resource.h"
+#include "utils/Enum.h"
 
 namespace org::apache::nifi::minifi::processors {
 
@@ -33,8 +34,8 @@ const core::Property ListenSyslog::ProtocolProperty(
     core::PropertyBuilder::createProperty("Protocol")
         ->withDescription("The protocol for Syslog communication.")
         ->isRequired(true)
-        ->withAllowableValues(Protocol::values())
-        ->withDefaultValue(toString(Protocol::UDP))
+        ->withAllowableValues(utils::getEnumValueStrings<Protocol>())
+        ->withDefaultValue(std::string(magic_enum::enum_name(Protocol::UDP)))
         ->build());
 
 const core::Property ListenSyslog::MaxBatchSize(
@@ -92,8 +93,9 @@ void ListenSyslog::onSchedule(const std::shared_ptr<core::ProcessContext>& conte
   context->getProperty(MaxQueueSize.getName(), max_queue_size);
   max_queue_size_ = max_queue_size > 0 ? std::optional<uint64_t>(max_queue_size) : std::nullopt;
 
-  Protocol protocol;
-  context->getProperty(ProtocolProperty.getName(), protocol);
+  std::string protocol_name;
+  context->getProperty(ProtocolProperty.getName(), protocol_name);
+  Protocol protocol = magic_enum::enum_cast<Protocol>(protocol_name).value();
 
   int port;
   context->getProperty(Port.getName(), port);
@@ -108,7 +110,7 @@ void ListenSyslog::onSchedule(const std::shared_ptr<core::ProcessContext>& conte
 
   server_thread_ = std::thread([this]() { io_context_.run(); });
   logger_->log_debug("Started %s syslog server on port %d with %s max queue size and %zu max batch size",
-                     protocol.toString(),
+                     std::string(magic_enum::enum_name(protocol)),
                      port,
                      max_queue_size ? std::to_string(*max_queue_size_) : "no",
                      max_batch_size_);
@@ -177,7 +179,7 @@ void ListenSyslog::SyslogMessage::transferAsFlowFile(core::ProcessSession& sessi
   }
 
   session.writeBuffer(flow_file, message_);
-  flow_file->setAttribute("syslog.protocol", protocol_.toString());
+  flow_file->setAttribute("syslog.protocol", std::string(magic_enum::enum_name(protocol_)));
   flow_file->setAttribute("syslog.port", std::to_string(server_port_));
   flow_file->setAttribute("syslog.sender", sender_address_.to_string());
   session.transfer(flow_file, valid ? Success : Invalid);

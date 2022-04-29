@@ -26,6 +26,8 @@
 
 namespace utils = org::apache::nifi::minifi::utils;
 
+namespace org::apache::nifi::minifi::test {
+
 // intdiv_ceil
 static_assert(0 == utils::intdiv_ceil(0, 1), "");
 static_assert(0 == utils::intdiv_ceil(0, 2), "");
@@ -76,4 +78,6 @@ TEST_CASE("GeneralUtils::unsafe_dereference", "[unsafe_dereference]") {
 
   const auto uniq_a = std::make_unique<int>(99);
   REQUIRE(99 == utils::unsafe_dereference(uniq_a));
+}
+
 }

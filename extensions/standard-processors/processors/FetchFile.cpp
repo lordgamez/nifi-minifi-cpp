@@ -104,15 +104,15 @@ void FetchFile::initialize() {
 
 void FetchFile::onSchedule(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSessionFactory> &/*sessionFactory*/) {
   gsl_Expects(context);
-  completion_strategy_ = utils::parseEnumProperty<CompletionStrategyOption>(*context, CompletionStrategy);
+  completion_strategy_ = utils::parseEnumPropertyOld<CompletionStrategyOption>(*context, CompletionStrategy);
   std::string move_destination_dir;
   context->getProperty(MoveDestinationDirectory.getName(), move_destination_dir);
   if (completion_strategy_ == CompletionStrategyOption::MOVE_FILE && move_destination_dir.empty()) {
     throw Exception(PROCESS_SCHEDULE_EXCEPTION, "Move Destination Directory is required when Completion Strategy is set to Move File");
   }
-  move_confict_strategy_ = utils::parseEnumProperty<MoveConflictStrategyOption>(*context, MoveConflictStrategy);
-  log_level_when_file_not_found_ = utils::parseEnumProperty<LogLevelOption>(*context, LogLevelWhenFileNotFound);
-  log_level_when_permission_denied_ = utils::parseEnumProperty<LogLevelOption>(*context, LogLevelWhenPermissionDenied);
+  move_confict_strategy_ = utils::parseEnumPropertyOld<MoveConflictStrategyOption>(*context, MoveConflictStrategy);
+  log_level_when_file_not_found_ = utils::parseEnumPropertyOld<LogLevelOption>(*context, LogLevelWhenFileNotFound);
+  log_level_when_permission_denied_ = utils::parseEnumPropertyOld<LogLevelOption>(*context, LogLevelWhenPermissionDenied);
 }
 
 std::filesystem::path FetchFile::getFileToFetch(core::ProcessContext& context, const std::shared_ptr<core::FlowFile>& flow_file) const {

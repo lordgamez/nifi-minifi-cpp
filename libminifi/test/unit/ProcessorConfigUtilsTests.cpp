@@ -42,15 +42,15 @@ TEST_CASE("Parse enum property") {
   ProcessContext context(std::make_shared<ProcessorNode>(proc.get()), nullptr, nullptr, nullptr, nullptr, nullptr);
   SECTION("Valid") {
     proc->setProperty(prop, "B");
-    TestEnum val = utils::parseEnumProperty<TestEnum>(context, prop);
+    TestEnum val = utils::parseEnumPropertyOld<TestEnum>(context, prop);
     REQUIRE(val == TestEnum::B);
   }
   SECTION("Invalid") {
     proc->setProperty(prop, "C");
-    REQUIRE_THROWS(utils::parseEnumProperty<TestEnum>(context, prop));
+    REQUIRE_THROWS(utils::parseEnumPropertyOld<TestEnum>(context, prop));
   }
   SECTION("Missing") {
-    REQUIRE_THROWS(utils::parseEnumProperty<TestEnum>(context, prop));
+    REQUIRE_THROWS(utils::parseEnumPropertyOld<TestEnum>(context, prop));
   }
 }
 

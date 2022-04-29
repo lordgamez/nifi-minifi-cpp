@@ -23,6 +23,7 @@
 #include "core/ProcessSession.h"
 #include "core/Resource.h"
 #include "utils/ProcessorConfigUtils.h"
+#include "utils/Enum.h"
 
 namespace org::apache::nifi::minifi::azure::processors {
 
@@ -31,8 +32,8 @@ const core::Property DeleteAzureBlobStorage::DeleteSnapshotsOption(
     ->withDescription("Specifies the snapshot deletion options to be used when deleting a blob. None: Deletes the blob only. Include Snapshots: Delete the blob and its snapshots. "
                       "Delete Snapshots Only: Delete only the blob's snapshots.")
     ->isRequired(true)
-    ->withDefaultValue<std::string>(toString(storage::OptionalDeletion::NONE))
-    ->withAllowableValues<std::string>(storage::OptionalDeletion::values())
+    ->withDefaultValue<std::string>(std::string(magic_enum::enum_name(storage::OptionalDeletion::NONE)))
+    ->withAllowableValues<std::string>(utils::getEnumValueStrings<storage::OptionalDeletion>())
     ->build());
 
 const core::Relationship DeleteAzureBlobStorage::Success("success", "All successfully processed FlowFiles are routed to this relationship");

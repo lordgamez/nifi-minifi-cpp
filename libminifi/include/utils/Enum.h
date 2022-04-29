@@ -24,6 +24,7 @@
 
 #include "StringUtils.h"
 #include "Macro.h"
+#include "magic_enum.hpp"
 
 namespace org {
 namespace apache {
@@ -157,6 +158,13 @@ struct EnumBase {
     }
   };
 };
+
+template<typename EnumClass, typename = std::enable_if_t<std::is_enum_v<EnumClass>>>
+std::set<std::string> getEnumValueStrings() {
+  static const auto value_array = magic_enum::enum_names<EnumClass>();
+  static const std::set<std::string> result{value_array.begin(), value_array.end()};
+  return result;
+}
 
 }  // namespace utils
 }  // namespace minifi

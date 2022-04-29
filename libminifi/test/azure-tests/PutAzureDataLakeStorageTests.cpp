@@ -127,7 +127,7 @@ TEST_CASE_METHOD(PutAzureDataLakeStorageTestsFixture, "Transfer to failure on 'f
 TEST_CASE_METHOD(PutAzureDataLakeStorageTestsFixture, "Transfer to success on 'ignore' resolution strategy if file exists", "[azureDataLakeStorageUpload]") {
   plan_->setProperty(azure_data_lake_storage_,
     minifi::azure::processors::PutAzureDataLakeStorage::ConflictResolutionStrategy.getName(),
-    toString(minifi::azure::processors::PutAzureDataLakeStorage::FileExistsResolutionStrategy::IGNORE_REQUEST));
+    std::string(magic_enum::enum_name(minifi::azure::processors::PutAzureDataLakeStorage::FileExistsResolutionStrategy::IGNORE_REQUEST)));
   mock_data_lake_storage_client_ptr_->setFileCreation(false);
   test_controller_.runSession(plan_, true);
   REQUIRE(getFailedFlowFileContents().size() == 0);
@@ -139,7 +139,7 @@ TEST_CASE_METHOD(PutAzureDataLakeStorageTestsFixture, "Transfer to success on 'i
 TEST_CASE_METHOD(PutAzureDataLakeStorageTestsFixture, "Replace old file on 'replace' resolution strategy if file exists", "[azureDataLakeStorageUpload]") {
   plan_->setProperty(azure_data_lake_storage_,
     minifi::azure::processors::PutAzureDataLakeStorage::ConflictResolutionStrategy.getName(),
-    toString(minifi::azure::processors::PutAzureDataLakeStorage::FileExistsResolutionStrategy::REPLACE_FILE));
+    std::string(magic_enum::enum_name(minifi::azure::processors::PutAzureDataLakeStorage::FileExistsResolutionStrategy::REPLACE_FILE)));
   mock_data_lake_storage_client_ptr_->setFileCreation(false);
   test_controller_.runSession(plan_, true);
   auto passed_params = mock_data_lake_storage_client_ptr_->getPassedPutParams();

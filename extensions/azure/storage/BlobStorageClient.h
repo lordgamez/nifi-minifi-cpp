@@ -33,11 +33,11 @@
 
 namespace org::apache::nifi::minifi::azure::storage {
 
-SMART_ENUM(OptionalDeletion,
-  (NONE, "None"),
-  (INCLUDE_SNAPSHOTS, "Include Snapshots"),
-  (DELETE_SNAPSHOTS_ONLY, "Delete Snapshots Only")
-)
+enum class OptionalDeletion {
+  NONE,
+  INCLUDE_SNAPSHOTS,
+  DELETE_SNAPSHOTS_ONLY
+};
 
 struct AzureBlobStorageParameters {
   AzureStorageCredentials credentials;

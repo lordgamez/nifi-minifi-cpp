@@ -21,6 +21,7 @@
 #include <memory>
 #include <type_traits>
 #include <utility>
+#include <set>
 
 #include "gsl.h"
 

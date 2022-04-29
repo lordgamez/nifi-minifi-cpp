@@ -23,6 +23,7 @@
 #include <vector>
 
 #include "core/ProcessContext.h"
+#include "magic_enum.hpp"
 
 namespace org {
 namespace apache {
@@ -46,7 +47,7 @@ std::chrono::milliseconds parseTimePropertyMSOrThrow(const core::ProcessContext&
 std::string parsePropertyWithAllowableValuesOrThrow(const core::ProcessContext& context, const std::string& property_name, const std::set<std::string>& allowable_values);
 
 template<typename T>
-T parseEnumProperty(const core::ProcessContext& context, const core::Property& prop) {
+T parseEnumPropertyOld(const core::ProcessContext& context, const core::Property& prop) {
   std::string value;
   if (!context.getProperty(prop.getName(), value)) {
     throw Exception(PROCESS_SCHEDULE_EXCEPTION, "Property '" + prop.getName() + "' is missing");
@@ -56,6 +57,19 @@ T parseEnumProperty(const core::ProcessContext& context, const core::Property& p
     throw Exception(PROCESS_SCHEDULE_EXCEPTION, "Property '" + prop.getName() + "' has invalid value: '" + value + "'");
   }
   return result;
+}
+
+template<typename T>
+T parseEnumProperty(const core::ProcessContext& context, const core::Property& prop) {
+  std::string value;
+  if (!context.getProperty(prop.getName(), value)) {
+    throw Exception(PROCESS_SCHEDULE_EXCEPTION, "Property '" + prop.getName() + "' is missing");
+  }
+  auto result = magic_enum::enum_cast<T>(value);
+  if (!result) {
+    throw Exception(PROCESS_SCHEDULE_EXCEPTION, "Property '" + prop.getName() + "' has invalid value: '" + value + "'");
+  }
+  return result.value();
 }
 
 }  // namespace utils

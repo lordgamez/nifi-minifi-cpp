@@ -33,8 +33,8 @@ const core::Property PutAzureDataLakeStorage::ConflictResolutionStrategy(
     core::PropertyBuilder::createProperty("Conflict Resolution Strategy")
       ->withDescription("Indicates what should happen when a file with the same name already exists in the output directory.")
       ->isRequired(true)
-      ->withDefaultValue<std::string>(toString(FileExistsResolutionStrategy::FAIL_FLOW))
-      ->withAllowableValues<std::string>(FileExistsResolutionStrategy::values())
+      ->withDefaultValue<std::string>(std::string(magic_enum::enum_name(FileExistsResolutionStrategy::FAIL_FLOW)))
+      ->withAllowableValues<std::string>(utils::getEnumValueStrings<FileExistsResolutionStrategy>())
       ->build());
 
 const core::Relationship PutAzureDataLakeStorage::Success("success", "Files that have been successfully written to Azure storage are transferred to this relationship");

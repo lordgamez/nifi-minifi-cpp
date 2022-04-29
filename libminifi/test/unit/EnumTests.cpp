@@ -106,3 +106,18 @@ TEST_CASE("Enum checks") {
   REQUIRE(!C{C::_3}.cast<A>());
   REQUIRE(!B{B::_2}.cast<A>());
 }
+
+namespace org::apache::nifi::minifi::test {
+
+enum class DummyEnum {
+  APPLE,
+  ORANGE,
+  BANANA
+};
+
+TEST_CASE("GeneralUtils::getEnumValueStrings", "[getEnumValueStrings]") {
+  std::set<std::string> expected_enum_string = {"APPLE", "ORANGE", "BANANA"};
+  REQUIRE(utils::getEnumValueStrings<DummyEnum>() == expected_enum_string);
+}
+
+}

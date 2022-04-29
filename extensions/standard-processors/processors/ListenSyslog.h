@@ -73,10 +73,10 @@ class ListenSyslog : public core::Processor {
   }
 
  private:
-  SMART_ENUM(Protocol,
-             (TCP, "TCP"),
-             (UDP, "UDP")
-  )
+  enum class Protocol {
+    TCP,
+    UDP
+  };
 
   void stopServer();
 

@@ -44,11 +44,11 @@ class PutAzureDataLakeStorage final : public AzureDataLakeStorageFileProcessorBa
   EXTENSIONAPI static const core::Relationship Failure;
   EXTENSIONAPI static const core::Relationship Success;
 
-  SMART_ENUM(FileExistsResolutionStrategy,
-    (FAIL_FLOW, "fail"),
-    (REPLACE_FILE, "replace"),
-    (IGNORE_REQUEST, "ignore")
-  )
+  enum class FileExistsResolutionStrategy {
+    FAIL_FLOW,
+    REPLACE_FILE,
+    IGNORE_REQUEST
+  };
 
   explicit PutAzureDataLakeStorage(const std::string& name, const minifi::utils::Identifier& uuid = minifi::utils::Identifier())
     : PutAzureDataLakeStorage(name, uuid, nullptr) {

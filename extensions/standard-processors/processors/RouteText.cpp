@@ -131,12 +131,12 @@ void RouteText::initialize() {
 
 void RouteText::onSchedule(core::ProcessContext* context, core::ProcessSessionFactory* /*sessionFactory*/) {
   gsl_Expects(context);
-  routing_ = utils::parseEnumProperty<Routing>(*context, RoutingStrategy);
-  matching_ = utils::parseEnumProperty<Matching>(*context, MatchingStrategy);
+  routing_ = utils::parseEnumPropertyOld<Routing>(*context, RoutingStrategy);
+  matching_ = utils::parseEnumPropertyOld<Matching>(*context, MatchingStrategy);
   context->getProperty(TrimWhitespace.getName(), trim_);
   case_policy_ = context->getProperty<bool>(IgnoreCase).value_or(false) ? CasePolicy::IGNORE_CASE : CasePolicy::CASE_SENSITIVE;
   group_regex_ = context->getProperty(GroupingRegex) | utils::map([] (const auto& str) {return utils::Regex(str);});
-  segmentation_ = utils::parseEnumProperty<Segmentation>(*context, SegmentationStrategy);
+  segmentation_ = utils::parseEnumPropertyOld<Segmentation>(*context, SegmentationStrategy);
   context->getProperty(GroupingFallbackValue.getName(), group_fallback_);
 }
 

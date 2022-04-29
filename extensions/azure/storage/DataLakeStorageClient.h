@@ -34,10 +34,10 @@
 
 namespace org::apache::nifi::minifi::azure::storage {
 
-SMART_ENUM(EntityTracking,
-  (NONE, "none"),
-  (TIMESTAMPS, "timestamps")
-)
+enum class EntityTracking {
+  NONE,
+  TIMESTAMPS
+};
 
 struct AzureDataLakeStorageParameters {
   AzureStorageCredentials credentials;

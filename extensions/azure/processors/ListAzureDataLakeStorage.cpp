@@ -47,8 +47,8 @@ const core::Property ListAzureDataLakeStorage::ListingStrategy(
   core::PropertyBuilder::createProperty("Listing Strategy")
     ->withDescription("Specify how to determine new/updated entities. If 'timestamps' is selected it tracks the latest timestamp of listed entity to "
                       "determine new/updated entities. If 'none' is selected it lists an entity without any tracking, the same entity will be listed each time on executing this processor.")
-    ->withDefaultValue<std::string>(toString(storage::EntityTracking::TIMESTAMPS))
-    ->withAllowableValues<std::string>(storage::EntityTracking::values())
+    ->withDefaultValue<std::string>(std::string(magic_enum::enum_name(storage::EntityTracking::TIMESTAMPS)))
+    ->withAllowableValues<std::string>(utils::getEnumValueStrings<storage::EntityTracking>())
     ->build());
 
 const core::Relationship ListAzureDataLakeStorage::Success("success", "All FlowFiles that are received are routed to success");
