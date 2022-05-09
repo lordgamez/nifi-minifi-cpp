@@ -337,6 +337,7 @@ void InvokeHTTP::onTrigger(const std::shared_ptr<core::ProcessContext> &context,
       } else if (!use_chunked_encoding_) {
         client.appendHeader("Content-Length", std::to_string(flowFile->getSize()));
       }
+
       client.setUploadCallback(callbackObj.get());
       client.setSeekFunction(callbackObj.get());
     } else {
