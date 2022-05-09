@@ -48,7 +48,6 @@ class C2HeartbeatHandler : public ServerAwareHandler {
       mg_printf(conn, "HTTP/1.1 200 OK\r\nContent-Type: "
                       "text/plain\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
     }
-
     return true;
   }
 
