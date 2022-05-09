@@ -1236,7 +1236,7 @@ public:
 
             // Use static buffer and placement-new to prevent destruction
             static char buffer[sizeof(GenericValue)];
-            return *new (buffer) GenericValue();
+            return *new (buffer) GenericValue();  // NOLINT
         }
     }
     template <typename SourceAllocator>
