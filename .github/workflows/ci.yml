@@ -8,7 +8,8 @@ jobs:
     steps:
       - id: files
         uses: Ana06/get-changed-files@v2.1.0
-      - run: |
+      - name: clang-tidy
+        run: |
           for changed_file in ${{ steps.files.outputs.all }}; do
             echo "Do something with this ${changed_file}."
           done

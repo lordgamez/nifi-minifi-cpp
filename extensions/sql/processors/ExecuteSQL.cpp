@@ -73,6 +73,7 @@ void ExecuteSQL::processOnSchedule(core::ProcessContext& context) {
 
   max_rows_ = [&] {
     uint64_t max_rows;
+
     context.getProperty(MaxRowsPerFlowFile.getName(), max_rows);
     return gsl::narrow<size_t>(max_rows);
   }();
