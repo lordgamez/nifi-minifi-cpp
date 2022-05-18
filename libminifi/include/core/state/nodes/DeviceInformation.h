@@ -15,8 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef LIBMINIFI_INCLUDE_CORE_STATE_NODES_DEVICEINFORMATION_H_
-#define LIBMINIFI_INCLUDE_CORE_STATE_NODES_DEVICEINFORMATION_H_
+#pragma once
 
 #ifndef WIN32
 #if ( defined(__APPLE__) || defined(__MACH__) || defined(BSD))
@@ -61,12 +60,7 @@
 #include "utils/SystemCpuUsageTracker.h"
 #include "utils/Export.h"
 
-namespace org {
-namespace apache {
-namespace nifi {
-namespace minifi {
-namespace state {
-namespace response {
+namespace org::apache::nifi::minifi::state::response {
 
 class Device {
  public:
@@ -324,7 +318,7 @@ class DeviceInfoNode : public DeviceInformation {
     return serialized;
   }
 
-  std::unordered_map<std::string, double> calculateMetrics() override {
+  std::vector<PublishedMetric> calculateMetrics() override {
     double system_cpu_usage = -1.0;
     {
       std::lock_guard<std::mutex> guard(cpu_load_tracker_mutex_);
@@ -334,9 +328,9 @@ class DeviceInfoNode : public DeviceInformation {
     cpu_usage.name = "cpuUtilization";
     cpu_usage.value = system_cpu_usage;
     return {
-      {"physical_mem", static_cast<double>(utils::OsUtils::getSystemTotalPhysicalMemory())},
-      {"memory_usage", static_cast<double>(utils::OsUtils::getSystemPhysicalMemoryUsage())},
-      {"cpu_utilization", system_cpu_usage},
+      {"physical_mem", static_cast<double>(utils::OsUtils::getSystemTotalPhysicalMemory()), {{"metric_class", getName()}}},
+      {"memory_usage", static_cast<double>(utils::OsUtils::getSystemPhysicalMemoryUsage()), {{"metric_class", getName()}}},
+      {"cpu_utilization", system_cpu_usage, {{"metric_class", getName()}}},
     };
   }
 
@@ -459,11 +453,4 @@ class DeviceInfoNode : public DeviceInformation {
   MINIFIAPI static std::mutex cpu_load_tracker_mutex_;
 };
 
-}  // namespace response
-}  // namespace state
-}  // namespace minifi
-}  // namespace nifi
-}  // namespace apache
-}  // namespace org
-
-#endif  // LIBMINIFI_INCLUDE_CORE_STATE_NODES_DEVICEINFORMATION_H_
+}  // namespace org::apache::nifi::minifi::state::response

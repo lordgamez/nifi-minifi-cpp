@@ -15,12 +15,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#pragma once
 
-#include "core/state/nodes/FlowInformation.h"
-#include "core/Resource.h"
+#include <unordered_map>
+#include <string>
+#include <vector>
 
-namespace org::apache::nifi::minifi::state::response {
+namespace org::apache::nifi::minifi::state {
 
-REGISTER_RESOURCE(FlowInformation, "Node part of an AST that defines the flow ID and flow URL deployed to this agent");
+struct PublishedMetric {
+  std::string name;
+  double value;
+  std::unordered_map<std::string, std::string> labels;
+};
 
-}  // namespace org::apache::nifi::minifi::state::response
+class PublishedMetricProvider {
+ public:
+  virtual std::vector<PublishedMetric> calculateMetrics() {
+    return {};
+  }
+  virtual ~PublishedMetricProvider() = default;
+};
+
+}  // namespace org::apache::nifi::minifi::state

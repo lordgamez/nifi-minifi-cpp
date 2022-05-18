@@ -1,5 +1,4 @@
 /**
- *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -15,12 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include <memory>
 
-#include "core/state/nodes/FlowInformation.h"
-#include "core/Resource.h"
+#include "state/PublishedMetricProvider.h"
+#include "prometheus/collectable.h"
+#include "prometheus/metric_family.h"
 
-namespace org::apache::nifi::minifi::state::response {
+namespace org::apache::nifi::minifi::extensions::prometheus {
 
-REGISTER_RESOURCE(FlowInformation, "Node part of an AST that defines the flow ID and flow URL deployed to this agent");
+class PublishedMetricGaugeCollection : public ::prometheus::Collectable {
+ public:
+  PublishedMetricGaugeCollection(std::shared_ptr<state::PublishedMetricProvider> metric);
+  std::vector<::prometheus::MetricFamily> Collect() const override;
 
-}  // namespace org::apache::nifi::minifi::state::response
+ private:
+  std::shared_ptr<state::PublishedMetricProvider> metric_;
+};
+
+}  // namespace org::apache::nifi::minifi::extensions::prometheus
