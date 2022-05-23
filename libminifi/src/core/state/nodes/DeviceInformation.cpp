@@ -25,4 +25,4 @@ std::mutex DeviceInfoNode::cpu_load_tracker_mutex_;
 
 REGISTER_RESOURCE(DeviceInfoNode, "Node part of an AST that defines device characteristics to the C2 protocol");
 
-} // namespace org::apache::nifi::minifi::state::response
+}  // namespace org::apache::nifi::minifi::state::response
