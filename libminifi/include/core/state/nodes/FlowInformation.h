@@ -61,11 +61,11 @@ class FlowVersion : public DeviceInformation {
         identifier(std::move(fv.identifier)) {
   }
 
-  std::string getName() const {
+  std::string getName() const override {
     return "FlowVersion";
   }
 
-  virtual std::shared_ptr<state::FlowIdentifier> getFlowIdentifier() const {
+  std::shared_ptr<state::FlowIdentifier> getFlowIdentifier() const override {
     std::lock_guard<std::mutex> lock(guard);
     return identifier;
   }
@@ -94,7 +94,7 @@ class FlowVersion : public DeviceInformation {
     identifier = std::make_shared<FlowIdentifier>(url, bucket_id, flow_id);
   }
 
-  std::vector<SerializedResponseNode> serialize() {
+  std::vector<SerializedResponseNode> serialize() override {
     std::lock_guard<std::mutex> lock(guard);
     std::vector<SerializedResponseNode> serialized;
     SerializedResponseNode ru;
@@ -157,11 +157,11 @@ class FlowInformation : public FlowMonitor {
       : FlowMonitor(name) {
   }
 
-  std::string getName() const {
+  std::string getName() const override {
     return "flowInfo";
   }
 
-  std::vector<SerializedResponseNode> serialize() {
+  std::vector<SerializedResponseNode> serialize() override {
     std::vector<SerializedResponseNode> serialized;
 
     SerializedResponseNode fv;

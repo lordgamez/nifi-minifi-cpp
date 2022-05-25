@@ -304,11 +304,11 @@ class DeviceInfoNode : public DeviceInformation {
     device_id_ = device.device_id_;
   }
 
-  std::string getName() const {
+  std::string getName() const override {
     return "deviceInfo";
   }
 
-  std::vector<SerializedResponseNode> serialize() {
+  std::vector<SerializedResponseNode> serialize() override {
     std::vector<SerializedResponseNode> serialized;
 
     serialized.push_back(serializeIdentifier());

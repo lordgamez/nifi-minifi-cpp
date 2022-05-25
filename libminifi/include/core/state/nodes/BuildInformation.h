@@ -74,11 +74,11 @@ class BuildInformation : public DeviceInformation {
       : DeviceInformation(name) {
   }
 
-  std::string getName() const {
+  std::string getName() const override {
     return "BuildInformation";
   }
 
-  std::vector<SerializedResponseNode> serialize() {
+  std::vector<SerializedResponseNode> serialize() override {
     std::vector<SerializedResponseNode> serialized;
 
     SerializedResponseNode build_version;

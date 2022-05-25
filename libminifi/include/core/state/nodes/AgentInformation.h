@@ -77,11 +77,11 @@ class ComponentManifest : public DeviceInformation {
       : DeviceInformation(name) {
   }
 
-  std::string getName() const {
+  std::string getName() const override {
     return CoreComponent::getName();
   }
 
-  virtual std::vector<SerializedResponseNode> serialize() {
+  std::vector<SerializedResponseNode> serialize() override {
     std::vector<SerializedResponseNode> serialized;
     SerializedResponseNode resp;
     resp.name = "componentManifest";
@@ -325,7 +325,7 @@ class ExternalManifest : public ComponentManifest {
       : ComponentManifest(name) {
   }
 
-  virtual std::vector<SerializedResponseNode> serialize() {
+  std::vector<SerializedResponseNode> serialize() override {
     std::vector<SerializedResponseNode> serialized;
     SerializedResponseNode resp;
     resp.name = "componentManifest";
@@ -349,11 +349,11 @@ class Bundles : public DeviceInformation {
     setArray(true);
   }
 
-  std::string getName() const {
+  std::string getName() const override {
     return "bundles";
   }
 
-  std::vector<SerializedResponseNode> serialize() {
+  std::vector<SerializedResponseNode> serialize() override {
     std::vector<SerializedResponseNode> serialized;
     for (auto group : AgentBuild::getExtensions()) {
       SerializedResponseNode bundle;
@@ -425,7 +425,7 @@ class AgentStatus : public StateMonitorNode {
       : StateMonitorNode(name) {
   }
 
-  std::string getName() const {
+  std::string getName() const override {
     return "status";
   }
 
@@ -433,7 +433,7 @@ class AgentStatus : public StateMonitorNode {
     repositories_ = repositories;
   }
 
-  std::vector<SerializedResponseNode> serialize() {
+  std::vector<SerializedResponseNode> serialize() override {
     std::vector<SerializedResponseNode> serialized;
     auto serializedRepositories = serializeRepositories();
     if (!serializedRepositories.empty()) {
