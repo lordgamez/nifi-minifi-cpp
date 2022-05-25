@@ -36,6 +36,7 @@ from .SplunkContainer import SplunkContainer
 from .SyslogUdpClientContainer import SyslogUdpClientContainer
 from .SyslogTcpClientContainer import SyslogTcpClientContainer
 from .MinifiAsPodInKubernetesCluster import MinifiAsPodInKubernetesCluster
+from .PrometheusContainer import PrometheusContainer
 
 
 class SingleNodeDockerCluster(Cluster):
@@ -121,6 +122,8 @@ class SingleNodeDockerCluster(Cluster):
             return self.containers.setdefault(name, SyslogUdpClientContainer(name, self.vols, self.network, self.image_store, command))
         elif engine == "syslog-tcp-client":
             return self.containers.setdefault(name, SyslogTcpClientContainer(name, self.vols, self.network, self.image_store, command))
+        elif engine == "prometheus":
+            return self.containers.setdefault(name, PrometheusContainer(name, self.vols, self.network, self.image_store, command))
         else:
             raise Exception('invalid flow engine: \'%s\'' % engine)
 
