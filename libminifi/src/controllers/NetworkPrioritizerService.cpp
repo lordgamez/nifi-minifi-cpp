@@ -30,8 +30,8 @@
 #include <netdb.h>
 #include <unistd.h>
 #endif
-#include <string.h>
-#include <stdlib.h>
+#include <cstring>
+#include <cstdlib>
 
 #include <set>
 #include "utils/StringUtils.h"

@@ -18,7 +18,7 @@
  * limitations under the License.
  */
 #include "BinFiles.h"
-#include <stdio.h>
+#include <cstdio>
 #include <memory>
 #include <string>
 #include <vector>

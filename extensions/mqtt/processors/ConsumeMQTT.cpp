@@ -19,7 +19,7 @@
  */
 #include "ConsumeMQTT.h"
 
-#include <stdio.h>
+#include <cstdio>
 #include <algorithm>
 #include <memory>
 #include <string>

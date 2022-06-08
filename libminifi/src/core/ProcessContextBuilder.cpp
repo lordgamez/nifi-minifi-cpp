@@ -18,7 +18,7 @@
  * limitations under the License.
  */
 #include "core/ProcessContextBuilder.h"
-#include <time.h>
+#include <ctime>
 #include <vector>
 #include <memory>
 #include <string>
