@@ -106,7 +106,7 @@ void JavaControllerService::onEnable() {
 
   narClassLoaderClazz = loadClass("org/apache/nifi/processor/JniClassLoader");
 
-  nar_loader_ = std::unique_ptr<NarClassLoader>(new NarClassLoader(shared_from_this(), narClassLoaderClazz, nardir, narscratch, nardocs));
+  nar_loader_ = std::make_unique<NarClassLoader>(shared_from_this(), narClassLoaderClazz, nardir, narscratch, nardocs);
 }
 
 REGISTER_RESOURCE(JavaControllerService, "Allows specification of nars to be used within referenced processors. ");
