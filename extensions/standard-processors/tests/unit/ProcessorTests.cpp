@@ -511,14 +511,14 @@ class TestProcessorNoContent : public minifi::core::Processor {
    * @param sessionFactory process session factory that is used when creating
    * ProcessSession objects.
    */
-  void onSchedule(core::ProcessContext* /*context*/, core::ProcessSessionFactory* /*sessionFactory*/) {
+  void onSchedule(core::ProcessContext* /*context*/, core::ProcessSessionFactory* /*sessionFactory*/) override {
   }
   /**
    * Execution trigger for the GetFile Processor
    * @param context processor context
    * @param session processor session reference.
    */
-  virtual void onTrigger(core::ProcessContext* /*context*/, core::ProcessSession *session) {
+  void onTrigger(core::ProcessContext* /*context*/, core::ProcessSession *session) override {
     auto ff = session->create();
     ff->addAttribute("Attribute", "AttributeValue");
     session->transfer(ff, Success);

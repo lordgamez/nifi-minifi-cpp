@@ -615,11 +615,11 @@ Processors:
 
 class DummyComponent : public core::ConfigurableComponent {
  public:
-  virtual bool supportsDynamicProperties() {
+  bool supportsDynamicProperties() override {
     return false;
   }
 
-  virtual bool canEdit() {
+  bool canEdit() override {
     return true;
   }
 };

@@ -29,22 +29,22 @@ namespace core {
 
 class TestConfigurableComponentSupportsDynamic : public ConfigurableComponent {
  public:
-  virtual bool supportsDynamicProperties() {
+  bool supportsDynamicProperties() override {
     return true;
   }
 
-  virtual bool canEdit() {
+  bool canEdit() override {
     return false;
   }
 };
 
 class TestConfigurableComponentNotSupportsDynamic : public ConfigurableComponent {
  public:
-  virtual bool supportsDynamicProperties() {
+  bool supportsDynamicProperties() override {
     return false;
   }
 
-  virtual bool canEdit() {
+  bool canEdit() override {
     return false;
   }
 };
