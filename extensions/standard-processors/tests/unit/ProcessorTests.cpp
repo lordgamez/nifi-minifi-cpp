@@ -502,9 +502,6 @@ class TestProcessorNoContent : public minifi::core::Processor {
       : Processor(name, uuid),
         Success("success", "All files are routed to success") {
   }
-  // Destructor
-  virtual ~TestProcessorNoContent() {
-  }
 
   core::Relationship Success;
 

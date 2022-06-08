@@ -44,7 +44,7 @@ class ConsumeKafkaMaxPollTimeValidator : public TimePeriodValidator {
   }
   ~ConsumeKafkaMaxPollTimeValidator() override = default;
 
-  ValidationResult validate(const std::string& subject, const std::string& input) const override {
+  [[nodiscard]] ValidationResult validate(const std::string& subject, const std::string& input) const override {
     auto parsed_value = utils::timeutils::StringToDuration<std::chrono::milliseconds>(input);
     return ValidationResult::Builder::createBuilder().withSubject(subject).withInput(input).isValid(
         parsed_value.has_value() &&
