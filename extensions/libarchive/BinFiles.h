@@ -36,11 +36,7 @@
 #include "utils/Export.h"
 #include "core/FlowFileStore.h"
 
-namespace org {
-namespace apache {
-namespace nifi {
-namespace minifi {
-namespace processors {
+namespace org::apache::nifi::minifi::processors {
 
 // Bin Class
 class Bin {
@@ -271,9 +267,5 @@ class BinFiles : public core::Processor {
   core::FlowFileStore file_store_;
 };
 
-} /* namespace processors */
-} /* namespace minifi */
-} /* namespace nifi */
-} /* namespace apache */
-} /* namespace org */
+}  // namespace org::apache::nifi::minifi::processors
 

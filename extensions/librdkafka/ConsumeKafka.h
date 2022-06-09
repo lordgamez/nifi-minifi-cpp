@@ -30,10 +30,7 @@
 #include "rdkafka_utils.h"
 #include "KafkaConnection.h"
 
-namespace org {
-namespace apache {
-namespace nifi {
-namespace minifi {
+namespace org::apache::nifi::minifi {
 
 class FlowFileRecord;
 
@@ -172,7 +169,4 @@ class ConsumeKafka : public KafkaProcessorBase {
 };
 
 }  // namespace processors
-}  // namespace minifi
-}  // namespace nifi
-}  // namespace apache
-}  // namespace org
+}  // namespace org::apache::nifi::minifi

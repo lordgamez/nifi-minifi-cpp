@@ -36,11 +36,7 @@
 #include "utils/Export.h"
 #include "utils/RegexUtils.h"
 
-namespace org {
-namespace apache {
-namespace nifi {
-namespace minifi {
-namespace processors {
+namespace org::apache::nifi::minifi::processors {
 
 // ListenHTTP Class
 class ListenHTTP : public core::Processor {
@@ -183,8 +179,4 @@ class ListenHTTP : public core::Processor {
   uint64_t batch_size_;
 };
 
-} /* namespace processors */
-} /* namespace minifi */
-} /* namespace nifi */
-} /* namespace apache */
-} /* namespace org */
+}  // namespace org::apache::nifi::minifi::processors

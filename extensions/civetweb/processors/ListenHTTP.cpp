@@ -29,11 +29,7 @@
 #include "core/Resource.h"
 #include "utils/gsl.h"
 
-namespace org {
-namespace apache {
-namespace nifi {
-namespace minifi {
-namespace processors {
+namespace org::apache::nifi::minifi::processors {
 
 const uint64_t ListenHTTP::DEFAULT_BUFFER_SIZE = 20000;
 
@@ -529,8 +525,4 @@ REGISTER_RESOURCE(ListenHTTP, "Starts an HTTP Server and listens on a given base
     "The mime.type attribute of the response body FlowFile is used for the Content-type header in responses. Response body content can be cleared by sending an empty (size 0) "
     "FlowFile for a given URI mapping.");
 
-} /* namespace processors */
-} /* namespace minifi */
-} /* namespace nifi */
-} /* namespace apache */
-} /* namespace org */
+}  // namespace org::apache::nifi::minifi::processors

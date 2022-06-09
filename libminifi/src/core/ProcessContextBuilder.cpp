@@ -31,11 +31,7 @@
 #include "core/logging/LoggerConfiguration.h"
 #include "core/Resource.h"
 
-namespace org {
-namespace apache {
-namespace nifi {
-namespace minifi {
-namespace core {
+namespace org::apache::nifi::minifi::core {
 
 ProcessContextBuilder::ProcessContextBuilder(const std::string &name, const minifi::utils::Identifier &uuid)
     : core::CoreComponent(name, uuid) {
@@ -80,8 +76,4 @@ std::shared_ptr<core::ProcessContext> ProcessContextBuilder::build(const std::sh
 
 REGISTER_INTERNAL_RESOURCE(ProcessContextBuilder);
 
-} /* namespace core */
-} /* namespace minifi */
-} /* namespace nifi */
-} /* namespace apache */
-} /* namespace org */
+}  // namespace org::apache::nifi::minifi::core

@@ -15,8 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef LIBMINIFI_INCLUDE_CORE_PROCESSCONTEXTBUILDER_H_
-#define LIBMINIFI_INCLUDE_CORE_PROCESSCONTEXTBUILDER_H_
+#pragma once
 
 #include <string>
 #include <vector>
@@ -41,11 +40,7 @@
 #include "core/FlowFile.h"
 #include "VariableRegistry.h"
 
-namespace org {
-namespace apache {
-namespace nifi {
-namespace minifi {
-namespace core {
+namespace org::apache::nifi::minifi::core {
 /**
  * Could use instantiate<T> from core, which uses a simple compile time check to figure out if a destructor is defined
  * and thus that will allow us to know if the context instance exists, but I like using the build because it allows us
@@ -82,9 +77,4 @@ class ProcessContextBuilder : public core::CoreComponent, public std::enable_sha
   std::shared_ptr<core::ContentRepository> content_repo_;
 };
 
-}  // namespace core
-}  // namespace minifi
-}  // namespace nifi
-}  // namespace apache
-}  // namespace org
-#endif  // LIBMINIFI_INCLUDE_CORE_PROCESSCONTEXTBUILDER_H_
+}  // namespace org::apache::nifi::minifi::core

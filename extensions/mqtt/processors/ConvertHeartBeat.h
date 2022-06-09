@@ -25,11 +25,7 @@
 #include "core/logging/LoggerConfiguration.h"
 #include "ConvertBase.h"
 
-namespace org {
-namespace apache {
-namespace nifi {
-namespace minifi {
-namespace processors {
+namespace org::apache::nifi::minifi::processors {
 
 /*
  * Purpose: ConvertHeartBeat converts heatbeats into MQTT messages.
@@ -62,8 +58,4 @@ class ConvertHeartBeat: public ConvertBase{
   std::shared_ptr<core::logging::Logger> logger_ = core::logging::LoggerFactory<ConvertHeartBeat>::getLogger();
 };
 
-} /* namespace processors */
-} /* namespace minifi */
-} /* namespace nifi */
-} /* namespace apache */
-} /* namespace org */
+}  // namespace org::apache::nifi::minifi::processors

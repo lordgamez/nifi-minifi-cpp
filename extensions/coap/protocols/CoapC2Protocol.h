@@ -38,12 +38,7 @@
 #include "coap2/address.h"
 #include "protocols/RESTSender.h"
 
-namespace org {
-namespace apache {
-namespace nifi {
-namespace minifi {
-namespace coap {
-namespace c2 {
+namespace org::apache::nifi::minifi::coap::c2 {
 
 #define REQUIRE_VALID(x) \
   if (io::isError(x)) { \
@@ -133,9 +128,4 @@ class CoapProtocol : public minifi::c2::RESTSender {
   std::shared_ptr<core::logging::Logger> logger_ = core::logging::LoggerFactory<CoapProtocol>::getLogger();
 };
 
-} /* namespace c2 */
-} /* namespace coap */
-} /* namespace minifi */
-} /* namespace nifi */
-} /* namespace apache */
-} /* namespace org */
+}  // namespace org::apache::nifi::minifi::coap::c2

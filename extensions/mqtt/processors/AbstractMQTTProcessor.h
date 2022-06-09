@@ -30,11 +30,7 @@
 #include "core/logging/LoggerConfiguration.h"
 #include "MQTTClient.h"
 
-namespace org {
-namespace apache {
-namespace nifi {
-namespace minifi {
-namespace processors {
+namespace org::apache::nifi::minifi::processors {
 
 static constexpr const char* const MQTT_QOS_0 = "0";
 static constexpr const char* const MQTT_QOS_1 = "1";
@@ -147,9 +143,4 @@ class AbstractMQTTProcessor : public core::Processor {
   std::string securityPrivateKeyPassWord_;
 };
 
-
-} /* namespace processors */
-} /* namespace minifi */
-} /* namespace nifi */
-} /* namespace apache */
-} /* namespace org */
+}  // namespace org::apache::nifi::minifi::processors

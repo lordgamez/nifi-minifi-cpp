@@ -34,11 +34,7 @@
 #include "controllers/keyvalue/PersistableKeyValueStoreService.h"
 #include "utils/RegexUtils.h"
 
-namespace org {
-namespace apache {
-namespace nifi {
-namespace minifi {
-namespace processors {
+namespace org::apache::nifi::minifi::processors {
 
 class ListSFTP : public SFTPProcessorBase {
  public:
@@ -196,8 +192,4 @@ class ListSFTP : public SFTPProcessorBase {
       std::vector<Child>&& files);
 };
 
-} /* namespace processors */
-} /* namespace minifi */
-} /* namespace nifi */
-} /* namespace apache */
-} /* namespace org */
+}  // namespace org::apache::nifi::minifi::processors

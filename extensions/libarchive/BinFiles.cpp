@@ -32,11 +32,7 @@
 #include "core/ProcessSession.h"
 #include "core/Resource.h"
 
-namespace org {
-namespace apache {
-namespace nifi {
-namespace minifi {
-namespace processors {
+namespace org::apache::nifi::minifi::processors {
 
 core::Property BinFiles::MinSize(
     core::PropertyBuilder::createProperty("Minimum Group Size")
@@ -358,8 +354,4 @@ std::set<core::Connectable*> BinFiles::getOutGoingConnections(const std::string 
 
 REGISTER_RESOURCE(BinFiles, "Bins flow files into buckets based on the number of entries or size of entries");
 
-} /* namespace processors */
-} /* namespace minifi */
-} /* namespace nifi */
-} /* namespace apache */
-} /* namespace org */
+}  // namespace org::apache::nifi::minifi::processors

@@ -31,11 +31,7 @@
 #include "agent/agent_version.h"
 #include "c2/PayloadSerializer.h"
 
-namespace org {
-namespace apache {
-namespace nifi {
-namespace minifi {
-namespace c2 {
+namespace org::apache::nifi::minifi::c2 {
 
 /**
  * Purpose: Implementation of the MQTT C2 protocol. Serializes messages to and from
@@ -85,8 +81,4 @@ class MQTTC2Protocol : public C2Protocol {
   std::string controller_service_name_;
 };
 
-} /* namespace c2 */
-} /* namespace minifi */
-} /* namespace nifi */
-} /* namespace apache */
-} /* namespace org */
+}  // namespace org::apache::nifi::minifi::c2

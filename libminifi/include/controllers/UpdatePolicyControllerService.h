@@ -15,8 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef LIBMINIFI_INCLUDE_CONTROLLERS_UPDATEPOLICYCONTROLLERSERVICE_H_
-#define LIBMINIFI_INCLUDE_CONTROLLERS_UPDATEPOLICYCONTROLLERSERVICE_H_
+#pragma once
 
 #include <string>
 #include <iostream>
@@ -29,11 +28,7 @@
 #include "core/state/UpdatePolicy.h"
 #include "utils/Export.h"
 
-namespace org {
-namespace apache {
-namespace nifi {
-namespace minifi {
-namespace controllers {
+namespace org::apache::nifi::minifi::controllers {
 
 /**
  * Purpose: UpdatePolicyControllerService allows a flow specific policy on allowing or disallowing updates.
@@ -80,10 +75,4 @@ class UpdatePolicyControllerService : public core::controller::ControllerService
   std::shared_ptr<core::logging::Logger> logger_ = core::logging::LoggerFactory<UpdatePolicyControllerService>::getLogger();
 };
 
-}  // namespace controllers
-}  // namespace minifi
-}  // namespace nifi
-}  // namespace apache
-}  // namespace org
-
-#endif  // LIBMINIFI_INCLUDE_CONTROLLERS_UPDATEPOLICYCONTROLLERSERVICE_H_
+}  // namespace org::apache::nifi::minifi::controllers

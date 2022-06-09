@@ -30,11 +30,7 @@
 #include "MQTTClient.h"
 #include "c2/protocols/RESTProtocol.h"
 
-namespace org {
-namespace apache {
-namespace nifi {
-namespace minifi {
-namespace processors {
+namespace org::apache::nifi::minifi::processors {
 
 /**
  * Purpose: Provides base functionality for mqtt conversion classes.
@@ -79,8 +75,4 @@ class ConvertBase : public core::Processor, public minifi::c2::RESTProtocol {
   std::string listening_topic;
 };
 
-} /* namespace processors */
-} /* namespace minifi */
-} /* namespace nifi */
-} /* namespace apache */
-} /* namespace org */
+}  // namespace org::apache::nifi::minifi::processors

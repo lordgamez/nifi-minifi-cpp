@@ -47,11 +47,7 @@ namespace {
   }
 }  // namespace
 
-namespace org {
-namespace apache {
-namespace nifi {
-namespace minifi {
-namespace controllers {
+namespace org::apache::nifi::minifi::controllers {
 
 constexpr int UnorderedMapPersistableKeyValueStoreService::FORMAT_VERSION;
 
@@ -247,8 +243,4 @@ bool UnorderedMapPersistableKeyValueStoreService::load() {
 
 REGISTER_RESOURCE(UnorderedMapPersistableKeyValueStoreService, "A persistable key-value service implemented by a locked std::unordered_map<std::string, std::string> and persisted into a file");
 
-}  // namespace controllers
-}  // namespace minifi
-}  // namespace nifi
-}  // namespace apache
-}  // namespace org
+}  // namespace org::apache::nifi::minifi::controllers

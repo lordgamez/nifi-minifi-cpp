@@ -28,11 +28,7 @@
 #include "utils/StringUtils.h"
 #include "core/Resource.h"
 
-namespace org {
-namespace apache {
-namespace nifi {
-namespace minifi {
-namespace c2 {
+namespace org::apache::nifi::minifi::c2 {
 
 void ControllerSocketProtocol::initialize(core::controller::ControllerServiceProvider* controller, state::StateMonitor* updateSink,
                                           const std::shared_ptr<Configure> &configuration) {
@@ -303,8 +299,4 @@ int16_t ControllerSocketProtocol::heartbeat(const C2Payload &payload) {
 
 REGISTER_RESOURCE(ControllerSocketProtocol, "Creates a reporter that can handle basic c2 operations for a localized environment through a simple TCP socket.");
 
-}  // namespace c2
-}  // namespace minifi
-}  // namespace nifi
-}  // namespace apache
-}  // namespace org
+}  // namespace org::apache::nifi::minifi::c2

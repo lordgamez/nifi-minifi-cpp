@@ -28,11 +28,7 @@
 #include "core/Resource.h"
 #include "properties/Configuration.h"
 
-namespace org {
-namespace apache {
-namespace nifi {
-namespace minifi {
-namespace c2 {
+namespace org::apache::nifi::minifi::c2 {
 
 int log_message(const struct mg_connection* /*conn*/, const char *message) {
   puts(message);
@@ -84,7 +80,7 @@ std::unique_ptr<CivetServer> RESTReceiver::start_webserver(const std::string &po
   my_port += "s";
   callback.log_message = log_message;
   const char *options[] = { "listening_ports", port.c_str(), "ssl_certificate", ca_cert.c_str(), "ssl_protocol_version", "4", "ssl_cipher_list", "ALL",
-      "ssl_verify_peer", "no", "num_threads", "1", 0 };
+      "ssl_verify_peer", "no", "num_threads", "1", nullptr };
 
   std::vector<std::string> cpp_options;
   for (uint32_t i = 0; i < (sizeof(options) / sizeof(options[0]) - 1); i++) {
@@ -98,7 +94,7 @@ std::unique_ptr<CivetServer> RESTReceiver::start_webserver(const std::string &po
 }
 
 std::unique_ptr<CivetServer> RESTReceiver::start_webserver(const std::string &port, std::string &rooturi, CivetHandler *handler) {
-  const char *options[] = { "document_root", ".", "listening_ports", port.c_str(), "num_threads", "1", 0 };
+  const char *options[] = { "document_root", ".", "listening_ports", port.c_str(), "num_threads", "1", nullptr };
 
   std::vector<std::string> cpp_options;
   for (uint32_t i = 0; i < (sizeof(options) / sizeof(options[0]) - 1); i++) {
@@ -113,8 +109,4 @@ std::unique_ptr<CivetServer> RESTReceiver::start_webserver(const std::string &po
 
 REGISTER_RESOURCE(RESTReceiver, "Provides a webserver to display C2 heartbeat information");
 
-} /* namespace c2 */
-} /* namespace minifi */
-} /* namespace nifi */
-} /* namespace apache */
-} /* namespace org */
+}  // namespace org::apache::nifi::minifi::c2

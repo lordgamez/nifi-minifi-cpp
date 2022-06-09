@@ -41,11 +41,7 @@
 #include "utils/StringUtils.h"
 #include "utils/file/FileUtils.h"
 
-namespace org {
-namespace apache {
-namespace nifi {
-namespace minifi {
-namespace processors {
+namespace org::apache::nifi::minifi::processors {
 
 core::Property FetchSFTP::RemoteFile(core::PropertyBuilder::createProperty("Remote File")
     ->withDescription("The fully qualified filename on the remote system")
@@ -275,8 +271,4 @@ void FetchSFTP::onTrigger(const std::shared_ptr<core::ProcessContext> &context, 
 
 REGISTER_RESOURCE(FetchSFTP, "Fetches the content of a file from a remote SFTP server and overwrites the contents of an incoming FlowFile with the content of the remote file.");
 
-} /* namespace processors */
-} /* namespace minifi */
-} /* namespace nifi */
-} /* namespace apache */
-} /* namespace org */
+}  // namespace org::apache::nifi::minifi::processors

@@ -36,11 +36,7 @@
 #include "core/PropertyValidation.h"
 #include "core/Resource.h"
 
-namespace org {
-namespace apache {
-namespace nifi {
-namespace minifi {
-namespace controllers {
+namespace org::apache::nifi::minifi::controllers {
 
 core::Property UpdatePolicyControllerService::AllowAllProperties(
     core::PropertyBuilder::createProperty("Allow All Properties")->withDescription("Allows all properties, which are also not disallowed, to be updated")->withDefaultValue<bool>(
@@ -110,8 +106,4 @@ void UpdatePolicyControllerService::onEnable() {
 REGISTER_RESOURCE(UpdatePolicyControllerService, "UpdatePolicyControllerService allows a flow specific policy on allowing or disallowing updates. "
     "Since the flow dictates the purpose of a device it will also be used to dictate updates to specific components.");
 
-}  // namespace controllers
-}  // namespace minifi
-}  // namespace nifi
-}  // namespace apache
-}  // namespace org
+}  // namespace org::apache::nifi::minifi::controllers

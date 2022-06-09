@@ -35,11 +35,7 @@
 #include "AbstractMQTTProcessor.h"
 #include "utils/gsl.h"
 
-namespace org {
-namespace apache {
-namespace nifi {
-namespace minifi {
-namespace processors {
+namespace org::apache::nifi::minifi::processors {
 
 #define MQTT_TOPIC_ATTRIBUTE "mqtt.topic"
 #define MQTT_BROKER_ATTRIBUTE "mqtt.broker"
@@ -106,8 +102,4 @@ class ConsumeMQTT : public processors::AbstractMQTTProcessor {
   moodycamel::ConcurrentQueue<MQTTClient_message *> queue_;
 };
 
-} /* namespace processors */
-} /* namespace minifi */
-} /* namespace nifi */
-} /* namespace apache */
-} /* namespace org */
+}  // namespace org::apache::nifi::minifi::processors

@@ -14,8 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef EXTENSIONS_STANDARD_PROCESSORS_CONTROLLERS_UNORDEREDMAPPERSISTABLEKEYVALUESTORESERVICE_H_
-#define EXTENSIONS_STANDARD_PROCESSORS_CONTROLLERS_UNORDEREDMAPPERSISTABLEKEYVALUESTORESERVICE_H_
+#pragma once
 
 #include <unordered_map>
 #include <string>
@@ -30,11 +29,7 @@
 #include "core/logging/Logger.h"
 #include "core/logging/LoggerConfiguration.h"
 
-namespace org {
-namespace apache {
-namespace nifi {
-namespace minifi {
-namespace controllers {
+namespace org::apache::nifi::minifi::controllers {
 
 class UnorderedMapPersistableKeyValueStoreService : public AbstractAutoPersistingKeyValueStoreService,
                                                     public UnorderedMapKeyValueStoreService {
@@ -86,10 +81,4 @@ class UnorderedMapPersistableKeyValueStoreService : public AbstractAutoPersistin
 
 static_assert(std::is_convertible<UnorderedMapKeyValueStoreService*, PersistableKeyValueStoreService*>::value, "UnorderedMapKeyValueStoreService is a PersistableKeyValueStoreService");
 
-}  // namespace controllers
-}  // namespace minifi
-}  // namespace nifi
-}  // namespace apache
-}  // namespace org
-
-#endif  // EXTENSIONS_STANDARD_PROCESSORS_CONTROLLERS_UNORDEREDMAPPERSISTABLEKEYVALUESTORESERVICE_H_
+}  // namespace org::apache::nifi::minifi::controllers

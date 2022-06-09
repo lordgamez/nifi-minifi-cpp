@@ -37,11 +37,7 @@
 #include "utils/Id.h"
 #include "utils/StringUtils.h"
 
-namespace org {
-namespace apache {
-namespace nifi {
-namespace minifi {
-namespace processors {
+namespace org::apache::nifi::minifi::processors {
   core::Property FetchOPCProcessor::NodeID(
       core::PropertyBuilder::createProperty("Node ID")
       ->withDescription("Specifies the ID of the root node to traverse")
@@ -236,8 +232,4 @@ namespace processors {
 
 REGISTER_RESOURCE(FetchOPCProcessor, "Fetches OPC-UA node");
 
-} /* namespace processors */
-} /* namespace minifi */
-} /* namespace nifi */
-} /* namespace apache */
-} /* namespace org */
+}  // namespace org::apache::nifi::minifi::processors

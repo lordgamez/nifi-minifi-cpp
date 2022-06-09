@@ -24,11 +24,7 @@
 #include "CivetServer.h"
 #include "c2/C2Protocol.h"
 
-namespace org {
-namespace apache {
-namespace nifi {
-namespace minifi {
-namespace c2 {
+namespace org::apache::nifi::minifi::c2 {
 
 int log_message(const struct mg_connection *conn, const char *message);
 
@@ -91,8 +87,4 @@ class RESTReceiver : public RESTProtocol, public HeartbeatReporter {
   std::shared_ptr<core::logging::Logger> logger_ = core::logging::LoggerFactory<RESTReceiver>::getLogger();
 };
 
-} /* namespace c2 */
-} /* namespace minifi */
-} /* namespace nifi */
-} /* namespace apache */
-} /* namespace org */
+}  // namespace org::apache::nifi::minifi::c2

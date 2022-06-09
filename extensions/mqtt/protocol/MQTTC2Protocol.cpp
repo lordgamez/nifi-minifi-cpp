@@ -19,11 +19,7 @@
 #include "core/Resource.h"
 #include "properties/Configuration.h"
 
-namespace org {
-namespace apache {
-namespace nifi {
-namespace minifi {
-namespace c2 {
+namespace org::apache::nifi::minifi::c2 {
 
 MQTTC2Protocol::MQTTC2Protocol(const std::string& name, const utils::Identifier& uuid)
     : C2Protocol(name, uuid) {
@@ -99,8 +95,4 @@ C2Payload MQTTC2Protocol::serialize(const C2Payload &payload) {
 
 REGISTER_INTERNAL_RESOURCE(MQTTC2Protocol);
 
-} /* namespace c2 */
-} /* namespace minifi */
-} /* namespace nifi */
-} /* namespace apache */
-} /* namespace org */
+}  // namespace org::apache::nifi::minifi::c2

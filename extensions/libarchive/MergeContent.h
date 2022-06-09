@@ -35,11 +35,7 @@
 #include "utils/gsl.h"
 #include "utils/Export.h"
 
-namespace org {
-namespace apache {
-namespace nifi {
-namespace minifi {
-namespace processors {
+namespace org::apache::nifi::minifi::processors {
 
 namespace merge_content_options {
 
@@ -68,7 +64,7 @@ class MergeBin {
 // BinaryConcatenationMerge Class
 class BinaryConcatenationMerge : public MergeBin {
  public:
-  BinaryConcatenationMerge(const std::string& header, const std::string& footer, const std::string& demarcator);
+  BinaryConcatenationMerge(std::string header, std::string footer, std::string demarcator);
 
   void merge(core::ProcessContext *context, core::ProcessSession *session,
       std::deque<std::shared_ptr<core::FlowFile>> &flows, FlowFileSerializer& serializer, const std::shared_ptr<core::FlowFile> &flowFile) override;
@@ -373,8 +369,4 @@ class MergeContent : public processors::BinFiles {
   std::string readContent(std::string path);
 };
 
-} /* namespace processors */
-} /* namespace minifi */
-} /* namespace nifi */
-} /* namespace apache */
-} /* namespace org */
+}  // namespace org::apache::nifi::minifi::processors

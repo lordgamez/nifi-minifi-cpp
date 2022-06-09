@@ -28,11 +28,7 @@
 #include "ConvertBase.h"
 #include "c2/PayloadSerializer.h"
 #include "utils/ByteArrayCallback.h"
-namespace org {
-namespace apache {
-namespace nifi {
-namespace minifi {
-namespace processors {
+namespace org::apache::nifi::minifi::processors {
 
 core::Property ConvertBase::MQTTControllerService("MQTT Controller Service", "Name of controller service that will be used for MQTT interactivity", "");
 core::Property ConvertBase::ListeningTopic("Listening Topic", "Name of topic to listen to", "");
@@ -62,8 +58,4 @@ void ConvertBase::onSchedule(const std::shared_ptr<core::ProcessContext> &contex
   }
 }
 
-} /* namespace processors */
-} /* namespace minifi */
-} /* namespace nifi */
-} /* namespace apache */
-} /* namespace org */
+}  // namespace org::apache::nifi::minifi::processors

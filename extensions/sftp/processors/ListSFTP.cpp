@@ -55,11 +55,7 @@
 
 using namespace std::literals::chrono_literals;
 
-namespace org {
-namespace apache {
-namespace nifi {
-namespace minifi {
-namespace processors {
+namespace org::apache::nifi::minifi::processors {
 
 core::Property ListSFTP::ListingStrategy(core::PropertyBuilder::createProperty("Listing Strategy")
     ->withDescription("Specify how to determine new/updated entities. See each strategy descriptions for detail.")
@@ -1071,8 +1067,4 @@ REGISTER_RESOURCE(ListSFTP, "Performs a listing of the files residing on an SFTP
                             "the filename attribute set to the name of the file on the remote server. "
                             "This can then be used in conjunction with FetchSFTP in order to fetch those files.");
 
-} /* namespace processors */
-} /* namespace minifi */
-} /* namespace nifi */
-} /* namespace apache */
-} /* namespace org */
+}  // namespace org::apache::nifi::minifi::processors

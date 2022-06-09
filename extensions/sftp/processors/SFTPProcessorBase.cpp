@@ -42,11 +42,7 @@
 #include "ResourceClaim.h"
 #include "utils/StringUtils.h"
 
-namespace org {
-namespace apache {
-namespace nifi {
-namespace minifi {
-namespace processors {
+namespace org::apache::nifi::minifi::processors {
 
 core::Property SFTPProcessorBase::Hostname(core::PropertyBuilder::createProperty("Hostname")
     ->withDescription("The fully qualified hostname or IP address of the remote system")
@@ -481,8 +477,4 @@ SFTPProcessorBase::CreateDirectoryHierarchyError SFTPProcessorBase::createDirect
   return CreateDirectoryHierarchyError::CREATE_DIRECTORY_HIERARCHY_ERROR_OK;
 }
 
-} /* namespace processors */
-} /* namespace minifi */
-} /* namespace nifi */
-} /* namespace apache */
-} /* namespace org */
+}  // namespace org::apache::nifi::minifi::processors

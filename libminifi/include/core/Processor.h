@@ -15,8 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef LIBMINIFI_INCLUDE_CORE_PROCESSOR_H_
-#define LIBMINIFI_INCLUDE_CORE_PROCESSOR_H_
+#pragma once
 
 #include <utils/Id.h>
 
@@ -39,10 +38,7 @@
 #include "Scheduling.h"
 #include "utils/TimeUtil.h"
 
-namespace org {
-namespace apache {
-namespace nifi {
-namespace minifi {
+namespace org::apache::nifi::minifi {
 
 class Connection;
 
@@ -281,9 +277,4 @@ class Processor : public Connectable, public ConfigurableComponent {
 };
 
 }  // namespace core
-}  // namespace minifi
-}  // namespace nifi
-}  // namespace apache
-}  // namespace org
-
-#endif  // LIBMINIFI_INCLUDE_CORE_PROCESSOR_H_
+}  // namespace org::apache::nifi::minifi

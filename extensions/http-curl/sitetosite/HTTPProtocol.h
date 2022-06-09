@@ -32,11 +32,7 @@
 #include "sitetosite/Peer.h"
 #include "utils/Id.h"
 
-namespace org {
-namespace apache {
-namespace nifi {
-namespace minifi {
-namespace sitetosite {
+namespace org::apache::nifi::minifi::sitetosite {
 
 /**
  * Site2Site Peer
@@ -175,8 +171,4 @@ class HttpSiteToSiteClient : public sitetosite::SiteToSiteClient {
   static std::shared_ptr<utils::IdGenerator> id_generator_;
 };
 
-} /* namespace sitetosite */
-} /* namespace minifi */
-} /* namespace nifi */
-} /* namespace apache */
-} /* namespace org */
+}  // namespace org::apache::nifi::minifi::sitetosite

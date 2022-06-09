@@ -30,11 +30,7 @@
 #include "utils/Id.h"
 #include "../client/SFTPClient.h"
 
-namespace org {
-namespace apache {
-namespace nifi {
-namespace minifi {
-namespace processors {
+namespace org::apache::nifi::minifi::processors {
 
 class FetchSFTP : public SFTPProcessorBase {
  public:
@@ -84,8 +80,4 @@ class FetchSFTP : public SFTPProcessorBase {
   bool disable_directory_listing_;
 };
 
-} /* namespace processors */
-} /* namespace minifi */
-} /* namespace nifi */
-} /* namespace apache */
-} /* namespace org */
+}  // namespace org::apache::nifi::minifi::processors

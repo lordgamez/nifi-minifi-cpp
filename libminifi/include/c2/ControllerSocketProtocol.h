@@ -15,8 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef LIBMINIFI_INCLUDE_C2_CONTROLLERSOCKETPROTOCOL_H_
-#define LIBMINIFI_INCLUDE_C2_CONTROLLERSOCKETPROTOCOL_H_
+#pragma once
 
 #include <map>
 #include <memory>
@@ -27,11 +26,7 @@
 #include "io/StreamFactory.h"
 #include "core/logging/LoggerConfiguration.h"
 
-namespace org {
-namespace apache {
-namespace nifi {
-namespace minifi {
-namespace c2 {
+namespace org::apache::nifi::minifi::c2 {
 
 /**
  * Purpose: Creates a reporter that can handle basic c2 operations for a localized environment
@@ -82,10 +77,4 @@ class ControllerSocketProtocol : public HeartbeatReporter {
   std::shared_ptr<core::logging::Logger> logger_ = core::logging::LoggerFactory<ControllerSocketProtocol>::getLogger();
 };
 
-}  // namespace c2
-}  // namespace minifi
-}  // namespace nifi
-}  // namespace apache
-}  // namespace org
-
-#endif  // LIBMINIFI_INCLUDE_C2_CONTROLLERSOCKETPROTOCOL_H_
+}  // namespace org::apache::nifi::minifi::c2

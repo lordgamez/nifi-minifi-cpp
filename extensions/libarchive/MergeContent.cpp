@@ -34,11 +34,7 @@
 #include "serialization/PayloadSerializer.h"
 #include "serialization/FlowFileV3Serializer.h"
 
-namespace org {
-namespace apache {
-namespace nifi {
-namespace minifi {
-namespace processors {
+namespace org::apache::nifi::minifi::processors {
 
 core::Property MergeContent::MergeStrategy(
   core::PropertyBuilder::createProperty("Merge Strategy")
@@ -342,10 +338,10 @@ bool MergeContent::processBin(core::ProcessContext *context, core::ProcessSessio
   return true;
 }
 
-BinaryConcatenationMerge::BinaryConcatenationMerge(const std::string &header, const std::string& footer, const std::string &demarcator)
-  : header_(header),
-    footer_(footer),
-    demarcator_(demarcator) {}
+BinaryConcatenationMerge::BinaryConcatenationMerge(std::string header, std::string footer, std::string demarcator)
+  : header_(std::move(header)),
+    footer_(std::move(footer)),
+    demarcator_(std::move(demarcator)) {}
 
 void BinaryConcatenationMerge::merge(core::ProcessContext* /*context*/, core::ProcessSession *session,
     std::deque<std::shared_ptr<core::FlowFile>> &flows, FlowFileSerializer& serializer, const std::shared_ptr<core::FlowFile>& merge_flow) {
@@ -436,8 +432,4 @@ REGISTER_RESOURCE(MergeContent, "Merges a Group of FlowFiles together based on a
     "MergeContent should be configured with only one incoming connection as it won't create grouped Flow Files."
     "This processor updates the mime.type attribute as appropriate.");
 
-} /* namespace processors */
-} /* namespace minifi */
-} /* namespace nifi */
-} /* namespace apache */
-} /* namespace org */
+}  // namespace org::apache::nifi::minifi::processors

@@ -17,8 +17,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef EXTENSIONS_LIBRDKAFKA_PUBLISHKAFKA_H_
-#define EXTENSIONS_LIBRDKAFKA_PUBLISHKAFKA_H_
+#pragma once
 
 #include <atomic>
 #include <cstdint>
@@ -44,11 +43,7 @@
 #include "KafkaConnection.h"
 #include "utils/RegexUtils.h"
 
-namespace org {
-namespace apache {
-namespace nifi {
-namespace minifi {
-namespace processors {
+namespace org::apache::nifi::minifi::processors {
 
 // PublishKafka Class
 class PublishKafka : public KafkaProcessorBase {
@@ -140,10 +135,4 @@ class PublishKafka : public KafkaProcessorBase {
   std::set<std::shared_ptr<Messages>> messages_set_;
 };
 
-}  // namespace processors
-}  // namespace minifi
-}  // namespace nifi
-}  // namespace apache
-}  // namespace org
-
-#endif  // EXTENSIONS_LIBRDKAFKA_PUBLISHKAFKA_H_
+}  // namespace org::apache::nifi::minifi::processors
