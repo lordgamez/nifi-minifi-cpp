@@ -119,8 +119,13 @@ class ObjectNode : public ResponseNode {
     for (auto &node : nodes_) {
       SerializedResponseNode inner_node;
       inner_node.name = node->getName();
+      if (inner_node.name == "QueueMetrics") {
+        (void)inner_node;
+      }
       for (auto &embed : node->serialize()) {
-        inner_node.children.push_back(std::move(embed));
+        if (!embed.empty() || embed.keep_empty) {
+          inner_node.children.push_back(std::move(embed));
+        }
       }
       serialized.push_back(std::move(inner_node));
     }
