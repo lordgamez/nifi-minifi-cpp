@@ -36,11 +36,13 @@ class ListenTCP : public NetworkListenerProcessor {
   EXTENSIONAPI static const core::Property Port;
   EXTENSIONAPI static const core::Property MaxBatchSize;
   EXTENSIONAPI static const core::Property MaxQueueSize;
+  EXTENSIONAPI static const core::Property SSLContextService;
   static auto properties() {
     return std::array{
       Port,
       MaxBatchSize,
-      MaxQueueSize
+      MaxQueueSize,
+      SSLContextService
     };
   }
 

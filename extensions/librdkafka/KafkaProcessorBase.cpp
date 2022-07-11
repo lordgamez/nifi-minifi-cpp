@@ -22,35 +22,12 @@
 
 namespace org::apache::nifi::minifi::processors {
 
-std::optional<utils::SSL_data> KafkaProcessorBase::getSslData(core::ProcessContext& context) const {
-  std::string ssl_service_name;
-  if (context.getProperty(SSLContextService.getName(), ssl_service_name) && !ssl_service_name.empty()) {
-    std::shared_ptr<core::controller::ControllerService> service = context.getControllerService(ssl_service_name);
-    if (service) {
-      auto ssl_service = std::static_pointer_cast<minifi::controllers::SSLContextService>(service);
-      utils::SSL_data ssl_data;
-      ssl_data.ca_loc = ssl_service->getCACertificate();
-      ssl_data.cert_loc = ssl_service->getCertificateFile();
-      ssl_data.key_loc = ssl_service->getPrivateKeyFile();
-      ssl_data.key_pw = ssl_service->getPassphrase();
-      return ssl_data;
-    } else {
-      logger_->log_warn("SSL Context Service property is set to '%s', but the controller service could not be found.", ssl_service_name);
-      return std::nullopt;
-    }
-  } else if (security_protocol_ == SecurityProtocolOption::SSL || security_protocol_ == SecurityProtocolOption::SASL_SSL) {
-    logger_->log_warn("Security protocol is set to %s, but no valid SSL Context Service property is set.", security_protocol_.toString());
-  }
-
-  return std::nullopt;
-}
-
 void KafkaProcessorBase::setKafkaAuthenticationParameters(core::ProcessContext& context, gsl::not_null<rd_kafka_conf_t*> config) {
   security_protocol_ = utils::getRequiredPropertyOrThrow<SecurityProtocolOption>(context, SecurityProtocol.getName());
   utils::setKafkaConfigurationField(*config, "security.protocol", security_protocol_.toString());
   logger_->log_debug("Kafka security.protocol [%s]", security_protocol_.toString());
   if (security_protocol_ == SecurityProtocolOption::SSL || security_protocol_ == SecurityProtocolOption::SASL_SSL) {
-    auto ssl_data = getSslData(context);
+    auto ssl_data = utils::net::getSslData(context, SSLContextService, logger_);
     if (ssl_data) {
       if (ssl_data->ca_loc.empty() && ssl_data->cert_loc.empty() && ssl_data->key_loc.empty() && ssl_data->key_pw.empty()) {
         logger_->log_warn("Security protocol is set to %s, but no valid security parameters are set in the properties or in the SSL Context Service.", security_protocol_.toString());

@@ -18,6 +18,7 @@
 
 #include "core/Resource.h"
 #include "core/PropertyBuilder.h"
+#include "controllers/SSLContextService.h"
 
 namespace org::apache::nifi::minifi::processors {
 
@@ -43,6 +44,12 @@ const core::Property ListenTCP::MaxBatchSize(
         ->isRequired(true)
         ->build());
 
+const core::Property ListenTCP::SSLContextService(
+    core::PropertyBuilder::createProperty("SSL Context Service")
+        ->withDescription("The Controller Service to use in order to obtain an SSL Context. If this property is set, messages will be received over a secure connection.")
+        ->asType<minifi::controllers::SSLContextService>()
+        ->build());
+
 const core::Relationship ListenTCP::Success("success", "Messages received successfully will be sent out this relationship.");
 
 void ListenTCP::initialize() {
@@ -52,7 +59,7 @@ void ListenTCP::initialize() {
 
 void ListenTCP::onSchedule(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSessionFactory>&) {
   gsl_Expects(context);
-  startServer(*context, MaxBatchSize, MaxQueueSize, Port, utils::net::IpProtocol::TCP);
+  startServer(*context, MaxBatchSize, MaxQueueSize, Port, SSLContextService, utils::net::IpProtocol::TCP);
 }
 
 void ListenTCP::transferAsFlowFile(const utils::net::Message& message, core::ProcessSession& session) {
