@@ -19,41 +19,16 @@
 namespace org::apache::nifi::minifi::utils::net {
 
 SslSession::SslSession(asio::io_context& io_context, asio::ssl::context& context, utils::ConcurrentQueue<Message>& concurrent_queue, std::optional<size_t> max_queue_size, std::shared_ptr<core::logging::Logger> logger)
-  : concurrent_queue_(concurrent_queue),
-    max_queue_size_(max_queue_size),
-    socket_(io_context, context),
-    logger_(std::move(logger)) {
+  : Session<ssl_socket::lowest_layer_type, ssl_socket>(concurrent_queue, max_queue_size, logger),
+    socket_(io_context, context) {
 }
 
 ssl_socket::lowest_layer_type& SslSession::getSocket() {
   return socket_.lowest_layer();
 }
 
-void SslSession::start() {
-  asio::async_read_until(socket_,
-                         buffer_,
-                         '\n',
-                         [self = shared_from_this()](const auto& error_code, size_t) -> void {
-                           self->handleReadUntilNewLine(error_code);
-                         });
-}
-
-void SslSession::handleReadUntilNewLine(std::error_code error_code) {
-  if (error_code)
-    return;
-  std::istream is(&buffer_);
-  std::string message;
-  std::getline(is, message);
-  if (!max_queue_size_ || max_queue_size_ > concurrent_queue_.size())
-    concurrent_queue_.enqueue(Message(message, IpProtocol::TCP, getSocket().remote_endpoint().address(), getSocket().local_endpoint().port()));
-  else
-    logger_->log_warn("Queue is full. TCP message ignored.");
-  asio::async_read_until(socket_,
-                         buffer_,
-                         '\n',
-                         [self = shared_from_this()](const auto& error_code, size_t) -> void {
-                           self->handleReadUntilNewLine(error_code);
-                         });
+ssl_socket& SslSession::getReadStream() {
+  return socket_;
 }
 
 SslServer::SslServer(std::optional<size_t> max_queue_size, uint16_t port, std::shared_ptr<core::logging::Logger> logger)

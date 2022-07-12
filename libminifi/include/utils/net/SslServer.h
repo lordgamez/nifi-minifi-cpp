@@ -17,6 +17,7 @@
 #pragma once
 
 #include "Server.h"
+#include "Session.h"
 
 #include "asio/ssl.hpp"
 
@@ -24,20 +25,16 @@ namespace org::apache::nifi::minifi::utils::net {
 
 using ssl_socket = asio::ssl::stream<asio::ip::tcp::socket>;
 
-class SslSession : public std::enable_shared_from_this<SslSession> {
+class SslSession : public Session<ssl_socket::lowest_layer_type, ssl_socket> {
  public:
   SslSession(asio::io_context& io_context, asio::ssl::context& context, utils::ConcurrentQueue<Message>& concurrent_queue, std::optional<size_t> max_queue_size, std::shared_ptr<core::logging::Logger> logger);
 
-  ssl_socket::lowest_layer_type& getSocket();
-  void start();
-  void handleReadUntilNewLine(std::error_code error_code);
+  ssl_socket::lowest_layer_type& getSocket() override;
 
- private:
-  utils::ConcurrentQueue<Message>& concurrent_queue_;
-  std::optional<size_t> max_queue_size_;
+ protected:
+  ssl_socket& getReadStream() override;
+
   ssl_socket socket_;
-  asio::basic_streambuf<std::allocator<char>> buffer_;
-  std::shared_ptr<core::logging::Logger> logger_;
 };
 
 class SslServer : public Server {
