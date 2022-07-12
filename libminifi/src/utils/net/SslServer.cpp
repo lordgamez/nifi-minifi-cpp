@@ -32,30 +32,13 @@ ssl_socket& SslSession::getReadStream() {
 }
 
 SslServer::SslServer(std::optional<size_t> max_queue_size, uint16_t port, std::shared_ptr<core::logging::Logger> logger)
-    : Server(max_queue_size, std::move(logger)),
-      acceptor_(io_context_, asio::ip::tcp::endpoint(asio::ip::tcp::v4(), port)),
+    : SessionHandlingServer<SslSession>(max_queue_size, port, std::move(logger)),
       context_(asio::ssl::context::sslv23) {
   startAccept();
 }
 
-void SslServer::startAccept() {
-  auto new_session = std::make_shared<SslSession>(io_context_, context_, concurrent_queue_, max_queue_size_, logger_);
-  acceptor_.async_accept(new_session->getSocket(),
-                         [this, new_session](const auto& error_code) -> void {
-                           handleAccept(new_session, error_code);
-                         });
-}
-
-void SslServer::handleAccept(const std::shared_ptr<SslSession>& session, const std::error_code& error) {
-  if (error)
-    return;
-
-  session->start();
-  auto new_session = std::make_shared<SslSession>(io_context_, context_, concurrent_queue_, max_queue_size_, logger_);
-  acceptor_.async_accept(new_session->getSocket(),
-                         [this, new_session](const auto& error_code) -> void {
-                           handleAccept(new_session, error_code);
-                         });
+std::shared_ptr<SslSession> SslServer::createSession() {
+  return std::make_shared<SslSession>(io_context_, context_, concurrent_queue_, max_queue_size_, logger_);
 }
 
 }  // namespace org::apache::nifi::minifi::utils::net

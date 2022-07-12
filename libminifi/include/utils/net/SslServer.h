@@ -16,7 +16,7 @@
  */
 #pragma once
 
-#include "Server.h"
+#include "SessionHandlingServer.h"
 #include "Session.h"
 
 #include "asio/ssl.hpp"
@@ -37,15 +37,13 @@ class SslSession : public Session<ssl_socket::lowest_layer_type, ssl_socket> {
   ssl_socket socket_;
 };
 
-class SslServer : public Server {
+class SslServer : public SessionHandlingServer<SslSession> {
  public:
   SslServer(std::optional<size_t> max_queue_size, uint16_t port, std::shared_ptr<core::logging::Logger> logger);
 
  protected:
-  void startAccept();
-  void handleAccept(const std::shared_ptr<SslSession>& session, const std::error_code& error);
+  std::shared_ptr<SslSession> createSession() override;
 
-  asio::ip::tcp::acceptor acceptor_;
   asio::ssl::context context_;
 };
 

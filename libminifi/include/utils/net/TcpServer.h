@@ -18,16 +18,9 @@
 
 #include <optional>
 #include <memory>
-#include <system_error>
 
-#include "Server.h"
+#include "SessionHandlingServer.h"
 #include "Session.h"
-#include "utils/MinifiConcurrentQueue.h"
-#include "core/logging/Logger.h"
-#include "core/logging/LoggerConfiguration.h"
-#include "asio/ts/buffer.hpp"
-#include "asio/ts/internet.hpp"
-#include "asio/streambuf.hpp"
 
 namespace org::apache::nifi::minifi::utils::net {
 
@@ -42,17 +35,14 @@ class TcpSession : public Session<asio::ip::tcp::socket, asio::ip::tcp::socket> 
   asio::ip::tcp::socket socket_;
 };
 
-class TcpServer : public Server {
+class TcpServer : public SessionHandlingServer<TcpSession> {
  public:
   TcpServer(std::optional<size_t> max_queue_size,
             uint16_t port,
             std::shared_ptr<core::logging::Logger> logger);
 
- private:
-  void startAccept();
-  void handleAccept(const std::shared_ptr<TcpSession>& session, const std::error_code& error);
-
-  asio::ip::tcp::acceptor acceptor_;
+ protected:
+  std::shared_ptr<TcpSession> createSession() override;
 };
 
 }  // namespace org::apache::nifi::minifi::utils::net
