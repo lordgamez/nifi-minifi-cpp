@@ -17,6 +17,7 @@
 #include "NetworkListenerProcessor.h"
 #include "utils/net/UdpServer.h"
 #include "utils/net/TcpServer.h"
+#include "utils/net/SslServer.h"
 #include "utils/net/Ssl.h"
 
 namespace org::apache::nifi::minifi::processors {
@@ -58,6 +59,10 @@ void NetworkListenerProcessor::startServer(
     std::string ssl_value;
     if (context.getProperty(ssl_prop.getName(), ssl_value) && !ssl_value.empty()) {
       auto ssl_data = utils::net::getSslData(context, ssl_prop, logger_);
+      if (!ssl_data) {
+        throw Exception(PROCESSOR_EXCEPTION, "SSL Context Service is set, but no valid SSL data was found!");
+      }
+      server_ = std::make_unique<utils::net::SslServer>(max_queue_size_opt, port, logger_, *ssl_data);
     } else {
       server_ = std::make_unique<utils::net::TcpServer>(max_queue_size_opt, port, logger_);
     }

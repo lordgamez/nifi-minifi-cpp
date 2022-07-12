@@ -19,7 +19,7 @@
 namespace org::apache::nifi::minifi::utils::net {
 
 SslSession::SslSession(asio::io_context& io_context, asio::ssl::context& context, utils::ConcurrentQueue<Message>& concurrent_queue, std::optional<size_t> max_queue_size, std::shared_ptr<core::logging::Logger> logger)
-  : Session<ssl_socket::lowest_layer_type, ssl_socket>(concurrent_queue, max_queue_size, logger),
+  : Session<ssl_socket::lowest_layer_type, ssl_socket>(concurrent_queue, max_queue_size, std::move(logger)),
     socket_(io_context, context) {
 }
 
@@ -31,14 +31,27 @@ ssl_socket& SslSession::getReadStream() {
   return socket_;
 }
 
-SslServer::SslServer(std::optional<size_t> max_queue_size, uint16_t port, std::shared_ptr<core::logging::Logger> logger)
+SslServer::SslServer(std::optional<size_t> max_queue_size, uint16_t port, std::shared_ptr<core::logging::Logger> logger, SslData ssl_data)
     : SessionHandlingServer<SslSession>(max_queue_size, port, std::move(logger)),
-      context_(asio::ssl::context::sslv23) {
+      context_(asio::ssl::context::sslv23),
+      ssl_data_(std::move(ssl_data)) {
+    context_.set_options(
+        asio::ssl::context::default_workarounds
+        | asio::ssl::context::no_sslv2
+        | asio::ssl::context::single_dh_use);
+    context_.set_password_callback(std::bind(&SslServer::get_password, this));
+    context_.use_certificate_chain_file(ssl_data_.cert_loc);
+    context_.use_private_key_file(ssl_data_.key_loc, asio::ssl::context::pem);
+    context_.load_verify_file(ssl_data_.ca_loc);
   startAccept();
 }
 
 std::shared_ptr<SslSession> SslServer::createSession() {
   return std::make_shared<SslSession>(io_context_, context_, concurrent_queue_, max_queue_size_, logger_);
+}
+
+std::string SslServer::get_password() const {
+  return ssl_data_.key_pw;
 }
 
 }  // namespace org::apache::nifi::minifi::utils::net

@@ -18,7 +18,7 @@
 
 #include "SessionHandlingServer.h"
 #include "Session.h"
-
+#include "Ssl.h"
 #include "asio/ssl.hpp"
 
 namespace org::apache::nifi::minifi::utils::net {
@@ -39,12 +39,14 @@ class SslSession : public Session<ssl_socket::lowest_layer_type, ssl_socket> {
 
 class SslServer : public SessionHandlingServer<SslSession> {
  public:
-  SslServer(std::optional<size_t> max_queue_size, uint16_t port, std::shared_ptr<core::logging::Logger> logger);
+  SslServer(std::optional<size_t> max_queue_size, uint16_t port, std::shared_ptr<core::logging::Logger> logger, SslData ssl_data);
 
  protected:
   std::shared_ptr<SslSession> createSession() override;
+  std::string get_password() const;
 
   asio::ssl::context context_;
+  SslData ssl_data_;
 };
 
 }  // namespace org::apache::nifi::minifi::utils::net

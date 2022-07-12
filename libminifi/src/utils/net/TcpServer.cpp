@@ -19,7 +19,7 @@
 namespace org::apache::nifi::minifi::utils::net {
 
 TcpSession::TcpSession(asio::io_context& io_context, utils::ConcurrentQueue<Message>& concurrent_queue, std::optional<size_t> max_queue_size, std::shared_ptr<core::logging::Logger> logger)
-  : Session<asio::ip::tcp::socket, asio::ip::tcp::socket>(concurrent_queue, max_queue_size, logger),
+  : Session<asio::ip::tcp::socket, asio::ip::tcp::socket>(concurrent_queue, max_queue_size, std::move(logger)),
     socket_(io_context) {
 }
 
