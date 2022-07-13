@@ -22,6 +22,7 @@
 
 #include "rapidjson/document.h"
 #include "asio.hpp"
+#include "asio/ssl.hpp"
 
 using namespace std::chrono_literals;
 
@@ -117,4 +118,24 @@ void sendMessagesViaTCP(const std::vector<std::string_view>& contents, uint64_t 
   }
   REQUIRE(!err);
   socket.close();
+}
+
+void sendMessagesViaSSL(const std::vector<std::string_view>& contents, uint64_t port, const std::string& ca_cert_path) {
+  asio::ssl::context ctx(asio::ssl::context::sslv23);
+  ctx.load_verify_file(ca_cert_path);
+  asio::io_context io_context;
+  asio::ssl::stream<asio::ip::tcp::socket> socket(io_context, ctx);
+  asio::ip::tcp::endpoint remote_endpoint(asio::ip::address::from_string("127.0.0.1"), port);
+  asio::error_code err;
+  socket.lowest_layer().connect(remote_endpoint, err);
+  REQUIRE(!err);
+  socket.handshake(asio::ssl::stream_base::client, err);
+  REQUIRE(!err);
+  for (auto& content : contents) {
+    std::string tcp_message(content);
+    tcp_message += '\n';
+    socket.write_some(asio::buffer(tcp_message, tcp_message.size()));
+  }
+  REQUIRE(!err);
+  socket.lowest_layer().close();
 }

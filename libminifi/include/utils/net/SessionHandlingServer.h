@@ -16,8 +16,10 @@
  */
 #pragma once
 
-#include "Server.h"
+#include <utility>
+#include <memory>
 
+#include "Server.h"
 #include "asio/ssl.hpp"
 
 namespace org::apache::nifi::minifi::utils::net {
@@ -28,16 +30,20 @@ class SessionHandlingServer : public Server {
   SessionHandlingServer(std::optional<size_t> max_queue_size, uint16_t port, std::shared_ptr<core::logging::Logger> logger)
       : Server(max_queue_size, std::move(logger)),
         acceptor_(io_context_, asio::ip::tcp::endpoint(asio::ip::tcp::v4(), port)) {
+  }
+
+  void run() override {
     startAccept();
+    Server::run();
   }
 
  protected:
   void startAccept() {
     auto new_session = createSession();
     acceptor_.async_accept(new_session->getSocket(),
-                          [this, new_session](const auto& error_code) -> void {
-                            handleAccept(new_session, error_code);
-                          });
+                           [this, new_session](const auto& error_code) -> void {
+                             handleAccept(new_session, error_code);
+                           });
   }
 
   void handleAccept(const std::shared_ptr<SessionType>& session, const std::error_code& error) {
@@ -46,10 +52,11 @@ class SessionHandlingServer : public Server {
 
     session->start();
     auto new_session = createSession();
+
     acceptor_.async_accept(new_session->getSocket(),
-                          [this, new_session](const auto& error_code) -> void {
-                            handleAccept(new_session, error_code);
-                          });
+                           [this, new_session](const auto& error_code) -> void {
+                             handleAccept(new_session, error_code);
+                           });
   }
   virtual std::shared_ptr<SessionType> createSession() = 0;
 

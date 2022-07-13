@@ -20,19 +20,22 @@
 #include <memory>
 
 #include "SessionHandlingServer.h"
-#include "Session.h"
 
 namespace org::apache::nifi::minifi::utils::net {
 
-class TcpSession : public Session<asio::ip::tcp::socket, asio::ip::tcp::socket> {
+class TcpSession : public std::enable_shared_from_this<TcpSession> {
  public:
   TcpSession(asio::io_context& io_context, utils::ConcurrentQueue<Message>& concurrent_queue, std::optional<size_t> max_queue_size, std::shared_ptr<core::logging::Logger> logger);
-  asio::ip::tcp::socket& getSocket() override;
+  asio::ip::tcp::socket& getSocket();
+  void start();
+  void handleReadUntilNewLine(std::error_code error_code);
 
- protected:
-  asio::ip::tcp::socket& getReadStream() override;
-
+ private:
+  utils::ConcurrentQueue<Message>& concurrent_queue_;
+  std::optional<size_t> max_queue_size_;
+  asio::basic_streambuf<std::allocator<char>> buffer_;
   asio::ip::tcp::socket socket_;
+  std::shared_ptr<core::logging::Logger> logger_;
 };
 
 class TcpServer : public SessionHandlingServer<TcpSession> {

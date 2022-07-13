@@ -20,6 +20,7 @@
 #include "processors/ListenTCP.h"
 #include "SingleProcessorTestController.h"
 #include "Utils.h"
+#include "controllers/SSLContextService.h"
 
 using ListenTCP = org::apache::nifi::minifi::processors::ListenTCP;
 
@@ -88,6 +89,36 @@ TEST_CASE("ListenTCP max queue and max batch size test", "[ListenTCP]") {
   CHECK(controller.trigger().at(ListenTCP::Success).size() == 10);
   CHECK(controller.trigger().at(ListenTCP::Success).size() == 10);
   CHECK(controller.trigger().at(ListenTCP::Success).empty());
+}
+
+TEST_CASE("Test ListenTCP with SSL connection", "[ListenTCP]") {
+  const auto listen_tcp = std::make_shared<ListenTCP>("ListenTCP");
+
+  test::SingleProcessorTestController controller{listen_tcp};
+  auto ssl_context_service = controller.plan->addController("SSLContextService", "SSLContextService");
+  LogTestController::getInstance().setTrace<ListenTCP>();
+  REQUIRE(controller.plan->setProperty(ssl_context_service, controllers::SSLContextService::CACertificate.getName(),
+    utils::file::FileUtils::get_executable_dir() + "/resources/ca_cert.crt"));
+  REQUIRE(controller.plan->setProperty(ssl_context_service, controllers::SSLContextService::ClientCertificate.getName(),
+    utils::file::FileUtils::get_executable_dir() + "/resources/cert_and_private_key.pem"));
+  REQUIRE(controller.plan->setProperty(ssl_context_service, controllers::SSLContextService::PrivateKey.getName(),
+    utils::file::FileUtils::get_executable_dir() + "/resources/cert_and_private_key.pem"));
+  REQUIRE(controller.plan->setProperty(ssl_context_service, controllers::SSLContextService::Passphrase.getName(), "Password12"));
+  REQUIRE(controller.plan->setProperty(listen_tcp, ListenTCP::Port.getName(), std::to_string(PORT)));
+  REQUIRE(controller.plan->setProperty(listen_tcp, ListenTCP::MaxBatchSize.getName(), "2"));
+  REQUIRE(controller.plan->setProperty(listen_tcp, ListenTCP::SSLContextService.getName(), "SSLContextService"));
+  ssl_context_service->enable();
+
+  controller.plan->scheduleProcessor(listen_tcp);
+  sendMessagesViaSSL({"test_message_1"}, PORT, utils::file::FileUtils::get_executable_dir() + "/resources/ca_cert.crt");
+  sendMessagesViaSSL({"another_message"}, PORT, utils::file::FileUtils::get_executable_dir() + "/resources/ca_cert.crt");
+  ProcessorTriggerResult result;
+  REQUIRE(controller.triggerUntil({{ListenTCP::Success, 2}}, result, 300s, 50ms));
+  CHECK(controller.plan->getContent(result.at(ListenTCP::Success)[0]) == "test_message_1");
+  CHECK(controller.plan->getContent(result.at(ListenTCP::Success)[1]) == "another_message");
+
+  check_for_attributes(*result.at(ListenTCP::Success)[0]);
+  check_for_attributes(*result.at(ListenTCP::Success)[1]);
 }
 
 }  // namespace org::apache::nifi::minifi::test
