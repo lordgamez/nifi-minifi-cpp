@@ -78,7 +78,7 @@ namespace org::apache::nifi::minifi::processors {
     lazy_mode_ = value == "On" ? true : false;
   }
 
-  void FetchOPCProcessor::onTrigger(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSession> &session) {
+  void FetchOPCProcessor::onTrigger(core::ProcessContext *context, core::ProcessSession *session) {
     logger_->log_trace("FetchOPCProcessor::onTrigger");
 
     if (!reconnect()) {

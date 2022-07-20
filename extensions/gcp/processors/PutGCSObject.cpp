@@ -119,7 +119,7 @@ void PutGCSObject::onSchedule(const std::shared_ptr<core::ProcessContext>& conte
   }
 }
 
-void PutGCSObject::onTrigger(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSession>& session) {
+void PutGCSObject::onTrigger(core::ProcessContext *context, core::ProcessSession *session) {
   gsl_Expects(context && session && gcp_credentials_);
 
   auto flow_file = session->get();

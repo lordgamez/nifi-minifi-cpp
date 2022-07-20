@@ -26,7 +26,7 @@
 #include "utils/ByteArrayCallback.h"
 namespace org::apache::nifi::minifi::processors {
 
-void ConvertHeartBeat::onTrigger(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSession> &session) {
+void ConvertHeartBeat::onTrigger(core::ProcessContext *context, core::ProcessSession *session) {
   auto ff = session.get();
   if (ff != nullptr) {
     logger_->log_error("ConvertHeartBeat does not receive flow files");

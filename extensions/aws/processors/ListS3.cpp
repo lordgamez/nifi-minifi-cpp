@@ -142,7 +142,7 @@ void ListS3::createNewFlowFile(
   session.transfer(flow_file, Success);
 }
 
-void ListS3::onTrigger(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSession> &session) {
+void ListS3::onTrigger(core::ProcessContext *context, core::ProcessSession *session) {
   logger_->log_trace("ListS3 onTrigger");
 
   auto aws_results = s3_wrapper_.listBucket(*list_request_params_);

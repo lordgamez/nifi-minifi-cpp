@@ -69,7 +69,7 @@ std::optional<aws::s3::GetObjectRequestParameters> FetchS3Object::buildFetchS3Re
   return get_object_params;
 }
 
-void FetchS3Object::onTrigger(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSession> &session) {
+void FetchS3Object::onTrigger(core::ProcessContext *context, core::ProcessSession *session) {
   logger_->log_trace("FetchS3Object onTrigger");
   std::shared_ptr<core::FlowFile> flow_file = session->get();
   if (!flow_file) {

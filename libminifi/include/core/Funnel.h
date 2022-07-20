@@ -41,7 +41,7 @@ class Funnel final : public Processor {
 
   void initialize() override;
 
-  void onTrigger(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSession>& session) override;
+  void onTrigger(core::ProcessContext *context, core::ProcessSession *session) override;
 
  private:
   std::shared_ptr<logging::Logger> logger_;

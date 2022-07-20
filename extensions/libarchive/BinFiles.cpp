@@ -203,7 +203,7 @@ bool BinManager::offer(const std::string &group, std::shared_ptr<core::FlowFile>
   return true;
 }
 
-void BinFiles::onTrigger(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSession> &session) {
+void BinFiles::onTrigger(core::ProcessContext *context, core::ProcessSession *session) {
   // Rollback is not viable for this processor!!
   {
     // process resurrected FlowFiles first

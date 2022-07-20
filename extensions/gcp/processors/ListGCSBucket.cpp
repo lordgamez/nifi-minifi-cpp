@@ -38,7 +38,7 @@ void ListGCSBucket::onSchedule(const std::shared_ptr<core::ProcessContext>& cont
   context->getProperty(Bucket.getName(), bucket_);
 }
 
-void ListGCSBucket::onTrigger(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSession>& session) {
+void ListGCSBucket::onTrigger(core::ProcessContext *context, core::ProcessSession *session) {
   gsl_Expects(context && session && gcp_credentials_);
 
   gcs::Client client = getClient();

@@ -207,7 +207,7 @@ void CapturePacket::onSchedule(const std::shared_ptr<core::ProcessContext> &cont
 
 CapturePacket::~CapturePacket() = default;
 
-void CapturePacket::onTrigger(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSession> &session) {
+void CapturePacket::onTrigger(core::ProcessContext *context, core::ProcessSession *session) {
   CapturePacketMechanism *capture;
   if (mover->sink.try_dequeue(capture)) {
     auto ff = session->create();

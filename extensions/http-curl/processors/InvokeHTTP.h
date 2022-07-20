@@ -134,7 +134,7 @@ class InvokeHTTP : public core::Processor {
   EXTENSIONAPI static constexpr const char* EXCEPTION_CLASS = "invokehttp.java.exception.class";
   EXTENSIONAPI static constexpr const char* EXCEPTION_MESSAGE = "invokehttp.java.exception.message";
 
-  void onTrigger(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSession> &session) override;
+  void onTrigger(core::ProcessContext *context, core::ProcessSession *session) override;
   void initialize() override;
   void onSchedule(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSessionFactory> &sessionFactory) override;
 

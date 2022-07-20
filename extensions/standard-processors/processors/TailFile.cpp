@@ -687,7 +687,7 @@ std::vector<TailState> TailFile::sortAndSkipMainFilePrefix(const TailState &stat
   return matched_files;
 }
 
-void TailFile::onTrigger(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSession>& session) {
+void TailFile::onTrigger(core::ProcessContext *context, core::ProcessSession *session) {
   gsl_Expects(context && session);
 
   if (tail_mode_ == Mode::MULTIPLE) {

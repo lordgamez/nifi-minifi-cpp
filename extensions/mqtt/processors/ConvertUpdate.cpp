@@ -27,7 +27,7 @@
 
 namespace org::apache::nifi::minifi::processors {
 
-void ConvertUpdate::onTrigger(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSession>& /*session*/) {
+void ConvertUpdate::onTrigger(core::ProcessContext *context, core::ProcessSession* /*session*/) {
   if (nullptr == mqtt_service_) {
     context->yield();
     return;

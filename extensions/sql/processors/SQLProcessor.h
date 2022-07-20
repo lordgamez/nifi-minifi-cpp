@@ -50,7 +50,7 @@ class SQLProcessor: public core::Processor {
 
   void onSchedule(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSessionFactory>& sessionFactory) override;
 
-  void onTrigger(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSession>& session) override;
+  void onTrigger(core::ProcessContext *context, core::ProcessSession *session) override;
 
   void notifyStop() override {
     connection_.reset();

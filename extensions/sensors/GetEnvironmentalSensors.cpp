@@ -82,7 +82,7 @@ void GetEnvironmentalSensors::notifyStop() {
 
 GetEnvironmentalSensors::~GetEnvironmentalSensors() = default;
 
-void GetEnvironmentalSensors::onTrigger(const std::shared_ptr<core::ProcessContext>& /*context*/, const std::shared_ptr<core::ProcessSession>& session) {
+void GetEnvironmentalSensors::onTrigger(core::ProcessContext* /*context*/, core::ProcessSession* session) {
   auto flow_file_ = session->create();
 
   if (imu_->IMURead()) {

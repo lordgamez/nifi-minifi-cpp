@@ -41,8 +41,7 @@ void TFExtractTopLabels::initialize() {
 void TFExtractTopLabels::onSchedule(core::ProcessContext* /*context*/, core::ProcessSessionFactory* /*sessionFactory*/) {
 }
 
-void TFExtractTopLabels::onTrigger(const std::shared_ptr<core::ProcessContext>& /*context*/,
-                                   const std::shared_ptr<core::ProcessSession> &session) {
+void TFExtractTopLabels::onTrigger(core::ProcessContext* /*context*/, core::ProcessSession *session) {
   auto flow_file = session->get();
 
   if (!flow_file) {

@@ -95,7 +95,7 @@ void CompressContent::onSchedule(core::ProcessContext *context, core::ProcessSes
       compressMode_.toString(), compressFormat_.toString(), compressLevel_, updateFileName_, encapsulateInTar_);
 }
 
-void CompressContent::onTrigger(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSession> &session) {
+void CompressContent::onTrigger(core::ProcessContext *context, core::ProcessSession *session) {
   size_t processedFlowFileCount = 0;
   for (; processedFlowFileCount < batchSize_; ++processedFlowFileCount) {
     std::shared_ptr<core::FlowFile> flowFile = session->get();

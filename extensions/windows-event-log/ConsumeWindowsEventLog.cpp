@@ -379,7 +379,7 @@ std::tuple<size_t, std::wstring> ConsumeWindowsEventLog::processEventLogs(const 
   return std::make_tuple(processed_event_count, bookmark_xml);
 }
 
-void ConsumeWindowsEventLog::onTrigger(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSession> &session) {
+void ConsumeWindowsEventLog::onTrigger(core::ProcessContext *context, core::ProcessSession *session) {
   std::unique_lock<std::mutex> lock(on_trigger_mutex_, std::try_to_lock);
   if (!lock.owns_lock()) {
     logger_->log_warn("processor was triggered before previous listing finished, configuration should be revised!");

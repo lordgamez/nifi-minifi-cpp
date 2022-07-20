@@ -103,7 +103,7 @@ void ReplaceText::onSchedule(const std::shared_ptr<core::ProcessContext>& contex
   logger_->log_debug("the %s property is set to %s", ReplacementStrategy.getName(), replacement_strategy_.toString());
 }
 
-void ReplaceText::onTrigger(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSession>& session) {
+void ReplaceText::onTrigger(core::ProcessContext *context, core::ProcessSession *session) {
   gsl_Expects(context);
   gsl_Expects(session);
 

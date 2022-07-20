@@ -61,7 +61,7 @@ void TailEventLog::onSchedule(const std::shared_ptr<core::ProcessContext> &conte
   logger_->log_trace("TailEventLog configured to tail %s", log_source_);
 }
 
-void TailEventLog::onTrigger(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSession> &session) {
+void TailEventLog::onTrigger(core::ProcessContext *context, core::ProcessSession *session) {
   if (log_handle_ == nullptr) {
     logger_->log_debug("Handle could not be created for %s", log_source_);
   }

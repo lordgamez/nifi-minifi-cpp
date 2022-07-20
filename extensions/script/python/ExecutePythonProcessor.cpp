@@ -110,7 +110,7 @@ void ExecutePythonProcessor::onSchedule(const std::shared_ptr<core::ProcessConte
   getProperty(ReloadOnScriptChange.getName(), reload_on_script_change_);
 }
 
-void ExecutePythonProcessor::onTrigger(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSession> &session) {
+void ExecutePythonProcessor::onTrigger(core::ProcessContext *context, core::ProcessSession *session) {
   reloadScriptIfUsingScriptFileProperty();
   if (script_to_exec_.empty()) {
     throw std::runtime_error("Neither Script Body nor Script File is available to execute");

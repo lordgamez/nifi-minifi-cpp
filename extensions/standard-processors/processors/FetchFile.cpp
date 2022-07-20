@@ -198,7 +198,7 @@ void FetchFile::executeCompletionStrategy(const std::string& file_to_fetch_path,
   }
 }
 
-void FetchFile::onTrigger(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSession> &session) {
+void FetchFile::onTrigger(core::ProcessContext *context, core::ProcessSession *session) {
   gsl_Expects(context && session);
   logger_->log_trace("FetchFile onTrigger");
   auto flow_file = session->get();

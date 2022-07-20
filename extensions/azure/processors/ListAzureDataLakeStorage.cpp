@@ -95,7 +95,7 @@ std::optional<storage::ListAzureDataLakeStorageParameters> ListAzureDataLakeStor
   return params;
 }
 
-void ListAzureDataLakeStorage::onTrigger(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSession>& session) {
+void ListAzureDataLakeStorage::onTrigger(core::ProcessContext *context, core::ProcessSession *session) {
   gsl_Expects(context && session);
   logger_->log_trace("ListAzureDataLakeStorage onTrigger");
 

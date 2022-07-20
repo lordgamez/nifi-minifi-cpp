@@ -186,7 +186,7 @@ class __attribute__((visibility("default"))) PythonScriptEngine : public script:
     call("onSchedule", script_context);
   }
 
-  void onTrigger(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSession> &session) {
+  void onTrigger(core::ProcessContext *context, core::ProcessSession *session) {
     auto script_context = convertContext(context);
     auto py_session = convertSession(session);
     TriggerSession trigger_session(script_context, py_session);

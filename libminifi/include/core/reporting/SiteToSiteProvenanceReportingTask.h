@@ -63,7 +63,7 @@ class SiteToSiteProvenanceReportingTask : public minifi::RemoteProcessorGroupPor
 
   void onSchedule(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSessionFactory> &sessionFactory);
   //! OnTrigger method, implemented by NiFi SiteToSiteProvenanceReportingTask
-  void onTrigger(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSession> &session);
+  void onTrigger(core::ProcessContext *context, core::ProcessSession *session);
 
   //! Initialize, over write by NiFi SiteToSiteProvenanceReportingTask
   virtual void initialize(void);

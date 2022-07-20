@@ -62,7 +62,7 @@ std::optional<storage::PutAzureDataLakeStorageParameters> PutAzureDataLakeStorag
   return params;
 }
 
-void PutAzureDataLakeStorage::onTrigger(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSession>& session) {
+void PutAzureDataLakeStorage::onTrigger(core::ProcessContext *context, core::ProcessSession *session) {
   gsl_Expects(context && session);
   logger_->log_trace("PutAzureDataLakeStorage onTrigger");
   std::shared_ptr<core::FlowFile> flow_file = session->get();

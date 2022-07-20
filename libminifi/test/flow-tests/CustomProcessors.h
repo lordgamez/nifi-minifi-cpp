@@ -68,7 +68,7 @@ class TestProcessor : public core::Processor, public ProcessorWithStatistics {
     setSupportedProperties(properties());
     setSupportedRelationships(relationships());
   }
-  void onTrigger(const std::shared_ptr<core::ProcessContext>& /*context*/, const std::shared_ptr<core::ProcessSession> &session) override {
+  void onTrigger(core::ProcessContext* /*context*/, core::ProcessSession *session) override {
     ++trigger_count;
     if (onTriggerCb_) {
       onTriggerCb_();
@@ -111,7 +111,7 @@ class TestFlowFileGenerator : public processors::GenerateFlowFile, public Proces
   static constexpr const char* Description = "Processor generating files and notifying us";
 
   using processors::GenerateFlowFile::onTrigger;
-  void onTrigger(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSession> &session) override {
+  void onTrigger(core::ProcessContext *context, core::ProcessSession *session) override {
     ++trigger_count;
     if (onTriggerCb_) {
       onTriggerCb_();

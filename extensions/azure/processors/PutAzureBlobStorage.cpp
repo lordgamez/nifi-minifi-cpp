@@ -49,7 +49,7 @@ std::optional<storage::PutAzureBlobStorageParameters> PutAzureBlobStorage::build
   return params;
 }
 
-void PutAzureBlobStorage::onTrigger(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSession> &session) {
+void PutAzureBlobStorage::onTrigger(core::ProcessContext *context, core::ProcessSession *session) {
   gsl_Expects(context && session);
   logger_->log_trace("PutAzureBlobStorage onTrigger");
   std::shared_ptr<core::FlowFile> flow_file = session->get();

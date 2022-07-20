@@ -77,7 +77,7 @@ std::shared_ptr<core::FlowFile> ListAzureBlobStorage::createNewFlowFile(core::Pr
   return flow_file;
 }
 
-void ListAzureBlobStorage::onTrigger(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSession>& session) {
+void ListAzureBlobStorage::onTrigger(core::ProcessContext *context, core::ProcessSession *session) {
   gsl_Expects(context && session);
   logger_->log_trace("ListAzureBlobStorage onTrigger");
 

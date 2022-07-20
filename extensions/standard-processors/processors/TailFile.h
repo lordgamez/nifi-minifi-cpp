@@ -150,7 +150,7 @@ class TailFile : public core::Processor {
    * @param context process context, provides eg. configuration.
    * @param session session object, provides eg. ways to interact with flow files.
    */
-  void onTrigger(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSession>  &session) override;
+  void onTrigger(core::ProcessContext *context, core::ProcessSession *session) override;
 
   void initialize() override;
   bool recoverState(const std::shared_ptr<core::ProcessContext>& context);

@@ -41,7 +41,7 @@ void SQLProcessor::onSchedule(const std::shared_ptr<core::ProcessContext>& conte
   processOnSchedule(*context);
 }
 
-void SQLProcessor::onTrigger(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSession>& session) {
+void SQLProcessor::onTrigger(core::ProcessContext *context, core::ProcessSession *session) {
   try {
     if (!connection_) {
       connection_ = db_service_->getConnection();

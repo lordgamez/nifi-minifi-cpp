@@ -211,7 +211,7 @@ std::shared_ptr<core::FlowFile> ListFile::createFlowFile(core::ProcessSession& s
   return flow_file;
 }
 
-void ListFile::onTrigger(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSession> &session) {
+void ListFile::onTrigger(core::ProcessContext *context, core::ProcessSession *session) {
   gsl_Expects(context && session);
   logger_->log_trace("ListFile onTrigger");
 

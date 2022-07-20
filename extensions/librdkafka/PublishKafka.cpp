@@ -644,7 +644,7 @@ std::optional<utils::SSL_data> PublishKafka::getSslData(core::ProcessContext& co
   return ssl_data;
 }
 
-void PublishKafka::onTrigger(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSession> &session) {
+void PublishKafka::onTrigger(core::ProcessContext *context, core::ProcessSession *session) {
   // Check whether we have been interrupted
   if (interrupted_) {
     logger_->log_info("The processor has been interrupted, not running onTrigger");

@@ -736,7 +736,7 @@ bool SourceInitiatedSubscriptionListener::Handler::handleSubscriptions(struct mg
   return true;
 }
 
-void SourceInitiatedSubscriptionListener::onTrigger(const std::shared_ptr<core::ProcessContext>& /*context*/, const std::shared_ptr<core::ProcessSession>& /*session*/) {
+void SourceInitiatedSubscriptionListener::onTrigger(core::ProcessContext* /*context*/, core::ProcessSession* /*session*/) {
   logger_->log_trace("SourceInitiatedSubscriptionListener onTrigger called");
 }
 

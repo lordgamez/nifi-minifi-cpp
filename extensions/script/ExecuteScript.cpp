@@ -97,8 +97,7 @@ void ExecuteScript::onSchedule(core::ProcessContext *context, core::ProcessSessi
   }
 }
 
-void ExecuteScript::onTrigger(const std::shared_ptr<core::ProcessContext> &context,
-                              const std::shared_ptr<core::ProcessSession> &session) {
+void ExecuteScript::onTrigger(core::ProcessContext *context, core::ProcessSession *session) {
   std::shared_ptr<script::ScriptEngine> engine;
 
   if (script_engine_ == ScriptEngineOption::PYTHON) {

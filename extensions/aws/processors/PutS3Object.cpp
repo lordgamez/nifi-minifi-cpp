@@ -181,7 +181,7 @@ void PutS3Object::setAttributes(
   }
 }
 
-void PutS3Object::onTrigger(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSession> &session) {
+void PutS3Object::onTrigger(core::ProcessContext *context, core::ProcessSession *session) {
   logger_->log_trace("PutS3Object onTrigger");
   std::shared_ptr<core::FlowFile> flow_file = session->get();
   if (!flow_file) {

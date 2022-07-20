@@ -158,7 +158,7 @@ class CompressContent : public core::Processor {
   void onTrigger(core::ProcessContext* /*context*/, core::ProcessSession* /*session*/) override {
   }
   // OnTrigger method, implemented by NiFi CompressContent
-  void onTrigger(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSession> &session) override;
+  void onTrigger(core::ProcessContext *context, core::ProcessSession *session) override;
   // Initialize, over write by NiFi CompressContent
   void initialize() override;
 

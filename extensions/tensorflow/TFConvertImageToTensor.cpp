@@ -176,8 +176,7 @@ void TFConvertImageToTensor::onSchedule(core::ProcessContext* context, core::Pro
   }
 }
 
-void TFConvertImageToTensor::onTrigger(const std::shared_ptr<core::ProcessContext>& /*context*/,
-                                       const std::shared_ptr<core::ProcessSession>& session) {
+void TFConvertImageToTensor::onTrigger(core::ProcessContext* /*context*/, core::ProcessSession *session) {
   auto flow_file = session->get();
 
   if (!flow_file) {

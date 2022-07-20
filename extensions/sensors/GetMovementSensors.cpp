@@ -56,7 +56,7 @@ void GetMovementSensors::initialize() {
 
 GetMovementSensors::~GetMovementSensors() = default;
 
-void GetMovementSensors::onTrigger(const std::shared_ptr<core::ProcessContext>& /*context*/, const std::shared_ptr<core::ProcessSession>& session) {
+void GetMovementSensors::onTrigger(core::ProcessContext* /*context*/, core::ProcessSession* session) {
   auto flow_file_ = session->create();
 
   if (imu_->IMURead()) {

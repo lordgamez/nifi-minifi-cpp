@@ -153,7 +153,7 @@ void routeFlowFilesBasedOnIndexingStatus(core::ProcessSession& session,
 }
 }  // namespace
 
-void QuerySplunkIndexingStatus::onTrigger(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSession>& session) {
+void QuerySplunkIndexingStatus::onTrigger(core::ProcessContext *context, core::ProcessSession *session) {
   gsl_Expects(context && session);
   std::string ack_request;
 

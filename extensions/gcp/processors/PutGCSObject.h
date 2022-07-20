@@ -80,7 +80,7 @@ class PutGCSObject : public GCSProcessor {
 
   void initialize() override;
   void onSchedule(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSessionFactory> &sessionFactory) override;
-  void onTrigger(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSession>& session) override;
+  void onTrigger(core::ProcessContext *context, core::ProcessSession *session) override;
 
  private:
   google::cloud::storage::EncryptionKey encryption_key_;

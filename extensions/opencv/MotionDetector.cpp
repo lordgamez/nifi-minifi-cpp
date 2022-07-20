@@ -139,8 +139,7 @@ bool MotionDetector::detectAndDraw(cv::Mat &frame) {
   return moved;
 }
 
-void MotionDetector::onTrigger(const std::shared_ptr<core::ProcessContext> &context,
-                                 const std::shared_ptr<core::ProcessSession> &session) {
+void MotionDetector::onTrigger(core::ProcessContext *context, core::ProcessSession *session) {
   std::unique_lock<std::mutex> lock(mutex_, std::try_to_lock);
   if (!lock.owns_lock()) {
     logger_->log_info("Cannot process due to an unfinished onTrigger");

@@ -844,7 +844,7 @@ void ListSFTP::listByTrackingEntities(
   persistTrackingEntitiesCache(context, hostname, username, remote_path);
 }
 
-void ListSFTP::onTrigger(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSession> &session) {
+void ListSFTP::onTrigger(core::ProcessContext *context, core::ProcessSession *session) {
   /* Parse common properties */
   SFTPProcessorBase::CommonProperties common_properties;
   if (!parseCommonPropertiesOnTrigger(context, nullptr /*flow_file*/, common_properties)) {

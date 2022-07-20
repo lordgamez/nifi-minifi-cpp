@@ -53,7 +53,7 @@ std::optional<storage::FetchAzureBlobStorageParameters> FetchAzureBlobStorage::b
   return params;
 }
 
-void FetchAzureBlobStorage::onTrigger(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSession> &session) {
+void FetchAzureBlobStorage::onTrigger(core::ProcessContext *context, core::ProcessSession *session) {
   gsl_Expects(context && session);
   logger_->log_trace("FetchAzureBlobStorage onTrigger");
   std::shared_ptr<core::FlowFile> flow_file = session->get();

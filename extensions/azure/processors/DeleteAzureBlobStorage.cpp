@@ -47,7 +47,7 @@ std::optional<storage::DeleteAzureBlobStorageParameters> DeleteAzureBlobStorage:
   return params;
 }
 
-void DeleteAzureBlobStorage::onTrigger(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSession> &session) {
+void DeleteAzureBlobStorage::onTrigger(core::ProcessContext *context, core::ProcessSession *session) {
   gsl_Expects(context && session);
   logger_->log_trace("DeleteAzureBlobStorage onTrigger");
   std::shared_ptr<core::FlowFile> flow_file = session->get();

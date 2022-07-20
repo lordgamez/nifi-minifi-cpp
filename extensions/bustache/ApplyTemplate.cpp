@@ -39,8 +39,7 @@ void ApplyTemplate::initialize() {
   setSupportedRelationships(relationships());
 }
 
-void ApplyTemplate::onTrigger(const std::shared_ptr<core::ProcessContext> &context,
-                              const std::shared_ptr<core::ProcessSession> &session) {
+void ApplyTemplate::onTrigger(core::ProcessContext *context, core::ProcessSession *session) {
   auto flow_file = session->get();
   if (!flow_file) {
     return;

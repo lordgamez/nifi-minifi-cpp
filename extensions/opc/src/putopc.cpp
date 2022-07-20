@@ -77,7 +77,7 @@ namespace org::apache::nifi::minifi::processors {
     nodeDataType_ = opc::StringToOPCDataTypeMap.at(typestr);  // This throws, but allowed values are generated based on this map -> that's a really unexpected error
   }
 
-  void PutOPCProcessor::onTrigger(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSession> &session) {
+  void PutOPCProcessor::onTrigger(core::ProcessContext *context, core::ProcessSession *session) {
     logger_->log_trace("PutOPCProcessor::onTrigger");
 
     if (!reconnect()) {

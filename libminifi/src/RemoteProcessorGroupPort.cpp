@@ -218,7 +218,7 @@ void RemoteProcessorGroupPort::notifyStop() {
   }
 }
 
-void RemoteProcessorGroupPort::onTrigger(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSession> &session) {
+void RemoteProcessorGroupPort::onTrigger(core::ProcessContext *context, core::ProcessSession *session) {
   logger_->log_trace("On trigger %s", getUUIDStr());
   if (!transmitting_) {
     return;

@@ -289,7 +289,7 @@ std::string PostElasticsearch::collectPayload(core::ProcessContext& context,
   return payload.str();
 }
 
-void PostElasticsearch::onTrigger(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSession>& session) {
+void PostElasticsearch::onTrigger(core::ProcessContext *context, core::ProcessSession *session) {
   gsl_Expects(context && session && max_batch_size_ > 0);
   utils::HTTPClient client;
   client.initialize("POST", host_url_ + "/_bulk", getSSLContextService(*context));

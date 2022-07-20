@@ -72,11 +72,7 @@ class CaptureRTSPFrame : public core::Processor {
 
   void initialize() override;
   void onSchedule(core::ProcessContext *context, core::ProcessSessionFactory *sessionFactory) override;
-  void onTrigger(core::ProcessContext* /*context*/, core::ProcessSession* /*session*/) override {
-    logger_->log_error("onTrigger invocation with raw pointers is not implemented");
-  }
-  void onTrigger(const std::shared_ptr<core::ProcessContext> &context,
-                 const std::shared_ptr<core::ProcessSession> &session) override;
+  void onTrigger(core::ProcessContext *context, core::ProcessSession *session) override;
 
   void notifyStop() override;
 

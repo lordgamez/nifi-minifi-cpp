@@ -102,8 +102,7 @@ void CaptureRTSPFrame::onSchedule(core::ProcessContext *context, core::ProcessSe
   rtsp_url_ = rtspURI;
 }
 
-void CaptureRTSPFrame::onTrigger(const std::shared_ptr<core::ProcessContext> &context,
-                                 const std::shared_ptr<core::ProcessSession> &session) {
+void CaptureRTSPFrame::onTrigger(core::ProcessContext *context, core::ProcessSession *session) {
   std::unique_lock<std::mutex> lock(mutex_, std::try_to_lock);
   if (!lock.owns_lock()) {
     logger_->log_info("Cannot process due to an unfinished onTrigger");

@@ -24,7 +24,7 @@ NetworkListenerProcessor::~NetworkListenerProcessor() {
   stopServer();
 }
 
-void NetworkListenerProcessor::onTrigger(const std::shared_ptr<core::ProcessContext>&, const std::shared_ptr<core::ProcessSession>& session) {
+void NetworkListenerProcessor::onTrigger(core::ProcessContext*, core::ProcessSession *session) {
   gsl_Expects(session && max_batch_size_ > 0);
   size_t logs_processed = 0;
   while (!server_->queueEmpty() && logs_processed < max_batch_size_) {

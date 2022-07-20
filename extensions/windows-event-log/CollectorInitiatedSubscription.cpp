@@ -195,7 +195,7 @@ void CollectorInitiatedSubscription::onSchedule(const std::shared_ptr<core::Proc
   max_buffer_size_ = context->getProperty<core::DataSizeValue>(MaxBufferSize).value();
 }
 
-void CollectorInitiatedSubscription::onTrigger(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSession> &session) {
+void CollectorInitiatedSubscription::onTrigger(core::ProcessContext *context, core::ProcessSession *session) {
   gsl_Expects(context);
 
   if (!subscriptionHandle_) {

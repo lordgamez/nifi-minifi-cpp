@@ -79,7 +79,7 @@ int get_gps_status(struct gps_data_t* gps_data) {
 #endif
 }
 
-void GetGPS::onTrigger(const std::shared_ptr<core::ProcessContext>& /*context*/, const std::shared_ptr<core::ProcessSession> &session) {
+void GetGPS::onTrigger(core::ProcessContext* /*context*/, core::ProcessSession *session) {
   try {
     gpsmm gps_rec(gpsdHost_.c_str(), gpsdPort_.c_str());
 

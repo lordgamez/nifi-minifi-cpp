@@ -52,7 +52,7 @@ std::optional<aws::s3::DeleteObjectRequestParameters> DeleteS3Object::buildDelet
   return params;
 }
 
-void DeleteS3Object::onTrigger(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSession> &session) {
+void DeleteS3Object::onTrigger(core::ProcessContext *context, core::ProcessSession *session) {
   logger_->log_trace("DeleteS3Object onTrigger");
   std::shared_ptr<core::FlowFile> flow_file = session->get();
   if (!flow_file) {

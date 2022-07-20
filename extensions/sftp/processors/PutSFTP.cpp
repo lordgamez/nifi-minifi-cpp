@@ -364,7 +364,7 @@ bool PutSFTP::processOne(const std::shared_ptr<core::ProcessContext> &context, c
   return true;
 }
 
-void PutSFTP::onTrigger(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSession> &session) {
+void PutSFTP::onTrigger(core::ProcessContext *context, core::ProcessSession *session) {
   const uint64_t limit = batch_size_ > 0 ? batch_size_ : std::numeric_limits<uint64_t>::max();
   for (uint64_t i = 0; i < limit; i++) {
     if (!this->processOne(context, session)) {

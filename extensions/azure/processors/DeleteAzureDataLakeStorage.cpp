@@ -42,7 +42,7 @@ std::optional<storage::DeleteAzureDataLakeStorageParameters> DeleteAzureDataLake
   return params;
 }
 
-void DeleteAzureDataLakeStorage::onTrigger(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSession>& session) {
+void DeleteAzureDataLakeStorage::onTrigger(core::ProcessContext *context, core::ProcessSession *session) {
   gsl_Expects(context && session);
   logger_->log_trace("DeleteAzureDataLakeStorage onTrigger");
   std::shared_ptr<core::FlowFile> flow_file = session->get();

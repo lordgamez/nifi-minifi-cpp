@@ -81,7 +81,7 @@ void LogAttribute::onSchedule(const std::shared_ptr<core::ProcessContext> &conte
   logger_->log_debug("Maximum Payload Line Length: %u", max_line_length_);
 }
 // OnTrigger method, implemented by NiFi LogAttribute
-void LogAttribute::onTrigger(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSession> &session) {
+void LogAttribute::onTrigger(core::ProcessContext *context, core::ProcessSession *session) {
   logger_->log_trace("enter log attribute, attempting to retrieve %u flow files", flowfiles_to_log_);
   std::string dashLine = "--------------------------------------------------";
   LogAttrLevel level = LogAttrLevelInfo;

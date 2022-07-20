@@ -171,7 +171,7 @@ JNINativeMethod ExecuteJavaProcessor::registerNativeMethod(const std::string& /*
   return mthd;
 }
 
-void ExecuteJavaProcessor::onTrigger(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSessionFactory> &sessionFactory) {
+void ExecuteJavaProcessor::onTrigger(core::ProcessContext *context, core::ProcessSessionFactory *sessionFactory) {
   (void)context;  // unused in release builds
   assert(context == jpc.context_);
   auto env = java_servicer_->attach();
@@ -221,7 +221,7 @@ void ExecuteJavaProcessor::onTrigger(const std::shared_ptr<core::ProcessContext>
   }
 }
 
-void ExecuteJavaProcessor::onTrigger(const std::shared_ptr<core::ProcessContext>& /*context*/, const std::shared_ptr<core::ProcessSession>& /*session*/) {
+void ExecuteJavaProcessor::onTrigger(core::ProcessContext* /*context*/, core::ProcessSession* /*session*/) {
   // do nothing.
 }
 

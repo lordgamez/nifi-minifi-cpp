@@ -42,7 +42,7 @@ std::string ConvertJSONAck::parseTopicName(const std::string &json) {
   return topic;
 }
 
-void ConvertJSONAck::onTrigger(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSession> &session) {
+void ConvertJSONAck::onTrigger(core::ProcessContext *context, core::ProcessSession *session) {
   if (nullptr == mqtt_service_) {
     context->yield();
     return;

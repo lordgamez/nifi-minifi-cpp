@@ -190,7 +190,7 @@ class GetTCP : public core::Processor, public state::response::MetricsNodeSource
   void onSchedule(core::ProcessContext* /*processContext*/, core::ProcessSessionFactory* /*sessionFactory*/) override {
     throw std::logic_error{"GetTCP::onSchedule(ProcessContext*, ProcessSessionFactory*) is unimplemented"};
   }
-  void onTrigger(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSession> &session) override;
+  void onTrigger(core::ProcessContext *context, core::ProcessSession *session) override;
   void onTrigger(core::ProcessContext* /*context*/, core::ProcessSession* /*session*/) override {
     throw std::logic_error{"GetTCP::onTrigger(ProcessContext*, ProcessSession*) is unimplemented"};
   }

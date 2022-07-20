@@ -54,7 +54,7 @@ class ConvertUpdate : public ConvertBase {
   ADD_COMMON_VIRTUAL_FUNCTIONS_FOR_PROCESSORS
 
   void initialize() override;
-  void onTrigger(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSession> &session) override;
+  void onTrigger(core::ProcessContext *context, core::ProcessSession *session) override;
 
  protected:
   std::shared_ptr<minifi::controllers::SSLContextService> ssl_context_service_;

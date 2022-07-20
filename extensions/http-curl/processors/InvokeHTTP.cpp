@@ -277,7 +277,7 @@ bool InvokeHTTP::appendHeaders(const core::FlowFile& flow_file, /*std::invocable
   return true;
 }
 
-void InvokeHTTP::onTrigger(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSession> &session) {
+void InvokeHTTP::onTrigger(core::ProcessContext *context, core::ProcessSession *session) {
   auto flow_file = session->get();
 
   if (flow_file == nullptr) {

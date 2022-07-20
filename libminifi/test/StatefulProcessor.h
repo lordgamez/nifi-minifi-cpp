@@ -39,7 +39,7 @@ class StatefulProcessor : public core::Processor {
   ADD_COMMON_VIRTUAL_FUNCTIONS_FOR_PROCESSORS
 
   void onSchedule(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSessionFactory>&) override;
-  void onTrigger(const std::shared_ptr<core::ProcessContext>&, const std::shared_ptr<core::ProcessSession>&) override;
+  void onTrigger(core::ProcessContext*, core::ProcessSession*) override;
 
   using HookType = std::function<void(core::CoreComponentStateManager&)>;
   void setHooks(HookType onScheduleHook, std::vector<HookType> onTriggerHooks);

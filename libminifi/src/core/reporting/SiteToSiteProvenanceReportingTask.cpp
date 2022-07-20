@@ -163,7 +163,7 @@ void SiteToSiteProvenanceReportingTask::getJsonReport(const std::shared_ptr<core
 void SiteToSiteProvenanceReportingTask::onSchedule(const std::shared_ptr<core::ProcessContext>& /*context*/, const std::shared_ptr<core::ProcessSessionFactory>& /*sessionFactory*/) {
 }
 
-void SiteToSiteProvenanceReportingTask::onTrigger(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSession> &session) {
+void SiteToSiteProvenanceReportingTask::onTrigger(core::ProcessContext *context, core::ProcessSession *session) {
   logger_->log_debug("SiteToSiteProvenanceReportingTask -- onTrigger");
   std::vector<std::shared_ptr<core::SerializableComponent>> records;
   logging::LOG_DEBUG(logger_) << "batch size " << batch_size_ << " records";

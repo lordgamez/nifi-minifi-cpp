@@ -37,7 +37,7 @@ void StatefulProcessor::onSchedule(const std::shared_ptr<core::ProcessContext>& 
   }
 }
 
-void StatefulProcessor::onTrigger(const std::shared_ptr<core::ProcessContext>&, const std::shared_ptr<core::ProcessSession>&) {
+void StatefulProcessor::onTrigger(core::ProcessContext*, core::ProcessSession*) {
   std::lock_guard<std::mutex> lock(mutex_);
   if (on_trigger_hook_index_ < on_trigger_hooks_.size()) {
     on_trigger_hooks_[on_trigger_hook_index_++](*state_manager_);
