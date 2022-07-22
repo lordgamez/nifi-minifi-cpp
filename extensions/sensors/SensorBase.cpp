@@ -31,7 +31,7 @@ namespace processors {
 void SensorBase::initialize() {
 }
 
-void SensorBase::onSchedule(const std::shared_ptr<core::ProcessContext>& /*context*/, const std::shared_ptr<core::ProcessSessionFactory>& /*sessionFactory*/) {
+void SensorBase::onSchedule(core::ProcessContext* /*context*/, core::ProcessSessionFactory* /*sessionFactory*/) {
   // Deferred instantiation of RTIMUSettings, because it can create a file "RTIMULib.ini" in the working directory.
   // SensorBase is instantiated when creating the manifest.
   settings_ = std::make_optional<RTIMUSettings>();

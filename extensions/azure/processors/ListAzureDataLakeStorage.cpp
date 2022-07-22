@@ -45,7 +45,7 @@ void ListAzureDataLakeStorage::initialize() {
   setSupportedRelationships(relationships());
 }
 
-void ListAzureDataLakeStorage::onSchedule(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSessionFactory>& sessionFactory) {
+void ListAzureDataLakeStorage::onSchedule(core::ProcessContext* context, core::ProcessSessionFactory* sessionFactory) {
   gsl_Expects(context && sessionFactory);
   AzureDataLakeStorageProcessorBase::onSchedule(context, sessionFactory);
 

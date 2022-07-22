@@ -69,7 +69,7 @@ PutSFTP::PutSFTP(const std::string& name, const utils::Identifier& uuid /*= util
 
 PutSFTP::~PutSFTP() = default;
 
-void PutSFTP::onSchedule(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSessionFactory>& /*sessionFactory*/) {
+void PutSFTP::onSchedule(core::ProcessContext *context, core::ProcessSessionFactory* /*sessionFactory*/) {
   parseCommonPropertiesOnSchedule(context);
 
   std::string value;
@@ -99,7 +99,7 @@ void PutSFTP::onSchedule(const std::shared_ptr<core::ProcessContext> &context, c
   startKeepaliveThreadIfNeeded();
 }
 
-bool PutSFTP::processOne(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSession> &session) {
+bool PutSFTP::processOne(core::ProcessContext *context, core::ProcessSession *session) {
   auto flow_file = session->get();
   if (flow_file == nullptr) {
     return false;

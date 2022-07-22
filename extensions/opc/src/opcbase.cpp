@@ -27,7 +27,7 @@
 
 namespace org::apache::nifi::minifi::processors {
 
-  void BaseOPCProcessor::onSchedule(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSessionFactory>& /*factory*/) {
+  void BaseOPCProcessor::onSchedule(core::ProcessContext *context, core::ProcessSessionFactory* /*factory*/) {
     logger_->log_trace("BaseOPCProcessor::onSchedule");
 
     applicationURI_.clear();

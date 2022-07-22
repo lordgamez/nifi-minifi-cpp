@@ -83,7 +83,7 @@ void ListenSyslog::initialize() {
   setSupportedRelationships(relationships());
 }
 
-void ListenSyslog::onSchedule(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSessionFactory>&) {
+void ListenSyslog::onSchedule(core::ProcessContext* context, core::ProcessSessionFactory*) {
   gsl_Expects(context);
 
   context->getProperty(ParseMessages.getName(), parse_messages_);

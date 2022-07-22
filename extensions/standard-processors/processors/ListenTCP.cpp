@@ -50,7 +50,7 @@ void ListenTCP::initialize() {
   setSupportedRelationships(relationships());
 }
 
-void ListenTCP::onSchedule(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSessionFactory>&) {
+void ListenTCP::onSchedule(core::ProcessContext* context, core::ProcessSessionFactory*) {
   gsl_Expects(context);
   startServer(*context, MaxBatchSize, MaxQueueSize, Port, utils::net::IpProtocol::TCP);
 }

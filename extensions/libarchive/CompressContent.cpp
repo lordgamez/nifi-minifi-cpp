@@ -111,7 +111,7 @@ void CompressContent::onTrigger(core::ProcessContext *context, core::ProcessSess
   }
 }
 
-void CompressContent::processFlowFile(const std::shared_ptr<core::FlowFile>& flowFile, const std::shared_ptr<core::ProcessSession>& session) {
+void CompressContent::processFlowFile(const std::shared_ptr<core::FlowFile>& flowFile, core::ProcessSession* session) {
   session->remove(flowFile);
 
   io::CompressionFormat compressFormat;

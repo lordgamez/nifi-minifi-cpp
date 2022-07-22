@@ -40,7 +40,7 @@ void FetchS3Object::initialize() {
   setSupportedRelationships(relationships());
 }
 
-void FetchS3Object::onSchedule(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSessionFactory> &sessionFactory) {
+void FetchS3Object::onSchedule(core::ProcessContext *context, core::ProcessSessionFactory *sessionFactory) {
   S3Processor::onSchedule(context, sessionFactory);
 
   context->getProperty(RequesterPays.getName(), requester_pays_);
@@ -48,7 +48,7 @@ void FetchS3Object::onSchedule(const std::shared_ptr<core::ProcessContext> &cont
 }
 
 std::optional<aws::s3::GetObjectRequestParameters> FetchS3Object::buildFetchS3RequestParams(
-    const std::shared_ptr<core::ProcessContext> &context,
+    core::ProcessContext *context,
     const std::shared_ptr<core::FlowFile> &flow_file,
     const CommonProperties &common_properties) const {
   gsl_Expects(client_config_);

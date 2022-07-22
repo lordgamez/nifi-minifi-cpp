@@ -103,7 +103,7 @@ ListSFTP::ListSFTP(const std::string& name, const utils::Identifier& uuid /*= ut
 
 ListSFTP::~ListSFTP() = default;
 
-void ListSFTP::onSchedule(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSessionFactory>& /*sessionFactory*/) {
+void ListSFTP::onSchedule(core::ProcessContext *context, core::ProcessSessionFactory* /*sessionFactory*/) {
   parseCommonPropertiesOnSchedule(context);
 
   state_manager_ = context->getStateManager();
@@ -326,7 +326,7 @@ bool ListSFTP::filterDirectory(const std::string& parent_path, const std::string
 }
 
 bool ListSFTP::createAndTransferFlowFileFromChild(
-    const std::shared_ptr<core::ProcessSession>& session,
+    core::ProcessSession* session,
     const std::string& hostname,
     uint16_t port,
     const std::string& username,
@@ -383,7 +383,7 @@ ListSFTP::ListedEntity::ListedEntity(uint64_t timestamp_, uint64_t size_)
     , size(size_) {
 }
 
-bool ListSFTP::persistTrackingTimestampsCache(const std::shared_ptr<core::ProcessContext>& /*context*/, const std::string& hostname, const std::string& username, const std::string& remote_path) {
+bool ListSFTP::persistTrackingTimestampsCache(core::ProcessContext* /*context*/, const std::string& hostname, const std::string& username, const std::string& remote_path) {
   std::unordered_map<std::string, std::string> state;
   state["listing_strategy"] = LISTING_STRATEGY_TRACKING_TIMESTAMPS;
   state["hostname"] = hostname;
@@ -399,7 +399,7 @@ bool ListSFTP::persistTrackingTimestampsCache(const std::shared_ptr<core::Proces
   return state_manager_->set(state);
 }
 
-bool ListSFTP::updateFromTrackingTimestampsCache(const std::shared_ptr<core::ProcessContext>& /*context*/, const std::string& hostname, const std::string& username, const std::string& remote_path) {
+bool ListSFTP::updateFromTrackingTimestampsCache(core::ProcessContext* /*context*/, const std::string& hostname, const std::string& username, const std::string& remote_path) {
   std::string state_listing_strategy;
   std::string state_hostname;
   std::string state_username;
@@ -481,8 +481,8 @@ bool ListSFTP::updateFromTrackingTimestampsCache(const std::shared_ptr<core::Pro
 }
 
 void ListSFTP::listByTrackingTimestamps(
-    const std::shared_ptr<core::ProcessContext>& context,
-    const std::shared_ptr<core::ProcessSession>& session,
+    core::ProcessContext* context,
+    core::ProcessSession* session,
     const std::string& hostname,
     uint16_t port,
     const std::string& username,
@@ -642,7 +642,7 @@ void ListSFTP::listByTrackingTimestamps(
   }
 }
 
-bool ListSFTP::persistTrackingEntitiesCache(const std::shared_ptr<core::ProcessContext>& /*context*/, const std::string& hostname, const std::string& username, const std::string& remote_path) {
+bool ListSFTP::persistTrackingEntitiesCache(core::ProcessContext* /*context*/, const std::string& hostname, const std::string& username, const std::string& remote_path) {
   std::unordered_map<std::string, std::string> state;
   state["listing_strategy"] = listing_strategy_;
   state["hostname"] = hostname;
@@ -658,7 +658,7 @@ bool ListSFTP::persistTrackingEntitiesCache(const std::shared_ptr<core::ProcessC
   return state_manager_->set(state);
 }
 
-bool ListSFTP::updateFromTrackingEntitiesCache(const std::shared_ptr<core::ProcessContext>& /*context*/, const std::string& hostname, const std::string& username, const std::string& remote_path) {
+bool ListSFTP::updateFromTrackingEntitiesCache(core::ProcessContext* /*context*/, const std::string& hostname, const std::string& username, const std::string& remote_path) {
   std::string state_listing_strategy;
   std::string state_hostname;
   std::string state_username;
@@ -738,8 +738,8 @@ bool ListSFTP::updateFromTrackingEntitiesCache(const std::shared_ptr<core::Proce
 }
 
 void ListSFTP::listByTrackingEntities(
-    const std::shared_ptr<core::ProcessContext>& context,
-    const std::shared_ptr<core::ProcessSession>& session,
+    core::ProcessContext* context,
+    core::ProcessSession* session,
     const std::string& hostname,
     uint16_t port,
     const std::string& username,

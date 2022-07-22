@@ -180,7 +180,7 @@ class __attribute__((visibility("default"))) PythonScriptEngine : public script:
     callRequiredFunction("describe", newproc);
   }
 
-  void onSchedule(const std::shared_ptr<core::ProcessContext> &context) {
+  void onSchedule(core::ProcessContext *context) {
     auto script_context = convertContext(context);
     TriggerSchedule trigger_session(script_context);
     call("onSchedule", script_context);
@@ -211,11 +211,11 @@ class __attribute__((visibility("default"))) PythonScriptEngine : public script:
     return py::cast(value);
   }
 
-  std::shared_ptr<python::PyProcessSession> convertSession(const std::shared_ptr<core::ProcessSession> &session) {
+  std::shared_ptr<python::PyProcessSession> convertSession(core::ProcessSession *session) {
     return std::make_shared<python::PyProcessSession>(session);
   }
 
-  std::shared_ptr<script::ScriptProcessContext> convertContext(const std::shared_ptr<core::ProcessContext> &context) {
+  std::shared_ptr<script::ScriptProcessContext> convertContext(core::ProcessContext *context) {
     return std::make_shared<script::ScriptProcessContext>(context);
   }
 

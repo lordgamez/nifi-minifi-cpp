@@ -78,9 +78,9 @@ class HttpSiteToSiteClient : public sitetosite::SiteToSiteClient {
   std::shared_ptr<Transaction> createTransaction(TransferDirection direction) override;
 
   // Transfer flow files for the process session
-  // virtual bool transferFlowFiles(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSession> &session);
+  // virtual bool transferFlowFiles(core::ProcessContext *context, core::ProcessSession *session);
   //! Transfer string for the process session
-  bool transmitPayload(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSession> &session, const std::string &payload,
+  bool transmitPayload(core::ProcessContext *context, core::ProcessSession *session, const std::string &payload,
                                std::map<std::string, std::string> attributes) override;
   // deleteTransaction
   void deleteTransaction(const utils::Identifier& transactionID) override;

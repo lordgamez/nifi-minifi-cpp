@@ -24,7 +24,7 @@
 
 namespace org::apache::nifi::minifi::azure::processors {
 
-void AzureBlobStorageProcessorBase::onSchedule(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSessionFactory>& /*sessionFactory*/) {
+void AzureBlobStorageProcessorBase::onSchedule(core::ProcessContext* context, core::ProcessSessionFactory* /*sessionFactory*/) {
   gsl_Expects(context);
   std::string value;
   if (!context->getProperty(ContainerName.getName(), value) || value.empty()) {

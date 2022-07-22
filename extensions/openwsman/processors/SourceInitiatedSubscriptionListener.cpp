@@ -747,7 +747,7 @@ void SourceInitiatedSubscriptionListener::initialize() {
   setSupportedRelationships(relationships());
 }
 
-void SourceInitiatedSubscriptionListener::onSchedule(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSessionFactory> &sessionFactory) {
+void SourceInitiatedSubscriptionListener::onSchedule(core::ProcessContext *context, core::ProcessSessionFactory *sessionFactory) {
   std::string ssl_certificate_file;
   std::string ssl_ca_file;
 

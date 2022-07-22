@@ -67,7 +67,7 @@ class FetchS3Object : public S3Processor {
   ~FetchS3Object() override = default;
 
   void initialize() override;
-  void onSchedule(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSessionFactory> &sessionFactory) override;
+  void onSchedule(core::ProcessContext *context, core::ProcessSessionFactory *sessionFactory) override;
   void onTrigger(core::ProcessContext *context, core::ProcessSession *session) override;
 
  private:
@@ -78,7 +78,7 @@ class FetchS3Object : public S3Processor {
   }
 
   std::optional<aws::s3::GetObjectRequestParameters> buildFetchS3RequestParams(
-    const std::shared_ptr<core::ProcessContext> &context,
+    core::ProcessContext *context,
     const std::shared_ptr<core::FlowFile> &flow_file,
     const CommonProperties &common_properties) const;
 

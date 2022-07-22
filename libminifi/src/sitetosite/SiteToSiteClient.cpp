@@ -101,7 +101,7 @@ int SiteToSiteClient::writeResponse(const std::shared_ptr<Transaction>& /*transa
   }
 }
 
-bool SiteToSiteClient::transferFlowFiles(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSession> &session) {
+bool SiteToSiteClient::transferFlowFiles(core::ProcessContext *context, core::ProcessSession *session) {
   auto flow = session->get();
 
   std::shared_ptr<Transaction> transaction = nullptr;
@@ -398,7 +398,7 @@ bool SiteToSiteClient::complete(const utils::Identifier& transactionID) {
   }
 }
 
-int16_t SiteToSiteClient::send(const utils::Identifier &transactionID, DataPacket *packet, const std::shared_ptr<core::FlowFile> &flowFile, const std::shared_ptr<core::ProcessSession> &session) {
+int16_t SiteToSiteClient::send(const utils::Identifier &transactionID, DataPacket *packet, const std::shared_ptr<core::FlowFile> &flowFile, core::ProcessSession *session) {
   if (peer_state_ != READY) {
     bootstrap();
   }
@@ -641,7 +641,7 @@ bool SiteToSiteClient::receive(const utils::Identifier& transactionID, DataPacke
   return true;
 }
 
-bool SiteToSiteClient::receiveFlowFiles(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSession> &session) {
+bool SiteToSiteClient::receiveFlowFiles(core::ProcessContext *context, core::ProcessSession *session) {
   uint64_t bytes = 0;
   int transfers = 0;
   std::shared_ptr<Transaction> transaction = NULL;

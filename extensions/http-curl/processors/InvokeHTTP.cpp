@@ -144,7 +144,7 @@ void InvokeHTTP::initialize() {
   setSupportedRelationships(relationships());
 }
 
-void InvokeHTTP::onSchedule(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSessionFactory>& /*sessionFactory*/) {
+void InvokeHTTP::onSchedule(core::ProcessContext *context, core::ProcessSessionFactory* /*sessionFactory*/) {
   if (!context->getProperty(Method.getName(), method_)) {
     logger_->log_debug("%s attribute is missing, so default value of %s will be used", Method.getName(), Method.getValue());
     return;
@@ -410,8 +410,8 @@ void InvokeHTTP::onTrigger(core::ProcessContext *context, core::ProcessSession *
   }
 }
 
-void InvokeHTTP::route(const std::shared_ptr<core::FlowFile> &request, const std::shared_ptr<core::FlowFile> &response, const std::shared_ptr<core::ProcessSession> &session,
-                       const std::shared_ptr<core::ProcessContext> &context, bool is_success, int64_t status_code) {
+void InvokeHTTP::route(const std::shared_ptr<core::FlowFile> &request, const std::shared_ptr<core::FlowFile> &response, core::ProcessSession *session,
+                       core::ProcessContext *context, bool is_success, int64_t status_code) {
   // check if we should yield the processor
   if (!is_success && request == nullptr) {
     context->yield();

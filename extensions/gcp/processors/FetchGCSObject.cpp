@@ -88,7 +88,7 @@ void FetchGCSObject::initialize() {
   setSupportedRelationships(relationships());
 }
 
-void FetchGCSObject::onSchedule(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSessionFactory>& session_factory) {
+void FetchGCSObject::onSchedule(core::ProcessContext* context, core::ProcessSessionFactory* session_factory) {
   GCSProcessor::onSchedule(context, session_factory);
   gsl_Expects(context);
   if (auto encryption_key = context->getProperty(EncryptionKey)) {

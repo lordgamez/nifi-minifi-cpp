@@ -155,9 +155,6 @@ class CompressContent : public core::Processor {
    */
   void onSchedule(core::ProcessContext *context, core::ProcessSessionFactory *sessionFactory) override;
   // OnTrigger method, implemented by NiFi CompressContent
-  void onTrigger(core::ProcessContext* /*context*/, core::ProcessSession* /*session*/) override {
-  }
-  // OnTrigger method, implemented by NiFi CompressContent
   void onTrigger(core::ProcessContext *context, core::ProcessSession *session) override;
   // Initialize, over write by NiFi CompressContent
   void initialize() override;
@@ -165,7 +162,7 @@ class CompressContent : public core::Processor {
  private:
   static std::string toMimeType(io::CompressionFormat format);
 
-  void processFlowFile(const std::shared_ptr<core::FlowFile>& flowFile, const std::shared_ptr<core::ProcessSession>& session);
+  void processFlowFile(const std::shared_ptr<core::FlowFile>& flowFile, core::ProcessSession* session);
 
   std::shared_ptr<core::logging::Logger> logger_ = core::logging::LoggerFactory<CompressContent>::getLogger();
   int compressLevel_{};

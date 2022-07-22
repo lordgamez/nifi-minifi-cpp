@@ -32,7 +32,7 @@ void ListGCSBucket::initialize() {
 }
 
 
-void ListGCSBucket::onSchedule(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSessionFactory>& session_factory) {
+void ListGCSBucket::onSchedule(core::ProcessContext* context, core::ProcessSessionFactory* session_factory) {
   GCSProcessor::onSchedule(context, session_factory);
   gsl_Expects(context);
   context->getProperty(Bucket.getName(), bucket_);

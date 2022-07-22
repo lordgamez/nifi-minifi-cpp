@@ -40,7 +40,7 @@ void PutSplunkHTTP::initialize() {
   setSupportedRelationships(relationships());
 }
 
-void PutSplunkHTTP::onSchedule(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSessionFactory>& sessionFactory) {
+void PutSplunkHTTP::onSchedule(core::ProcessContext* context, core::ProcessSessionFactory* sessionFactory) {
   SplunkHECProcessor::onSchedule(context, sessionFactory);
 }
 

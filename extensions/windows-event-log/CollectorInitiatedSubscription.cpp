@@ -175,7 +175,7 @@ void CollectorInitiatedSubscription::initialize() {
   setSupportedRelationships(relationships());
 }
 
-void CollectorInitiatedSubscription::onSchedule(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSessionFactory> &sessionFactory) {
+void CollectorInitiatedSubscription::onSchedule(core::ProcessContext *context, core::ProcessSessionFactory *sessionFactory) {
   gsl_Expects(context);
 
   if (subscriptionHandle_) {
@@ -427,7 +427,7 @@ bool CollectorInitiatedSubscription::getSubscriptionProperty(EC_HANDLE hSubscrip
   return true;
 }
 
-bool CollectorInitiatedSubscription::createSubscription(const std::shared_ptr<core::ProcessContext>& context) {
+bool CollectorInitiatedSubscription::createSubscription(core::ProcessContext* context) {
   gsl_Expects(context);
 
   // If subcription already exists, delete it.
@@ -554,7 +554,7 @@ bool CollectorInitiatedSubscription::createSubscription(const std::shared_ptr<co
   return true;
 }
 
-bool CollectorInitiatedSubscription::subscribe(const std::shared_ptr<core::ProcessContext> &context) {
+bool CollectorInitiatedSubscription::subscribe(core::ProcessContext *context) {
   gsl_Expects(context);
 
   logger_->log_debug("CollectorInitiatedSubscription: MaxBufferSize %lld", max_buffer_size_.getValue());
@@ -632,7 +632,7 @@ void CollectorInitiatedSubscription::unsubscribe() {
   }
 }
 
-int CollectorInitiatedSubscription::processQueue(const std::shared_ptr<core::ProcessSession> &session) {
+int CollectorInitiatedSubscription::processQueue(core::ProcessSession *session) {
   int flowFileCount = 0;
 
   std::string xml;

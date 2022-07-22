@@ -50,7 +50,7 @@ bool ConsumeMQTT::enqueueReceiveMQTTMsg(MQTTClient_message *message) {
   }
 }
 
-void ConsumeMQTT::onSchedule(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSessionFactory> &factory) {
+void ConsumeMQTT::onSchedule(core::ProcessContext *context, core::ProcessSessionFactory *factory) {
   AbstractMQTTProcessor::onSchedule(context, factory);
   std::string value;
   int64_t valInt;

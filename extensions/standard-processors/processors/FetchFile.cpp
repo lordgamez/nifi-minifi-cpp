@@ -90,7 +90,7 @@ void FetchFile::initialize() {
   setSupportedRelationships(relationships());
 }
 
-void FetchFile::onSchedule(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSessionFactory> &/*sessionFactory*/) {
+void FetchFile::onSchedule(core::ProcessContext *context, core::ProcessSessionFactory */*sessionFactory*/) {
   gsl_Expects(context);
   completion_strategy_ = utils::parseEnumProperty<CompletionStrategyOption>(*context, CompletionStrategy);
   std::string move_destination_dir;

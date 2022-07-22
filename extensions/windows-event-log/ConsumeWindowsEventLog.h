@@ -110,7 +110,7 @@ class ConsumeWindowsEventLog : public core::Processor {
 
   ADD_COMMON_VIRTUAL_FUNCTIONS_FOR_PROCESSORS
 
-  void onSchedule(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSessionFactory> &sessionFactory) override;
+  void onSchedule(core::ProcessContext *context, core::ProcessSessionFactory *sessionFactory) override;
   void onTrigger(core::ProcessContext *context, core::ProcessSession *session) override;
   void initialize(void) override;
   void notifyStop() override;
@@ -140,10 +140,10 @@ class ConsumeWindowsEventLog : public core::Processor {
     const decltype(std::chrono::steady_clock::now()) time_ = std::chrono::steady_clock::now();
   };
 
-  bool commitAndSaveBookmark(const std::wstring &bookmarkXml, const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSession> &session);
+  bool commitAndSaveBookmark(const std::wstring &bookmarkXml, core::ProcessContext *context, core::ProcessSession *session);
 
-  std::tuple<size_t, std::wstring> processEventLogs(const std::shared_ptr<core::ProcessContext> &context,
-    const std::shared_ptr<core::ProcessSession> &session, const EVT_HANDLE& event_query_results);
+  std::tuple<size_t, std::wstring> processEventLogs(core::ProcessContext *context,
+    core::ProcessSession *session, const EVT_HANDLE& event_query_results);
 
   std::shared_ptr<core::logging::Logger> logger_;
   core::CoreComponentStateManager* state_manager_;

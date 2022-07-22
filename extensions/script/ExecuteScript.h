@@ -189,8 +189,8 @@ class ExecuteScript : public core::Processor {
 
   template<typename T>
   void triggerEngineProcessor(const std::shared_ptr<script::ScriptEngine> &engine,
-                              const std::shared_ptr<core::ProcessContext> &context,
-                              const std::shared_ptr<core::ProcessSession> &session) const {
+                              core::ProcessContext *context,
+                              core::ProcessSession *session) const {
     auto typed_engine = std::static_pointer_cast<T>(engine);
     typed_engine->onTrigger(context, session);
   }

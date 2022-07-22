@@ -65,8 +65,8 @@ void MotionDetector::initialize() {
   setSupportedRelationships(relationships());
 }
 
-void MotionDetector::onSchedule(const std::shared_ptr<core::ProcessContext> &context,
-                                  const std::shared_ptr<core::ProcessSessionFactory>& /*sessionFactory*/) {
+void MotionDetector::onSchedule(core::ProcessContext *context,
+                                  core::ProcessSessionFactory* /*sessionFactory*/) {
   std::string value;
 
   if (context->getProperty(ImageEncoding.getName(), value)) {

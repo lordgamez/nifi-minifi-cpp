@@ -33,7 +33,7 @@ namespace org::apache::nifi::minifi::processors {
     setSupportedRelationships(relationships());
   }
 
-  void FetchOPCProcessor::onSchedule(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSessionFactory> &factory) {
+  void FetchOPCProcessor::onSchedule(core::ProcessContext *context, core::ProcessSessionFactory *factory) {
     logger_->log_trace("FetchOPCProcessor::onSchedule");
 
     translatedNodeIDs_.clear();  // Path might has changed during restart
@@ -128,7 +128,7 @@ namespace org::apache::nifi::minifi::processors {
   }
 
   bool FetchOPCProcessor::nodeFoundCallBack(opc::Client& /*client*/, const UA_ReferenceDescription *ref, const std::string& path,
-      const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSession> &session) {
+      core::ProcessContext *context, core::ProcessSession *session) {
     nodesFound_++;
     if (ref->nodeClass == UA_NODECLASS_VARIABLE) {
       try {
@@ -157,7 +157,7 @@ namespace org::apache::nifi::minifi::processors {
     return true;
   }
 
-  void FetchOPCProcessor::OPCData2FlowFile(const opc::NodeData& opcnode, const std::shared_ptr<core::ProcessContext>& /*context*/, const std::shared_ptr<core::ProcessSession> &session) {
+  void FetchOPCProcessor::OPCData2FlowFile(const opc::NodeData& opcnode, core::ProcessContext* /*context*/, core::ProcessSession *session) {
     auto flowFile = session->create();
     if (flowFile == nullptr) {
       logger_->log_error("Failed to create flowfile!");

@@ -25,7 +25,7 @@
 
 namespace org::apache::nifi::minifi::azure::processors {
 
-void AzureDataLakeStorageProcessorBase::onSchedule(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSessionFactory>& /*sessionFactory*/) {
+void AzureDataLakeStorageProcessorBase::onSchedule(core::ProcessContext* context, core::ProcessSessionFactory* /*sessionFactory*/) {
   gsl_Expects(context);
   std::optional<storage::AzureStorageCredentials> credentials;
   std::tie(std::ignore, credentials) = getCredentialsFromControllerService(*context);

@@ -56,7 +56,7 @@ class ConvertBase : public core::Processor, public minifi::c2::RESTProtocol {
 
  public:
   void initialize() override;
-  void onSchedule(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSessionFactory> &sessionFactory) override;
+  void onSchedule(core::ProcessContext *context, core::ProcessSessionFactory *sessionFactory) override;
 
  protected:
   std::shared_ptr<controllers::MQTTControllerService> mqtt_service_;

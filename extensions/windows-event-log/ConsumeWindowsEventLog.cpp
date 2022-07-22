@@ -224,7 +224,7 @@ bool ConsumeWindowsEventLog::insertHeaderName(wel::METADATA_NAMES &header, const
   return false;
 }
 
-void ConsumeWindowsEventLog::onSchedule(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSessionFactory> &sessionFactory) {
+void ConsumeWindowsEventLog::onSchedule(core::ProcessContext *context, core::ProcessSessionFactory *sessionFactory) {
   state_manager_ = context->getStateManager();
   if (state_manager_ == nullptr) {
     throw Exception(PROCESSOR_EXCEPTION, "Failed to get StateManager");
@@ -326,7 +326,7 @@ void ConsumeWindowsEventLog::onSchedule(const std::shared_ptr<core::ProcessConte
   logger_->log_trace("Successfully configured CWEL");
 }
 
-bool ConsumeWindowsEventLog::commitAndSaveBookmark(const std::wstring &bookmark_xml, const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSession> &session) {
+bool ConsumeWindowsEventLog::commitAndSaveBookmark(const std::wstring &bookmark_xml, core::ProcessContext *context, core::ProcessSession *session) {
   {
     const TimeDiff time_diff;
     session->commit();
@@ -346,8 +346,8 @@ bool ConsumeWindowsEventLog::commitAndSaveBookmark(const std::wstring &bookmark_
   return true;
 }
 
-std::tuple<size_t, std::wstring> ConsumeWindowsEventLog::processEventLogs(const std::shared_ptr<core::ProcessContext> &context,
-    const std::shared_ptr<core::ProcessSession> &session, const EVT_HANDLE& event_query_results) {
+std::tuple<size_t, std::wstring> ConsumeWindowsEventLog::processEventLogs(core::ProcessContext *context,
+    core::ProcessSession *session, const EVT_HANDLE& event_query_results) {
   size_t processed_event_count = 0;
   std::wstring bookmark_xml;
   logger_->log_trace("Enumerating the events in the result set after the bookmarked event.");

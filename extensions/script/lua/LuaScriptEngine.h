@@ -83,8 +83,8 @@ class LuaScriptEngine : public script::ScriptEngine {
     std::shared_ptr<LuaProcessSession> lua_session_;
   };
 
-  void onTrigger(const std::shared_ptr<core::ProcessContext> &context,
-      const std::shared_ptr<core::ProcessSession> &session) {
+  void onTrigger(core::ProcessContext *context,
+      core::ProcessSession *session) {
     auto script_context = convert(context);
     auto lua_session = convert(session);
     TriggerSession trigger_session(script_context, lua_session);
@@ -101,11 +101,11 @@ class LuaScriptEngine : public script::ScriptEngine {
     return value;
   }
 
-  std::shared_ptr<script::ScriptProcessContext> convert(const std::shared_ptr<core::ProcessContext> &context) {
+  std::shared_ptr<script::ScriptProcessContext> convert(core::ProcessContext *context) {
     return std::make_shared<script::ScriptProcessContext>(context);
   }
 
-  std::shared_ptr<LuaProcessSession> convert(const std::shared_ptr<core::ProcessSession> &session) {
+  std::shared_ptr<LuaProcessSession> convert(core::ProcessSession *session) {
     return std::make_shared<LuaProcessSession>(session);
   }
 

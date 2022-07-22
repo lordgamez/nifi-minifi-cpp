@@ -88,7 +88,7 @@ void generateData(std::vector<char>& data, bool textData = false) {
   }
 }
 
-void GenerateFlowFile::onSchedule(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSessionFactory>& /*sessionFactory*/) {
+void GenerateFlowFile::onSchedule(core::ProcessContext *context, core::ProcessSessionFactory* /*sessionFactory*/) {
   if (context->getProperty(FileSize.getName(), fileSize_)) {
     logger_->log_trace("File size is configured to be %d", fileSize_);
   }

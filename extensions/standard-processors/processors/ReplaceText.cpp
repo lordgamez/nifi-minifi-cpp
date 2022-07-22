@@ -85,7 +85,7 @@ void ReplaceText::initialize() {
   setSupportedRelationships(relationships());
 }
 
-void ReplaceText::onSchedule(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSessionFactory>&) {
+void ReplaceText::onSchedule(core::ProcessContext* context, core::ProcessSessionFactory*) {
   gsl_Expects(context);
 
   const std::optional<std::string> evaluation_mode = context->getProperty(EvaluationMode);
@@ -128,7 +128,7 @@ void ReplaceText::onTrigger(core::ProcessContext *context, core::ProcessSession 
   throw Exception{PROCESSOR_EXCEPTION, utils::StringUtils::join_pack("Unsupported ", EvaluationMode.getName(), ": ", evaluation_mode_.toString())};
 }
 
-ReplaceText::Parameters ReplaceText::readParameters(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::FlowFile>& flow_file) const {
+ReplaceText::Parameters ReplaceText::readParameters(core::ProcessContext* context, const std::shared_ptr<core::FlowFile>& flow_file) const {
   Parameters parameters;
 
   bool found_search_value;
@@ -167,7 +167,7 @@ ReplaceText::Parameters ReplaceText::readParameters(const std::shared_ptr<core::
   return parameters;
 }
 
-void ReplaceText::replaceTextInEntireFile(const std::shared_ptr<core::FlowFile>& flow_file, const std::shared_ptr<core::ProcessSession>& session, const Parameters& parameters) const {
+void ReplaceText::replaceTextInEntireFile(const std::shared_ptr<core::FlowFile>& flow_file, core::ProcessSession* session, const Parameters& parameters) const {
   gsl_Expects(flow_file);
   gsl_Expects(session);
 
@@ -181,7 +181,7 @@ void ReplaceText::replaceTextInEntireFile(const std::shared_ptr<core::FlowFile>&
   }
 }
 
-void ReplaceText::replaceTextLineByLine(const std::shared_ptr<core::FlowFile>& flow_file, const std::shared_ptr<core::ProcessSession>& session, const Parameters& parameters) const {
+void ReplaceText::replaceTextLineByLine(const std::shared_ptr<core::FlowFile>& flow_file, core::ProcessSession* session, const Parameters& parameters) const {
   gsl_Expects(flow_file);
   gsl_Expects(session);
 

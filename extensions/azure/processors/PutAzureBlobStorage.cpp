@@ -32,7 +32,7 @@ void PutAzureBlobStorage::initialize() {
 }
 
 
-void PutAzureBlobStorage::onSchedule(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSessionFactory>& session_factory) {
+void PutAzureBlobStorage::onSchedule(core::ProcessContext* context, core::ProcessSessionFactory* session_factory) {
   gsl_Expects(context && session_factory);
   AzureBlobStorageProcessorBase::onSchedule(context, session_factory);
   context->getProperty(CreateContainer.getName(), create_container_);

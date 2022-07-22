@@ -91,7 +91,7 @@ class AbstractMQTTProcessor : public core::Processor {
   }
 
  public:
-  void onSchedule(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSessionFactory> &factory) override;
+  void onSchedule(core::ProcessContext *context, core::ProcessSessionFactory *factory) override;
 
   // MQTT async callbacks
   static void msgDelivered(void *context, MQTTClient_deliveryToken dt) {

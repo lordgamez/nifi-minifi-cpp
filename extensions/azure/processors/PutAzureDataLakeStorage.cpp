@@ -34,7 +34,7 @@ void PutAzureDataLakeStorage::initialize() {
   setSupportedRelationships(relationships());
 }
 
-void PutAzureDataLakeStorage::onSchedule(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSessionFactory>& sessionFactory) {
+void PutAzureDataLakeStorage::onSchedule(core::ProcessContext* context, core::ProcessSessionFactory* sessionFactory) {
   gsl_Expects(context && sessionFactory);
   AzureDataLakeStorageFileProcessorBase::onSchedule(context, sessionFactory);
   std::optional<storage::AzureStorageCredentials> credentials;

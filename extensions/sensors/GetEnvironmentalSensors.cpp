@@ -57,7 +57,7 @@ void GetEnvironmentalSensors::initialize() {
   setSupportedRelationships(relationships());
 }
 
-void GetEnvironmentalSensors::onSchedule(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSessionFactory> &sessionFactory) {
+void GetEnvironmentalSensors::onSchedule(core::ProcessContext *context, core::ProcessSessionFactory *sessionFactory) {
   SensorBase::onSchedule(context, sessionFactory);
 
   humidity_sensor_ = RTHumidity::createHumidity(&settings_.value());

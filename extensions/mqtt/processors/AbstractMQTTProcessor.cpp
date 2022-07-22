@@ -28,7 +28,7 @@
 
 namespace org::apache::nifi::minifi::processors {
 
-void AbstractMQTTProcessor::onSchedule(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSessionFactory>& /*factory*/) {
+void AbstractMQTTProcessor::onSchedule(core::ProcessContext *context, core::ProcessSessionFactory* /*factory*/) {
   sslEnabled_ = false;
   sslopts_ = MQTTClient_SSLOptions_initializer;
 

@@ -56,7 +56,7 @@ void AppendHostInfo::initialize() {
   setSupportedRelationships(relationships());
 }
 
-void AppendHostInfo::onSchedule(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSessionFactory>&) {
+void AppendHostInfo::onSchedule(core::ProcessContext* context, core::ProcessSessionFactory*) {
   std::unique_lock unique_lock(shared_mutex_);
   context->getProperty(HostAttribute.getName(), hostname_attribute_name_);
   context->getProperty(IPAttribute.getName(), ipaddress_attribute_name_);

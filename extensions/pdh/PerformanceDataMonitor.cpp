@@ -67,7 +67,7 @@ PerformanceDataMonitor::~PerformanceDataMonitor() {
   PdhCloseQuery(pdh_query_);
 }
 
-void PerformanceDataMonitor::onSchedule(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSessionFactory>& sessionFactory) {
+void PerformanceDataMonitor::onSchedule(core::ProcessContext* context, core::ProcessSessionFactory* sessionFactory) {
   setupMembersFromProperties(context);
 
   PdhOpenQueryA(nullptr, 0, &pdh_query_);
@@ -271,7 +271,7 @@ void PerformanceDataMonitor::addCustomPDHCountersFromProperty(const std::string&
   }
 }
 
-void PerformanceDataMonitor::setupCountersFromProperties(const std::shared_ptr<core::ProcessContext>& context) {
+void PerformanceDataMonitor::setupCountersFromProperties(core::ProcessContext* context) {
   std::string custom_pdh_counters;
   if (context->getProperty(CustomPDHCounters.getName(), custom_pdh_counters)) {
     logger_->log_trace("Custom PDH counters configured to be %s", custom_pdh_counters);
@@ -279,7 +279,7 @@ void PerformanceDataMonitor::setupCountersFromProperties(const std::shared_ptr<c
   }
 }
 
-void PerformanceDataMonitor::setupPredefinedGroupsFromProperties(const std::shared_ptr<core::ProcessContext>& context) {
+void PerformanceDataMonitor::setupPredefinedGroupsFromProperties(core::ProcessContext* context) {
   std::string predefined_groups;
   if (context->getProperty(PredefinedGroups.getName(), predefined_groups)) {
     logger_->log_trace("Predefined group configured to be %s", predefined_groups);
@@ -287,7 +287,7 @@ void PerformanceDataMonitor::setupPredefinedGroupsFromProperties(const std::shar
   }
 }
 
-void PerformanceDataMonitor::setupOutputFormatFromProperties(const std::shared_ptr<core::ProcessContext>& context) {
+void PerformanceDataMonitor::setupOutputFormatFromProperties(core::ProcessContext* context) {
   std::string output_format_string;
   if (context->getProperty(OutputFormatProperty.getName(), output_format_string)) {
     if (output_format_string == OPEN_TELEMETRY_FORMAT_STR) {
@@ -313,7 +313,7 @@ void PerformanceDataMonitor::setupOutputFormatFromProperties(const std::shared_p
   logger_->log_trace("OutputFormat is configured to be %s %s", pretty_output_ ? "pretty" : "compact", output_format_ == OutputFormat::JSON ? "JSON" : "OpenTelemetry");
 }
 
-void PerformanceDataMonitor::setupDecimalPlacesFromProperties(const std::shared_ptr<core::ProcessContext>& context) {
+void PerformanceDataMonitor::setupDecimalPlacesFromProperties(core::ProcessContext* context) {
   std::string decimal_places_str;
   if (!context->getProperty(DecimalPlaces.getName(), decimal_places_str) || decimal_places_str == "") {
     decimal_places_ = std::nullopt;
@@ -330,7 +330,7 @@ void PerformanceDataMonitor::setupDecimalPlacesFromProperties(const std::shared_
     logger_->log_trace("Rounding is enabled with %d decimal places", decimal_places_.value());
 }
 
-void PerformanceDataMonitor::setupMembersFromProperties(const std::shared_ptr<core::ProcessContext>& context) {
+void PerformanceDataMonitor::setupMembersFromProperties(core::ProcessContext* context) {
   setupCountersFromProperties(context);
   setupPredefinedGroupsFromProperties(context);
   setupOutputFormatFromProperties(context);

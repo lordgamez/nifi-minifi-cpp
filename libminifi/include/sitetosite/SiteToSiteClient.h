@@ -85,7 +85,7 @@ class SiteToSiteClient : public core::Connectable {
    * @param session process session
    * @returns true if the process succeeded, failure OR exception thrown otherwise
    */
-  virtual bool transfer(TransferDirection direction, const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSession> &session) {
+  virtual bool transfer(TransferDirection direction, core::ProcessContext *context, core::ProcessSession *session) {
 #ifndef WIN32
     if (__builtin_expect(direction == SEND, 1)) {
       return transferFlowFiles(context, session);
@@ -107,7 +107,7 @@ class SiteToSiteClient : public core::Connectable {
    * @param session process session
    * @returns true if the process succeeded, failure OR exception thrown otherwise
    */
-  virtual bool transferFlowFiles(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSession> &session);
+  virtual bool transferFlowFiles(core::ProcessContext *context, core::ProcessSession *session);
 
   /**
    * Receive flow files from server
@@ -118,7 +118,7 @@ class SiteToSiteClient : public core::Connectable {
 
   // Confirm the data that was sent or received by comparing CRC32's of the data sent and the data received.
   // Receive flow files for the process session
-  bool receiveFlowFiles(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSession> &session);
+  bool receiveFlowFiles(core::ProcessContext *context, core::ProcessSession *session);
 
   // Receive the data packet from the transaction
   // Return false when any error occurs
@@ -131,7 +131,7 @@ class SiteToSiteClient : public core::Connectable {
    * @param attributes
    * @returns true if the process succeeded, failure OR exception thrown otherwise
    */
-  virtual bool transmitPayload(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSession> &session, const std::string &payload,
+  virtual bool transmitPayload(core::ProcessContext *context, core::ProcessSession *session, const std::string &payload,
                                std::map<std::string, std::string> attributes) = 0;
 
   void setPortId(utils::Identifier &id) {
@@ -200,7 +200,7 @@ class SiteToSiteClient : public core::Connectable {
   }
 
   // Return -1 when any error occurs
-  virtual int16_t send(const utils::Identifier &transactionID, DataPacket *packet, const std::shared_ptr<core::FlowFile> &flowFile, const std::shared_ptr<core::ProcessSession> &session);
+  virtual int16_t send(const utils::Identifier &transactionID, DataPacket *packet, const std::shared_ptr<core::FlowFile> &flowFile, core::ProcessSession *session);
 
  protected:
   // Cancel the transaction

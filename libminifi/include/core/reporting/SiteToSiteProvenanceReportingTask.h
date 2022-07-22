@@ -58,10 +58,10 @@ class SiteToSiteProvenanceReportingTask : public minifi::RemoteProcessorGroupPor
 
  public:
   //! Get provenance json report
-  void getJsonReport(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSession> &session, std::vector<std::shared_ptr<core::SerializableComponent>> &records, std::string &report); // NOLINT
+  void getJsonReport(core::ProcessContext *context, core::ProcessSession *session, std::vector<std::shared_ptr<core::SerializableComponent>> &records, std::string &report); // NOLINT
 
 
-  void onSchedule(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSessionFactory> &sessionFactory);
+  void onSchedule(core::ProcessContext *context, core::ProcessSessionFactory *sessionFactory);
   //! OnTrigger method, implemented by NiFi SiteToSiteProvenanceReportingTask
   void onTrigger(core::ProcessContext *context, core::ProcessSession *session);
 

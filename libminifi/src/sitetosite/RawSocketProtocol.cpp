@@ -549,7 +549,7 @@ std::shared_ptr<Transaction> RawSiteToSiteClient::createTransaction(TransferDire
   }
 }
 
-bool RawSiteToSiteClient::transmitPayload(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSession> &session, const std::string &payload,
+bool RawSiteToSiteClient::transmitPayload(core::ProcessContext *context, core::ProcessSession *session, const std::string &payload,
                                           std::map<std::string, std::string> attributes) {
   std::shared_ptr<Transaction> transaction;
 

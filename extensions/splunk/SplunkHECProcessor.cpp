@@ -26,7 +26,7 @@ void SplunkHECProcessor::initialize() {
   setSupportedProperties(properties());
 }
 
-void SplunkHECProcessor::onSchedule(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSessionFactory>&) {
+void SplunkHECProcessor::onSchedule(core::ProcessContext* context, core::ProcessSessionFactory*) {
   gsl_Expects(context);
   if (!context->getProperty(Hostname.getName(), hostname_))
     throw Exception(PROCESS_SCHEDULE_EXCEPTION, "Failed to get Hostname");

@@ -484,8 +484,8 @@ TEST_CASE("Test Find file", "[getfileCreate3]") {
   std::string jsonStr;
   std::size_t deserialized = 0;
   repo->DeSerialize(recordsReport, deserialized);
-  std::function<void(const std::shared_ptr<core::ProcessContext> &, const std::shared_ptr<core::ProcessSession>&)> verifyReporter =
-      [&](const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSession> &session) {
+  std::function<void(core::ProcessContext *, core::ProcessSession*)> verifyReporter =
+      [&](core::ProcessContext *context, core::ProcessSession *session) {
         taskReport->getJsonReport(context, session, recordsReport, jsonStr);
         REQUIRE(recordsReport.size() == 1);
         REQUIRE(taskReport->getName() == std::string(org::apache::nifi::minifi::core::reporting::SiteToSiteProvenanceReportingTask::ReportTaskName));

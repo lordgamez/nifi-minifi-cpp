@@ -192,7 +192,7 @@ class JniInputStream : public core::WeakReference {
 
 class JniSession : public core::WeakReference {
  public:
-  JniSession(const std::shared_ptr<core::ProcessSession> &session, jobject session_instance, const std::shared_ptr<JavaServicer> &servicer)
+  JniSession(core::ProcessSession *session, jobject session_instance, const std::shared_ptr<JavaServicer> &servicer)
       : removed_(false),
         session_instance_(session_instance),
         session_(session),
@@ -278,7 +278,7 @@ struct check_empty : public std::unary_function<std::shared_ptr<JniSession>, boo
 
 class JniSessionFactory : public core::WeakReference {
  public:
-  JniSessionFactory(const std::shared_ptr<core::ProcessSessionFactory> &factory, const std::shared_ptr<JavaServicer> &servicer, jobject java_object)
+  JniSessionFactory(core::ProcessSessionFactory *factory, const std::shared_ptr<JavaServicer> &servicer, jobject java_object)
       : servicer_(servicer),
         factory_(factory),
         java_object_(java_object) {

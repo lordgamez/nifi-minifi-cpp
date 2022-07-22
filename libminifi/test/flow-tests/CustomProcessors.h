@@ -89,7 +89,7 @@ class TestProcessor : public core::Processor, public ProcessorWithStatistics {
     }
     throw std::runtime_error("Couldn't route file");
   }
-  void onSchedule(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSessionFactory>& /*sessionFactory*/) override {
+  void onSchedule(core::ProcessContext *context, core::ProcessSessionFactory* /*sessionFactory*/) override {
     int apple;
     bool appleSuccess = context->getProperty(AppleProbability.getName(), apple);
     assert(appleSuccess);

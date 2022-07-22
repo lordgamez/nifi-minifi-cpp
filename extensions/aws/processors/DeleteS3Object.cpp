@@ -32,7 +32,7 @@ void DeleteS3Object::initialize() {
 }
 
 std::optional<aws::s3::DeleteObjectRequestParameters> DeleteS3Object::buildDeleteS3RequestParams(
-    const std::shared_ptr<core::ProcessContext> &context,
+    core::ProcessContext *context,
     const std::shared_ptr<core::FlowFile> &flow_file,
     const CommonProperties &common_properties) const {
   gsl_Expects(client_config_);

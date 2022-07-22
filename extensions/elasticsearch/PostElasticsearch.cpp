@@ -99,7 +99,7 @@ auto getCredentialsService(core::ProcessContext& context) {
 }
 }  // namespace
 
-void PostElasticsearch::onSchedule(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSessionFactory>&) {
+void PostElasticsearch::onSchedule(core::ProcessContext* context, core::ProcessSessionFactory*) {
   gsl_Expects(context);
 
   context->getProperty(MaxBatchSize.getName(), max_batch_size_);

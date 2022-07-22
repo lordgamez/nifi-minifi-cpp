@@ -38,7 +38,7 @@ void PublishMQTT::initialize() {
   setSupportedRelationships(relationships());
 }
 
-void PublishMQTT::onSchedule(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSessionFactory> &factory) {
+void PublishMQTT::onSchedule(core::ProcessContext *context, core::ProcessSessionFactory *factory) {
   AbstractMQTTProcessor::onSchedule(context, factory);
   std::string value;
   int64_t valInt;

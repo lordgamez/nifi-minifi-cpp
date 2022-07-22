@@ -32,7 +32,7 @@ void ListS3::initialize() {
   setSupportedRelationships(relationships());
 }
 
-void ListS3::onSchedule(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSessionFactory> &sessionFactory) {
+void ListS3::onSchedule(core::ProcessContext *context, core::ProcessSessionFactory *sessionFactory) {
   S3Processor::onSchedule(context, sessionFactory);
 
   auto state_manager = context->getStateManager();

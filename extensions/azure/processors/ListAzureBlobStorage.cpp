@@ -31,7 +31,7 @@ void ListAzureBlobStorage::initialize() {
   setSupportedRelationships(relationships());
 }
 
-void ListAzureBlobStorage::onSchedule(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSessionFactory>& session_factory) {
+void ListAzureBlobStorage::onSchedule(core::ProcessContext* context, core::ProcessSessionFactory* session_factory) {
   AzureBlobStorageProcessorBase::onSchedule(context, session_factory);
 
   auto state_manager = context->getStateManager();

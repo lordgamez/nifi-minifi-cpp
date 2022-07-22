@@ -37,7 +37,7 @@ void PutS3Object::initialize() {
   setSupportedRelationships(relationships());
 }
 
-void PutS3Object::fillUserMetadata(const std::shared_ptr<core::ProcessContext> &context) {
+void PutS3Object::fillUserMetadata(core::ProcessContext *context) {
   const auto &dynamic_prop_keys = context->getDynamicPropertyKeys();
   bool first_property = true;
   for (const auto &prop_key : dynamic_prop_keys) {
@@ -56,7 +56,7 @@ void PutS3Object::fillUserMetadata(const std::shared_ptr<core::ProcessContext> &
   logger_->log_debug("PutS3Object: User metadata [%s]", user_metadata_);
 }
 
-void PutS3Object::onSchedule(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSessionFactory> &sessionFactory) {
+void PutS3Object::onSchedule(core::ProcessContext *context, core::ProcessSessionFactory *sessionFactory) {
   S3Processor::onSchedule(context, sessionFactory);
 
   if (!context->getProperty(StorageClass.getName(), storage_class_)
@@ -90,7 +90,7 @@ std::string PutS3Object::parseAccessControlList(const std::string &comma_separat
 }
 
 bool PutS3Object::setCannedAcl(
-    const std::shared_ptr<core::ProcessContext> &context,
+    core::ProcessContext *context,
     const std::shared_ptr<core::FlowFile> &flow_file,
     aws::s3::PutObjectRequestParameters &put_s3_request_params) const {
   context->getProperty(CannedACL, put_s3_request_params.canned_acl, flow_file);
@@ -103,7 +103,7 @@ bool PutS3Object::setCannedAcl(
 }
 
 bool PutS3Object::setAccessControl(
-      const std::shared_ptr<core::ProcessContext> &context,
+      core::ProcessContext *context,
       const std::shared_ptr<core::FlowFile> &flow_file,
       aws::s3::PutObjectRequestParameters &put_s3_request_params) const {
   std::string value;
@@ -128,7 +128,7 @@ bool PutS3Object::setAccessControl(
 }
 
 std::optional<aws::s3::PutObjectRequestParameters> PutS3Object::buildPutS3RequestParams(
-    const std::shared_ptr<core::ProcessContext> &context,
+    core::ProcessContext *context,
     const std::shared_ptr<core::FlowFile> &flow_file,
     const CommonProperties &common_properties) const {
   gsl_Expects(client_config_);
@@ -156,7 +156,7 @@ std::optional<aws::s3::PutObjectRequestParameters> PutS3Object::buildPutS3Reques
 }
 
 void PutS3Object::setAttributes(
-    const std::shared_ptr<core::ProcessSession> &session,
+    core::ProcessSession *session,
     const std::shared_ptr<core::FlowFile> &flow_file,
     const aws::s3::PutObjectRequestParameters &put_s3_request_params,
     const minifi::aws::s3::PutObjectResult &put_object_result) const {

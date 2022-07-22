@@ -29,7 +29,7 @@
 
 namespace org::apache::nifi::minifi::processors {
 
-void SQLProcessor::onSchedule(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSessionFactory>& /*sessionFactory*/) {
+void SQLProcessor::onSchedule(core::ProcessContext* context, core::ProcessSessionFactory* /*sessionFactory*/) {
   std::string controllerService;
   context->getProperty(DBControllerService.getName(), controllerService);
 

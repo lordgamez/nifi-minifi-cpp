@@ -48,7 +48,7 @@ class ListenTCP : public NetworkListenerProcessor {
   static auto relationships() { return std::array{Success}; }
 
   void initialize() override;
-  void onSchedule(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSessionFactory>& sessionFactory) override;
+  void onSchedule(core::ProcessContext* context, core::ProcessSessionFactory* sessionFactory) override;
 
  private:
   void transferAsFlowFile(const utils::net::Message& message, core::ProcessSession& session) override;

@@ -41,7 +41,7 @@ S3Processor::S3Processor(const std::string& name, const minifi::utils::Identifie
     s3_wrapper_(std::move(s3_request_sender)) {
 }
 
-std::optional<Aws::Auth::AWSCredentials> S3Processor::getAWSCredentialsFromControllerService(const std::shared_ptr<core::ProcessContext> &context) const {
+std::optional<Aws::Auth::AWSCredentials> S3Processor::getAWSCredentialsFromControllerService(core::ProcessContext *context) const {
   std::string service_name;
   if (!context->getProperty(AWSCredentialsProviderService.getName(), service_name) || service_name.empty()) {
     return std::nullopt;
@@ -63,7 +63,7 @@ std::optional<Aws::Auth::AWSCredentials> S3Processor::getAWSCredentialsFromContr
 }
 
 std::optional<Aws::Auth::AWSCredentials> S3Processor::getAWSCredentials(
-    const std::shared_ptr<core::ProcessContext> &context,
+    core::ProcessContext *context,
     const std::shared_ptr<core::FlowFile> &flow_file) {
   auto service_cred = getAWSCredentialsFromControllerService(context);
   if (service_cred) {
@@ -90,7 +90,7 @@ std::optional<Aws::Auth::AWSCredentials> S3Processor::getAWSCredentials(
   return aws_credentials_provider.getAWSCredentials();
 }
 
-std::optional<aws::s3::ProxyOptions> S3Processor::getProxy(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::FlowFile> &flow_file) {
+std::optional<aws::s3::ProxyOptions> S3Processor::getProxy(core::ProcessContext *context, const std::shared_ptr<core::FlowFile> &flow_file) {
   aws::s3::ProxyOptions proxy;
   context->getProperty(ProxyHost, proxy.host, flow_file);
   std::string port_str;
@@ -106,7 +106,7 @@ std::optional<aws::s3::ProxyOptions> S3Processor::getProxy(const std::shared_ptr
   return proxy;
 }
 
-void S3Processor::onSchedule(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSessionFactory>& /*sessionFactory*/) {
+void S3Processor::onSchedule(core::ProcessContext* context, core::ProcessSessionFactory* /*sessionFactory*/) {
   client_config_ = Aws::Client::ClientConfiguration();
   std::string value;
   if (!context->getProperty(Bucket.getName(), value) || value.empty()) {
@@ -127,7 +127,7 @@ void S3Processor::onSchedule(const std::shared_ptr<core::ProcessContext>& contex
 }
 
 std::optional<CommonProperties> S3Processor::getCommonELSupportedProperties(
-    const std::shared_ptr<core::ProcessContext> &context,
+    core::ProcessContext *context,
     const std::shared_ptr<core::FlowFile> &flow_file) {
   CommonProperties properties;
   if (!context->getProperty(Bucket, properties.bucket, flow_file) || properties.bucket.empty()) {

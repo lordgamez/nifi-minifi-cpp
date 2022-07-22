@@ -345,7 +345,7 @@ void PublishKafka::initialize() {
   setSupportedRelationships(relationships());
 }
 
-void PublishKafka::onSchedule(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSessionFactory>& /*sessionFactory*/) {
+void PublishKafka::onSchedule(core::ProcessContext *context, core::ProcessSessionFactory* /*sessionFactory*/) {
   interrupted_ = false;
 
   // Try to get a KafkaConnection
@@ -411,7 +411,7 @@ void PublishKafka::notifyStop() {
 }
 
 
-bool PublishKafka::configureNewConnection(const std::shared_ptr<core::ProcessContext> &context) {
+bool PublishKafka::configureNewConnection(core::ProcessContext *context) {
   std::string value;
   int64_t valInt;
   std::string valueConf;
@@ -560,7 +560,7 @@ bool PublishKafka::configureNewConnection(const std::shared_ptr<core::ProcessCon
   return true;
 }
 
-bool PublishKafka::createNewTopic(const std::shared_ptr<core::ProcessContext> &context, const std::string& topic_name, const std::shared_ptr<core::FlowFile>& flow_file) {
+bool PublishKafka::createNewTopic(core::ProcessContext *context, const std::string& topic_name, const std::shared_ptr<core::FlowFile>& flow_file) {
   std::unique_ptr<rd_kafka_topic_conf_t, rd_kafka_topic_conf_deleter> topic_conf_{ rd_kafka_topic_conf_new() };
   if (topic_conf_ == nullptr) {
     logger_->log_error("Failed to create rd_kafka_topic_conf_t object");

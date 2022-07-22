@@ -64,7 +64,7 @@ void ProcFsMonitor::initialize() {
   setSupportedRelationships(relationships());
 }
 
-void ProcFsMonitor::onSchedule(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSessionFactory>&) {
+void ProcFsMonitor::onSchedule(core::ProcessContext* context, core::ProcessSessionFactory*) {
   gsl_Expects(context);
   context->getProperty(OutputFormatProperty.getName(), output_format_);
   context->getProperty(OutputCompactnessProperty.getName(), output_compactness_);

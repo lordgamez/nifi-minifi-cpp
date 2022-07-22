@@ -126,7 +126,7 @@ void RemoteProcessorGroupPort::initialize() {
   logger_->log_trace("Finished initialization");
 }
 
-void RemoteProcessorGroupPort::onSchedule(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSessionFactory>& /*sessionFactory*/) {
+void RemoteProcessorGroupPort::onSchedule(core::ProcessContext *context, core::ProcessSessionFactory* /*sessionFactory*/) {
   std::string value;
   if (context->getProperty(portUUID.getName(), value) && !value.empty()) {
     protocol_uuid_ = value;

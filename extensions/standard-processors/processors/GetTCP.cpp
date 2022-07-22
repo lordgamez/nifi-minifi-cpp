@@ -100,7 +100,7 @@ void GetTCP::initialize() {
   setSupportedRelationships(relationships());
 }
 
-void GetTCP::onSchedule(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSessionFactory> &sessionFactory) {
+void GetTCP::onSchedule(core::ProcessContext *context, core::ProcessSessionFactory *sessionFactory) {
   std::string value;
   if (context->getProperty(EndpointList.getName(), value)) {
     endpoints = utils::StringUtils::split(value, ",");

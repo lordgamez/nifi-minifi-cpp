@@ -91,7 +91,7 @@ void ExecutePythonProcessor::initalizeThroughScriptEngine() {
   processor_initialized_ = true;
 }
 
-void ExecutePythonProcessor::onSchedule(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSessionFactory>& /*sessionFactory*/) {
+void ExecutePythonProcessor::onSchedule(core::ProcessContext *context, core::ProcessSessionFactory* /*sessionFactory*/) {
   if (!processor_initialized_) {
     loadScript();
     python_script_engine_ = createScriptEngine();

@@ -41,7 +41,7 @@ void QuerySplunkIndexingStatus::initialize() {
   setSupportedRelationships(relationships());
 }
 
-void QuerySplunkIndexingStatus::onSchedule(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSessionFactory>& sessionFactory) {
+void QuerySplunkIndexingStatus::onSchedule(core::ProcessContext* context, core::ProcessSessionFactory* sessionFactory) {
   gsl_Expects(context && sessionFactory);
   SplunkHECProcessor::onSchedule(context, sessionFactory);
   std::string max_wait_time_str;

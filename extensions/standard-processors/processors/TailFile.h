@@ -143,7 +143,7 @@ class TailFile : public core::Processor {
    * @param context process context, provides eg. configuration.
    * @param sessionFactory process session factory that is used when creating ProcessSession objects.
    */
-  void onSchedule(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSessionFactory> &sessionFactory) override;
+  void onSchedule(core::ProcessContext *context, core::ProcessSessionFactory *sessionFactory) override;
 
   /**
    * Function that's executed on each invocation of the processor.
@@ -153,7 +153,7 @@ class TailFile : public core::Processor {
   void onTrigger(core::ProcessContext *context, core::ProcessSession *session) override;
 
   void initialize() override;
-  bool recoverState(const std::shared_ptr<core::ProcessContext>& context);
+  bool recoverState(core::ProcessContext* context);
   void logState();
   bool storeState();
   std::chrono::milliseconds getLookupFrequency() const;
@@ -171,21 +171,21 @@ class TailFile : public core::Processor {
 
   void parseAttributeProviderServiceProperty(core::ProcessContext& context);
   void parseStateFileLine(char *buf, std::map<std::string, TailState> &state) const;
-  void processAllRotatedFiles(const std::shared_ptr<core::ProcessSession> &session, TailState &state);
-  void processRotatedFiles(const std::shared_ptr<core::ProcessSession> &session, TailState &state, std::vector<TailState> &rotated_file_states);
-  void processRotatedFilesAfterLastReadTime(const std::shared_ptr<core::ProcessSession> &session, TailState &state);
+  void processAllRotatedFiles(core::ProcessSession *session, TailState &state);
+  void processRotatedFiles(core::ProcessSession *session, TailState &state, std::vector<TailState> &rotated_file_states);
+  void processRotatedFilesAfterLastReadTime(core::ProcessSession *session, TailState &state);
   std::string parseRollingFilePattern(const TailState &state) const;
   std::vector<TailState> findAllRotatedFiles(const TailState &state) const;
   std::vector<TailState> findRotatedFilesAfterLastReadTime(const TailState &state) const;
   std::vector<TailState> sortAndSkipMainFilePrefix(const TailState &state, std::vector<TailStateWithMtime>& matched_files_with_mtime) const;
-  void processFile(const std::shared_ptr<core::ProcessSession> &session,
+  void processFile(core::ProcessSession *session,
                    const std::string &full_file_name,
                    TailState &state);
-  void processSingleFile(const std::shared_ptr<core::ProcessSession> &session,
+  void processSingleFile(core::ProcessSession *session,
                          const std::string &full_file_name,
                          TailState &state);
   bool getStateFromStateManager(std::map<std::string, TailState> &state) const;
-  bool getStateFromLegacyStateFile(const std::shared_ptr<core::ProcessContext>& context,
+  bool getStateFromLegacyStateFile(core::ProcessContext* context,
                                    std::map<std::string, TailState> &new_tail_states) const;
   void doMultifileLookup(core::ProcessContext& context);
   void checkForRemovedFiles();

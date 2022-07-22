@@ -34,7 +34,7 @@ namespace org::apache::nifi::minifi::processors {
     setSupportedRelationships(relationships());
   }
 
-  void PutOPCProcessor::onSchedule(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSessionFactory> &factory) {
+  void PutOPCProcessor::onSchedule(core::ProcessContext *context, core::ProcessSessionFactory *factory) {
     logger_->log_trace("PutOPCProcessor::onSchedule");
 
     parentExists_ = false;

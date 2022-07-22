@@ -86,7 +86,7 @@ void ListFile::initialize() {
   setSupportedRelationships(relationships());
 }
 
-void ListFile::onSchedule(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSessionFactory> &/*sessionFactory*/) {
+void ListFile::onSchedule(core::ProcessContext *context, core::ProcessSessionFactory */*sessionFactory*/) {
   gsl_Expects(context);
 
   auto state_manager = context->getStateManager();

@@ -52,7 +52,7 @@ class SplunkHECProcessor : public core::Processor {
   ~SplunkHECProcessor() override = default;
 
   void initialize() override;
-  void onSchedule(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSessionFactory> &sessionFactory) override;
+  void onSchedule(core::ProcessContext *context, core::ProcessSessionFactory *sessionFactory) override;
 
  protected:
   std::string getNetworkLocation() const;

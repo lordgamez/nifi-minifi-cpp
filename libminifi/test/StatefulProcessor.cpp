@@ -24,7 +24,7 @@
 
 namespace org::apache::nifi::minifi::processors {
 
-void StatefulProcessor::onSchedule(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSessionFactory>&) {
+void StatefulProcessor::onSchedule(core::ProcessContext* context, core::ProcessSessionFactory*) {
   gsl_Expects(context);
   std::lock_guard<std::mutex> lock(mutex_);
   state_manager_ = context->getStateManager();

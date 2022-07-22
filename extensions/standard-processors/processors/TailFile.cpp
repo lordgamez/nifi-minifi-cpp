@@ -331,7 +331,7 @@ void TailFile::initialize() {
   setSupportedRelationships(relationships());
 }
 
-void TailFile::onSchedule(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSessionFactory>& /*sessionFactory*/) {
+void TailFile::onSchedule(core::ProcessContext *context, core::ProcessSessionFactory* /*sessionFactory*/) {
   gsl_Expects(context);
 
   tail_states_.clear();
@@ -487,7 +487,7 @@ void TailFile::parseStateFileLine(char *buf, std::map<std::string, TailState> &s
   }
 }
 
-bool TailFile::recoverState(const std::shared_ptr<core::ProcessContext>& context) {
+bool TailFile::recoverState(core::ProcessContext* context) {
   std::map<std::string, TailState> new_tail_states;
   bool state_load_success = getStateFromStateManager(new_tail_states) ||
                             getStateFromLegacyStateFile(context, new_tail_states);
@@ -553,7 +553,7 @@ bool TailFile::getStateFromStateManager(std::map<std::string, TailState> &new_ta
   return false;
 }
 
-bool TailFile::getStateFromLegacyStateFile(const std::shared_ptr<core::ProcessContext>& context,
+bool TailFile::getStateFromLegacyStateFile(core::ProcessContext* context,
                                            std::map<std::string, TailState> &new_tail_states) const {
   std::string state_file_name_property;
   context->getProperty(StateFile.getName(), state_file_name_property);
@@ -716,7 +716,7 @@ bool TailFile::isOldFileInitiallyRead(TailState &state) const {
   return first_trigger_ && state.last_read_time_ == std::chrono::file_clock::time_point{};
 }
 
-void TailFile::processFile(const std::shared_ptr<core::ProcessSession> &session,
+void TailFile::processFile(core::ProcessSession *session,
                            const std::string &full_file_name,
                            TailState &state) {
   if (isOldFileInitiallyRead(state)) {
@@ -743,17 +743,17 @@ void TailFile::processFile(const std::shared_ptr<core::ProcessSession> &session,
   storeState();
 }
 
-void TailFile::processRotatedFilesAfterLastReadTime(const std::shared_ptr<core::ProcessSession> &session, TailState &state) {
+void TailFile::processRotatedFilesAfterLastReadTime(core::ProcessSession *session, TailState &state) {
   std::vector<TailState> rotated_file_states = findRotatedFilesAfterLastReadTime(state);
   processRotatedFiles(session, state, rotated_file_states);
 }
 
-void TailFile::processAllRotatedFiles(const std::shared_ptr<core::ProcessSession> &session, TailState &state) {
+void TailFile::processAllRotatedFiles(core::ProcessSession *session, TailState &state) {
   std::vector<TailState> rotated_file_states = findAllRotatedFiles(state);
   processRotatedFiles(session, state, rotated_file_states);
 }
 
-void TailFile::processRotatedFiles(const std::shared_ptr<core::ProcessSession> &session, TailState &state, std::vector<TailState> &rotated_file_states) {
+void TailFile::processRotatedFiles(core::ProcessSession *session, TailState &state, std::vector<TailState> &rotated_file_states) {
   for (TailState &file_state : rotated_file_states) {
     processSingleFile(session, file_state.fileNameWithPath(), file_state);
   }
@@ -761,7 +761,7 @@ void TailFile::processRotatedFiles(const std::shared_ptr<core::ProcessSession> &
   state.checksum_ = 0;
 }
 
-void TailFile::processSingleFile(const std::shared_ptr<core::ProcessSession> &session,
+void TailFile::processSingleFile(core::ProcessSession *session,
                                  const std::string &full_file_name,
                                  TailState &state) {
   std::string fileName = state.file_name_;

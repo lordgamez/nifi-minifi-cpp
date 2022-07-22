@@ -87,7 +87,7 @@ class PutS3Object : public S3Processor {
   ~PutS3Object() override = default;
 
   void initialize() override;
-  void onSchedule(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSessionFactory> &sessionFactory) override;
+  void onSchedule(core::ProcessContext *context, core::ProcessSessionFactory *sessionFactory) override;
   void onTrigger(core::ProcessContext *context, core::ProcessSession *session) override;
 
   class ReadCallback {
@@ -140,17 +140,17 @@ class PutS3Object : public S3Processor {
     : S3Processor(name, uuid, core::logging::LoggerFactory<PutS3Object>::getLogger(), std::move(s3_request_sender)) {
   }
 
-  void fillUserMetadata(const std::shared_ptr<core::ProcessContext> &context);
+  void fillUserMetadata(core::ProcessContext *context);
   std::string parseAccessControlList(const std::string &comma_separated_list) const;
-  bool setCannedAcl(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::FlowFile> &flow_file, aws::s3::PutObjectRequestParameters &put_s3_request_params) const;
-  bool setAccessControl(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::FlowFile> &flow_file, aws::s3::PutObjectRequestParameters &put_s3_request_params) const;
+  bool setCannedAcl(core::ProcessContext *context, const std::shared_ptr<core::FlowFile> &flow_file, aws::s3::PutObjectRequestParameters &put_s3_request_params) const;
+  bool setAccessControl(core::ProcessContext *context, const std::shared_ptr<core::FlowFile> &flow_file, aws::s3::PutObjectRequestParameters &put_s3_request_params) const;
   void setAttributes(
-    const std::shared_ptr<core::ProcessSession> &session,
+    core::ProcessSession *session,
     const std::shared_ptr<core::FlowFile> &flow_file,
     const aws::s3::PutObjectRequestParameters &put_s3_request_params,
     const minifi::aws::s3::PutObjectResult &put_object_result) const;
   std::optional<aws::s3::PutObjectRequestParameters> buildPutS3RequestParams(
-    const std::shared_ptr<core::ProcessContext> &context,
+    core::ProcessContext *context,
     const std::shared_ptr<core::FlowFile> &flow_file,
     const CommonProperties &common_properties) const;
 
