@@ -253,6 +253,7 @@ bool GetFile::fileMatchesRequestCriteria(std::string fullName, std::string name,
   return true;
 }
 
+
 void GetFile::performListing(const GetFileRequest &request) {
   auto callback = [this, request](const std::string& dir, const std::string& filename) -> bool {
     std::string fullpath = dir + utils::file::get_separator() + filename;

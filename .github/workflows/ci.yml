@@ -157,7 +157,7 @@ jobs:
           if [[ -n "${{ steps.files.outputs.all }}" ]]; then
             FILES="${{ steps.files.outputs.all }}"
           else
-            git fetch origin main && git co -b main origin/main || true
+            git fetch origin main && git checkout -b main origin/main || true
             FILES=$(git diff --name-only main ${{ github.sha }} --)
           fi
           # https://stackoverflow.com/questions/58466701/clang-tidy-cant-locate-stdlib-headers

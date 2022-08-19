@@ -58,6 +58,7 @@ Processor::Processor(const std::string& name)
   logger_->log_debug("Processor %s created UUID %s", name_, getUUIDStr());
 }
 
+
 Processor::Processor(const std::string& name, const utils::Identifier& uuid)
     : Connectable(name, uuid),
       logger_(logging::LoggerFactory<Processor>::getLogger()) {
