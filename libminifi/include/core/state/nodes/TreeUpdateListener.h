@@ -15,8 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef LIBMINIFI_INCLUDE_CORE_STATE_NODES_TREEUPDATELISTENER_H_
-#define LIBMINIFI_INCLUDE_CORE_STATE_NODES_TREEUPDATELISTENER_H_
+#pragma once
 
 #include <memory>
 #include <utility>
@@ -25,12 +24,7 @@
 #include "../nodes/MetricsBase.h"
 #include "core/state/UpdateController.h"
 
-namespace org {
-namespace apache {
-namespace nifi {
-namespace minifi {
-namespace state {
-namespace response {
+namespace org::apache::nifi::minifi::state::response {
 
 /**
  * Purpose: Class that will represent the metrics updates, which can be performed asynchronously.
@@ -72,11 +66,4 @@ class OperationWatcher : public utils::AfterExecute<Update> {
   std::atomic<bool> *running_;
 };
 
-}  // namespace response
-}  // namespace state
-}  // namespace minifi
-}  // namespace nifi
-}  // namespace apache
-}  // namespace org
-
-#endif  // LIBMINIFI_INCLUDE_CORE_STATE_NODES_TREEUPDATELISTENER_H_
+}  // namespace org::apache::nifi::minifi::state::response

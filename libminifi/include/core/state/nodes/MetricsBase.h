@@ -53,18 +53,7 @@ class ResponseNode : public core::Connectable, public PublishedMetricProvider {
 
   ~ResponseNode() override = default;
 
-  static std::vector<SerializedResponseNode> serializeAndMergeResponseNodes(const std::vector<gsl::not_null<std::shared_ptr<ResponseNode>>>& nodes) {
-    if (nodes.empty()) {
-      return {};
-    }
-
-    std::vector<SerializedResponseNode> result;
-    for (const auto& node: nodes) {
-      auto serialized = node->serialize();
-      result.insert(result.end(), serialized.begin(), serialized.end());
-    }
-    return result;
-  }
+  static std::vector<SerializedResponseNode> serializeAndMergeResponseNodes(const std::vector<gsl::not_null<std::shared_ptr<ResponseNode>>>& nodes);
 
   virtual std::vector<SerializedResponseNode> serialize() = 0;
 
@@ -128,23 +117,7 @@ class ObjectNode : public ResponseNode {
     return Connectable::getName();
   }
 
-  std::vector<SerializedResponseNode> serialize() override {
-    std::vector<SerializedResponseNode> serialized;
-    for (const auto& [name, nodes] : nodes_) {
-      if (nodes.empty()) {
-        continue;
-      }
-      SerializedResponseNode inner_node;
-      inner_node.name = nodes[0]->getName();
-      for (auto &embed : ResponseNode::serializeAndMergeResponseNodes(nodes)) {
-        if (!embed.empty() || embed.keep_empty) {
-          inner_node.children.push_back(std::move(embed));
-        }
-      }
-      serialized.push_back(std::move(inner_node));
-    }
-    return serialized;
-  }
+  std::vector<SerializedResponseNode> serialize() override;
 
   bool isEmpty() override {
     return nodes_.empty();

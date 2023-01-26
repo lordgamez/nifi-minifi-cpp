@@ -37,15 +37,15 @@ namespace org::apache::nifi::minifi::state::response {
 class RepositoryMetrics : public ResponseNode {
  public:
   RepositoryMetrics(std::string name, const utils::Identifier &uuid)
-      : ResponseNode(std::move(name), uuid) {
+    : ResponseNode(std::move(name), uuid) {
   }
 
   explicit RepositoryMetrics(std::string name)
-      : ResponseNode(std::move(name)) {
+    : ResponseNode(std::move(name)) {
   }
 
   RepositoryMetrics()
-      : ResponseNode("RepositoryMetrics") {
+    : ResponseNode("RepositoryMetrics") {
   }
 
   MINIFIAPI static constexpr const char* Description = "Metric node that defines repository metric information";
@@ -54,48 +54,10 @@ class RepositoryMetrics : public ResponseNode {
     return "RepositoryMetrics";
   }
 
-  void addRepository(const std::shared_ptr<core::Repository> &repo) {
-    if (nullptr != repo) {
-      repositories_.insert(std::make_pair(repo->getName(), repo));
-    }
-  }
+  void addRepository(const std::shared_ptr<core::Repository> &repo);
 
-  std::vector<SerializedResponseNode> serialize() override {
-    std::vector<SerializedResponseNode> serialized;
-    for (auto conn : repositories_) {
-      auto repo = conn.second;
-      SerializedResponseNode parent;
-      parent.name = repo->getName();
-      SerializedResponseNode datasize;
-      datasize.name = "running";
-      datasize.value = repo->isRunning();
-
-      SerializedResponseNode datasizemax;
-      datasizemax.name = "full";
-      datasizemax.value = repo->isFull();
-
-      SerializedResponseNode queuesize;
-      queuesize.name = "size";
-      queuesize.value = std::to_string(repo->getRepoSize());
-
-      parent.children.push_back(datasize);
-      parent.children.push_back(datasizemax);
-      parent.children.push_back(queuesize);
-
-      serialized.push_back(parent);
-    }
-    return serialized;
-  }
-
-  std::vector<PublishedMetric> calculateMetrics() override {
-    std::vector<PublishedMetric> metrics;
-    for (const auto& [_, repo] : repositories_) {
-      metrics.push_back({"is_running", (repo->isRunning() ? 1.0 : 0.0), {{"metric_class", getName()}, {"repository_name", repo->getName()}}});
-      metrics.push_back({"is_full", (repo->isFull() ? 1.0 : 0.0), {{"metric_class", getName()}, {"repository_name", repo->getName()}}});
-      metrics.push_back({"repository_size", static_cast<double>(repo->getRepoSize()), {{"metric_class", getName()}, {"repository_name", repo->getName()}}});
-    }
-    return metrics;
-  }
+  std::vector<SerializedResponseNode> serialize() override;
+  std::vector<PublishedMetric> calculateMetrics() override;
 
  protected:
   std::map<std::string, std::shared_ptr<core::Repository>> repositories_;
