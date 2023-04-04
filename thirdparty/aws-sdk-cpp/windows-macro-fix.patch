@@ -1,0 +1,49 @@
+diff --git a/crt/aws-crt-cpp/crt/aws-c-io/source/pki_utils.c b/crt/aws-crt-cpp/crt/aws-c-io/source/pki_utils.c
+index 7da9dc9..1ce4aed 100644
+--- a/crt/aws-crt-cpp/crt/aws-c-io/source/pki_utils.c
++++ b/crt/aws-crt-cpp/crt/aws-c-io/source/pki_utils.c
+@@ -14,7 +14,7 @@
+ #include <string.h>
+ 
+ enum PEM_PARSE_STATE {
+-    BEGIN,
++    BEGIN_DATA,
+     ON_DATA,
+ };
+ 
+@@ -37,7 +37,7 @@ static int s_convert_pem_to_raw_base64(
+     struct aws_allocator *allocator,
+     const struct aws_byte_cursor *pem,
+     struct aws_array_list *cert_chain_or_key) {
+-    enum PEM_PARSE_STATE state = BEGIN;
++	enum PEM_PARSE_STATE state = BEGIN_DATA;
+ 
+     struct aws_byte_buf current_cert;
+     const char *begin_header = "-----BEGIN";
+@@ -78,7 +78,7 @@ static int s_convert_pem_to_raw_base64(
+         }
+ 
+         switch (state) {
+-            case BEGIN:
++            case BEGIN_DATA:
+                 if (current_cur_ptr->len > begin_header_len &&
+                     !strncmp((const char *)current_cur_ptr->ptr, begin_header, begin_header_len)) {
+                     state = ON_DATA;
+@@ -107,7 +107,7 @@ static int s_convert_pem_to_raw_base64(
+                             aws_byte_buf_clean_up(&current_cert);
+                             goto end_of_loop;
+                         }
+-                        state = BEGIN;
++                        state = BEGIN_DATA;
+                         on_length_calc = true;
+                         current_cert_len = 0;
+                         ++i;
+@@ -128,7 +128,7 @@ static int s_convert_pem_to_raw_base64(
+ end_of_loop:
+     aws_array_list_clean_up(&split_buffers);
+ 
+-    if (state == BEGIN && aws_array_list_length(cert_chain_or_key) > 0) {
++    if (state == BEGIN_DATA && aws_array_list_length(cert_chain_or_key) > 0) {
+         return AWS_OP_SUCCESS;
+     }
+ 

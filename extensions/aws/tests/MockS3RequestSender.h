@@ -128,16 +128,14 @@ class MockS3RequestSender : public minifi::aws::s3::S3RequestSender {
     client_config_ = client_config;
 
     Aws::S3::Model::GetObjectResult get_s3_result;
-    if (!return_empty_result_) {
-      get_s3_result.SetVersionId(S3_VERSION_1);
-      get_s3_result.SetETag(S3_ETAG);
-      get_s3_result.SetExpiration(S3_EXPIRATION);
-      get_s3_result.SetServerSideEncryption(S3_SSEALGORITHM);
-      get_s3_result.SetContentType(S3_CONTENT_TYPE);
-      get_s3_result.ReplaceBody(new std::stringstream(S3_CONTENT));
-      get_s3_result.SetContentLength(S3_CONTENT.size());
-      get_s3_result.SetMetadata(S3_OBJECT_USER_METADATA);
-    }
+    get_s3_result.SetVersionId(S3_VERSION_1);
+    get_s3_result.SetETag(S3_ETAG);
+    get_s3_result.SetExpiration(S3_EXPIRATION);
+    get_s3_result.SetServerSideEncryption(S3_SSEALGORITHM);
+    get_s3_result.SetContentType(S3_CONTENT_TYPE);
+    get_s3_result.ReplaceBody(new std::stringstream(S3_CONTENT));
+    get_s3_result.SetContentLength(S3_CONTENT.size());
+    get_s3_result.SetMetadata(S3_OBJECT_USER_METADATA);
     return std::make_optional(std::move(get_s3_result));
   }
 

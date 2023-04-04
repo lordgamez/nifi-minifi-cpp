@@ -21,8 +21,7 @@ if (NOT (ENABLE_ALL OR ENABLE_AWS))
     return()
 endif()
 
-include(BundledAwsSdkCpp)
-use_bundled_libaws(${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR})
+include(AwsSdkCpp)
 
 include(${CMAKE_SOURCE_DIR}/extensions/ExtensionHeader.txt)
 include_directories(controllerservices processors s3 ${CMAKE_SOURCE_DIR}/extensions/aws)
@@ -34,8 +33,10 @@ add_library(minifi-aws SHARED ${SOURCES})
 target_link_libraries(minifi-aws PUBLIC ${LIBMINIFI} Threads::Threads)
 
 target_wholearchive_library_private(minifi-aws AWS::aws-cpp-sdk-s3)
-get_target_property(AWS_SDK_INCLUDE_DIRS AWS::aws-cpp-sdk-s3 INTERFACE_INCLUDE_DIRECTORIES)
-target_include_directories(minifi-aws INTERFACE ${AWS_SDK_INCLUDE_DIRS})
+
+target_include_directories(minifi-aws SYSTEM PUBLIC "${aws-sdk-cpp_SOURCE_DIR}/src/aws-cpp-sdk-core/include" "${aws-sdk-cpp_SOURCE_DIR}/generated/src/aws-cpp-sdk-s3/include" "${aws-sdk-cpp_SOURCE_DIR}/crt/aws-crt-cpp/include"
+    "${aws-sdk-cpp_SOURCE_DIR}/crt/aws-crt-cpp/crt/aws-c-common/include" "${aws-sdk-cpp_BINARY_DIR}/crt/aws-crt-cpp/crt/aws-c-common/generated/include" "${aws-sdk-cpp_SOURCE_DIR}/crt/aws-crt-cpp/crt/aws-c-io/include"
+    "${aws-sdk-cpp_SOURCE_DIR}/crt/aws-crt-cpp/crt/aws-c-mqtt/include" "${aws-sdk-cpp_SOURCE_DIR}/crt/aws-crt-cpp/crt/aws-c-auth/include" "${aws-sdk-cpp_SOURCE_DIR}/crt/aws-crt-cpp/crt/aws-c-sdkutils/include")
 if(WIN32)
     target_compile_definitions(minifi-aws INTERFACE "AWS_CORE_API=__declspec(dllimport)")
     target_compile_definitions(minifi-aws INTERFACE "AWS_S3_API=__declspec(dllimport)")
