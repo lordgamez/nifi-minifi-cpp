@@ -1775,7 +1775,7 @@ REGISTER_RESOURCE(TestAttributeProviderService, ControllerService);
 
 }  // namespace
 
-TEST_CASE("TailFile can use an AttributeProviderService", "[AttributeProviderService]") {
+TEST_CASE("TailFile can use an AttributeProviderService in Base Directory", "[AttributeProviderService]") {
   TestController testController;
   LogTestController::getInstance().setTrace<minifi::processors::TailFile>();
   LogTestController::getInstance().setDebug<core::ProcessSession>();
@@ -1806,6 +1806,54 @@ TEST_CASE("TailFile can use an AttributeProviderService", "[AttributeProviderSer
   CHECK(LogTestController::getInstance().contains("key:absolute.path value:" + (temp_directory / "my_red_apple_001" / "dog" / "0.log").string()));
   CHECK(LogTestController::getInstance().contains("key:absolute.path value:" + (temp_directory / "my_red_apple_001" / "dog" / "1.log").string()));
   CHECK(LogTestController::getInstance().contains("key:absolute.path value:" + (temp_directory / "my_yellow_banana_004" / "dolphin" / "0.log").string()));
+
+  CHECK(LogTestController::getInstance().contains("key:test.color value:red"));
+  CHECK(LogTestController::getInstance().contains("key:test.color value:yellow"));
+  CHECK(LogTestController::getInstance().contains("key:test.fruit value:apple"));
+  CHECK(LogTestController::getInstance().contains("key:test.fruit value:banana"));
+  CHECK(LogTestController::getInstance().contains("key:test.uid value:001"));
+  CHECK(LogTestController::getInstance().contains("key:test.uid value:004"));
+  CHECK(LogTestController::getInstance().contains("key:test.animal value:dog"));
+  CHECK(LogTestController::getInstance().contains("key:test.animal value:dolphin"));
+
+  CHECK_FALSE(LogTestController::getInstance().contains("key:test.fruit value:strawberry", 0s, 0ms));
+  CHECK_FALSE(LogTestController::getInstance().contains("key:test.uid value:002", 0s, 0ms));
+  CHECK_FALSE(LogTestController::getInstance().contains("key:test.uid value:003", 0s, 0ms));
+  CHECK_FALSE(LogTestController::getInstance().contains("key:test.animal value:elephant", 0s, 0ms));
+  CHECK_FALSE(LogTestController::getInstance().contains("key:test.animal value:horse", 0s, 0ms));
+
+  LogTestController::getInstance().reset();
+}
+
+TEST_CASE("TailFile can use an AttributeProviderService in File to Tail property", "[AttributeProviderService]") {
+  TestController testController;
+  LogTestController::getInstance().setTrace<minifi::processors::TailFile>();
+  LogTestController::getInstance().setDebug<core::ProcessSession>();
+  LogTestController::getInstance().setDebug<minifi::processors::LogAttribute>();
+
+  std::filesystem::path temp_directory{testController.createTempDirectory()};
+
+  std::shared_ptr<TestPlan> plan = testController.createPlan();
+  plan->addController("TestAttributeProviderService", "attribute_provider_service");
+  std::shared_ptr<core::Processor> tail_file = plan->addProcessor("TailFile", "tail_file");
+  plan->setProperty(tail_file, minifi::processors::TailFile::TailMode.getName(), "Multiple file");
+  plan->setProperty(tail_file, minifi::processors::TailFile::BaseDirectory.getName(), temp_directory.string());
+  plan->setProperty(tail_file, minifi::processors::TailFile::LookupFrequency.getName(), "0 sec");
+  plan->setProperty(tail_file, minifi::processors::TailFile::FileName.getName(), "${color}-${fruit}.*\\.log");
+  plan->setProperty(tail_file, minifi::processors::TailFile::AttributeProviderService.getName(), "attribute_provider_service");
+  std::shared_ptr<core::Processor> log_attribute = plan->addProcessor("LogAttribute", "log_attribute", core::Relationship("success", ""), true);
+  plan->setProperty(log_attribute, minifi::processors::LogAttribute::FlowFilesToLog.getName(), "0");
+
+  createTempFile(temp_directory, "red-strawberry-123f.log", "red strawberry\n");
+  createTempFile(temp_directory, "red-apple-45fd.log", "red apple\n");
+  createTempFile(temp_directory, "yellow-pineapple-42fd.log", "yellow pineapple\n");
+  createTempFile(temp_directory, "yellow-banana-9d2e.log", "yellow banana\n");
+
+  testController.runSession(plan);
+
+  CHECK(LogTestController::getInstance().contains("Logged 2 flow files"));
+  CHECK(LogTestController::getInstance().contains("key:absolute.path value:" + (temp_directory / "red-apple-45fd.log").string()));
+  CHECK(LogTestController::getInstance().contains("key:absolute.path value:" + (temp_directory / "yellow-banana-9d2e.log").string()));
 
   CHECK(LogTestController::getInstance().contains("key:test.color value:red"));
   CHECK(LogTestController::getInstance().contains("key:test.color value:yellow"));

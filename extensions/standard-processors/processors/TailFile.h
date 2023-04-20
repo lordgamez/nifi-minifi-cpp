@@ -186,10 +186,11 @@ class TailFile : public core::Processor {
   bool getStateFromStateManager(std::map<std::filesystem::path, TailState> &new_tail_states) const;
   bool getStateFromLegacyStateFile(const std::shared_ptr<core::ProcessContext>& context,
                                    std::map<std::filesystem::path, TailState> &new_tail_states) const;
-  void doMultifileLookup(core::ProcessContext& context);
-  void checkForRemovedFiles();
-  void checkForNewFiles(core::ProcessContext& context);
-  static std::string baseDirectoryFromAttributes(const controllers::AttributeProviderService::AttributeMap& attribute_map, core::ProcessContext& context);
+  std::string replaceAttributes(std::string input_str, const controllers::AttributeProviderService::AttributeMap& attribute_map);
+  void doMultifileLookup();
+  bool matchFilePattern(const std::string& filename, const std::optional<std::vector<controllers::AttributeProviderService::AttributeMap>>& attribute_maps);
+  void checkForRemovedFiles(const std::optional<std::vector<controllers::AttributeProviderService::AttributeMap>>& attribute_maps);
+  void checkForNewFiles(const std::optional<std::vector<controllers::AttributeProviderService::AttributeMap>>& attribute_maps);
   void updateFlowFileAttributes(const std::filesystem::path& full_file_name, const TailState &state, const std::filesystem::path& fileName,
                                 const std::string &baseName, const std::string &extension,
                                 std::shared_ptr<core::FlowFile> &flow_file) const;
@@ -204,6 +205,7 @@ class TailFile : public core::Processor {
   core::StateManager* state_manager_ = nullptr;
   std::map<std::filesystem::path, TailState> tail_states_;
   Mode tail_mode_ = Mode::UNDEFINED;
+  std::string file_name_str_;
   std::optional<utils::Regex> pattern_regex_;
   std::filesystem::path base_dir_;
   bool recursive_lookup_ = false;

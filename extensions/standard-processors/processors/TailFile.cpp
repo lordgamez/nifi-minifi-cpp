@@ -86,7 +86,6 @@ const core::Property TailFile::BaseDirectory(
         ->withDescription("Base directory used to look for files to tail. This property is required when using Multiple file mode. "
                           "Can contain expression language placeholders if Attribute Provider Service is set.")
         ->isRequired(false)
-        ->supportsExpressionLanguage(true)
         ->build());
 
 const core::Property TailFile::RecursiveLookup(
@@ -349,17 +348,18 @@ void TailFile::onSchedule(const std::shared_ptr<core::ProcessContext> &context, 
     delimiter_ = parseDelimiter(value);
   }
 
-  std::string file_name_str;
-  context->getProperty(FileName.getName(), file_name_str);
+  context->getProperty(FileName.getName(), file_name_str_);
 
   std::string mode;
   context->getProperty(TailMode.getName(), mode);
 
   if (mode == "Multiple file") {
     tail_mode_ = Mode::MULTIPLE;
-    pattern_regex_ = utils::Regex(file_name_str);
-
     parseAttributeProviderServiceProperty(*context);
+
+    if (!attribute_provider_service_) {
+      pattern_regex_ = utils::Regex(file_name_str_);
+    }
 
     if (auto base_dir = context->getProperty(BaseDirectory); !base_dir) {
       throw minifi::Exception(ExceptionType::PROCESSOR_EXCEPTION, "Base directory is required for multiple tail mode.");
@@ -384,11 +384,11 @@ void TailFile::onSchedule(const std::shared_ptr<core::ProcessContext> &context, 
 
     recoverState(context);
 
-    doMultifileLookup(*context);
+    doMultifileLookup();
 
   } else {
     tail_mode_ = Mode::SINGLE;
-    auto file_to_tail = std::filesystem::path(file_name_str);
+    auto file_to_tail = std::filesystem::path(file_name_str_);
 
     if (file_to_tail.has_filename() && file_to_tail.has_parent_path()) {
       // NOTE: position and checksum will be updated in recoverState() if there is a persisted state for this file
@@ -704,7 +704,7 @@ void TailFile::onTrigger(const std::shared_ptr<core::ProcessContext>& context, c
   if (tail_mode_ == Mode::MULTIPLE) {
     if (last_multifile_lookup_ + lookup_frequency_ < std::chrono::steady_clock::now()) {
       logger_->log_debug("Lookup frequency %" PRId64 " ms have elapsed, doing new multifile lookup", int64_t{lookup_frequency_.count()});
-      doMultifileLookup(*context);
+      doMultifileLookup();
     } else {
       logger_->log_trace("Skipping multifile lookup");
     }
@@ -840,12 +840,12 @@ void TailFile::updateFlowFileAttributes(const std::filesystem::path& full_file_n
   flow_file->setAttribute(textfragmentutils::POST_NAME_ATTRIBUTE, extension);
   flow_file->setAttribute(textfragmentutils::OFFSET_ATTRIBUTE, std::to_string(state.position_));
 
-  if (extra_attributes_.contains(state.path_.string())) {
+  if (extra_attributes_.contains(full_file_name.string())) {
     std::string prefix;
     if (attribute_provider_service_) {
       prefix = std::string(attribute_provider_service_->name()) + ".";
     }
-    for (const auto& [key, value] : extra_attributes_.at(state.path_.string())) {
+    for (const auto& [key, value] : extra_attributes_.at(full_file_name.string())) {
       flow_file->setAttribute(prefix + key, value);
     }
   }
@@ -857,64 +857,94 @@ void TailFile::updateStateAttributes(TailState &state, uint64_t size, uint64_t c
   state.checksum_ = checksum;
 }
 
-void TailFile::doMultifileLookup(core::ProcessContext& context) {
-  checkForRemovedFiles();
-  checkForNewFiles(context);
+void TailFile::doMultifileLookup() {
+  std::optional<std::vector<controllers::AttributeProviderService::AttributeMap>> attribute_maps;
+  if (attribute_provider_service_) {
+    attribute_maps = attribute_provider_service_->getAttributes();
+    if (!attribute_maps) {
+      logger_->log_error("Could not get attributes from the Attribute Provider Service");
+      return;
+    }
+  }
+
+  checkForRemovedFiles(attribute_maps);
+  checkForNewFiles(attribute_maps);
   last_multifile_lookup_ = std::chrono::steady_clock::now();
 }
 
-void TailFile::checkForRemovedFiles() {
-  gsl_Expects(pattern_regex_);
+std::string TailFile::replaceAttributes(std::string input_str, const controllers::AttributeProviderService::AttributeMap& attribute_map) {
+  for (auto it = attribute_map.begin(); input_str.find("${") != std::string::npos && it != attribute_map.end(); ++it) {
+    std::string attribute_key = "${" + it->first + "}";
+    if (input_str.find(attribute_key) == std::string::npos) {
+      continue;
+    }
+    utils::StringUtils::replaceAll(input_str, attribute_key, it->second);
+  }
+  return input_str;
+}
+
+bool TailFile::matchFilePattern(const std::string& filename, const std::optional<std::vector<controllers::AttributeProviderService::AttributeMap>>& attribute_maps) {
+  if (!attribute_maps) {
+    gsl_Expects(pattern_regex_);
+    return utils::regexMatch(filename, *pattern_regex_);
+  }
+
+  for (const auto& attribute_map : *attribute_maps) {
+    auto file_to_tail = replaceAttributes(file_name_str_, attribute_map);
+    utils::Regex regex(file_to_tail);
+    if (utils::regexMatch(filename, regex)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+void TailFile::checkForRemovedFiles(const std::optional<std::vector<controllers::AttributeProviderService::AttributeMap>>& attribute_maps) {
   std::vector<std::filesystem::path> file_names_to_remove;
 
   for (const auto &kv : tail_states_) {
     const auto& full_file_name = kv.first;
     const TailState &state = kv.second;
     if (utils::file::file_size(state.fileNameWithPath()) == 0U ||
-        !utils::regexMatch(state.file_name_.string(), *pattern_regex_)) {
+        !matchFilePattern(state.file_name_.string(), attribute_maps)) {
       file_names_to_remove.push_back(full_file_name);
     }
   }
 
   for (const auto &full_file_name : file_names_to_remove) {
     tail_states_.erase(full_file_name);
+    extra_attributes_.erase(full_file_name);
   }
 }
 
-void TailFile::checkForNewFiles(core::ProcessContext& context) {
-  gsl_Expects(pattern_regex_);
-  auto add_new_files_callback = [&](const std::filesystem::path& path, const std::filesystem::path& file_name) -> bool {
-    auto full_file_name = path / file_name;
-    if (!containsKey(tail_states_, full_file_name) && utils::regexMatch(file_name.string(), *pattern_regex_)) {
-      tail_states_.emplace(full_file_name, TailState{path, file_name});
-    }
-    return true;
-  };
-
+void TailFile::checkForNewFiles(const std::optional<std::vector<controllers::AttributeProviderService::AttributeMap>>& attribute_maps) {
   if (!attribute_provider_service_) {
+    gsl_Expects(pattern_regex_);
+    auto add_new_files_callback = [&](const std::filesystem::path& path, const std::filesystem::path& file_name) -> bool {
+      auto full_file_name = path / file_name;
+      if (!containsKey(tail_states_, full_file_name) && utils::regexMatch(file_name.string(), *pattern_regex_)) {
+        tail_states_.emplace(full_file_name, TailState{path, file_name});
+      }
+      return true;
+    };
     utils::file::list_dir(base_dir_, add_new_files_callback, logger_, recursive_lookup_);
     return;
   }
 
-  const auto attribute_maps = attribute_provider_service_->getAttributes();
-  if (!attribute_maps) {
-    logger_->log_error("Could not get attributes from the Attribute Provider Service");
-    return;
-  }
-
   for (const auto& attribute_map : *attribute_maps) {
-    std::string base_dir = baseDirectoryFromAttributes(attribute_map, context);
-    extra_attributes_[base_dir] = attribute_map;
+    std::string base_dir = replaceAttributes(base_dir_, attribute_map);
+    auto add_new_files_callback = [&](const std::filesystem::path& path, const std::filesystem::path& file_name) -> bool {
+      auto full_file_name = path / file_name;
+      auto file_to_tail = replaceAttributes(file_name_str_, attribute_map);
+      utils::Regex regex(file_to_tail);
+      if (!containsKey(tail_states_, full_file_name) && utils::regexMatch(file_name.string(), regex)) {
+        tail_states_.emplace(full_file_name, TailState{path, file_name});
+        extra_attributes_.emplace(full_file_name, attribute_map);
+      }
+      return true;
+    };
     utils::file::list_dir(base_dir, add_new_files_callback, logger_, recursive_lookup_);
   }
-}
-
-std::string TailFile::baseDirectoryFromAttributes(const controllers::AttributeProviderService::AttributeMap& attribute_map, core::ProcessContext& context) {
-  auto flow_file = std::make_shared<FlowFileRecord>();
-  for (const auto& [key, value] : attribute_map) {
-    flow_file->setAttribute(key, value);
-  }
-  return context.getProperty(BaseDirectory, flow_file).value();
 }
 
 std::chrono::milliseconds TailFile::getLookupFrequency() const {
