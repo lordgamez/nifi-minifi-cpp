@@ -174,15 +174,15 @@ uint64_t readOptionalUint64(const Container &container, const Key &key) {
 }
 
 // the delimiter is the first character of the input, allowing some escape sequences
-std::string parseDelimiter(const std::string &input) {
-  if (input.empty()) return "";
-  if (input[0] != '\\') return std::string{ input[0] };
-  if (input.size() == std::size_t{1}) return "\\";
+std::optional<char> parseDelimiter(const std::string &input) {
+  if (input.empty()) return std::nullopt;
+  if (input[0] != '\\') return input[0];
+  if (input.size() == std::size_t{1}) return '\\';
   switch (input[1]) {
-    case 'r': return "\r";
-    case 't': return "\t";
-    case 'n': return "\n";
-    default: return std::string{ input[1] };
+    case 'r': return '\r';
+    case 't': return '\t';
+    case 'n': return '\n';
+    default: return input[1];
   }
 }
 
@@ -531,15 +531,16 @@ bool TailFile::getStateFromStateManager(std::map<std::filesystem::path, TailStat
   std::unordered_map<std::string, std::string> state_map;
   if (state_manager_->get(state_map)) {
     for (size_t i = 0U;; ++i) {
-      if (state_map.find("file." + std::to_string(i) + ".name") == state_map.end()) {
+      std::string state_prefix = "file." + std::to_string(i);
+      if (state_map.find(state_prefix + ".name") == state_map.end()) {
         break;
       }
       try {
-        const std::string& current = state_map.at("file." + std::to_string(i) + ".current");
-        uint64_t position = std::stoull(state_map.at("file." + std::to_string(i) + ".position"));
-        uint64_t checksum = readOptionalUint64(state_map, "file." + std::to_string(i) + ".checksum");
+        const std::string& current = state_map.at(state_prefix + ".current");
+        uint64_t position = std::stoull(state_map.at(state_prefix + ".position"));
+        uint64_t checksum = readOptionalUint64(state_map, state_prefix + ".checksum");
         std::chrono::file_clock::time_point last_read_time{std::chrono::milliseconds{
-            readOptionalInt64(state_map, "file." + std::to_string(i) + ".last_read_time")
+            readOptionalInt64(state_map, state_prefix + ".last_read_time")
         }};
 
         std::filesystem::path file_path = current;
@@ -605,11 +606,12 @@ bool TailFile::storeState() {
   std::unordered_map<std::string, std::string> state;
   size_t i = 0;
   for (const auto& tail_state : tail_states_) {
-    state["file." + std::to_string(i) + ".current"] = tail_state.first.string();
-    state["file." + std::to_string(i) + ".name"] = tail_state.second.file_name_.string();
-    state["file." + std::to_string(i) + ".position"] = std::to_string(tail_state.second.position_);
-    state["file." + std::to_string(i) + ".checksum"] = std::to_string(tail_state.second.checksum_);
-    state["file." + std::to_string(i) + ".last_read_time"] = std::to_string(tail_state.second.lastReadTimeInMilliseconds());
+    std::string state_prefix = "file." + std::to_string(i);
+    state[state_prefix + ".current"] = tail_state.first.string();
+    state[state_prefix + ".name"] = tail_state.second.file_name_.string();
+    state[state_prefix + ".position"] = std::to_string(tail_state.second.position_);
+    state[state_prefix + ".checksum"] = std::to_string(tail_state.second.checksum_);
+    state[state_prefix + ".last_read_time"] = std::to_string(tail_state.second.lastReadTimeInMilliseconds());
     ++i;
   }
   if (!state_manager_->set(state)) {
@@ -788,12 +790,11 @@ void TailFile::processSingleFile(const std::shared_ptr<core::ProcessSession> &se
   if (extension.starts_with('.'))
     extension.erase(extension.begin());
 
-  if (!delimiter_.empty()) {
-    char delim = delimiter_[0];
-    logger_->log_trace("Looking for delimiter 0x%X", delim);
+  if (delimiter_) {
+    logger_->log_trace("Looking for delimiter 0x%X", *delimiter_);
 
     std::size_t num_flow_files = 0;
-    FileReaderCallback file_reader{full_file_name, state.position_, delim, state.checksum_};
+    FileReaderCallback file_reader{full_file_name, state.position_, *delimiter_, state.checksum_};
     TailState state_copy{state};
 
     while (file_reader.hasMoreToRead() && (!batch_size_ || *batch_size_ > num_flow_files)) {
@@ -840,11 +841,8 @@ void TailFile::updateFlowFileAttributes(const std::filesystem::path& full_file_n
   flow_file->setAttribute(textfragmentutils::POST_NAME_ATTRIBUTE, extension);
   flow_file->setAttribute(textfragmentutils::OFFSET_ATTRIBUTE, std::to_string(state.position_));
 
-  if (extra_attributes_.contains(state.path_.string())) {
-    std::string prefix;
-    if (attribute_provider_service_) {
-      prefix = std::string(attribute_provider_service_->name()) + ".";
-    }
+  if (attribute_provider_service_ && extra_attributes_.contains(state.path_.string())) {
+    auto prefix = std::string(attribute_provider_service_->name()) + ".";
     for (const auto& [key, value] : extra_attributes_.at(state.path_.string())) {
       flow_file->setAttribute(prefix + key, value);
     }
@@ -865,19 +863,14 @@ void TailFile::doMultifileLookup(core::ProcessContext& context) {
 
 void TailFile::checkForRemovedFiles() {
   gsl_Expects(pattern_regex_);
-  std::vector<std::filesystem::path> file_names_to_remove;
 
-  for (const auto &kv : tail_states_) {
-    const auto& full_file_name = kv.first;
-    const TailState &state = kv.second;
-    if (utils::file::file_size(state.fileNameWithPath()) == 0U ||
-        !utils::regexMatch(state.file_name_.string(), *pattern_regex_)) {
-      file_names_to_remove.push_back(full_file_name);
+  for (auto it = tail_states_.begin(); it != tail_states_.end();) {
+    const TailState &state = it->second;
+    if (!utils::file::exists(state.fileNameWithPath())) {
+      tail_states_.erase(it++);
+    } else {
+      ++it;
     }
-  }
-
-  for (const auto &full_file_name : file_names_to_remove) {
-    tail_states_.erase(full_file_name);
   }
 }
 
