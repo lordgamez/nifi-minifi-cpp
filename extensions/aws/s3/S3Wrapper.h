@@ -41,6 +41,7 @@
 #include "utils/ListingStateManager.h"
 #include "utils/gsl.h"
 #include "S3RequestSender.h"
+#include "Exception.h"
 
 namespace org::apache::nifi::minifi::aws::s3 {
 
@@ -195,12 +196,21 @@ struct ListedObjectAttributes : public minifi::utils::ListedObject {
 using HeadObjectRequestParameters = GetObjectRequestParameters;
 using GetObjectTagsParameters = DeleteObjectRequestParameters;
 
+class StreamReadException : public Exception {
+ public:
+  StreamReadException(const std::string& error) : Exception(GENERAL_EXCEPTION, error) {}
+};
+
 class S3Wrapper {
  public:
+  static constexpr uint64_t MAX_SIZE = 5_GiB;
+  static constexpr uint64_t BUFFER_SIZE = 4_KiB;
+
   S3Wrapper();
   explicit S3Wrapper(std::unique_ptr<S3RequestSender>&& request_sender);
 
-  std::optional<PutObjectResult> putObject(const PutObjectRequestParameters& put_object_params, const std::shared_ptr<Aws::IOStream>& data_stream);
+  std::optional<PutObjectResult> putObject(const PutObjectRequestParameters& put_object_params, const std::shared_ptr<io::InputStream>& stream, uint64_t flow_size);
+  std::optional<PutObjectResult> putObjectMultipart(const PutObjectRequestParameters& put_object_params, const std::shared_ptr<io::InputStream>& stream, uint64_t flow_size, uint64_t multipart_size);
   bool deleteObject(const DeleteObjectRequestParameters& params);
   std::optional<GetObjectResult> getObject(const GetObjectRequestParameters& get_object_params, io::OutputStream& out_body);
   std::optional<std::vector<ListedObjectAttributes>> listBucket(const ListRequestParameters& params);
@@ -220,6 +230,7 @@ class S3Wrapper {
   std::optional<std::vector<ListedObjectAttributes>> listObjects(const ListRequestParameters& params);
   void addListResults(const Aws::Vector<Aws::S3::Model::ObjectVersion>& content, uint64_t min_object_age, std::vector<ListedObjectAttributes>& listed_objects);
   void addListResults(const Aws::Vector<Aws::S3::Model::Object>& content, uint64_t min_object_age, std::vector<ListedObjectAttributes>& listed_objects);
+  std::shared_ptr<Aws::StringStream> readFlowFileStream(const std::shared_ptr<io::InputStream>& stream, uint64_t read_limit, uint64_t& read_size_out);
 
   template<typename ListRequest>
   ListRequest createListRequest(const ListRequestParameters& params);

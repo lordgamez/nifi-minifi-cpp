@@ -29,6 +29,7 @@
 #include "core/ProcessContext.h"
 #include "core/ProcessSession.h"
 #include "core/Resource.h"
+#include "utils/ProcessorConfigUtils.h"
 
 namespace org::apache::nifi::minifi::aws::processors {
 
@@ -76,6 +77,11 @@ void PutS3Object::onSchedule(const std::shared_ptr<core::ProcessContext> &contex
   if (auto use_path_style_access = context->getProperty<bool>(UsePathStyleAccess)) {
     use_virtual_addressing_ = !*use_path_style_access;
   }
+
+  context->getProperty(MultipartThreshold.getName(), multipart_threshold_);
+  logger_->log_debug("PutS3Object: Multipart Threshold %" PRIu64, multipart_threshold_);
+  context->getProperty(MultipartPartSize.getName(), multipart_size_);
+  logger_->log_debug("PutS3Object: Multipart Size %" PRIu64, multipart_size_);
 
   fillUserMetadata(context);
 }
@@ -207,7 +213,7 @@ void PutS3Object::onTrigger(const std::shared_ptr<core::ProcessContext> &context
     return;
   }
 
-  PutS3Object::ReadCallback callback(flow_file->getSize(), *put_s3_request_params, s3_wrapper_);
+  PutS3Object::ReadCallback callback(flow_file->getSize(), *put_s3_request_params, s3_wrapper_, multipart_threshold_, multipart_size_, *logger_);
   session->read(flow_file, std::ref(callback));
   if (!callback.result_.has_value()) {
     logger_->log_error("Failed to upload S3 object to bucket '%s'", put_s3_request_params->bucket);

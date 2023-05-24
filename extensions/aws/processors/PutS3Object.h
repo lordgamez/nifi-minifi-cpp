@@ -59,6 +59,10 @@ class PutS3Object : public S3Processor {
   static const core::Property WriteACLUserList;
   static const core::Property CannedACL;
   static const core::Property UsePathStyleAccess;
+  static const core::Property MultipartThreshold;
+  static const core::Property MultipartPartSize;
+  static const core::Property MultipartUploadAgeOffInterval;
+  static const core::Property MultipartUploadMaxAgeThreshold;
   static auto properties() {
     return minifi::utils::array_cat(S3Processor::properties(), std::array{
       ObjectKey,
@@ -70,7 +74,11 @@ class PutS3Object : public S3Processor {
       ReadACLUserList,
       WriteACLUserList,
       CannedACL,
-      UsePathStyleAccess
+      UsePathStyleAccess,
+      MultipartThreshold,
+      MultipartPartSize,
+      MultipartUploadAgeOffInterval,
+      MultipartUploadMaxAgeThreshold
     });
   }
 
@@ -97,45 +105,39 @@ class PutS3Object : public S3Processor {
 
   class ReadCallback {
    public:
-    static constexpr uint64_t MAX_SIZE = 5_GiB;
-    static constexpr uint64_t BUFFER_SIZE = 4_KiB;
-
-    ReadCallback(uint64_t flow_size, const minifi::aws::s3::PutObjectRequestParameters& options, aws::s3::S3Wrapper& s3_wrapper)
-      : flow_size_(flow_size)
-      , options_(options)
-      , s3_wrapper_(s3_wrapper) {
+    ReadCallback(uint64_t flow_size, const minifi::aws::s3::PutObjectRequestParameters& options, aws::s3::S3Wrapper& s3_wrapper,
+          uint64_t multipart_threshold, uint64_t multipart_size, core::logging::Logger& logger)
+      : flow_size_(flow_size),
+        options_(options),
+        s3_wrapper_(s3_wrapper),
+        multipart_threshold_(multipart_threshold),
+        multipart_size_(multipart_size),
+        logger_(logger) {
     }
 
     int64_t operator()(const std::shared_ptr<io::InputStream>& stream) {
-      if (flow_size_ > MAX_SIZE) {
+      try {
+        if (flow_size_ <= multipart_threshold_) {
+          result_ = s3_wrapper_.putObject(options_, stream, flow_size_);
+          return gsl::narrow<int64_t>(flow_size_);
+        } else {
+          result_ = s3_wrapper_.putObjectMultipart(options_, stream, flow_size_, multipart_size_);
+          return gsl::narrow<int64_t>(flow_size_);
+        }
+      } catch(const aws::s3::StreamReadException& ex) {
+        logger_.log_error("Error occurred while uploading to S3: %s", ex.what());
         return -1;
       }
-      std::vector<std::byte> buffer;
-      buffer.resize(BUFFER_SIZE);
-      auto data_stream = std::make_shared<std::stringstream>();
-      read_size_ = 0;
-      while (read_size_ < flow_size_) {
-        const auto next_read_size = (std::min)(flow_size_ - read_size_, BUFFER_SIZE);
-        const auto read_ret = stream->read(gsl::make_span(buffer).subspan(0, next_read_size));
-        if (io::isError(read_ret)) {
-          return -1;
-        }
-        if (read_ret > 0) {
-          data_stream->write(reinterpret_cast<char*>(buffer.data()), gsl::narrow<std::streamsize>(next_read_size));
-          read_size_ += read_ret;
-        } else {
-          break;
-        }
-      }
-      result_ = s3_wrapper_.putObject(options_, data_stream);
-      return gsl::narrow<int64_t>(read_size_);
     }
 
     uint64_t flow_size_;
     const minifi::aws::s3::PutObjectRequestParameters& options_;
     aws::s3::S3Wrapper& s3_wrapper_;
+    uint64_t multipart_threshold_;
+    uint64_t multipart_size_;
     uint64_t read_size_ = 0;
     std::optional<minifi::aws::s3::PutObjectResult> result_;
+    core::logging::Logger& logger_;
   };
 
  private:
@@ -164,6 +166,8 @@ class PutS3Object : public S3Processor {
   std::string storage_class_;
   std::string server_side_encryption_;
   bool use_virtual_addressing_ = true;
+  uint64_t multipart_threshold_{};
+  uint64_t multipart_size_{};
 };
 
 }  // namespace org::apache::nifi::minifi::aws::processors

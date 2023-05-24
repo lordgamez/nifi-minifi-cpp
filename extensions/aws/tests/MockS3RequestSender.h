@@ -244,6 +244,45 @@ class MockS3RequestSender : public minifi::aws::s3::S3RequestSender {
     return std::make_optional(std::move(head_s3_result));
   }
 
+  std::optional<Aws::S3::Model::CreateMultipartUploadResult> sendCreateMultipartUploadRequest(
+      const Aws::S3::Model::CreateMultipartUploadRequest& request,
+      const Aws::Auth::AWSCredentials& credentials,
+      const Aws::Client::ClientConfiguration& client_config,
+      bool use_virtual_addressing) override {
+    create_multipart_upload_request = request;
+    credentials_ = credentials;
+    client_config_ = client_config;
+    use_virtual_addressing_ = use_virtual_addressing;
+    Aws::S3::Model::CreateMultipartUploadResult result;
+    return std::make_optional(std::move(result));
+  }
+
+  std::optional<Aws::S3::Model::UploadPartResult> sendUploadPartRequest(
+      const Aws::S3::Model::UploadPartRequest& request,
+      const Aws::Auth::AWSCredentials& credentials,
+      const Aws::Client::ClientConfiguration& client_config,
+      bool use_virtual_addressing) override {
+    upload_part_requests.push_back(request);
+    credentials_ = credentials;
+    client_config_ = client_config;
+    use_virtual_addressing_ = use_virtual_addressing;
+    Aws::S3::Model::UploadPartResult result;
+    return std::make_optional(std::move(result));
+  }
+
+  std::optional<Aws::S3::Model::CompleteMultipartUploadResult> sendCompleteMultipartUploadRequest(
+      const Aws::S3::Model::CompleteMultipartUploadRequest& request,
+      const Aws::Auth::AWSCredentials& credentials,
+      const Aws::Client::ClientConfiguration& client_config,
+      bool use_virtual_addressing) override {
+    complete_multipart_upload_request = request;
+    credentials_ = credentials;
+    client_config_ = client_config;
+    use_virtual_addressing_ = use_virtual_addressing;
+    Aws::S3::Model::CompleteMultipartUploadResult result;
+    return std::make_optional(std::move(result));
+  }
+
   Aws::Auth::AWSCredentials getCredentials() const {
     return credentials_;
   }
@@ -288,6 +327,9 @@ class MockS3RequestSender : public minifi::aws::s3::S3RequestSender {
   Aws::S3::Model::ListObjectVersionsRequest list_version_request;
   Aws::S3::Model::GetObjectTaggingRequest get_object_tagging_request;
   Aws::S3::Model::HeadObjectRequest head_object_request;
+  Aws::S3::Model::CreateMultipartUploadRequest create_multipart_upload_request;
+  std::vector<Aws::S3::Model::UploadPartRequest> upload_part_requests;
+  Aws::S3::Model::CompleteMultipartUploadRequest complete_multipart_upload_request;
 
  private:
   std::vector<Aws::S3::Model::ObjectVersion> listed_versions_;

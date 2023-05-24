@@ -227,4 +227,12 @@ TEST_CASE_METHOD(PutS3ObjectTestsFixture, "Test path style access property", "[a
   REQUIRE(!mock_s3_request_sender_ptr->getUseVirtualAddressing());
 }
 
+// TEST_CASE_METHOD(PutS3ObjectTestsFixture, "Test invalid multipart upload properties", "[awsS3MultipartUpload]") {
+//   setRequiredProperties();
+//   SECTION("Invalid Multipart Threshold") {
+//     plan->setProperty(s3_processor, "Multipart Threshold", "invalid");
+//   }
+//   REQUIRE_THROWS_AS(test_controller.runSession(plan, true), minifi::Exception);
+// }
+
 }  // namespace
