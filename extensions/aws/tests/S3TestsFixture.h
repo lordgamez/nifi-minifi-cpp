@@ -136,7 +136,7 @@ class FlowProcessorS3TestsFixture : public S3TestsFixture<T> {
     input_file_stream.close();
     auto get_file = this->plan->addProcessor("GetFile", "GetFile");
     this->plan->setProperty(get_file, minifi::processors::GetFile::Directory.getName(), input_dir.string());
-    this->plan->setProperty(get_file, minifi::processors::GetFile::KeepSourceFile.getName(), "false");
+    this->plan->setProperty(get_file, minifi::processors::GetFile::KeepSourceFile.getName(), "true");
     update_attribute = this->plan->addProcessor(
       "UpdateAttribute",
       "UpdateAttribute",
@@ -153,6 +153,7 @@ class FlowProcessorS3TestsFixture : public S3TestsFixture<T> {
       core::Relationship("success", "d"),
       true);
     this->plan->setProperty(log_attribute, minifi::processors::LogAttribute::FlowFilesToLog.getName(), "0");
+    log_attribute->setAutoTerminatedRelationships(std::array{core::Relationship("success", "d")});
   }
 
   void setAccesKeyCredentialsInProcessor() override {
