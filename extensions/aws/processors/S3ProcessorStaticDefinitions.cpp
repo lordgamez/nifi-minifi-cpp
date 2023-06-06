@@ -300,6 +300,11 @@ const core::Property PutS3Object::MultipartUploadMaxAgeThreshold(
       ->withDefaultValue<core::TimePeriodValue>("7 days")
       ->isRequired(true)
       ->build());
+const core::Property PutS3Object::TemporaryDirectoryMultipartState(
+    core::PropertyBuilder::createProperty("Temporary Directory Multipart State")
+      ->withDescription("Directory in which, for multipart uploads, the processor will locally save the state tracking the upload ID and parts uploaded which must both be provided to complete "
+                        "the upload. If left empty, a temporary directory will be created.")
+      ->build());
 
 const core::Relationship PutS3Object::Success("success", "FlowFiles are routed to success relationship");
 const core::Relationship PutS3Object::Failure("failure", "FlowFiles are routed to failure relationship");

@@ -68,6 +68,7 @@ class PutS3Object : public S3Processor {
   static const core::Property MultipartPartSize;
   static const core::Property MultipartUploadAgeOffInterval;
   static const core::Property MultipartUploadMaxAgeThreshold;
+  static const core::Property TemporaryDirectoryMultipartState;
   static auto properties() {
     return minifi::utils::array_cat(S3Processor::properties(), std::array{
       ObjectKey,
@@ -83,7 +84,8 @@ class PutS3Object : public S3Processor {
       MultipartThreshold,
       MultipartPartSize,
       MultipartUploadAgeOffInterval,
-      MultipartUploadMaxAgeThreshold
+      MultipartUploadMaxAgeThreshold,
+      TemporaryDirectoryMultipartState
     });
   }
 
