@@ -162,20 +162,11 @@ void PutTCP::onSchedule(core::ProcessContext* const context, core::ProcessSessio
 }
 
 namespace {
-template<class SocketType>
-asio::awaitable<std::tuple<std::error_code>> handshake(SocketType&, asio::steady_timer::duration) {
-  co_return std::error_code();
-}
-
-template<>
-asio::awaitable<std::tuple<std::error_code>> handshake(SslSocket& socket, asio::steady_timer::duration timeout_duration) {
-  co_return co_await asyncOperationWithTimeout(socket.async_handshake(HandshakeType::client, use_nothrow_awaitable), timeout_duration);  // NOLINT
-}
 
 template<class SocketType>
 class ConnectionHandler : public ConnectionHandlerBase {
  public:
-  ConnectionHandler(detail::ConnectionId connection_id,
+  ConnectionHandler(utils::net::ConnectionId connection_id,
                     std::chrono::milliseconds timeout,
                     std::shared_ptr<core::logging::Logger> logger,
                     std::optional<size_t> max_size_of_socket_send_buffer,
@@ -212,11 +203,11 @@ class ConnectionHandler : public ConnectionHandlerBase {
 
   SocketType createNewSocket(asio::io_context& io_context_);
 
-  detail::ConnectionId connection_id_;
+  utils::net::ConnectionId connection_id_;
   std::optional<SocketType> socket_;
 
   std::optional<steady_clock::time_point> last_used_;
-  std::chrono::milliseconds timeout_duration_;
+  asio::steady_timer::duration timeout_duration_;
 
   std::shared_ptr<core::logging::Logger> logger_;
   std::optional<size_t> max_size_of_socket_send_buffer_;
@@ -247,7 +238,7 @@ asio::awaitable<std::error_code> ConnectionHandler<SocketType>::establishNewConn
       last_error = connection_error;
       continue;
     }
-    auto [handshake_error] = co_await handshake(socket, timeout_duration_);
+    auto [handshake_error] = co_await utils::net::handshake(socket, timeout_duration_);
     if (handshake_error) {
       core::logging::LOG_DEBUG(logger_) << "Handshake with " << endpoint.endpoint() << " failed due to " << handshake_error.message();
       last_error = handshake_error;
@@ -266,7 +257,8 @@ template<class SocketType>
   if (hasUsableSocket())
     co_return std::error_code();
   tcp::resolver resolver(io_context);
-  auto [resolve_error, resolve_result] = co_await asyncOperationWithTimeout(resolver.async_resolve(connection_id_.getHostname(), connection_id_.getPort(), use_nothrow_awaitable), timeout_duration_);
+  auto [resolve_error, resolve_result] = co_await asyncOperationWithTimeout(
+      resolver.async_resolve(connection_id_.getHostname(), connection_id_.getService(), use_nothrow_awaitable), timeout_duration_);
   if (resolve_error)
     co_return resolve_error;
   co_return co_await establishNewConnection(resolve_result, io_context);
@@ -328,7 +320,7 @@ void PutTCP::onTrigger(core::ProcessContext* context, core::ProcessSession* cons
     return;
   }
 
-  auto connection_id = detail::ConnectionId(std::move(hostname), std::move(port));
+  auto connection_id = utils::net::ConnectionId(std::move(hostname), std::move(port));
   std::shared_ptr<ConnectionHandlerBase> handler;
   if (!connections_ || !connections_->contains(connection_id)) {
     if (ssl_context_)
