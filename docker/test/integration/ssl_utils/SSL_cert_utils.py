@@ -110,7 +110,7 @@ def make_ca(common_name):
     return ca_cert, ca_key
 
 
-def make_cert(common_name, ca_cert, ca_key, is_server_auth=True):
+def make_cert(common_name, ca_cert, ca_key, extended_key_usage):
     key = crypto.PKey()
     key.generate_key(crypto.TYPE_RSA, 2048)
 
@@ -129,10 +129,7 @@ def make_cert(common_name, ca_cert, ca_key, is_server_auth=True):
     extensions = [crypto.X509Extension(b"authorityKeyIdentifier", False, b"keyid:always", issuer=ca_cert),
                   crypto.X509Extension(b"keyUsage", False, b"digitalSignature")]
 
-    if is_server_auth:
-        extensions.append(crypto.X509Extension(b"extendedKeyUsage", False, b"serverAuth"))
-    else:
-        extensions.append(crypto.X509Extension(b"extendedKeyUsage", False, b"clientAuth"))
+    extensions.append(crypto.X509Extension(b"extendedKeyUsage", False, extended_key_usage))
 
     cert.add_extensions(extensions)
 
