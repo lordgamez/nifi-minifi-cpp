@@ -150,7 +150,8 @@ const std::unordered_map<std::string_view, gsl::not_null<const core::PropertyVal
   {Configuration::controller_socket_local_any_interface, gsl::make_not_null(&core::StandardValidators::BOOLEAN_VALIDATOR)},
   {Configuration::controller_socket_host, gsl::make_not_null(&core::StandardValidators::VALID_VALIDATOR)},
   {Configuration::controller_socket_port, gsl::make_not_null(&core::StandardValidators::PORT_VALIDATOR)},
-  {Configuration::controller_ssl_context_service, gsl::make_not_null(&core::StandardValidators::VALID_VALIDATOR)}
+  {Configuration::controller_ssl_context_service, gsl::make_not_null(&core::StandardValidators::VALID_VALIDATOR)},
+  {Configuration::nifi_s3_multipart_upload_state_directory, gsl::make_not_null(&core::StandardValidators::VALID_VALIDATOR)}
 };
 
 const std::array<const char*, 2> Configuration::DEFAULT_SENSITIVE_PROPERTIES = {Configuration::nifi_security_client_pass_phrase,

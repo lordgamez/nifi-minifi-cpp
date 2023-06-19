@@ -366,6 +366,10 @@ class ProcessContext : public controller::ControllerServiceLookup, public core::
     }
   }
 
+  std::shared_ptr<Configure> getConfiguration() const {
+    return configure_;
+  }
+
  private:
   template<typename T>
   bool getPropertyImp(const std::string &name, T &value) const {
