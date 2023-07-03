@@ -83,7 +83,7 @@ TEST_CASE("BT2", "[TPT2]") {
   std::vector<BackTrace> traces = pool.getTraces();
   for (const auto &trace : traces) {
     std::cerr << "Thread name: " << trace.getName() << std::endl;
-    const auto &trace_strings = trace.getTraces();
+    [[maybe_unused]] const auto &trace_strings = trace.getTraces();
 #ifdef HAS_EXECINFO
     REQUIRE(trace_strings.size() > 2);
     for (const auto& trace_string : trace_strings) {
