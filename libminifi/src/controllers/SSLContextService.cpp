@@ -127,7 +127,7 @@ bool SSLContextService::configure_ssl_context(SSL_CTX *ctx) {
   }
 
   // Security level set to 0 for backwards compatibility to support TLS versions below v1.2
-  if (minimum_tls_version_ < TLS1_2_VERSION || maximum_tls_version_ < TLS1_2_VERSION) {
+  if ((minimum_tls_version_ != 0 && minimum_tls_version_ < TLS1_2_VERSION) || (maximum_tls_version_ != -1 && maximum_tls_version_ < TLS1_2_VERSION)) {
     SSL_CTX_set_security_level(ctx, 0);
   }
 
