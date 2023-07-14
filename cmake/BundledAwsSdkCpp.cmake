@@ -17,7 +17,7 @@
 
 function(use_bundled_libaws SOURCE_DIR BINARY_DIR)
     set(PATCH_FILE1 "${SOURCE_DIR}/thirdparty/aws-sdk-cpp/c++20-compilation-fixes.patch")
-    set(PATCH_FILE2 "${SOURCE_DIR}/thirdparty/aws-sdk-cpp/dll-export-injection.patch")
+    set(PATCH_FILE2 "${SOURCE_DIR}/thirdparty/aws-sdk-cpp/disable-werror.patch")
     set(PATCH_FILE3 "${SOURCE_DIR}/thirdparty/aws-sdk-cpp/shutdown-fix.patch")
     set(PATCH_FILE4 "${SOURCE_DIR}/thirdparty/aws-sdk-cpp/bundle-openssl.patch")
     set(AWS_SDK_CPP_PATCH_COMMAND ${Bash_EXECUTABLE} -c "set -x &&\
@@ -67,6 +67,7 @@ function(use_bundled_libaws SOURCE_DIR BINARY_DIR)
     ENDFOREACH(BYPRODUCT)
 
     set(AWS_SDK_CPP_CMAKE_ARGS ${PASSTHROUGH_CMAKE_ARGS}
+            -DAWS_WARNINGS_ARE_ERRORS=OFF
             -DCMAKE_PREFIX_PATH=${BINARY_DIR}/thirdparty/libaws-install
             -DCMAKE_INSTALL_PREFIX=${BINARY_DIR}/thirdparty/libaws-install
             -DBUILD_ONLY=s3
