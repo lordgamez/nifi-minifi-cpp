@@ -74,6 +74,8 @@ function(use_bundled_libaws SOURCE_DIR BINARY_DIR)
             -DBUILD_ONLY=s3
             -DENABLE_TESTING=OFF
             -DBUILD_SHARED_LIBS=OFF
+            -DFORCE_CURL=ON
+            -DCURL_STATICLIB=ON
             -DENABLE_UNITY_BUILD=${AWS_ENABLE_UNITY_BUILD})
 
     if(WIN32)
