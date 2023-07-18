@@ -80,7 +80,9 @@ std::optional<PutObjectResult> S3Wrapper::putObject(const PutObjectRequestParame
   request.SetBucket(put_object_params.bucket);
   request.SetKey(put_object_params.object_key);
   request.SetStorageClass(STORAGE_CLASS_MAP.at(put_object_params.storage_class));
-  request.SetServerSideEncryption(SERVER_SIDE_ENCRYPTION_MAP.at(put_object_params.server_side_encryption));
+  if (!put_object_params.server_side_encryption.empty() && put_object_params.server_side_encryption != "None") {
+    request.SetServerSideEncryption(SERVER_SIDE_ENCRYPTION_MAP.at(put_object_params.server_side_encryption));
+  }
   request.SetContentType(put_object_params.content_type);
   request.SetMetadata(put_object_params.user_metadata_map);
   request.SetBody(data_stream);

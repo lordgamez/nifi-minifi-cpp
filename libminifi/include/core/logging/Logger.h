@@ -35,7 +35,7 @@
 
 namespace org::apache::nifi::minifi::core::logging {
 
-inline constexpr size_t LOG_BUFFER_SIZE = 1024;
+inline constexpr size_t LOG_BUFFER_SIZE = 10240;
 
 class LoggerControl {
  public:
