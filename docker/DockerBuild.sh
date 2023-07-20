@@ -19,6 +19,7 @@
 
 # Fail on errors
 set -euo pipefail
+set -x
 
 # Set env vars.
 UID_ARG=1000

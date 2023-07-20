@@ -6,10 +6,10 @@ env:
     -DENABLE_ELASTICSEARCH=OFF -DDOCKER_BUILD_ONLY=ON -DDOCKER_CCACHE_DUMP_LOCATION=$HOME/.ccache
   SCCACHE_GHA_ENABLE: true
 jobs:
-  ubuntu_20_04:
-    name: "ubuntu-20.04"
+  docker_build:
+    name: "Docker build for integration tests"
     runs-on: ubuntu-20.04
-    timeout-minutes: 120
+    timeout-minutes: 180
     steps:
       - id: checkout
         uses: actions/checkout@v3
@@ -17,49 +17,27 @@ jobs:
         uses: actions/cache/restore@v3
         with:
           path: ~/.ccache
-          key: ubuntu-20.04-ccache-${{github.ref}}-${{github.sha}}
+          key: docker-ccache-${{github.ref}}-${{github.sha}}
           restore-keys: |
-            ubuntu-20.04-ccache-${{github.ref}}-
-            ubuntu-20.04-ccache-refs/heads/main-
-      - id: install_deps
+            docker-ccache-${{github.ref}}-
+            docker-ccache-refs/heads/main
+      - id: build
         run: |
-          sudo apt update
-          sudo apt install -y ccache libfl-dev libboost-all-dev libpcap-dev
-          echo "PATH=/usr/lib/ccache:$PATH" >> $GITHUB_ENV
-          echo -e "127.0.0.1\t$HOSTNAME" | sudo tee -a /etc/hosts > /dev/null
-      - name: build
-        run: |
-          export CC=gcc-11
-          export CXX=g++-11
-          ./bootstrap.sh -e -t
+          if [ -d ~/.ccache ]; then mv ~/.ccache .; fi
+          mkdir build
           cd build
-          cmake -DUSE_SHARED_LIBS=ON -DCMAKE_BUILD_TYPE=Release -DCI_BUILD=ON -DSTRICT_GSL_CHECKS=AUDIT -DFAIL_ON_WARNINGS=ON -DENABLE_SQL=OFF -DENABLE_LIBRDKAFKA=OFF -DENABLE_AWS=OFF \
-              -DENABLE_AZURE=OFF -DENABLE_SPLUNK=OFF -DENABLE_GCP=OFF -DENABLE_PROCFS=OFF -DENABLE_BUSTACHE=ON -DENABLE_PCAP=ON -DENABLE_JNI=ON -DENABLE_SFTP=ON  \
-              -DENABLE_LUA_SCRIPTING=OFF -DENABLE_PYTHON_SCRIPTING=OFF -DENABLE_MQTT=OFF -DENABLE_ELASTICSEARCH=OFF -DENABLE_KUBERNETES=OFF -DENABLE_OPC=OFF ..
-          make -j$(nproc) VERBOSE=1
+          cmake ${DOCKER_CMAKE_FLAGS} ..
+          make docker
       - name: cache save
         uses: actions/cache/save@v3
         if: always()
         with:
           path: ~/.ccache
-          key: ubuntu-20.04-ccache-${{github.ref}}-${{github.sha}}
-      - name: test
-        id: test
-        run: |
-          # Set core file size limit to 1GiB
-          ulimit -c 1048576
-          cd build && make test ARGS="--timeout 300 -j8 --output-on-failure"
-      - name: check-cores
-        if: ${{ failure() && steps.test.conclusion == 'failure' }}
-        run: |
-          if [ "$(ls -A /var/lib/apport/coredump/)" ]; then echo "CORES_EXIST=true" >> $GITHUB_ENV; fi
-      - uses: actions/upload-artifact@v3.1.2
-        if: ${{ failure() && env.CORES_EXIST == 'true' }}
+          key: docker-ccache-${{github.ref}}-${{github.sha}}
+      - name: Save docker image
+        run: cd build && docker save -o minifi_docker.tar apacheminificpp:$(grep CMAKE_PROJECT_VERSION:STATIC CMakeCache.txt | cut -d "=" -f2)
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
         with:
-          name: ubuntu-coredumps
-          path: /var/lib/apport/coredump/
-      - uses: actions/upload-artifact@v3.1.2
-        if: ${{ failure() && env.CORES_EXIST == 'true' }}
-        with:
-          name: ubuntu-binaries
-          path: build/bin
+          name: minifi_docker
+          path: build/minifi_docker.tar
