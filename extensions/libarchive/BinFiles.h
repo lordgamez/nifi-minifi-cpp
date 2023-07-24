@@ -177,6 +177,7 @@ class BinManager {
   void removeOldestBin();
   // get ready bin from binManager
   void getReadyBin(std::deque<std::unique_ptr<Bin>> &retBins);
+  void addReadyBin(std::unique_ptr<Bin> ready_bin);
 
  private:
   std::mutex mutex_;

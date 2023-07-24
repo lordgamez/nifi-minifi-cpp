@@ -156,6 +156,11 @@ void BinManager::getReadyBin(std::deque<std::unique_ptr<Bin>> &retBins) {
   }
 }
 
+void BinManager::addReadyBin(std::unique_ptr<Bin> ready_bin) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  readyBin_.push_back(std::move(ready_bin));
+}
+
 bool BinManager::offer(const std::string &group, const std::shared_ptr<core::FlowFile>& flow) {
   std::lock_guard < std::mutex > lock(mutex_);
   if (flow->getSize() > maxSize_) {
@@ -245,6 +250,7 @@ void BinFiles::onTrigger(const std::shared_ptr<core::ProcessContext> &context, c
     // assuming ownership over the incoming flowFile
     session->transfer(flow, Self);
   }
+  session->commit();
 
   // migrate bin to ready bin
   this->binManager_.gatherReadyBins();
@@ -261,20 +267,21 @@ void BinFiles::onTrigger(const std::shared_ptr<core::ProcessContext> &context, c
 
   // process the ready bin
   while (!readyBins.empty()) {
-    // create session for merge
-    // we have to create a new session
-    // for each merge as a rollback erases all
-    // previously added files
-    core::ProcessSession mergeSession(context);
-    mergeSession.setMetrics(metrics_);
     std::unique_ptr<Bin> bin = std::move(readyBins.front());
     readyBins.pop_front();
-    // add bin's flows to the session
-    this->addFlowsToSession(context.get(), &mergeSession, bin);
-    logger_->log_debug("BinFiles start to process bin %s for group %s", bin->getUUIDStr(), bin->getGroupId());
-    if (!this->processBin(context.get(), &mergeSession, bin))
-      this->transferFlowsToFail(context.get(), &mergeSession, bin);
-    mergeSession.commit();
+
+    try {
+      // add bin's flows to the session
+      this->addFlowsToSession(context.get(), session.get(), bin);
+      logger_->log_debug("BinFiles start to process bin %s for group %s", bin->getUUIDStr(), bin->getGroupId());
+      if (!this->processBin(context.get(), session.get(), bin))
+        this->transferFlowsToFail(context.get(), session.get(), bin);
+      session->commit();
+    } catch(const std::exception& ex) {
+      logger_->log_error("Caught Exception type: '%s' while merging ready bin: '%s'", typeid(ex).name(), ex.what());
+      binManager_.addReadyBin(std::move(bin));
+      session->rollback();
+    }
   }
 }
 
