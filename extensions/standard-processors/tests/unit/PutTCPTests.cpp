@@ -64,12 +64,14 @@ class CancellableTcpServer : public utils::net::TcpServer {
         logger_->log_error("Error during accepting new connection: %s", accept_error.message());
         break;
       }
+      std::error_code error;
+      auto remote_address = socket.lowest_layer().remote_endpoint(error).address();
       auto cancellable_timer = std::make_shared<asio::steady_timer>(io_context_);
       cancellable_timers_.push_back(cancellable_timer);
       if (ssl_data_)
-        co_spawn(io_context_, secureSession(std::move(socket)) || wait_until_cancelled(cancellable_timer), asio::detached);
+        co_spawn(io_context_, secureSession(std::move(socket), std::move(remote_address), port_) || wait_until_cancelled(cancellable_timer), asio::detached);
       else
-        co_spawn(io_context_, insecureSession(std::move(socket)) || wait_until_cancelled(cancellable_timer), asio::detached);
+        co_spawn(io_context_, insecureSession(std::move(socket), std::move(remote_address), port_) || wait_until_cancelled(cancellable_timer), asio::detached);
     }
   }
 

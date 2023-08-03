@@ -175,7 +175,7 @@ std::error_code sendMessagesViaSSL(const std::vector<std::string_view>& contents
     const asio::ip::tcp::endpoint& remote_endpoint,
     const std::filesystem::path& ca_cert_path,
     const std::optional<minifi::utils::net::SslData>& ssl_data = std::nullopt,
-    asio::ssl::context::method method = asio::ssl::context::tlsv12_client) {
+    asio::ssl::context::method method = asio::ssl::context::tls_client) {
   asio::ssl::context ctx(method);
   ctx.load_verify_file(ca_cert_path.string());
   if (ssl_data) {
