@@ -52,7 +52,9 @@ asio::awaitable<void> TcpServer::readLoop(auto& socket, const auto& remote_addre
   while (true) {
     auto [read_error, bytes_read] = co_await asio::async_read_until(socket, asio::dynamic_buffer(read_message), '\n', use_nothrow_awaitable);  // NOLINT
     if (read_error) {
-      logger_->log_error("Error during reading from socket: %s", read_error.message());
+      if (read_error != asio::error::eof) {
+        logger_->log_error("Error during reading from socket: %s", read_error.message());
+      }
       co_return;
     }
 
