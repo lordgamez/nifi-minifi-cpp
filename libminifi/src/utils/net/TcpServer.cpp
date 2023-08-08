@@ -41,9 +41,9 @@ asio::awaitable<void> TcpServer::doReceive() {
     if (error)
       logger_->log_debug("Error during fetching local endpoint: %s", error.message());
     if (ssl_data_)
-      co_spawn(io_context_, secureSession(std::move(socket), std::move(remote_address), std::move(local_port)), asio::detached);
+      co_spawn(io_context_, secureSession(std::move(socket), std::move(remote_address), local_port), asio::detached);
     else
-      co_spawn(io_context_, insecureSession(std::move(socket), std::move(remote_address), std::move(local_port)), asio::detached);
+      co_spawn(io_context_, insecureSession(std::move(socket), std::move(remote_address), local_port), asio::detached);
   }
 }
 
