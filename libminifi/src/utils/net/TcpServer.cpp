@@ -98,7 +98,7 @@ asio::awaitable<void> TcpServer::secureSession(asio::ip::tcp::socket socket, asi
   SslSocket ssl_socket(std::move(socket), ssl_context);
   auto [handshake_error] = co_await ssl_socket.async_handshake(HandshakeType::server, use_nothrow_awaitable);
   if (handshake_error) {
-    core::logging::LOG_WARN(logger_) << "Handshake with remote endpoint failed due to " << handshake_error.message();
+    core::logging::LOG_WARN(logger_) << "Handshake with " << remote_address << " failed due to " << handshake_error.message();
     co_return;
   }
   co_return co_await readLoop(ssl_socket, remote_address, local_port);  // NOLINT
