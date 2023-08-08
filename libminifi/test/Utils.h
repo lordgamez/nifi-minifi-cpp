@@ -203,6 +203,7 @@ std::error_code sendMessagesViaSSL(const std::vector<std::string_view>& contents
       return err;
     }
   }
+  socket.shutdown(err);
   return std::error_code();
 }
 
