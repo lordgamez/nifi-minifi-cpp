@@ -187,6 +187,9 @@ std::error_code sendMessagesViaSSL(const std::vector<std::string_view>& contents
   asio::io_context io_context;
   asio::ssl::stream<asio::ip::tcp::socket> socket(io_context, ctx);
   asio::error_code err;
+  auto set_members = gsl::finally([&]{
+    socket.shutdown(err);
+  });
   socket.lowest_layer().connect(remote_endpoint, err);
   if (err) {
     return err;
@@ -203,7 +206,6 @@ std::error_code sendMessagesViaSSL(const std::vector<std::string_view>& contents
       return err;
     }
   }
-  socket.shutdown(err);
   return std::error_code();
 }
 

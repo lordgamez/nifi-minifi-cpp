@@ -120,7 +120,9 @@ class ConnectionHandler : public ConnectionHandlerBase {
         ssl_context_(ssl_context) {
   }
 
-  ~ConnectionHandler() override = default;
+  ~ConnectionHandler() override {
+    shutdown();
+  }
 
   asio::awaitable<std::error_code> sendStreamWithDelimiter(const std::shared_ptr<io::InputStream>& stream_to_send,
       const std::vector<std::byte>& delimiter,
@@ -144,6 +146,7 @@ class ConnectionHandler : public ConnectionHandlerBase {
   asio::awaitable<std::error_code> send(const std::shared_ptr<io::InputStream>& stream_to_send, const std::vector<std::byte>& delimiter);
 
   SocketType createNewSocket(asio::io_context& io_context_);
+  void shutdown();
 
   utils::net::ConnectionId connection_id_;
   std::optional<SocketType> socket_;
@@ -167,6 +170,24 @@ template<>
 SslSocket ConnectionHandler<SslSocket>::createNewSocket(asio::io_context& io_context_) {
   gsl_Expects(ssl_context_);
   return {io_context_, *ssl_context_};
+}
+
+template<>
+void ConnectionHandler<TcpSocket>::shutdown() {
+  gsl_Expects(!ssl_context_);
+  if (socket_) {
+    std::error_code err;
+    socket_->shutdown(asio::ip::tcp::socket::shutdown_both, err);
+  }
+}
+
+template<>
+void ConnectionHandler<SslSocket>::shutdown() {
+  gsl_Expects(ssl_context_);
+  if (socket_) {
+    std::error_code err;
+    socket_->shutdown(err);
+  }
 }
 
 template<class SocketType>
