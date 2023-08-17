@@ -19,13 +19,7 @@
 #include "core/logging/internal/LogCompressorSink.h"
 #include "spdlog/details/log_msg.h"
 
-namespace org {
-namespace apache {
-namespace nifi {
-namespace minifi {
-namespace core {
-namespace logging {
-namespace internal {
+namespace org::apache::nifi::minifi::core::logging::internal {
 
 LogCompressorSink::LogCompressorSink(LogQueueSize cache_size, LogQueueSize compressed_size, std::shared_ptr<logging::Logger> logger)
   : cached_logs_(cache_size.max_total_size, cache_size.max_segment_size),
@@ -80,10 +74,4 @@ std::unique_ptr<io::InputStream> LogCompressorSink::createEmptyArchive() {
   return std::move(compressor.commit().buffer_);
 }
 
-}  // namespace internal
-}  // namespace logging
-}  // namespace core
-}  // namespace minifi
-}  // namespace nifi
-}  // namespace apache
-}  // namespace org
+}  // namespace org::apache::nifi::minifi::core::logging::internal

@@ -30,16 +30,11 @@
 #include "ActiveCompressor.h"
 #include "LogBuffer.h"
 #include "utils/StagingQueue.h"
+#include "io/InputStreamBundle.h"
 
 class LoggerTestAccessor;
 
-namespace org {
-namespace apache {
-namespace nifi {
-namespace minifi {
-namespace core {
-namespace logging {
-namespace internal {
+namespace org::apache::nifi::minifi::core::logging::internal {
 
 struct LogQueueSize {
   size_t max_total_size;
@@ -58,26 +53,26 @@ class LogCompressorSink : public spdlog::sinks::base_sink<std::mutex> {
   ~LogCompressorSink() override;
 
   template<class Rep, class Period>
-  std::vector<std::unique_ptr<io::InputStream>> getContent(const std::chrono::duration<Rep, Period>& time, bool flush = false) {
+  std::unique_ptr<io::InputStream> getContent(const std::chrono::duration<Rep, Period>& time, bool flush = false) {
     if (flush) {
       cached_logs_.commit();
       compress(true);
     }
 
-    std::vector<std::unique_ptr<io::InputStream>> log_segments;
+    auto bundle = std::make_unique<io::InputStreamBundle>();
     const auto segment_count = compressed_logs_.itemCount();
     for (size_t i = 0; i < segment_count; ++i) {
       LogBuffer compressed;
       if (!compressed_logs_.tryDequeue(compressed, time) && flush) {
         break;
       }
-      log_segments.push_back(std::move(compressed.buffer_));
+      bundle->addStream(std::move(compressed.buffer_));
     }
 
-    if (log_segments.empty()) {
-      log_segments.push_back(createEmptyArchive());
+    if (bundle->empty()) {
+      return createEmptyArchive();
     }
-    return log_segments;
+    return bundle;
   }
 
   size_t getMaxCacheSize() const {
@@ -116,10 +111,4 @@ class LogCompressorSink : public spdlog::sinks::base_sink<std::mutex> {
   std::shared_ptr<logging::Logger> compressor_logger_;
 };
 
-}  // namespace internal
-}  // namespace logging
-}  // namespace core
-}  // namespace minifi
-}  // namespace nifi
-}  // namespace apache
-}  // namespace org
+}  // namespace org::apache::nifi::minifi::core::logging::internal
