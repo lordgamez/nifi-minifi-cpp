@@ -26,10 +26,15 @@ jobs:
           sudo apt update
           sudo apt install -y ccache
           echo "PATH=/usr/lib/ccache:$PATH" >> $GITHUB_ENV
+      - id: free_disk_space
+        run: |
+          df -h
           sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
           sudo rm -rf /opt/ghc
           sudo rm -rf "/usr/local/share/boost"
           sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          df -h
       - id: build
         run: |
           if [ -d ~/.ccache ]; then mv ~/.ccache .; fi
