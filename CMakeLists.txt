@@ -611,7 +611,13 @@ set(EXTENSIONS_ENABLED_BY_DEFAULT (
     minifi-standard-processors
     minifi-wel
 ))
+set(INTERNAL_EXTENSIONS (
+    minifi-test-processors
+))
 foreach(extension ${selected_extensions})
+    if(${extension} IN_LIST INTERNAL_EXTENSIONS)
+        continue()
+    endif()
     get_component_name(${extension} component-name)
     list(APPEND CPACK_COMPONENTS_ALL ${component-name})
     if(${extension} IN_LIST EXTENSIONS_ENABLED_BY_DEFAULT)
