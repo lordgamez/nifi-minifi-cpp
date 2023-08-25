@@ -157,20 +157,17 @@ size_t ZlibDecompressStream::write(const uint8_t* value, size_t size) {
     return STREAM_ERROR;
   }
 
-  strm_.next_in = const_cast<uint8_t*>(value);
-  strm_.avail_in = gsl::narrow<uInt>(size);
-
   /*
    * inflate works similarly to deflate in that it will not leave input data unconsumed, and we have to watch avail_out,
    * but in this case we do not have to close the stream, because it will detect the end of the compressed format
    * and signal that it is ended by returning Z_STREAM_END and not accepting any more input data.
    */
-  int ret;
+  int ret = Z_OK;
+  size_t output_size_sum = 0;
+  strm_.next_out = reinterpret_cast<Bytef*>(outputBuffer_.data());
+  strm_.avail_out = gsl::narrow<uInt>(outputBuffer_.size());
   do {
     logger_->log_trace("writeData has %u B of input data left", strm_.avail_in);
-
-    strm_.next_out = reinterpret_cast<Bytef*>(outputBuffer_.data());
-    strm_.avail_out = gsl::narrow<uInt>(outputBuffer_.size());
 
     ret = inflate(&strm_, Z_NO_FLUSH);
     if (ret == Z_STREAM_ERROR ||
@@ -182,13 +179,23 @@ size_t ZlibDecompressStream::write(const uint8_t* value, size_t size) {
       return STREAM_ERROR;
     }
     const auto output_size = outputBuffer_.size() - strm_.avail_out;
-    logger_->log_trace("deflate produced %d B of output data", output_size);
-    if (output_->write(gsl::make_span(outputBuffer_).subspan(0, output_size)) != output_size) {
+    logger_->log_trace("inflate produced %d B of output data", output_size);
+    if (output_size_sum + output_size > outputBuffer_.size()) {
+      logger_->log_error("Output buffer overflow");
+      state_ = ZlibStreamState::ERRORED;
+      return STREAM_ERROR;
+    }
+    if (output_->write(gsl::make_span(outputBuffer_).subspan(output_size_sum, output_size)) != output_size) {
       logger_->log_error("Failed to write to underlying stream");
       state_ = ZlibStreamState::ERRORED;
       return STREAM_ERROR;
     }
-  } while (strm_.avail_out == 0);
+    output_size_sum += output_size;
+
+    strm_.next_out = reinterpret_cast<Bytef*>(outputBuffer_.data() + output_size_sum);
+    strm_.next_in = const_cast<uint8_t*>(value) + output_size_sum;
+    strm_.avail_in = gsl::narrow<uInt>(size) - output_size_sum;
+  } while (strm_.avail_out > 0 && output_size_sum < size);
 
   if (ret == Z_STREAM_END) {
     state_ = ZlibStreamState::FINISHED;
