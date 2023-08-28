@@ -200,16 +200,16 @@ jobs:
           wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key|sudo apt-key add -
           echo "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy main" | sudo tee -a /etc/apt/sources.list
           echo "deb-src http://apt.llvm.org/jammy/ llvm-toolchain-jammy main" | sudo tee -a /etc/apt/sources.list
-          echo "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-15 main" | sudo tee -a /etc/apt/sources.list
-          echo "deb-src http://apt.llvm.org/jammy/ llvm-toolchain-jammy-15 main" | sudo tee -a /etc/apt/sources.list
+          echo "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-16 main" | sudo tee -a /etc/apt/sources.list
+          echo "deb-src http://apt.llvm.org/jammy/ llvm-toolchain-jammy-16 main" | sudo tee -a /etc/apt/sources.list
           sudo apt update
-          sudo apt install -y ccache libfl-dev libpcap-dev libusb-1.0-0-dev libpng-dev libgps-dev clang-15 clang-tidy-15 libc++-15-dev libc++abi-15-dev libc++1-15 libc++abi1-15 libunwind-15 libsqliteodbc lua5.3 liblua5.3-dev flake8 parallel
+          sudo apt install -y ccache libfl-dev libpcap-dev libusb-1.0-0-dev libpng-dev libgps-dev clang-16 clang-tidy-16 libc++-16-dev libc++abi-16-dev libc++1-16 libc++abi1-16 libunwind-16 libsqliteodbc lua5.3 liblua5.3-dev flake8 parallel
           echo "PATH=/usr/lib/ccache:$PATH" >> $GITHUB_ENV
           echo -e "127.0.0.1\t$HOSTNAME" | sudo tee -a /etc/hosts > /dev/null
       - name: build
         run: |
-          export CC=clang-15
-          export CXX=clang++-15
+          export CC=clang-16
+          export CXX=clang++-16
           ./bootstrap.sh -e -t
           cd build
           export CXXFLAGS="${CXXFLAGS} -stdlib=libc++"
@@ -251,8 +251,8 @@ jobs:
             git checkout ${{ github.sha }}
           fi
           # https://stackoverflow.com/questions/58466701/clang-tidy-cant-locate-stdlib-headers
-          sed -i -e 's/\/usr\/lib\/ccache\/clang++-15/\/lib\/llvm-15\/bin\/clang++/g' build/compile_commands.json
-          sed -i -e 's/\/usr\/lib\/ccache\/clang-15/\/lib\/llvm-15\/bin\/clang/g' build/compile_commands.json
+          sed -i -e 's/\/usr\/lib\/ccache\/clang++-16/\/lib\/llvm-16\/bin\/clang++/g' build/compile_commands.json
+          sed -i -e 's/\/usr\/lib\/ccache\/clang-16/\/lib\/llvm-16\/bin\/clang/g' build/compile_commands.json
 
           parallel -j$(( $(nproc) + 1 )) ./run_clang_tidy.sh ::: ${FILES}
       - name: check-cores
