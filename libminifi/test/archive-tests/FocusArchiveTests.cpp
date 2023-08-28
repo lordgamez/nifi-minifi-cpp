@@ -116,7 +116,7 @@ TEST_CASE("FocusArchive", "[testFocusArchive]") {
 
     auto size = gsl::narrow<size_t>(ifs.tellg());
     ifs.seekg(0, std::ios::beg);
-    char *content = new char[size];
+    gsl::owner<char*> content = new char[size];
     ifs.read(content, size);
 
     REQUIRE(size == strlen(FOCUSED_CONTENT));
@@ -127,4 +127,5 @@ TEST_CASE("FocusArchive", "[testFocusArchive]") {
 
     auto archive_path_2 = dir3 / TEST_ARCHIVE_NAME;
     REQUIRE(check_archive_contents(archive_path_2, test_archive_map));
+    delete[] content;
 }

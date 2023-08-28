@@ -32,32 +32,52 @@
 
 namespace org::apache::nifi::minifi::utils {
 
-#define SFTP_ERROR(CODE) case CODE: \
-                          return #CODE
 static const char* sftp_strerror(unsigned long err) {  // NOLINT(runtime/int) unsigned long comes from libssh2 API
   switch (err) {
-    SFTP_ERROR(LIBSSH2_FX_OK);
-    SFTP_ERROR(LIBSSH2_FX_EOF);
-    SFTP_ERROR(LIBSSH2_FX_NO_SUCH_FILE);
-    SFTP_ERROR(LIBSSH2_FX_PERMISSION_DENIED);
-    SFTP_ERROR(LIBSSH2_FX_FAILURE);
-    SFTP_ERROR(LIBSSH2_FX_BAD_MESSAGE);
-    SFTP_ERROR(LIBSSH2_FX_NO_CONNECTION);
-    SFTP_ERROR(LIBSSH2_FX_CONNECTION_LOST);
-    SFTP_ERROR(LIBSSH2_FX_OP_UNSUPPORTED);
-    SFTP_ERROR(LIBSSH2_FX_INVALID_HANDLE);
-    SFTP_ERROR(LIBSSH2_FX_NO_SUCH_PATH);
-    SFTP_ERROR(LIBSSH2_FX_FILE_ALREADY_EXISTS);
-    SFTP_ERROR(LIBSSH2_FX_WRITE_PROTECT);
-    SFTP_ERROR(LIBSSH2_FX_NO_MEDIA);
-    SFTP_ERROR(LIBSSH2_FX_NO_SPACE_ON_FILESYSTEM);
-    SFTP_ERROR(LIBSSH2_FX_QUOTA_EXCEEDED);
-    SFTP_ERROR(LIBSSH2_FX_UNKNOWN_PRINCIPAL);
-    SFTP_ERROR(LIBSSH2_FX_LOCK_CONFLICT);
-    SFTP_ERROR(LIBSSH2_FX_DIR_NOT_EMPTY);
-    SFTP_ERROR(LIBSSH2_FX_NOT_A_DIRECTORY);
-    SFTP_ERROR(LIBSSH2_FX_INVALID_FILENAME);
-    SFTP_ERROR(LIBSSH2_FX_LINK_LOOP);
+    case LIBSSH2_FX_OK:
+      return "LIBSSH2_FX_OK";
+    case LIBSSH2_FX_EOF:
+      return "LIBSSH2_FX_EOF";
+    case LIBSSH2_FX_NO_SUCH_FILE:
+      return "LIBSSH2_FX_NO_SUCH_FILE";
+    case LIBSSH2_FX_PERMISSION_DENIED:
+      return "LIBSSH2_FX_PERMISSION_DENIED";
+    case LIBSSH2_FX_FAILURE:
+      return "LIBSSH2_FX_FAILURE";
+    case LIBSSH2_FX_BAD_MESSAGE:
+      return "LIBSSH2_FX_BAD_MESSAGE";
+    case LIBSSH2_FX_NO_CONNECTION:
+      return "LIBSSH2_FX_NO_CONNECTION";
+    case LIBSSH2_FX_CONNECTION_LOST:
+      return "LIBSSH2_FX_CONNECTION_LOST";
+    case LIBSSH2_FX_OP_UNSUPPORTED:
+      return "LIBSSH2_FX_OP_UNSUPPORTED";
+    case LIBSSH2_FX_INVALID_HANDLE:
+      return "LIBSSH2_FX_INVALID_HANDLE";
+    case LIBSSH2_FX_NO_SUCH_PATH:
+      return "LIBSSH2_FX_NO_SUCH_PATH";
+    case LIBSSH2_FX_FILE_ALREADY_EXISTS:
+      return "LIBSSH2_FX_FILE_ALREADY_EXISTS";
+    case LIBSSH2_FX_WRITE_PROTECT:
+      return "LIBSSH2_FX_WRITE_PROTECT";
+    case LIBSSH2_FX_NO_MEDIA:
+      return "LIBSSH2_FX_NO_MEDIA";
+    case LIBSSH2_FX_NO_SPACE_ON_FILESYSTEM:
+      return "LIBSSH2_FX_NO_SPACE_ON_FILESYSTEM";
+    case LIBSSH2_FX_QUOTA_EXCEEDED:
+      return "LIBSSH2_FX_QUOTA_EXCEEDED";
+    case LIBSSH2_FX_UNKNOWN_PRINCIPAL:
+      return "LIBSSH2_FX_UNKNOWN_PRINCIPAL";
+    case LIBSSH2_FX_LOCK_CONFLICT:
+      return "LIBSSH2_FX_LOCK_CONFLICT";
+    case LIBSSH2_FX_DIR_NOT_EMPTY:
+      return "LIBSSH2_FX_DIR_NOT_EMPTY";
+    case LIBSSH2_FX_NOT_A_DIRECTORY:
+      return "LIBSSH2_FX_NOT_A_DIRECTORY";
+    case LIBSSH2_FX_INVALID_FILENAME:
+      return "LIBSSH2_FX_INVALID_FILENAME";
+    case LIBSSH2_FX_LINK_LOOP:
+      return "LIBSSH2_FX_LINK_LOOP";
     default:
       return "Unknown error";
   }
@@ -137,8 +157,8 @@ SFTPClient::SFTPClient(std::string hostname, uint16_t port, std::string username
       hostname_(std::move(hostname)),
       port_(port),
       username_(std::move(username)),
-      curl_errorbuffer_(CURL_ERROR_SIZE, '\0') {
-  easy_ = curl_easy_init();
+      curl_errorbuffer_(CURL_ERROR_SIZE, '\0'),
+      easy_(curl_easy_init()) {
   if (easy_ == nullptr) {
     throw std::runtime_error("Cannot create curl easy handle");
   }

@@ -151,7 +151,7 @@ la_ssize_t FocusArchiveEntry::ReadCallback::read_cb(struct archive * a, void *d,
 
 int64_t FocusArchiveEntry::ReadCallback::operator()(const std::shared_ptr<io::InputStream>& stream) const {
   auto inputArchive = archive_read_new();
-  struct archive_entry *entry;
+  struct archive_entry *entry = nullptr;
   int64_t nlen = 0;
 
   FocusArchiveEntryReadData data;
@@ -234,8 +234,8 @@ int64_t FocusArchiveEntry::ReadCallback::operator()(const std::shared_ptr<io::In
 
 FocusArchiveEntry::ReadCallback::ReadCallback(core::Processor *processor, utils::file::FileManager *file_man, ArchiveMetadata *archiveMetadata)
     : file_man_(file_man),
-      proc_(processor) {
-  _archiveMetadata = archiveMetadata;
+      proc_(processor),
+      _archiveMetadata(archiveMetadata) {
 }
 
 REGISTER_RESOURCE(FocusArchiveEntry, Processor);

@@ -42,10 +42,9 @@ namespace {
    */
   optional<std::string> demangle_symbol(const char* symbol_name) {
     int status;
-    char* demangled = abi::__cxa_demangle(symbol_name, nullptr, nullptr, &status);
+    std::unique_ptr<char> demangled(abi::__cxa_demangle(symbol_name, nullptr, nullptr, &status));
     if (status == 0) {
-      std::string demangled_name = demangled;
-      free(demangled);
+      std::string demangled_name = demangled.get();
       return { demangled_name };
     } else {
       return {};

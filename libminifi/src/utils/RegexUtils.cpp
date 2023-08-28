@@ -110,12 +110,11 @@ Regex::Regex(std::string value) : Regex::Regex(std::move(value), {}) {}
 
 Regex::Regex(std::string value, const std::vector<Regex::Mode> &mode)
   : regex_str_(std::move(value)),
-    valid_(false) {
-  // Create regex mode
+    valid_(false),
 #ifdef NO_MORE_REGFREEE
-  regex_mode_ = std::regex_constants::ECMAScript;
+    regex_mode_(std::regex_constants::ECMAScript) {
 #else
-  regex_mode_ = REG_EXTENDED;
+    regex_mode_(REG_EXTENDED) {
 #endif
   for (const auto m : mode) {
     switch (m) {

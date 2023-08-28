@@ -110,8 +110,8 @@ core::logging::LOG_LEVEL MapOPCLogLevel(UA_LogLevel ualvl) {
 
 Client::Client(const std::shared_ptr<core::logging::Logger>& logger, const std::string& applicationURI,
                const std::vector<char>& certBuffer, const std::vector<char>& keyBuffer,
-               const std::vector<std::vector<char>>& trustBuffers) {
-  client_ = UA_Client_new();
+               const std::vector<std::vector<char>>& trustBuffers)
+    : client_(UA_Client_new()) {
   if (certBuffer.empty()) {
     UA_ClientConfig_setDefault(UA_Client_getConfig(client_));
   } else {
@@ -121,13 +121,13 @@ Client::Client(const std::shared_ptr<core::logging::Logger>& logger, const std::
     // Certificate
     UA_ByteString certByteString = UA_STRING_NULL;
     certByteString.length = certBuffer.size();
-    certByteString.data = reinterpret_cast<UA_Byte*>(UA_malloc(certByteString.length * sizeof(UA_Byte)));
+    certByteString.data = reinterpret_cast<UA_Byte*>(UA_malloc(certByteString.length * sizeof(UA_Byte)));  // NOLINT(cppcoreguidelines-owning-memory)
     memcpy(certByteString.data, certBuffer.data(), certByteString.length);
 
     // Key
     UA_ByteString keyByteString = UA_STRING_NULL;
     keyByteString.length = keyBuffer.size();
-    keyByteString.data = reinterpret_cast<UA_Byte*>(UA_malloc(keyByteString.length * sizeof(UA_Byte)));
+    keyByteString.data = reinterpret_cast<UA_Byte*>(UA_malloc(keyByteString.length * sizeof(UA_Byte)));  // NOLINT(cppcoreguidelines-owning-memory)
     memcpy(keyByteString.data, keyBuffer.data(), keyByteString.length);
 
     // Trusted certificates
@@ -136,7 +136,7 @@ Client::Client(const std::shared_ptr<core::logging::Logger>& logger, const std::
     for (size_t i = 0; i < trustBuffers.size(); i++) {
       trustList[i] = UA_STRING_NULL;
       trustList[i].length = trustBuffers[i].size();
-      trustList[i].data = reinterpret_cast<UA_Byte*>(UA_malloc(trustList[i].length * sizeof(UA_Byte)));
+      trustList[i].data = reinterpret_cast<UA_Byte*>(UA_malloc(trustList[i].length * sizeof(UA_Byte)));  // NOLINT(cppcoreguidelines-owning-memory)
       memcpy(trustList[i].data, trustBuffers[i].data(), trustList[i].length);
     }
     UA_StatusCode sc = UA_ClientConfig_setDefaultEncryption(cc, certByteString, keyByteString,
@@ -207,16 +207,17 @@ NodeData Client::getNodeData(const UA_ReferenceDescription *ref, const std::stri
     std::string browsename(reinterpret_cast<const char*>(ref->browseName.name.data), ref->browseName.name.length);
 
     if (ref->nodeId.nodeId.identifierType == UA_NODEIDTYPE_STRING) {
-      std::string nodeidstr(reinterpret_cast<const char*>(ref->nodeId.nodeId.identifier.string.data),
-                            ref->nodeId.nodeId.identifier.string.length);
+      std::string nodeidstr(reinterpret_cast<const char*>(ref->nodeId.nodeId.identifier.string.data),  // NOLINT(cppcoreguidelines-pro-type-union-access)
+                            ref->nodeId.nodeId.identifier.string.length);  // NOLINT(cppcoreguidelines-pro-type-union-access)
       nodedata.attributes["NodeID"] = nodeidstr;
       nodedata.attributes["NodeID type"] = "string";
     } else if (ref->nodeId.nodeId.identifierType == UA_NODEIDTYPE_BYTESTRING) {
-      std::string nodeidstr(reinterpret_cast<const char*>(ref->nodeId.nodeId.identifier.byteString.data), ref->nodeId.nodeId.identifier.byteString.length);
+      std::string nodeidstr(reinterpret_cast<const char*>(ref->nodeId.nodeId.identifier.byteString.data),  // NOLINT(cppcoreguidelines-pro-type-union-access)
+        ref->nodeId.nodeId.identifier.byteString.length);  // NOLINT(cppcoreguidelines-pro-type-union-access)
       nodedata.attributes["NodeID"] = nodeidstr;
       nodedata.attributes["NodeID type"] = "bytestring";
     } else if (ref->nodeId.nodeId.identifierType == UA_NODEIDTYPE_NUMERIC) {
-      nodedata.attributes["NodeID"] = std::to_string(ref->nodeId.nodeId.identifier.numeric);
+      nodedata.attributes["NodeID"] = std::to_string(ref->nodeId.nodeId.identifier.numeric);  // NOLINT(cppcoreguidelines-pro-type-union-access)
       nodedata.attributes["NodeID type"] = "numeric";
     }
     nodedata.attributes["Browsename"] = browsename;

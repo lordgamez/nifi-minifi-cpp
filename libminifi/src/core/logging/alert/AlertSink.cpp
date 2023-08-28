@@ -184,7 +184,7 @@ AlertSink::~AlertSink() {
   if (flush_thread_.joinable()) {
     flush_thread_.join();
   }
-  delete services_.exchange(nullptr);
+  delete services_.exchange(nullptr);  // NOLINT(cppcoreguidelines-owning-memory)
 }
 
 void AlertSink::send(Services& services) {

@@ -70,7 +70,7 @@ void init_file_paths() {
 class FixedBuffer {
  public:
   explicit FixedBuffer(std::size_t capacity) : capacity_(capacity) {
-    buf_.reset(new uint8_t[capacity_]);
+    buf_.reset(new uint8_t[capacity_]);  // NOLINT(cppcoreguidelines-owning-memory)
   }
   FixedBuffer(FixedBuffer&& other) noexcept : buf_(std::move(other.buf_)), size_(other.size_), capacity_(other.capacity_) {
     other.size_ = 0;
