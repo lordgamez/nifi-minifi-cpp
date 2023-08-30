@@ -61,7 +61,7 @@ class KafkaConnection {
 
   void setConnection(gsl::owner<rd_kafka_t*> producer);
 
-  rd_kafka_t *getConnection() const;
+  gsl::owner<rd_kafka_t*> getConnection() const;
 
   bool hasTopic(const std::string &topic) const;
 

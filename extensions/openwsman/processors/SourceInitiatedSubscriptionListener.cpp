@@ -736,7 +736,7 @@ void SourceInitiatedSubscriptionListener::onSchedule(const std::shared_ptr<core:
     throw Exception(PROCESSOR_EXCEPTION, "Connection Retry Count attribute is invalid");
   }
 
-  FILE* fp = fopen(ssl_ca_file.c_str(), "rb");
+  gsl::owner<FILE*> fp = fopen(ssl_ca_file.c_str(), "rb");
   if (fp == nullptr) {
     throw Exception(PROCESSOR_EXCEPTION, "Failed to open file specified by SSL Certificate Authority attribute");
   }

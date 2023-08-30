@@ -218,7 +218,7 @@ uint64_t IdGenerator::getRandomDeviceSegment(int numBits) const {
 #else
     uuid temp_uuid;
     temp_uuid.make(UUID_MAKE_V4);
-    auto closeFunc = [](void* vp) {
+    auto closeFunc = [](gsl::owner<void*> vp) {
       free(vp);
     };
     std::unique_ptr<void, decltype(closeFunc)> uuid_bin(temp_uuid.binary());
@@ -283,7 +283,7 @@ void IdGenerator::initialize(const std::shared_ptr<Properties>& properties) {
 
 #ifndef WIN32
 bool IdGenerator::generateWithUuidImpl(unsigned int mode, Identifier::Data& output) {
-  auto closeFunc = [](void* vp) {
+  auto closeFunc = [](gsl::owner<void*> vp) {
     free(vp);
   };
   std::unique_ptr<void, decltype(closeFunc)> uuid;

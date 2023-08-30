@@ -69,7 +69,7 @@ void KafkaConnection::setConnection(gsl::owner<rd_kafka_t*> producer) {
   startPoll();
 }
 
-rd_kafka_t *KafkaConnection::getConnection() const {
+gsl::owner<rd_kafka_t*> KafkaConnection::getConnection() const {
   return kafka_connection_;
 }
 
