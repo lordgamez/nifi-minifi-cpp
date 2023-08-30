@@ -129,4 +129,5 @@ Checks: >
   cppcoreguidelines-rvalue-reference-param-not-moved,
   cppcoreguidelines-slicing,
   cppcoreguidelines-virtual-class-destructor
+  cppcoreguidelines-avoid-reference-coroutine-parameters
 FormatStyle: 'file'

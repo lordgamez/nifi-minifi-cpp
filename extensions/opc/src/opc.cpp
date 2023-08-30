@@ -208,15 +208,16 @@ NodeData Client::getNodeData(const UA_ReferenceDescription *ref, const std::stri
 
     if (ref->nodeId.nodeId.identifierType == UA_NODEIDTYPE_STRING) {
       std::string nodeidstr(reinterpret_cast<const char*>(ref->nodeId.nodeId.identifier.string.data),
-                            ref->nodeId.nodeId.identifier.string.length);
+                            ref->nodeId.nodeId.identifier.string.length);  // NOLINT(cppcoreguidelines-pro-type-union-access)
       nodedata.attributes["NodeID"] = nodeidstr;
       nodedata.attributes["NodeID type"] = "string";
     } else if (ref->nodeId.nodeId.identifierType == UA_NODEIDTYPE_BYTESTRING) {
-      std::string nodeidstr(reinterpret_cast<const char*>(ref->nodeId.nodeId.identifier.byteString.data), ref->nodeId.nodeId.identifier.byteString.length);
+      std::string nodeidstr(reinterpret_cast<const char*>(ref->nodeId.nodeId.identifier.byteString.data),  // NOLINT(cppcoreguidelines-pro-type-union-access)
+        ref->nodeId.nodeId.identifier.byteString.length);  // NOLINT(cppcoreguidelines-pro-type-union-access)
       nodedata.attributes["NodeID"] = nodeidstr;
       nodedata.attributes["NodeID type"] = "bytestring";
     } else if (ref->nodeId.nodeId.identifierType == UA_NODEIDTYPE_NUMERIC) {
-      nodedata.attributes["NodeID"] = std::to_string(ref->nodeId.nodeId.identifier.numeric);
+      nodedata.attributes["NodeID"] = std::to_string(ref->nodeId.nodeId.identifier.numeric);  // NOLINT(cppcoreguidelines-pro-type-union-access)
       nodedata.attributes["NodeID type"] = "numeric";
     }
     nodedata.attributes["Browsename"] = browsename;

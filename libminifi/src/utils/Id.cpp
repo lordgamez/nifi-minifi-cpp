@@ -218,9 +218,11 @@ uint64_t IdGenerator::getRandomDeviceSegment(int numBits) const {
 #else
     uuid temp_uuid;
     temp_uuid.make(UUID_MAKE_V4);
-    void* uuid_bin = temp_uuid.binary();
-    memcpy(random_uuid.data(), uuid_bin, 16);
-    free(uuid_bin);
+    auto closeFunc = [](void* vp) {
+      free(vp);
+    };
+    std::unique_ptr<void, decltype(closeFunc)> uuid_bin(temp_uuid.binary());
+    memcpy(random_uuid.data(), uuid_bin.get(), 16);
 #endif
     for (int i = 0; i < 4; i++) {
       deviceSegment += random_uuid[i];
@@ -281,18 +283,20 @@ void IdGenerator::initialize(const std::shared_ptr<Properties>& properties) {
 
 #ifndef WIN32
 bool IdGenerator::generateWithUuidImpl(unsigned int mode, Identifier::Data& output) {
-  void* uuid = nullptr;
+  auto closeFunc = [](void* vp) {
+    free(vp);
+  };
+  std::unique_ptr<void, decltype(closeFunc)> uuid;
   try {
     std::lock_guard<std::mutex> lock(uuid_mutex_);
     uuid_impl_->make(mode);
-    uuid = uuid_impl_->binary();
+    uuid.reset(uuid_impl_->binary());
   } catch (uuid_error_t& uuid_error) {
     logger_->log_error("Failed to generate UUID, error: %s", uuid_error.string());
     return false;
   }
 
-  memcpy(output.data(), uuid, 16);
-  free(uuid);
+  memcpy(output.data(), uuid.get(), 16);
   return true;
 }
 #endif
