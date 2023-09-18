@@ -133,8 +133,8 @@ void UnfocusArchiveEntry::onTrigger(core::ProcessContext *context, core::Process
   session->transfer(flowFile, Success);
 }
 
-UnfocusArchiveEntry::WriteCallback::WriteCallback(ArchiveMetadata *archiveMetadata) {
-  _archiveMetadata = archiveMetadata;
+UnfocusArchiveEntry::WriteCallback::WriteCallback(ArchiveMetadata *archiveMetadata)
+   : _archiveMetadata(archiveMetadata) {
 }
 
 struct UnfocusArchiveEntryWriteData {

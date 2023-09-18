@@ -25,10 +25,10 @@ namespace org::apache::nifi::minifi::processors {
 
 KafkaConnection::KafkaConnection(const KafkaConnectionKey &key)
     : logger_(core::logging::LoggerFactory<KafkaConnection>::getLogger()),
+      initialized_(false),
+      key_(key),
       kafka_connection_(nullptr),
       poll_(false) {
-  initialized_ = false;
-  key_ = key;
 }
 
 KafkaConnection::~KafkaConnection() {

@@ -234,8 +234,8 @@ int64_t FocusArchiveEntry::ReadCallback::operator()(const std::shared_ptr<io::In
 
 FocusArchiveEntry::ReadCallback::ReadCallback(core::Processor *processor, utils::file::FileManager *file_man, ArchiveMetadata *archiveMetadata)
     : file_man_(file_man),
-      proc_(processor) {
-  _archiveMetadata = archiveMetadata;
+      proc_(processor),
+      _archiveMetadata(archiveMetadata) {
 }
 
 REGISTER_RESOURCE(FocusArchiveEntry, Processor);

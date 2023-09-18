@@ -33,8 +33,8 @@ Interpreter* Interpreter::getInterpreter() {
   return &interpreter;
 }
 
-GlobalInterpreterLock::GlobalInterpreterLock() {
-  gil_state_ = PyGILState_Ensure();
+GlobalInterpreterLock::GlobalInterpreterLock()
+    : gil_state_(PyGILState_Ensure()) {
 }
 
 GlobalInterpreterLock::~GlobalInterpreterLock() {

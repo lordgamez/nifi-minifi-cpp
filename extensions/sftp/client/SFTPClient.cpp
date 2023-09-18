@@ -137,8 +137,8 @@ SFTPClient::SFTPClient(std::string hostname, uint16_t port, std::string username
       hostname_(std::move(hostname)),
       port_(port),
       username_(std::move(username)),
-      curl_errorbuffer_(CURL_ERROR_SIZE, '\0') {
-  easy_ = curl_easy_init();
+      curl_errorbuffer_(CURL_ERROR_SIZE, '\0'),
+      easy_(curl_easy_init()) {
   if (easy_ == nullptr) {
     throw std::runtime_error("Cannot create curl easy handle");
   }

@@ -157,8 +157,8 @@ void ListSFTP::invalidateCache() {
   already_listed_entities_.clear();
 }
 
-ListSFTP::Child::Child(const std::string& parent_path_, std::tuple<std::string /* filename */, std::string /* longentry */, LIBSSH2_SFTP_ATTRIBUTES /* attrs */>&& sftp_child) {
-  parent_path = parent_path_;
+ListSFTP::Child::Child(const std::string& parent_path_, std::tuple<std::string /* filename */, std::string /* longentry */, LIBSSH2_SFTP_ATTRIBUTES /* attrs */>&& sftp_child)
+    : parent_path(parent_path_) {
   std::tie(filename, std::ignore, attrs) = std::move(sftp_child);
   directory = LIBSSH2_SFTP_S_ISDIR(attrs.permissions);
 }
