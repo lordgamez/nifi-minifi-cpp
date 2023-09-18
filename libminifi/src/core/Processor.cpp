@@ -66,12 +66,12 @@ Processor::Processor(std::string_view name, const utils::Identifier& uuid, std::
       run_duration_(DEFAULT_RUN_DURATION),
       yield_period_(DEFAULT_YIELD_PERIOD_SECONDS),
       active_tasks_(0),
+      _triggerWhenEmpty(false),
       metrics_(metrics ? std::move(metrics) : std::make_shared<ProcessorMetrics>(*this)),
       logger_(logging::LoggerFactory<Processor>::getLogger(uuid_)) {
   has_work_.store(false);
   // Setup the default values
   strategy_ = TIMER_DRIVEN;
-  _triggerWhenEmpty = false;
   penalization_period_ = DEFAULT_PENALIZATION_PERIOD;
   max_concurrent_tasks_ = DEFAULT_MAX_CONCURRENT_TASKS;
   incoming_connections_Iter = this->incoming_connections_.begin();

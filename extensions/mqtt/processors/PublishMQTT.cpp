@@ -224,7 +224,7 @@ void PublishMQTT::setMqtt5Properties(MQTTAsync_message& message, const std::stri
     MQTTProperty property;
     property.identifier = MQTTPROPERTY_CODE_CONTENT_TYPE;
     property.value.data.len = content_type.length();  // NOLINT(cppcoreguidelines-pro-type-union-access)
-    property.value.data.data = const_cast<char*>(content_type.data());
+    property.value.data.data = const_cast<char*>(content_type.data());  // NOLINT(cppcoreguidelines-pro-type-union-access)
     MQTTProperties_add(&message.properties, &property);
   }
 

@@ -74,7 +74,7 @@ Interpreter::Interpreter() {
   Py_Initialize();
   initThreads();
   PyInit_minifi_native();
-  saved_thread_state_ = PyEval_SaveThread();
+  saved_thread_state_ = PyEval_SaveThread();  // NOLINT(cppcoreguidelines-prefer-member-initializer)
 }
 
 Interpreter::~Interpreter() {
