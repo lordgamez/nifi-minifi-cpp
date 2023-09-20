@@ -181,9 +181,10 @@ jobs:
           name: ubuntu-binaries
           path: build/bin
   ubuntu_22_04_clang:
+    # https://discourse.llvm.org/t/clang-tidy-appears-to-be-significantly-slower-from-clang-15-to-clang-16/68717/4
     name: "ubuntu-22.04-clang"
     runs-on: ubuntu-22.04
-    timeout-minutes: 240
+    timeout-minutes: 360
     steps:
       - id: checkout
         uses: actions/checkout@v3
