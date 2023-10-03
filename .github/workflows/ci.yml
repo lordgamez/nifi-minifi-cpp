@@ -127,6 +127,9 @@ jobs:
     name: "ubuntu-20.04"
     runs-on: ubuntu-20.04
     timeout-minutes: 120
+    env:
+      CCACHE_BASEDIR: ${{ GITHUB.WORKSPACE }}
+      CCACHE_DIR: ${{ GITHUB.WORKSPACE }}/.ccache
     steps:
       - id: checkout
         uses: actions/checkout@v3
@@ -184,6 +187,9 @@ jobs:
     name: "ubuntu-22.04-clang"
     runs-on: ubuntu-22.04
     timeout-minutes: 240
+    env:
+      CCACHE_BASEDIR: ${{ GITHUB.WORKSPACE }}
+      CCACHE_DIR: ${{ GITHUB.WORKSPACE }}/.ccache
     steps:
       - id: checkout
         uses: actions/checkout@v3
@@ -285,6 +291,9 @@ jobs:
     name: "centos"
     runs-on: ubuntu-20.04
     timeout-minutes: 180
+    env:
+      CCACHE_BASEDIR: ${{ GITHUB.WORKSPACE }}
+      CCACHE_DIR: ${{ GITHUB.WORKSPACE }}/.ccache
     steps:
       - id: checkout
         uses: actions/checkout@v3
