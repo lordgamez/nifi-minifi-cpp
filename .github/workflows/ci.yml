@@ -34,6 +34,7 @@ jobs:
         run: |
           echo "PATH=/usr/lib/ccache:/usr/local/opt/ccache/bin:/usr/local/opt/ccache/libexec:$PATH" >> $GITHUB_ENV
           echo -e "127.0.0.1\t$HOSTNAME" | sudo tee -a /etc/hosts > /dev/null
+          mkdir -p ~/.ccache
       - name: build
         run: |
           export PATH="/usr/local/opt/flex/bin:$PATH"
@@ -144,6 +145,7 @@ jobs:
           sudo apt install -y ccache libfl-dev libpcap-dev
           echo "PATH=/usr/lib/ccache:$PATH" >> $GITHUB_ENV
           echo -e "127.0.0.1\t$HOSTNAME" | sudo tee -a /etc/hosts > /dev/null
+          mkdir -p ~/.ccache
       - name: build
         run: |
           export CC=gcc-11
@@ -206,6 +208,7 @@ jobs:
           sudo apt install -y ccache libfl-dev libpcap-dev libusb-1.0-0-dev libpng-dev libgps-dev clang-16 clang-tidy-16 libc++-16-dev libc++abi-16-dev libc++1-16 libc++abi1-16 libunwind-16 libsqliteodbc lua5.3 liblua5.3-dev flake8 parallel
           echo "PATH=/usr/lib/ccache:$PATH" >> $GITHUB_ENV
           echo -e "127.0.0.1\t$HOSTNAME" | sudo tee -a /etc/hosts > /dev/null
+          mkdir -p ~/.ccache
       - id: free_disk_space
         run: |
           # We can gain additional disk space on the Ubuntu runners thanks to these suggestions:
@@ -301,6 +304,7 @@ jobs:
           sudo apt update
           sudo apt install -y ccache
           echo "PATH=/usr/lib/ccache:$PATH" >> $GITHUB_ENV
+          mkdir -p ~/.ccache
       - id: free_disk_space
         run: |
           # We can gain additional disk space on the Ubuntu runners thanks to these suggestions:
