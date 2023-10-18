@@ -41,8 +41,6 @@ function(use_bundled_curl SOURCE_DIR BINARY_DIR)
             -DCURL_USE_LIBSSH2=OFF
             -DUSE_LIBIDN2=OFF
             -DCURL_USE_LIBPSL=OFF
-            -DHAVE_POLL_FINE_EXITCODE=0
-            -DHAVE_FSETXATTR_5=0
             )
     if (OPENSSL_OFF)
         list(APPEND CURL_CMAKE_ARGS -DCURL_USE_OPENSSL=OFF)
