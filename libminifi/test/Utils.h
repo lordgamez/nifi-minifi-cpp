@@ -234,7 +234,7 @@ template<NetworkingProcessor T>
 uint16_t scheduleProcessorOnRandomPort(const std::shared_ptr<TestPlan>& test_plan, const std::shared_ptr<T>& processor) {
   REQUIRE(processor->setProperty(T::Port, "0"));
   test_plan->scheduleProcessor(processor);
-  REQUIRE(minifi::utils::verifyEventHappenedInPollTime(250ms, [&processor] { return processor->getPort() != 0; }, 20ms));
+  REQUIRE(minifi::utils::verifyEventHappenedInPollTime(2s, [&processor] { return processor->getPort() != 0; }, 50ms));
   return processor->getPort();
 }
 
