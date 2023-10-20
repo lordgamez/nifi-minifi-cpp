@@ -47,7 +47,8 @@ function(use_bundled_libarchive SOURCE_DIR BINARY_DIR)
             -DENABLE_ACL=ON
             -DENABLE_ICONV=OFF
             -DENABLE_TEST=OFF
-            -DENABLE_WERROR=OFF)
+            -DENABLE_WERROR=OFF
+            -DBUILD_SHARED_LIBS=OFF)
 
     if (OPENSSL_OFF)
         list(APPEND LIBARCHIVE_CMAKE_ARGS -DENABLE_OPENSSL=OFF)
@@ -72,8 +73,8 @@ function(use_bundled_libarchive SOURCE_DIR BINARY_DIR)
     # Build project
     ExternalProject_Add(
             libarchive-external
-            URL "https://github.com/libarchive/libarchive/releases/download/v3.4.2/libarchive-3.4.2.tar.gz"
-            URL_HASH "SHA256=b60d58d12632ecf1e8fad7316dc82c6b9738a35625746b47ecdcaf4aed176176"
+            URL "https://github.com/libarchive/libarchive/releases/download/v3.7.2/libarchive-3.7.2.tar.gz"
+            URL_HASH "SHA256=df404eb7222cf30b4f8f93828677890a2986b66ff8bf39dac32a804e96ddf104"
             SOURCE_DIR "${BINARY_DIR}/thirdparty/libarchive-src"
             LIST_SEPARATOR % # This is needed for passing semicolon-separated lists
             CMAKE_ARGS ${LIBARCHIVE_CMAKE_ARGS}

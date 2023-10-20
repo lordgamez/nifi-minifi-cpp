@@ -1,7 +1,8 @@
-diff -rupN orig/CMakeLists.txt patched/CMakeLists.txt
---- orig/CMakeLists.txt	2020-02-11 22:33:47.000000000 +0100
-+++ patched/CMakeLists.txt	2020-03-26 00:12:47.000000000 +0100
-@@ -6,7 +6,7 @@ endif()
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index ff1b025b..42e804ba 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -9,7 +9,7 @@ endif()
  #
  PROJECT(libarchive C)
  #
@@ -10,10 +11,11 @@ diff -rupN orig/CMakeLists.txt patched/CMakeLists.txt
  if(NOT CMAKE_RUNTIME_OUTPUT_DIRECTORY)
    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${libarchive_BINARY_DIR}/bin)
  endif()
-diff -rupN orig/libarchive/CMakeLists.txt patched/libarchive/CMakeLists.txt
---- orig/libarchive/CMakeLists.txt	2020-01-28 00:19:39.000000000 +0100
-+++ patched/libarchive/CMakeLists.txt	2020-03-26 00:54:15.000000000 +0100
-@@ -166,51 +166,6 @@ SET(libarchive_SOURCES
+diff --git a/libarchive/CMakeLists.txt b/libarchive/CMakeLists.txt
+index f7fdfb68..e8fe45e8 100644
+--- a/libarchive/CMakeLists.txt
++++ b/libarchive/CMakeLists.txt
+@@ -173,51 +173,6 @@ SET(libarchive_SOURCES
    xxhash.c
  )
  
@@ -65,25 +67,7 @@ diff -rupN orig/libarchive/CMakeLists.txt patched/libarchive/CMakeLists.txt
  IF(WIN32 AND NOT CYGWIN)
    LIST(APPEND libarchive_SOURCES archive_entry_copy_bhfi.c)
    LIST(APPEND libarchive_SOURCES archive_read_disk_windows.c)
-@@ -235,12 +190,6 @@ ELSEIF(ARCHIVE_ACL_SUNOS)
-   LIST(APPEND libarchive_SOURCES archive_disk_acl_sunos.c)
- ENDIF()
- 
--# Libarchive is a shared library
--ADD_LIBRARY(archive SHARED ${libarchive_SOURCES} ${include_HEADERS})
--TARGET_INCLUDE_DIRECTORIES(archive PUBLIC .)
--TARGET_LINK_LIBRARIES(archive ${ADDITIONAL_LIBS})
--SET_TARGET_PROPERTIES(archive PROPERTIES SOVERSION ${SOVERSION})
--
- # archive_static is a static library
- ADD_LIBRARY(archive_static STATIC ${libarchive_SOURCES} ${include_HEADERS})
- TARGET_LINK_LIBRARIES(archive_static ${ADDITIONAL_LIBS})
-@@ -253,12 +202,9 @@ ENDIF(NOT WIN32 OR CYGWIN)
- 
- IF(ENABLE_INSTALL)
-   # How to install the libraries
--  INSTALL(TARGETS archive archive_static
-+  INSTALL(TARGETS archive_static
+@@ -272,8 +227,5 @@ IF(ENABLE_INSTALL)
            RUNTIME DESTINATION bin
            LIBRARY DESTINATION lib
            ARCHIVE DESTINATION lib)
@@ -92,25 +76,3 @@ diff -rupN orig/libarchive/CMakeLists.txt patched/libarchive/CMakeLists.txt
  ENDIF()
 -
 -add_subdirectory(test)
-diff -rupN orig/libarchive/archive_read_support_format_rar5.c patched/libarchive/archive_read_support_format_rar5.c
---- orig/libarchive/archive_read_support_format_rar5.c	2020-02-11 00:30:01.000000000 +0100
-+++ patched/libarchive/archive_read_support_format_rar5.c	2020-03-26 17:10:03.000000000 +0100
-@@ -3084,12 +3084,17 @@ static int do_uncompress_block(struct ar
- 
- 			continue;
- 		}
--
-+#ifndef _MSC_VER
-+/*
-+ * This is unreachable code (seemingly by design), and compilation on MSVC fails because of that,
-+ * so we remove it when compiling with MSVC.
-+ */
- 		/* The program counter shouldn't reach here. */
- 		archive_set_error(&a->archive, ARCHIVE_ERRNO_FILE_FORMAT,
- 		    "Unsupported block code: 0x%x", num);
- 
- 		return ARCHIVE_FATAL;
-+#endif
- 	}
- 
- 	return ARCHIVE_OK;
