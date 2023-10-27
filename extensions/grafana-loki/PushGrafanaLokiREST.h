@@ -27,6 +27,7 @@
 #include "core/PropertyType.h"
 #include "core/RelationshipDefinition.h"
 #include "client/HTTPClient.h"
+#include "core/StateManager.h"
 
 namespace org::apache::nifi::minifi::extensions::grafana::loki {
 
@@ -112,6 +113,7 @@ class PushGrafanaLokiREST : public core::Processor {
   void initialize() override;
   void onSchedule(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSessionFactory>& sessionFactory) override;
   void onTrigger(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSession>& session) override;
+  void restore(const std::shared_ptr<core::FlowFile>& flow_file) override;
 
  protected:
   static const core::Relationship Self;
@@ -119,23 +121,27 @@ class PushGrafanaLokiREST : public core::Processor {
  private:
   class LogBatch {
    public:
-    LogBatch(std::optional<uint64_t> max_batch_size, std::optional<std::chrono::milliseconds> batch_wait);
     void add(const std::shared_ptr<core::FlowFile>& flowfile);
     bool isReady() const;
     std::vector<std::shared_ptr<core::FlowFile>> flush();
+    void setMaxBatchSize(std::optional<uint64_t> max_batch_size);
+    void setMaxBatchWait(std::optional<std::chrono::milliseconds> max_batch_wait);
+    void setStateManager(core::StateManager* state_manager);
+    void setStartPushTime(std::chrono::steady_clock::time_point start_push_time);
 
    private:
     std::optional<uint64_t> max_batch_size_ = 1;
-    std::optional<std::chrono::milliseconds> batch_wait_;
+    std::optional<std::chrono::milliseconds> max_batch_wait_;
     std::chrono::steady_clock::time_point start_push_time_;
     uint64_t batched_flowfiles_size_ = 0;
     std::vector<std::shared_ptr<core::FlowFile>> batched_flowfiles_;
+    core::StateManager* state_manager_;
   };
 
   std::vector<std::string> stream_label_attributes_;
   std::vector<std::string> log_line_label_attributes_;
   std::optional<std::string> tenant_id_;
-  std::unique_ptr<LogBatch> log_batch_;
+  LogBatch log_batch_;
 
   curl::HTTPClient client_;
   std::shared_ptr<core::logging::Logger> logger_ = core::logging::LoggerFactory<PushGrafanaLokiREST>::getLogger(uuid_);

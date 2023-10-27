@@ -28,35 +28,44 @@
 
 namespace org::apache::nifi::minifi::extensions::grafana::loki {
 
-PushGrafanaLokiREST::LogBatch::LogBatch(std::optional<uint64_t> max_batch_size, std::optional<std::chrono::milliseconds> batch_wait)
-      : max_batch_size_(max_batch_size), batch_wait_(batch_wait) {
-  if (!max_batch_size_ && !batch_wait_) {
-    throw Exception(PROCESS_SCHEDULE_EXCEPTION, "Batch Size or Batch Wait property must be set!");
-  }
-
-  if (max_batch_size_ && max_batch_size_ < 1) {
-    throw Exception(PROCESS_SCHEDULE_EXCEPTION, "Batch Size property is invalid!");
-  }
-}
-
 void PushGrafanaLokiREST::LogBatch::add(const std::shared_ptr<core::FlowFile>& flowfile) {
-  if (batch_wait_ && batched_flowfiles_.empty()) {
+  gsl_Expects(state_manager_);
+  if (max_batch_wait_ && batched_flowfiles_.empty()) {
     start_push_time_ = std::chrono::steady_clock::now();
+    std::unordered_map<std::string, std::string> state;
+    state["start_push_time"] = std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(start_push_time_.time_since_epoch()).count());
+    state_manager_->set(state);
   }
   batched_flowfiles_.push_back(flowfile);
 }
 
 std::vector<std::shared_ptr<core::FlowFile>> PushGrafanaLokiREST::LogBatch::flush() {
+  gsl_Expects(state_manager_);
   start_push_time_ = {};
   auto result = std::move(batched_flowfiles_);
-  if (batch_wait_) {
+  if (max_batch_wait_) {
     start_push_time_ = {};
+    std::unordered_map<std::string, std::string> state;
+    state["start_push_time"] = "0";
+    state_manager_->set(state);
   }
   return result;
 }
 
 bool PushGrafanaLokiREST::LogBatch::isReady() const {
-  return (max_batch_size_ &&  batched_flowfiles_.size() >= *max_batch_size_) || (batch_wait_ && std::chrono::steady_clock::now() - start_push_time_ >= *batch_wait_);
+  return (max_batch_size_ &&  batched_flowfiles_.size() >= *max_batch_size_) || (max_batch_wait_ && std::chrono::steady_clock::now() - start_push_time_ >= *max_batch_wait_);
+}
+
+void PushGrafanaLokiREST::LogBatch::setMaxBatchSize(std::optional<uint64_t> max_batch_size) {
+  max_batch_size_ = max_batch_size;
+}
+
+void PushGrafanaLokiREST::LogBatch::setMaxBatchWait(std::optional<std::chrono::milliseconds> max_batch_wait) {
+  max_batch_wait_ = max_batch_wait;
+}
+
+void PushGrafanaLokiREST::LogBatch::setStateManager(core::StateManager* state_manager) {
+  state_manager_ = state_manager;
 }
 
 const core::Relationship PushGrafanaLokiREST::Self("__self__", "Marks the FlowFile to be owned by this processor");
@@ -87,6 +96,21 @@ void setupClientTimeouts(extensions::curl::HTTPClient& client, const core::Proce
 
 void PushGrafanaLokiREST::onSchedule(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSessionFactory>&) {
   gsl_Expects(context);
+  auto state_manager = context->getStateManager();
+  if (state_manager == nullptr) {
+    throw Exception(PROCESSOR_EXCEPTION, "Failed to get StateManager");
+  }
+  log_batch_.setStateManager(state_manager);
+
+  std::unordered_map<std::string, std::string> state_map;
+  if (state_manager->get(state_map)) {
+    auto it = state_map.find("start_push_time");
+    if (it != state_map.end()) {
+      std::chrono::steady_clock::time_point start_push_time{std::chrono::milliseconds{std::stoll(it->second)}};
+      log_batch_.setStartPushTime(start_push_time);
+    }
+  }
+
   auto url = utils::getRequiredPropertyOrThrow<std::string>(*context, URL.name);
   client_.initialize(utils::HttpRequestMethod::POST, url, getSSLContextService(*context));
   client_.setContentType("application/json");
@@ -102,10 +126,21 @@ void PushGrafanaLokiREST::onSchedule(const std::shared_ptr<core::ProcessContext>
   }
 
   tenant_id_ = context->getProperty(TenantID);
-  auto batch_wait = context->getProperty<core::TimePeriodValue>(BatchWait);
+  auto max_batch_wait = context->getProperty<core::TimePeriodValue>(BatchWait);
 
   auto max_batch_size = context->getProperty<uint64_t>(BatchSize);
-  log_batch_ = std::make_unique<LogBatch>(max_batch_size, (batch_wait ? std::make_optional(batch_wait->getMilliseconds()) : std::nullopt));
+  if (!max_batch_size && !max_batch_wait) {
+    throw Exception(PROCESS_SCHEDULE_EXCEPTION, "Batch Size or Batch Wait property must be set!");
+  }
+
+  if (max_batch_size && *max_batch_size < 1) {
+    throw Exception(PROCESS_SCHEDULE_EXCEPTION, "Batch Size property is invalid!");
+  }
+
+  log_batch_.setMaxBatchSize(max_batch_size);
+  if (max_batch_wait) {
+    log_batch_.setMaxBatchWait(max_batch_wait->getMilliseconds());
+  }
 
   setupClientTimeouts(client_, *context);
   bool use_chunked_encoding = (context->getProperty(UseChunkedEncoding) | utils::andThen(&utils::StringUtils::toBool)).value_or(false);
@@ -119,6 +154,13 @@ void PushGrafanaLokiREST::onSchedule(const std::shared_ptr<core::ProcessContext>
 void PushGrafanaLokiREST::onTrigger(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSession>& session) {
   gsl_Expects(context && session);
 
+}
+
+void PushGrafanaLokiREST::restore(const std::shared_ptr<core::FlowFile>& flow_file) {
+  if (!flow_file) {
+    return;
+  }
+  log_batch_.add(flow_file);
 }
 
 REGISTER_RESOURCE(PushGrafanaLokiREST, Processor);
