@@ -19,6 +19,7 @@
 #include <string>
 #include <memory>
 #include <vector>
+#include <map>
 
 #include "controllers/SSLContextService.h"
 #include "core/Processor.h"
@@ -44,8 +45,8 @@ class PushGrafanaLokiREST : public core::Processor {
     .withDescription("Url of loki server API endpoint.")
     .isRequired(true)
     .build();
-  EXTENSIONAPI static constexpr auto StreamLabelAttributes = core::PropertyDefinitionBuilder<>::createProperty("Stream Label Attributes")
-    .withDescription("Comma separated list of attributes to be sent as stream labels.")
+  EXTENSIONAPI static constexpr auto StreamLabels = core::PropertyDefinitionBuilder<>::createProperty("Stream Labels")
+    .withDescription("Comma separated list of <key>=<value> labels to be sent as stream labels.")
     .isRequired(true)
     .build();
   EXTENSIONAPI static constexpr auto LogLineLabelAttributes = core::PropertyDefinitionBuilder<>::createProperty("Log Line Label Attributes")
@@ -54,12 +55,17 @@ class PushGrafanaLokiREST : public core::Processor {
   EXTENSIONAPI static constexpr auto TenantID = core::PropertyDefinitionBuilder<>::createProperty("Tenant ID")
     .withDescription("The tenant ID used by default to push logs to Grafana Loki. If omitted or empty it assumes Grafana Loki is running in single-tenant mode and no X-Scope-OrgID header is sent.")
     .build();
-  EXTENSIONAPI static constexpr auto BatchWait = core::PropertyDefinitionBuilder<>::createProperty("Batch Wait")
-    .withDescription("Time to wait before send a log batch to Grafana Loki, full or not.")
+  EXTENSIONAPI static constexpr auto MaxBatchSize = core::PropertyDefinitionBuilder<>::createProperty("Max Batch Size")
+    .withDescription("The maximum number of flow files to process at a time.")
+    .withPropertyType(core::StandardPropertyTypes::UNSIGNED_LONG_TYPE)
+    .withDefaultValue("100")
+    .build();
+  EXTENSIONAPI static constexpr auto LogLineBatchWait = core::PropertyDefinitionBuilder<>::createProperty("Log Line Batch Wait")
+    .withDescription("Time to wait before sending a log line batch to Grafana Loki, full or not.")
     .withPropertyType(core::StandardPropertyTypes::TIME_PERIOD_TYPE)
     .build();
-  EXTENSIONAPI static constexpr auto BatchSize = core::PropertyDefinitionBuilder<>::createProperty("Batch Size")
-    .withDescription("Maximum number of log lines to wait for before sending to Loki")
+  EXTENSIONAPI static constexpr auto LogLineBatchSize = core::PropertyDefinitionBuilder<>::createProperty("Log Line Batch Size")
+    .withDescription("Number of log lines to send in a batch to Loki")
     .withPropertyType(core::StandardPropertyTypes::UNSIGNED_INT_TYPE)
     .build();
   EXTENSIONAPI static constexpr auto ConnectTimeout = core::PropertyDefinitionBuilder<>::createProperty("Connection Timeout")
@@ -85,13 +91,14 @@ class PushGrafanaLokiREST : public core::Processor {
     .withDescription("The SSL Context Service used to provide client certificate information for TLS/SSL (https) connections.")
     .withAllowedTypes<minifi::controllers::SSLContextService>()
     .build();
-  EXTENSIONAPI static constexpr auto Properties = std::array<core::PropertyReference, 11>{
+  EXTENSIONAPI static constexpr auto Properties = std::array<core::PropertyReference, 12>{
       URL,
-      StreamLabelAttributes,
+      StreamLabels,
       LogLineLabelAttributes,
       TenantID,
-      BatchWait,
-      BatchSize,
+      MaxBatchSize,
+      LogLineBatchWait,
+      LogLineBatchSize,
       ConnectTimeout,
       ReadTimeout,
       UseChunkedEncoding,
@@ -100,8 +107,7 @@ class PushGrafanaLokiREST : public core::Processor {
 
   EXTENSIONAPI static constexpr auto Success = core::RelationshipDefinition{"success", "All flowfiles that succeed in being transferred into Grafana Loki go here."};
   EXTENSIONAPI static constexpr auto Failure = core::RelationshipDefinition{"failure", "All flowfiles that fail for reasons unrelated to server availability go to this relationship."};
-  EXTENSIONAPI static constexpr auto Error = core::RelationshipDefinition{"error", "All flowfiles that Grafana Loki responded to with an error go to this relationship."};
-  EXTENSIONAPI static constexpr auto Relationships = std::array{Success, Failure, Error};
+  EXTENSIONAPI static constexpr auto Relationships = std::array{Success, Failure};
 
   EXTENSIONAPI static constexpr bool SupportsDynamicProperties = false;
   EXTENSIONAPI static constexpr bool SupportsDynamicRelationships = false;
@@ -124,21 +130,26 @@ class PushGrafanaLokiREST : public core::Processor {
     void add(const std::shared_ptr<core::FlowFile>& flowfile);
     bool isReady() const;
     std::vector<std::shared_ptr<core::FlowFile>> flush();
-    void setMaxBatchSize(std::optional<uint64_t> max_batch_size);
-    void setMaxBatchWait(std::optional<std::chrono::milliseconds> max_batch_wait);
+    void setLogLineBatchSize(std::optional<uint64_t> log_line_batch_size);
+    void setLogLineBatchWait(std::optional<std::chrono::milliseconds> log_line_batch_wait);
     void setStateManager(core::StateManager* state_manager);
     void setStartPushTime(std::chrono::steady_clock::time_point start_push_time);
 
    private:
-    std::optional<uint64_t> max_batch_size_ = 1;
-    std::optional<std::chrono::milliseconds> max_batch_wait_;
+    std::optional<uint64_t> log_line_batch_size_ = 1;
+    std::optional<std::chrono::milliseconds> log_line_batch_wait_;
     std::chrono::steady_clock::time_point start_push_time_;
     uint64_t batched_flowfiles_size_ = 0;
     std::vector<std::shared_ptr<core::FlowFile>> batched_flowfiles_;
     core::StateManager* state_manager_;
   };
 
-  std::vector<std::string> stream_label_attributes_;
+  void processBatch(const std::vector<std::shared_ptr<core::FlowFile>>& batched_flow_files, core::ProcessSession& session);
+  std::string createLokiJson(const std::vector<std::shared_ptr<core::FlowFile>>& batched_flow_files, core::ProcessSession& session) const;
+  nonstd::expected<void, std::string> submitRequest(const std::string& loki_json);
+
+  std::optional<uint64_t> max_batch_size_;
+  std::map<std::string, std::string> stream_label_attributes_;
   std::vector<std::string> log_line_label_attributes_;
   std::optional<std::string> tenant_id_;
   LogBatch log_batch_;
