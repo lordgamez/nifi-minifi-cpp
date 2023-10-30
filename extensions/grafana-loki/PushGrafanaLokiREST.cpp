@@ -71,6 +71,10 @@ void PushGrafanaLokiREST::LogBatch::setStateManager(core::StateManager* state_ma
   state_manager_ = state_manager;
 }
 
+void PushGrafanaLokiREST::LogBatch::setStartPushTime(std::chrono::steady_clock::time_point start_push_time) {
+  start_push_time_ = start_push_time;
+}
+
 const core::Relationship PushGrafanaLokiREST::Self("__self__", "Marks the FlowFile to be owned by this processor");
 
 void PushGrafanaLokiREST::initialize() {
@@ -114,9 +118,16 @@ void PushGrafanaLokiREST::onSchedule(const std::shared_ptr<core::ProcessContext>
     }
   }
 
-  auto url = utils::getRequiredPropertyOrThrow<std::string>(*context, URL.name);
+  auto url = utils::getRequiredPropertyOrThrow<std::string>(*context, Url.name);
+  if (utils::StringUtils::endsWith(url, "/")) {
+    url += "loki/api/v1/push";
+  } else {
+    url += "/loki/api/v1/push";
+  }
+  logger_->log_debug("PushGrafanaLokiREST push url is set to: {}", url);
   client_.initialize(utils::HttpRequestMethod::POST, url, getSSLContextService(*context));
   client_.setContentType("application/json");
+  client_.setFollowRedirects(true);
 
   if (auto stream_labels_str = context->getProperty(StreamLabels)) {
     auto stream_labels = utils::StringUtils::splitAndTrimRemovingEmpty(*stream_labels_str, ",");
@@ -151,10 +162,18 @@ void PushGrafanaLokiREST::onSchedule(const std::shared_ptr<core::ProcessContext>
   }
 
   max_batch_size_ = context->getProperty<uint64_t>(MaxBatchSize);
+  if (max_batch_size_) {
+    logger_->log_debug("PushGrafanaLokiREST Max Batch Size is set to: {}", *max_batch_size_);
+  }
 
   log_batch_.setLogLineBatchSize(log_line_batch_size);
+  if (log_line_batch_size) {
+    logger_->log_debug("PushGrafanaLokiREST Log Line Batch Size is set to: {}", *log_line_batch_size);
+  }
+
   if (log_line_batch_wait) {
     log_batch_.setLogLineBatchWait(log_line_batch_wait->getMilliseconds());
+    logger_->log_debug("PushGrafanaLokiREST Log Line Batch Wait is set to {} milliseconds", log_line_batch_wait->getMilliseconds());
   }
 
   setupClientTimeouts(client_, *context);
@@ -172,16 +191,17 @@ std::string PushGrafanaLokiREST::createLokiJson(const std::vector<std::shared_pt
   rapidjson::Document::AllocatorType& allocator = document.GetAllocator();
 
   rapidjson::Value streams(rapidjson::kArrayType);
-  rapidjson::Value streamObject(rapidjson::kObjectType);
+  rapidjson::Value stream_object(rapidjson::kObjectType);
 
+  rapidjson::Value labels(rapidjson::kObjectType);
   for (const auto& [key, value] : stream_label_attributes_) {
-    rapidjson::Value label(value.c_str(), allocator);
-    streamObject.AddMember(label, rapidjson::Value(key.c_str(), allocator), allocator);
+    rapidjson::Value label(key.c_str(), allocator);
+    labels.AddMember(label, rapidjson::Value(value.c_str(), allocator), allocator);
   }
 
   rapidjson::Value values(rapidjson::kArrayType);
-  std::string line;
   for (const auto& flow_file : batched_flow_files) {
+    std::string line;
     session.read(flow_file, [this, &flow_file, &line](const std::shared_ptr<io::InputStream>& input_stream) -> int64_t {
       const size_t BUFFER_SIZE = 8192;
       std::array<char, BUFFER_SIZE> buffer;
@@ -204,18 +224,18 @@ std::string PushGrafanaLokiREST::createLokiJson(const std::vector<std::shared_pt
 
     auto timestamp_str = std::to_string(flow_file->getlineageStartDate().time_since_epoch() / std::chrono::nanoseconds(1));
     rapidjson::Value timestamp;
-    timestamp.SetString(timestamp_str.c_str(), gsl::narrow<rapidjson::SizeType>(timestamp_str.length()));
+    timestamp.SetString(timestamp_str.c_str(), gsl::narrow<rapidjson::SizeType>(timestamp_str.length()), allocator);
     rapidjson::Value log_line_value;
-    log_line_value.SetString(line.c_str(), gsl::narrow<rapidjson::SizeType>(line.length()));
+    log_line_value.SetString(line.c_str(), gsl::narrow<rapidjson::SizeType>(line.length()), allocator);
 
     log_line.PushBack(timestamp, allocator);
     log_line.PushBack(log_line_value, allocator);
     values.PushBack(log_line, allocator);
   }
 
-  streamObject.AddMember("stream", streamObject, allocator);
-  streamObject.AddMember("values", values, allocator);
-  streams.PushBack(streamObject, allocator);
+  stream_object.AddMember("stream", labels, allocator);
+  stream_object.AddMember("values", values, allocator);
+  streams.PushBack(stream_object, allocator);
   document.AddMember("streams", streams, allocator);
   rapidjson::StringBuffer buffer;
   rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
@@ -230,7 +250,7 @@ nonstd::expected<void, std::string> PushGrafanaLokiREST::submitRequest(const std
   }
   auto response_code = client_.getResponseCode();
   if (response_code < 200 || response_code >= 300) {
-    return nonstd::make_unexpected("Error occurred: " + std::to_string(response_code) + ", " + client_.getResponseBody().data());
+    return nonstd::make_unexpected("Error occurred: " + std::to_string(response_code));
   }
   return {};
 }
@@ -248,6 +268,7 @@ void PushGrafanaLokiREST::processBatch(const std::vector<std::shared_ptr<core::F
       session.transfer(flow_file, Failure);
     }
   } else {
+    logger_->log_debug("Successfully sent log batch with {} log lines to Loki", batched_flow_files.size());
     for (const auto& flow_file : batched_flow_files) {
       session.transfer(flow_file, Success);
     }
@@ -263,9 +284,11 @@ void PushGrafanaLokiREST::onTrigger(const std::shared_ptr<core::ProcessContext>&
       return;
     }
 
+    logger_->log_debug("Enqueuing flow file to be sent to Loki");
     log_batch_.add(flow_file);
     if (log_batch_.isReady()) {
       auto batched_flow_files = log_batch_.flush();
+      logger_->log_debug("Sending {} log lines to Loki", batched_flow_files.size());
       processBatch(batched_flow_files, *session);
     }
 

@@ -41,7 +41,7 @@ class PushGrafanaLokiREST : public core::Processor {
   }
   ~PushGrafanaLokiREST() override = default;
 
-  EXTENSIONAPI static constexpr auto URL = core::PropertyDefinitionBuilder<>::createProperty("URL")
+  EXTENSIONAPI static constexpr auto Url = core::PropertyDefinitionBuilder<>::createProperty("Url")
     .withDescription("Url of loki server API endpoint.")
     .isRequired(true)
     .build();
@@ -92,7 +92,7 @@ class PushGrafanaLokiREST : public core::Processor {
     .withAllowedTypes<minifi::controllers::SSLContextService>()
     .build();
   EXTENSIONAPI static constexpr auto Properties = std::array<core::PropertyReference, 12>{
-      URL,
+      Url,
       StreamLabels,
       LogLineLabelAttributes,
       TenantID,
