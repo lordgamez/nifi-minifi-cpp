@@ -92,7 +92,7 @@ class PushGrafanaLokiRESTTestFixture {
     REQUIRE(directory_string == "/opt/minifi/logs/");
   }
 
-  void verifySentRequestToLoki(uint64_t start_timestamp, const std::vector<std::string>& expected_log_values) {
+  void verifySentRequestToLoki(uint64_t start_timestamp, const std::vector<std::string>& expected_log_values, const std::vector<std::map<std::string, std::string>>& expected_log_line_attribute_values = {}) {
     const auto& request = mock_loki_.getLastRequest();
     REQUIRE(request.HasMember("streams"));
     const auto& stream_array = request["streams"].GetArray();
@@ -101,11 +101,23 @@ class PushGrafanaLokiRESTTestFixture {
     REQUIRE(value_array.Size() == expected_log_values.size());
     for (size_t i = 0; i < expected_log_values.size(); ++i) {
       const auto& log_line_array = value_array[i].GetArray();
-      REQUIRE(log_line_array.Size() == 2);
+      if (!expected_log_line_attribute_values.empty()) {
+        REQUIRE(log_line_array.Size() == 3);
+      } else {
+        REQUIRE(log_line_array.Size() == 2);
+      }
       std::string timestamp_str = log_line_array[0].GetString();
       REQUIRE(start_timestamp <= std::stoull(timestamp_str));
       std::string value = log_line_array[1].GetString();
       REQUIRE(value == expected_log_values[i]);
+      if (!expected_log_line_attribute_values.empty()) {
+        REQUIRE(log_line_array[2].IsObject());
+        const auto& log_line_attribute_object = log_line_array[2].GetObject();
+        for (const auto& [key, value] : expected_log_line_attribute_values[i]) {
+          REQUIRE(log_line_attribute_object.HasMember(key.c_str()));
+          REQUIRE(log_line_attribute_object[key.c_str()].GetString() == value);
+        }
+      }
     }
   }
 
@@ -144,6 +156,17 @@ TEST_CASE_METHOD(PushGrafanaLokiRESTTestFixture, "If no log line batch limit is 
   verifyStreamLabels();
   std::vector<std::string> expected_log_values = {"log line 1", "log line 2"};
   verifySentRequestToLoki(start_timestamp, expected_log_values);
+}
+
+TEST_CASE_METHOD(PushGrafanaLokiRESTTestFixture, "Log line metadata can be added with flow file attributes", "[PushGrafanaLokiREST]") {
+  uint64_t start_timestamp = std::chrono::system_clock::now().time_since_epoch() / std::chrono::nanoseconds(1);
+  setProperty(PushGrafanaLokiREST::MaxBatchSize, "2");
+  setProperty(PushGrafanaLokiREST::LogLineMetadataAttributes, "label1, label2, label3");
+  auto results = test_controller_.trigger({minifi::test::InputFlowFileData{"log line 1", {{"label1", "value1"}, {"label4", "value4"}}}, minifi::test::InputFlowFileData{"log line 2", {{"label1", "value1"}, {"label2", "value2"}}}, minifi::test::InputFlowFileData{"log line 3", {}}});
+  verifyStreamLabels();
+  std::vector<std::string> expected_log_values = {"log line 1", "log line 2"};
+  std::vector<std::map<std::string, std::string>> expected_log_line_attribute_values = {{{"label1", "value1"}}, {{"label1", "value1"}, {"label2", "value2"}}};
+  verifySentRequestToLoki(start_timestamp, expected_log_values, expected_log_line_attribute_values);
 }
 
 }  // namespace org::apache::nifi::minifi::extensions::grafana::loki::test

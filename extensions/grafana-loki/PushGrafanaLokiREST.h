@@ -49,8 +49,8 @@ class PushGrafanaLokiREST : public core::Processor {
     .withDescription("Comma separated list of <key>=<value> labels to be sent as stream labels.")
     .isRequired(true)
     .build();
-  EXTENSIONAPI static constexpr auto LogLineLabelAttributes = core::PropertyDefinitionBuilder<>::createProperty("Log Line Label Attributes")
-    .withDescription("Comma separated list of attributes to be sent as log line labels.")
+  EXTENSIONAPI static constexpr auto LogLineMetadataAttributes = core::PropertyDefinitionBuilder<>::createProperty("Log Line Metadata Attributes")
+    .withDescription("Comma separated list of attributes to be sent as log line metadata.")
     .build();
   EXTENSIONAPI static constexpr auto TenantID = core::PropertyDefinitionBuilder<>::createProperty("Tenant ID")
     .withDescription("The tenant ID used by default to push logs to Grafana Loki. If omitted or empty it assumes Grafana Loki is running in single-tenant mode and no X-Scope-OrgID header is sent.")
@@ -96,7 +96,7 @@ class PushGrafanaLokiREST : public core::Processor {
   EXTENSIONAPI static constexpr auto Properties = std::array<core::PropertyReference, 12>{
       Url,
       StreamLabels,
-      LogLineLabelAttributes,
+      LogLineMetadataAttributes,
       TenantID,
       MaxBatchSize,
       LogLineBatchWait,
@@ -152,10 +152,11 @@ class PushGrafanaLokiREST : public core::Processor {
   nonstd::expected<void, std::string> submitRequest(const std::string& loki_json);
   void setUpStateManager(core::ProcessContext& context);
   void setUpStreamLableAttributes(core::ProcessContext& context);
+  void addLogLineMetadata(rapidjson::Value& log_line, rapidjson::Document::AllocatorType& allocator, core::FlowFile& flow_file) const;
 
   std::optional<uint64_t> max_batch_size_;
   std::map<std::string, std::string> stream_label_attributes_;
-  std::vector<std::string> log_line_label_attributes_;
+  std::vector<std::string> log_line_metadata_attributes_;
   std::optional<std::string> tenant_id_;
   LogBatch log_batch_;
   bool no_log_line_batch_limit_is_set_ = false;

@@ -156,8 +156,8 @@ void PushGrafanaLokiREST::onSchedule(const std::shared_ptr<core::ProcessContext>
 
   setUpStreamLableAttributes(*context);
 
-  if (auto log_line_label_attributes = context->getProperty(LogLineLabelAttributes)) {
-    log_line_label_attributes_ = utils::StringUtils::splitAndTrimRemovingEmpty(*log_line_label_attributes, ",");
+  if (auto log_line_metadata_attributes = context->getProperty(LogLineMetadataAttributes)) {
+    log_line_metadata_attributes_ = utils::StringUtils::splitAndTrimRemovingEmpty(*log_line_metadata_attributes, ",");
   }
 
   tenant_id_ = context->getProperty(TenantID);
@@ -189,6 +189,22 @@ void PushGrafanaLokiREST::onSchedule(const std::shared_ptr<core::ProcessContext>
     client_.setRequestHeader("Transfer-Encoding", "chunked");
   } else {
     client_.setRequestHeader("Transfer-Encoding", std::nullopt);
+  }
+}
+
+void PushGrafanaLokiREST::addLogLineMetadata(rapidjson::Value& log_line, rapidjson::Document::AllocatorType& allocator, core::FlowFile& flow_file) const {
+  if (!log_line_metadata_attributes_.empty()) {
+    rapidjson::Value labels(rapidjson::kObjectType);
+    for (const auto& label : log_line_metadata_attributes_) {
+      auto attribute_value = flow_file.getAttribute(label);
+      if (!attribute_value) {
+        continue;
+      }
+      rapidjson::Value label_key(label.c_str(), gsl::narrow<rapidjson::SizeType>(label.length()), allocator);
+      rapidjson::Value label_value(attribute_value->c_str(), gsl::narrow<rapidjson::SizeType>(attribute_value->length()), allocator);
+      labels.AddMember(label_key, label_value, allocator);
+    }
+    log_line.PushBack(labels, allocator);
   }
 }
 
@@ -237,6 +253,7 @@ std::string PushGrafanaLokiREST::createLokiJson(const std::vector<std::shared_pt
 
     log_line.PushBack(timestamp, allocator);
     log_line.PushBack(log_line_value, allocator);
+    addLogLineMetadata(log_line, allocator, *flow_file);
     values.PushBack(log_line, allocator);
   }
 
@@ -244,6 +261,7 @@ std::string PushGrafanaLokiREST::createLokiJson(const std::vector<std::shared_pt
   stream_object.AddMember("values", values, allocator);
   streams.PushBack(stream_object, allocator);
   document.AddMember("streams", streams, allocator);
+
   rapidjson::StringBuffer buffer;
   rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
   document.Accept(writer);
