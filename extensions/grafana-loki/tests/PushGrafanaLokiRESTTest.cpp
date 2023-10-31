@@ -64,12 +64,21 @@ class PushGrafanaLokiRESTTestFixture {
       : mock_loki_("3100"),
         push_grafana_loki_rest_(std::make_shared<PushGrafanaLokiREST>("PushGrafanaLokiREST")),
         test_controller_(push_grafana_loki_rest_) {
+    LogTestController::getInstance().setDebug<TestPlan>();
+    LogTestController::getInstance().setDebug<minifi::core::Processor>();
+    LogTestController::getInstance().setTrace<minifi::core::ProcessSession>();
+    LogTestController::getInstance().setTrace<PushGrafanaLokiREST>();
     CHECK(test_controller_.plan->setProperty(push_grafana_loki_rest_, PushGrafanaLokiREST::Url, "localhost:3100"));
     CHECK(test_controller_.plan->setProperty(push_grafana_loki_rest_, PushGrafanaLokiREST::StreamLabels, "job=minifi,directory=/opt/minifi/logs/"));
   }
 
   void setProperty(const auto& property, const std::string& property_value) {
     CHECK(test_controller_.plan->setProperty(push_grafana_loki_rest_, property, property_value));
+  }
+
+  void verifyLastRequestIsEmpty() {
+    const auto& request = mock_loki_.getLastRequest();
+    REQUIRE(request.IsNull());
   }
 
   void verifyStreamLabels() {
@@ -113,9 +122,22 @@ class PushGrafanaLokiRESTTestFixture {
 TEST_CASE_METHOD(PushGrafanaLokiRESTTestFixture, "PushGrafanaLokiREST should send 1 log line to Grafana Loki in a trigger", "[PushGrafanaLokiREST]") {
   uint64_t start_timestamp = std::chrono::system_clock::now().time_since_epoch() / std::chrono::nanoseconds(1);
   setProperty(PushGrafanaLokiREST::LogLineBatchSize, "1");
-  auto results = test_controller_.trigger("log line 1", {});
+  setProperty(PushGrafanaLokiREST::MaxBatchSize, "1");
+  auto results = test_controller_.trigger({minifi::test::InputFlowFileData{"log line 1", {}}, minifi::test::InputFlowFileData{"log line 2", {}}});
   verifyStreamLabels();
   std::vector<std::string> expected_log_values = {"log line 1"};
+  verifySentRequestToLoki(start_timestamp, expected_log_values);
+}
+
+TEST_CASE_METHOD(PushGrafanaLokiRESTTestFixture, "PushGrafanaLokiREST should wait for Log Line Batch Size limit to be reached", "[PushGrafanaLokiREST]") {
+  uint64_t start_timestamp = std::chrono::system_clock::now().time_since_epoch() / std::chrono::nanoseconds(1);
+  setProperty(PushGrafanaLokiREST::LogLineBatchSize, "4");
+  setProperty(PushGrafanaLokiREST::MaxBatchSize, "2");
+  auto results = test_controller_.trigger({minifi::test::InputFlowFileData{"log line 1", {}}, minifi::test::InputFlowFileData{"log line 2", {}}, minifi::test::InputFlowFileData{"log line 3", {}}});
+  verifyLastRequestIsEmpty();
+  results = test_controller_.trigger({minifi::test::InputFlowFileData{"log line 4", {}}});
+  verifyStreamLabels();
+  std::vector<std::string> expected_log_values = {"log line 1", "log line 2", "log line 3", "log line 4"};
   verifySentRequestToLoki(start_timestamp, expected_log_values);
 }
 

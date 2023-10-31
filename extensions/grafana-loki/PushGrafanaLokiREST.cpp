@@ -289,12 +289,14 @@ void PushGrafanaLokiREST::processBatch(const std::vector<std::shared_ptr<core::F
 void PushGrafanaLokiREST::onTrigger(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSession>& session) {
   gsl_Expects(context && session);
   uint64_t flow_files_read = 0;
-  while (max_batch_size_ || *max_batch_size_ == 0 || flow_files_read < *max_batch_size_) {
+  std::vector<std::shared_ptr<core::FlowFile>> handled_flow_files;
+  while (!max_batch_size_ || *max_batch_size_ == 0 || flow_files_read < *max_batch_size_) {
     std::shared_ptr<core::FlowFile> flow_file = session->get();
     if (!flow_file) {
       return;
     }
 
+    handled_flow_files.push_back(flow_file);
     logger_->log_debug("Enqueuing flow file to be sent to Loki");
     log_batch_.add(flow_file);
     if (log_batch_.isReady()) {
@@ -305,6 +307,11 @@ void PushGrafanaLokiREST::onTrigger(const std::shared_ptr<core::ProcessContext>&
 
     ++flow_files_read;
   }
+  for (const auto& flow_file : handled_flow_files) {
+    if (!session->hasBeenTransferred(*flow_file)) {
+      session->transfer(flow_file, Self);
+    }
+  }
 }
 
 void PushGrafanaLokiREST::restore(const std::shared_ptr<core::FlowFile>& flow_file) {
@@ -312,6 +319,14 @@ void PushGrafanaLokiREST::restore(const std::shared_ptr<core::FlowFile>& flow_fi
     return;
   }
   log_batch_.add(flow_file);
+}
+
+std::set<core::Connectable*> BinFiles::getOutGoingConnections(const std::string &relationship) {
+  auto result = core::Connectable::getOutGoingConnections(relationship);
+  if (relationship == Self.getName()) {
+    result.insert(this);
+  }
+  return result;
 }
 
 REGISTER_RESOURCE(PushGrafanaLokiREST, Processor);

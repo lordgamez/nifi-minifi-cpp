@@ -82,7 +82,7 @@ class PushGrafanaLokiREST : public core::Processor {
     .build();
   EXTENSIONAPI static constexpr auto UseChunkedEncoding = core::PropertyDefinitionBuilder<>::createProperty("Use Chunked Encoding")
     .withDescription("Set this property to true in order to not pass the 'Content-length' header and instead send 'Transfer-Encoding' with a value of 'chunked'. "
-                      "This will enable the data transfer mechanism which was introduced in HTTP 1.1 to pass data of unknown lengths in chunks.")
+                     "This will enable the data transfer mechanism which was introduced in HTTP 1.1 to pass data of unknown lengths in chunks.")
     .withPropertyType(core::StandardPropertyTypes::BOOLEAN_TYPE)
     .withDefaultValue("false")
     .isRequired(true)
@@ -120,6 +120,7 @@ class PushGrafanaLokiREST : public core::Processor {
   void onSchedule(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSessionFactory>& sessionFactory) override;
   void onTrigger(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSession>& session) override;
   void restore(const std::shared_ptr<core::FlowFile>& flow_file) override;
+  std::set<core::Connectable*> getOutGoingConnections(const std::string &relationship) override;
 
  protected:
   static const core::Relationship Self;
