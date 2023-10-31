@@ -147,6 +147,8 @@ class PushGrafanaLokiREST : public core::Processor {
   void processBatch(const std::vector<std::shared_ptr<core::FlowFile>>& batched_flow_files, core::ProcessSession& session);
   std::string createLokiJson(const std::vector<std::shared_ptr<core::FlowFile>>& batched_flow_files, core::ProcessSession& session) const;
   nonstd::expected<void, std::string> submitRequest(const std::string& loki_json);
+  void setUpStateManager(core::ProcessContext& context);
+  void setUpStreamLableAttributes(core::ProcessContext& context);
 
   std::optional<uint64_t> max_batch_size_;
   std::map<std::string, std::string> stream_label_attributes_;

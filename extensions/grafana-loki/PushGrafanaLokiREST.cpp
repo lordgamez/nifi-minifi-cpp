@@ -101,9 +101,8 @@ void setupClientTimeouts(extensions::curl::HTTPClient& client, const core::Proce
 }
 } // namespace
 
-void PushGrafanaLokiREST::onSchedule(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSessionFactory>&) {
-  gsl_Expects(context);
-  auto state_manager = context->getStateManager();
+void PushGrafanaLokiREST::setUpStateManager(core::ProcessContext& context) {
+  auto state_manager = context.getStateManager();
   if (state_manager == nullptr) {
     throw Exception(PROCESSOR_EXCEPTION, "Failed to get StateManager");
   }
@@ -117,19 +116,10 @@ void PushGrafanaLokiREST::onSchedule(const std::shared_ptr<core::ProcessContext>
       log_batch_.setStartPushTime(start_push_time);
     }
   }
+}
 
-  auto url = utils::getRequiredPropertyOrThrow<std::string>(*context, Url.name);
-  if (utils::StringUtils::endsWith(url, "/")) {
-    url += "loki/api/v1/push";
-  } else {
-    url += "/loki/api/v1/push";
-  }
-  logger_->log_debug("PushGrafanaLokiREST push url is set to: {}", url);
-  client_.initialize(utils::HttpRequestMethod::POST, url, getSSLContextService(*context));
-  client_.setContentType("application/json");
-  client_.setFollowRedirects(true);
-
-  if (auto stream_labels_str = context->getProperty(StreamLabels)) {
+void PushGrafanaLokiREST::setUpStreamLableAttributes(core::ProcessContext& context) {
+  if (auto stream_labels_str = context.getProperty(StreamLabels)) {
     auto stream_labels = utils::StringUtils::splitAndTrimRemovingEmpty(*stream_labels_str, ",");
     if (stream_labels.empty()) {
       throw Exception(PROCESS_SCHEDULE_EXCEPTION, "Missing or invalid Stream Label Attributes");
@@ -144,6 +134,27 @@ void PushGrafanaLokiREST::onSchedule(const std::shared_ptr<core::ProcessContext>
   } else {
     throw Exception(PROCESS_SCHEDULE_EXCEPTION, "Missing or invalid Stream Label Attributes");
   }
+}
+
+void PushGrafanaLokiREST::onSchedule(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSessionFactory>&) {
+  gsl_Expects(context);
+  setUpStateManager(*context);
+
+  auto url = utils::getRequiredPropertyOrThrow<std::string>(*context, Url.name);
+  if (url.empty()) {
+    throw Exception(PROCESS_SCHEDULE_EXCEPTION, "Url property cannot be empty!");
+  }
+  if (utils::StringUtils::endsWith(url, "/")) {
+    url += "loki/api/v1/push";
+  } else {
+    url += "/loki/api/v1/push";
+  }
+  logger_->log_debug("PushGrafanaLokiREST push url is set to: {}", url);
+  client_.initialize(utils::HttpRequestMethod::POST, url, getSSLContextService(*context));
+  client_.setContentType("application/json");
+  client_.setFollowRedirects(true);
+
+  setUpStreamLableAttributes(*context);
 
   if (auto log_line_label_attributes = context->getProperty(LogLineLabelAttributes)) {
     log_line_label_attributes_ = utils::StringUtils::splitAndTrimRemovingEmpty(*log_line_label_attributes, ",");
@@ -154,11 +165,11 @@ void PushGrafanaLokiREST::onSchedule(const std::shared_ptr<core::ProcessContext>
 
   auto log_line_batch_size = context->getProperty<uint64_t>(LogLineBatchSize);
   if (!log_line_batch_size && !log_line_batch_wait) {
-    throw Exception(PROCESS_SCHEDULE_EXCEPTION, "Batch Size or Batch Wait property must be set!");
+    throw Exception(PROCESS_SCHEDULE_EXCEPTION, "Either Log Line Batch Size or Log Line Batch Wait property must be set!");
   }
 
   if (log_line_batch_size && *log_line_batch_size < 1) {
-    throw Exception(PROCESS_SCHEDULE_EXCEPTION, "Batch Size property is invalid!");
+    throw Exception(PROCESS_SCHEDULE_EXCEPTION, "Log Line Batch Size property is invalid!");
   }
 
   max_batch_size_ = context->getProperty<uint64_t>(MaxBatchSize);
