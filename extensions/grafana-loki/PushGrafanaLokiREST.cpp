@@ -162,15 +162,11 @@ void PushGrafanaLokiREST::onSchedule(const std::shared_ptr<core::ProcessContext>
 
   tenant_id_ = context->getProperty(TenantID);
   auto log_line_batch_wait = context->getProperty<core::TimePeriodValue>(LogLineBatchWait);
-
   auto log_line_batch_size = context->getProperty<uint64_t>(LogLineBatchSize);
-  if (!log_line_batch_size && !log_line_batch_wait) {
-    throw Exception(PROCESS_SCHEDULE_EXCEPTION, "Either Log Line Batch Size or Log Line Batch Wait property must be set!");
-  }
-
-  if (log_line_batch_size && *log_line_batch_size < 1) {
+    if (log_line_batch_size && *log_line_batch_size < 1) {
     throw Exception(PROCESS_SCHEDULE_EXCEPTION, "Log Line Batch Size property is invalid!");
   }
+  no_log_line_batch_limit_is_set_ = !log_line_batch_size && !log_line_batch_wait;
 
   max_batch_size_ = context->getProperty<uint64_t>(MaxBatchSize);
   if (max_batch_size_) {
@@ -297,7 +293,7 @@ void PushGrafanaLokiREST::onTrigger(const std::shared_ptr<core::ProcessContext>&
     }
 
     handled_flow_files.push_back(flow_file);
-    logger_->log_debug("Enqueuing flow file to be sent to Loki");
+    logger_->log_debug("Enqueuing flow file {} to be sent to Loki", flow_file->getUUIDStr());
     log_batch_.add(flow_file);
     if (log_batch_.isReady()) {
       auto batched_flow_files = log_batch_.flush();
@@ -307,6 +303,12 @@ void PushGrafanaLokiREST::onTrigger(const std::shared_ptr<core::ProcessContext>&
 
     ++flow_files_read;
   }
+  if (no_log_line_batch_limit_is_set_) {
+    auto batched_flow_files = log_batch_.flush();
+    logger_->log_debug("Sending {} log lines to Loki", batched_flow_files.size());
+    processBatch(batched_flow_files, *session);
+  }
+
   for (const auto& flow_file : handled_flow_files) {
     if (!session->hasBeenTransferred(*flow_file)) {
       session->transfer(flow_file, Self);
@@ -321,7 +323,7 @@ void PushGrafanaLokiREST::restore(const std::shared_ptr<core::FlowFile>& flow_fi
   log_batch_.add(flow_file);
 }
 
-std::set<core::Connectable*> BinFiles::getOutGoingConnections(const std::string &relationship) {
+std::set<core::Connectable*> PushGrafanaLokiREST::getOutGoingConnections(const std::string &relationship) {
   auto result = core::Connectable::getOutGoingConnections(relationship);
   if (relationship == Self.getName()) {
     result.insert(this);

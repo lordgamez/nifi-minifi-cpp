@@ -61,11 +61,13 @@ class PushGrafanaLokiREST : public core::Processor {
     .withDefaultValue("100")
     .build();
   EXTENSIONAPI static constexpr auto LogLineBatchWait = core::PropertyDefinitionBuilder<>::createProperty("Log Line Batch Wait")
-    .withDescription("Time to wait before sending a log line batch to Grafana Loki, full or not.")
+    .withDescription("Time to wait before sending a log line batch to Grafana Loki, full or not. If this property and Log Line Batch Size are both unset, "
+                     "the log batch of the current trigger will be sent immediately.")
     .withPropertyType(core::StandardPropertyTypes::TIME_PERIOD_TYPE)
     .build();
   EXTENSIONAPI static constexpr auto LogLineBatchSize = core::PropertyDefinitionBuilder<>::createProperty("Log Line Batch Size")
-    .withDescription("Number of log lines to send in a batch to Loki")
+    .withDescription("Number of log lines to send in a batch to Loki. If this property and Log Line Batch Wait are both unset, "
+                     "the log batch of the current trigger will be sent immediately.")
     .withPropertyType(core::StandardPropertyTypes::UNSIGNED_INT_TYPE)
     .build();
   EXTENSIONAPI static constexpr auto ConnectTimeout = core::PropertyDefinitionBuilder<>::createProperty("Connection Timeout")
@@ -156,6 +158,7 @@ class PushGrafanaLokiREST : public core::Processor {
   std::vector<std::string> log_line_label_attributes_;
   std::optional<std::string> tenant_id_;
   LogBatch log_batch_;
+  bool no_log_line_batch_limit_is_set_ = false;
 
   curl::HTTPClient client_;
   std::shared_ptr<core::logging::Logger> logger_ = core::logging::LoggerFactory<PushGrafanaLokiREST>::getLogger(uuid_);

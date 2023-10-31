@@ -45,16 +45,12 @@ TEST_CASE("Valid stream labels need to be set", "[PushGrafanaLokiREST]") {
   REQUIRE_THROWS_AS(test_controller.trigger(), minifi::Exception);
 }
 
-TEST_CASE("Log line batch properties should be valid", "[PushGrafanaLokiREST]") {
+TEST_CASE("Log Line Batch Size cannot be 0", "[PushGrafanaLokiREST]") {
   auto push_grafana_loki_rest = std::make_shared<PushGrafanaLokiREST>("PushGrafanaLokiREST");
   minifi::test::SingleProcessorTestController test_controller(push_grafana_loki_rest);
   CHECK(test_controller.plan->setProperty(push_grafana_loki_rest, PushGrafanaLokiREST::Url, "localhost:3100"));
   CHECK(test_controller.plan->setProperty(push_grafana_loki_rest, PushGrafanaLokiREST::StreamLabels, "job=minifi,directory=/opt/minifi/logs/"));
-  SECTION("Either Log Line Batch Size or Log Line Batch Wait property must be set") {
-  }
-  SECTION("Log Line Batch Size cannot be 0") {
-    test_controller.plan->setProperty(push_grafana_loki_rest, PushGrafanaLokiREST::LogLineBatchSize, "0");
-  }
+  test_controller.plan->setProperty(push_grafana_loki_rest, PushGrafanaLokiREST::LogLineBatchSize, "0");
   REQUIRE_THROWS_AS(test_controller.trigger(), minifi::Exception);
 }
 
@@ -138,6 +134,15 @@ TEST_CASE_METHOD(PushGrafanaLokiRESTTestFixture, "PushGrafanaLokiREST should wai
   results = test_controller_.trigger({minifi::test::InputFlowFileData{"log line 4", {}}});
   verifyStreamLabels();
   std::vector<std::string> expected_log_values = {"log line 1", "log line 2", "log line 3", "log line 4"};
+  verifySentRequestToLoki(start_timestamp, expected_log_values);
+}
+
+TEST_CASE_METHOD(PushGrafanaLokiRESTTestFixture, "If no log line batch limit is set, all log files in a single trigger should be processed", "[PushGrafanaLokiREST]") {
+  uint64_t start_timestamp = std::chrono::system_clock::now().time_since_epoch() / std::chrono::nanoseconds(1);
+  setProperty(PushGrafanaLokiREST::MaxBatchSize, "2");
+  auto results = test_controller_.trigger({minifi::test::InputFlowFileData{"log line 1", {}}, minifi::test::InputFlowFileData{"log line 2", {}}, minifi::test::InputFlowFileData{"log line 3", {}}});
+  verifyStreamLabels();
+  std::vector<std::string> expected_log_values = {"log line 1", "log line 2"};
   verifySentRequestToLoki(start_timestamp, expected_log_values);
 }
 
