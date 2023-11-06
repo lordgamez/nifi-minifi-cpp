@@ -159,10 +159,16 @@ TEST_CASE_METHOD(PushGrafanaLokiRESTTestFixture, "PushGrafanaLokiREST should wai
 
 TEST_CASE_METHOD(PushGrafanaLokiRESTTestFixture, "If no log line batch limit is set, all log files in a single trigger should be processed", "[PushGrafanaLokiREST]") {
   uint64_t start_timestamp = std::chrono::system_clock::now().time_since_epoch() / std::chrono::nanoseconds(1);
-  setProperty(PushGrafanaLokiREST::MaxBatchSize, "2");
+  std::vector<std::string> expected_log_values;
+  SECTION("Max Batch Size is set") {
+    setProperty(PushGrafanaLokiREST::MaxBatchSize, "2");
+    expected_log_values = {"log line 1", "log line 2"};
+  }
+  SECTION("No Max Batch Size is set") {
+    expected_log_values = {"log line 1", "log line 2", "log line 3"};
+  }
   auto results = test_controller_.trigger({minifi::test::InputFlowFileData{"log line 1", {}}, minifi::test::InputFlowFileData{"log line 2", {}}, minifi::test::InputFlowFileData{"log line 3", {}}});
   verifyStreamLabels();
-  std::vector<std::string> expected_log_values = {"log line 1", "log line 2"};
   verifySentRequestToLoki(start_timestamp, expected_log_values);
 }
 

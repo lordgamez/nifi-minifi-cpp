@@ -310,7 +310,7 @@ void PushGrafanaLokiREST::onTrigger(const std::shared_ptr<core::ProcessContext>&
   while (!max_batch_size_ || *max_batch_size_ == 0 || flow_files_read < *max_batch_size_) {
     std::shared_ptr<core::FlowFile> flow_file = session->get();
     if (!flow_file) {
-      return;
+      break;
     }
 
     handled_flow_files.push_back(flow_file);

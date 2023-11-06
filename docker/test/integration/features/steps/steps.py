@@ -1214,3 +1214,15 @@ def step_impl(context, minifi_container_name: str):
 @then(u'debug bundle can be retrieved through MiNiFi controller')
 def step_impl(context):
     context.execute_steps(f"then debug bundle can be retrieved through MiNiFi controller in the \"minifi-cpp-flow-{context.feature_id}\" flow")
+
+
+# Grafana Loki
+@given("a Grafana Loki server is set up")
+def step_impl(context):
+    context.test.acquire_container(context=context, name="grafana-loki-server", engine="grafana-loki-server")
+
+
+@then("\"{lines}\" lines are published to the Grafana Loki server in less than {timeout_seconds:d} seconds")
+@then("\"{lines}\" line is published to the Grafana Loki server in less than {timeout_seconds:d} seconds")
+def step_impl(context, lines: str, timeout_seconds: int):
+    context.test.check_lines_on_grafana_loki(lines.split(";"), timeout_seconds)

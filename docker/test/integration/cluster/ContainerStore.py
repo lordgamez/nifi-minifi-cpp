@@ -35,6 +35,7 @@ from .containers.MinifiAsPodInKubernetesCluster import MinifiAsPodInKubernetesCl
 from .containers.TcpClientContainer import TcpClientContainer
 from .containers.PrometheusContainer import PrometheusContainer
 from .containers.MinifiC2ServerContainer import MinifiC2ServerContainer
+from .containers.GrafanaLokiContainer import GrafanaLokiContainer
 from .FeatureContext import FeatureContext
 
 
@@ -269,6 +270,23 @@ class ContainerStore:
                                                                       image_store=self.image_store,
                                                                       command=command,
                                                                       ssl=True))
+        elif engine == "grafana-loki-server":
+            return self.containers.setdefault(container_name,
+                                              GrafanaLokiContainer(feature_context=feature_context,
+                                                                   name=container_name,
+                                                                   vols=self.vols,
+                                                                   network=self.network,
+                                                                   image_store=self.image_store,
+                                                                   command=command))
+        elif engine == "grafana-loki-server-ssl":
+            return self.containers.setdefault(container_name,
+                                              GrafanaLokiContainer(feature_context=feature_context,
+                                                                   name=container_name,
+                                                                   vols=self.vols,
+                                                                   network=self.network,
+                                                                   image_store=self.image_store,
+                                                                   command=command,
+                                                                   ssl=True))
         else:
             raise Exception('invalid flow engine: \'%s\'' % engine)
 
