@@ -161,6 +161,9 @@ void PushGrafanaLokiREST::onSchedule(const std::shared_ptr<core::ProcessContext>
   }
 
   tenant_id_ = context->getProperty(TenantID);
+  if (tenant_id_ && !tenant_id_->empty()) {
+    client_.setRequestHeader("X-Scope-OrgID", tenant_id_);
+  }
   auto log_line_batch_wait = context->getProperty<core::TimePeriodValue>(LogLineBatchWait);
   auto log_line_batch_size = context->getProperty<uint64_t>(LogLineBatchSize);
     if (log_line_batch_size && *log_line_batch_size < 1) {

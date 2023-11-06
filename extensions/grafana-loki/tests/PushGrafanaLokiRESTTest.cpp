@@ -77,6 +77,10 @@ class PushGrafanaLokiRESTTestFixture {
     REQUIRE(request.IsNull());
   }
 
+  void verifyTenantId(const std::string& tenant_id) {
+    REQUIRE(mock_loki_.getLastTenantId() == tenant_id);
+  }
+
   void verifyStreamLabels() {
     const auto& request = mock_loki_.getLastRequest();
     REQUIRE(request.HasMember("streams"));
@@ -167,6 +171,14 @@ TEST_CASE_METHOD(PushGrafanaLokiRESTTestFixture, "Log line metadata can be added
   std::vector<std::string> expected_log_values = {"log line 1", "log line 2"};
   std::vector<std::map<std::string, std::string>> expected_log_line_attribute_values = {{{"label1", "value1"}}, {{"label1", "value1"}, {"label2", "value2"}}};
   verifySentRequestToLoki(start_timestamp, expected_log_values, expected_log_line_attribute_values);
+}
+
+TEST_CASE_METHOD(PushGrafanaLokiRESTTestFixture, "Tenant ID can be set in properties", "[PushGrafanaLokiREST]") {
+  setProperty(PushGrafanaLokiREST::LogLineBatchSize, "1");
+  setProperty(PushGrafanaLokiREST::MaxBatchSize, "1");
+  setProperty(PushGrafanaLokiREST::TenantID, "mytenant");
+  auto results = test_controller_.trigger({minifi::test::InputFlowFileData{"log line 1", {}}});
+  verifyTenantId("mytenant");
 }
 
 }  // namespace org::apache::nifi::minifi::extensions::grafana::loki::test

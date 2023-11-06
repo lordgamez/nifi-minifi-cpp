@@ -37,8 +37,18 @@ class GrafanaLokiHandler : public CivetHandler {
     return request_received_;
   }
 
+  std::string getLastTenantId() const {
+    return tenant_id_set_;
+  }
+
  private:
   bool handlePost(CivetServer*, struct mg_connection* conn) override {
+    tenant_id_set_.clear();
+    const char *org_id = mg_get_header(conn, "X-Scope-OrgID");
+    if (org_id != nullptr) {
+      tenant_id_set_ = org_id;
+    }
+
     std::array<char, 2048> request;
     size_t chars_read = mg_read(conn, request.data(), 2048);
     std::string json_str(request.data(), chars_read);
@@ -51,6 +61,7 @@ class GrafanaLokiHandler : public CivetHandler {
   }
 
   rapidjson::Document request_received_;
+  std::string tenant_id_set_;
 };
 
 class MockGrafanaLoki {
@@ -71,6 +82,10 @@ class MockGrafanaLoki {
 
   const rapidjson::Document& getLastRequest() const {
     return loki_handler_->getLastRequest();
+  }
+
+  std::string getLastTenantId() const {
+    return loki_handler_->getLastTenantId();
   }
 
  private:
