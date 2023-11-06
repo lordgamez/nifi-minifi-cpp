@@ -181,4 +181,17 @@ TEST_CASE_METHOD(PushGrafanaLokiRESTTestFixture, "Tenant ID can be set in proper
   verifyTenantId("mytenant");
 }
 
+TEST_CASE_METHOD(PushGrafanaLokiRESTTestFixture, "PushGrafanaLokiREST should wait for Log Line Batch Wait time to be reached", "[PushGrafanaLokiREST]") {
+  uint64_t start_timestamp = std::chrono::system_clock::now().time_since_epoch() / std::chrono::nanoseconds(1);
+  setProperty(PushGrafanaLokiREST::LogLineBatchWait, "200 ms");
+  setProperty(PushGrafanaLokiREST::MaxBatchSize, "3");
+  auto results = test_controller_.trigger({minifi::test::InputFlowFileData{"log line 1", {}}, minifi::test::InputFlowFileData{"log line 2", {}}, minifi::test::InputFlowFileData{"log line 3", {}}});
+  verifyLastRequestIsEmpty();
+  std::this_thread::sleep_for(300ms);
+  results = test_controller_.trigger({minifi::test::InputFlowFileData{"log line 4", {}}});
+  verifyStreamLabels();
+  std::vector<std::string> expected_log_values = {"log line 1", "log line 2", "log line 3", "log line 4"};
+  verifySentRequestToLoki(start_timestamp, expected_log_values);
+}
+
 }  // namespace org::apache::nifi::minifi::extensions::grafana::loki::test
