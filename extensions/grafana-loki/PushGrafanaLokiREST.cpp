@@ -14,8 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-
 #include "PushGrafanaLokiREST.h"
 
 #include <utility>
@@ -163,6 +161,8 @@ void PushGrafanaLokiREST::onSchedule(const std::shared_ptr<core::ProcessContext>
   tenant_id_ = context->getProperty(TenantID);
   if (tenant_id_ && !tenant_id_->empty()) {
     client_.setRequestHeader("X-Scope-OrgID", tenant_id_);
+  } else {
+    client_.setRequestHeader("X-Scope-OrgID", std::nullopt);
   }
   auto log_line_batch_wait = context->getProperty<core::TimePeriodValue>(LogLineBatchWait);
   auto log_line_batch_size = context->getProperty<uint64_t>(LogLineBatchSize);

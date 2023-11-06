@@ -41,12 +41,21 @@ class GrafanaLokiHandler : public CivetHandler {
     return tenant_id_set_;
   }
 
+  bool isLastEncodingChunked() const {
+    return transfer_encoding_set_ == "chunked";
+  }
+
  private:
   bool handlePost(CivetServer*, struct mg_connection* conn) override {
     tenant_id_set_.clear();
     const char *org_id = mg_get_header(conn, "X-Scope-OrgID");
     if (org_id != nullptr) {
       tenant_id_set_ = org_id;
+    }
+
+    const char *transfer_encoding = mg_get_header(conn, "Transfer-Encoding");
+    if (transfer_encoding != nullptr) {
+      transfer_encoding_set_ = transfer_encoding;
     }
 
     std::array<char, 2048> request;
@@ -62,6 +71,7 @@ class GrafanaLokiHandler : public CivetHandler {
 
   rapidjson::Document request_received_;
   std::string tenant_id_set_;
+  std::string transfer_encoding_set_;
 };
 
 class MockGrafanaLoki {
@@ -86,6 +96,10 @@ class MockGrafanaLoki {
 
   std::string getLastTenantId() const {
     return loki_handler_->getLastTenantId();
+  }
+
+  bool isLastEncodingChunked() const {
+    return loki_handler_->isLastEncodingChunked();
   }
 
  private:

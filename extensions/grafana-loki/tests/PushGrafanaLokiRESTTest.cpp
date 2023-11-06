@@ -81,6 +81,10 @@ class PushGrafanaLokiRESTTestFixture {
     REQUIRE(mock_loki_.getLastTenantId() == tenant_id);
   }
 
+  void verifyChunkedEncoding(bool is_chuncked) {
+    REQUIRE(mock_loki_.isLastEncodingChunked() == is_chuncked);
+  }
+
   void verifyStreamLabels() {
     const auto& request = mock_loki_.getLastRequest();
     REQUIRE(request.HasMember("streams"));
@@ -192,6 +196,14 @@ TEST_CASE_METHOD(PushGrafanaLokiRESTTestFixture, "PushGrafanaLokiREST should wai
   verifyStreamLabels();
   std::vector<std::string> expected_log_values = {"log line 1", "log line 2", "log line 3", "log line 4"};
   verifySentRequestToLoki(start_timestamp, expected_log_values);
+}
+
+TEST_CASE_METHOD(PushGrafanaLokiRESTTestFixture, "Chunked encoding can be set in properties", "[PushGrafanaLokiREST]") {
+  setProperty(PushGrafanaLokiREST::LogLineBatchSize, "1");
+  setProperty(PushGrafanaLokiREST::MaxBatchSize, "1");
+  setProperty(PushGrafanaLokiREST::UseChunkedEncoding, "true");
+  auto results = test_controller_.trigger({minifi::test::InputFlowFileData{"log line 1", {}}});
+  verifyChunkedEncoding(true);
 }
 
 }  // namespace org::apache::nifi::minifi::extensions::grafana::loki::test
