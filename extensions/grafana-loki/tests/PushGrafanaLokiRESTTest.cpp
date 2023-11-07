@@ -81,8 +81,8 @@ class PushGrafanaLokiRESTTestFixture {
     REQUIRE(mock_loki_.getLastTenantId() == tenant_id);
   }
 
-  void verifyChunkedEncoding(bool is_chuncked) {
-    REQUIRE(mock_loki_.isLastEncodingChunked() == is_chuncked);
+  void verifyChunkedEncoding(bool is_chunked) {
+    REQUIRE(mock_loki_.isLastEncodingChunked() == is_chunked);
   }
 
   void verifyStreamLabels() {
