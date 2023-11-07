@@ -29,6 +29,17 @@ Feature: MiNiFi can publish logs to Grafana Loki server
     When all instances start up
     Then "log line 1;log line 2;log line 3" lines are published to the Grafana Loki server in less than 120 seconds
 
+  Scenario: Logs are published to Loki server to a specific tenant through REST API
+    Given a Grafana Loki server is set up with multi-tenancy enabled
+    And a TailFile processor with the "File to Tail" property set to "/tmp/input/test_file.log"
+    And a file with filename "test_file.log" and content "log line 1\nlog line 2\nlog line 3\n" is present in "/tmp/input"
+    And a PushGrafanaLokiREST processor with the "Url" property set to "http://grafana-loki-server-${feature_id}:3100/"
+    And the "Stream Labels" property of the PushGrafanaLokiREST processor is set to "job=minifi,id=docker-test"
+    And the "Tenant ID" property of the PushGrafanaLokiREST processor is set to "mytenant"
+    And the "success" relationship of the TailFile processor is connected to the PushGrafanaLokiREST
+    When all instances start up
+    Then "log line 1;log line 2;log line 3" lines are published to the "mytenant" tenant on the Grafana Loki server in less than 120 seconds
+
   Scenario: Logs are published to Loki server through REST API using SSL
     Given a Grafana Loki server with SSL is set up
     And a TailFile processor with the "File to Tail" property set to "/tmp/input/test_file.log"

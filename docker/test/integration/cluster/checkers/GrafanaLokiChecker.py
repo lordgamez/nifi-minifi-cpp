@@ -21,13 +21,19 @@ class GrafanaLokiChecker:
     def __init__(self):
         self.url = "localhost:3100/loki/api/v1/query"
 
-    def veify_log_lines_on_grafana_loki(self, lines: List[str], ssl: bool):
+    def veify_log_lines_on_grafana_loki(self, lines: List[str], ssl: bool, tenant_id: str):
         labels = '{job="minifi"}'
         prefix = "http://"
         if ssl:
             prefix = "https://"
+
         query_url = f"{prefix}{self.url}?query={labels}"
-        response = requests.get(query_url, verify=False, timeout=30)
+
+        headers = None
+        if tenant_id:
+            headers = {'X-Scope-OrgID': tenant_id}
+
+        response = requests.get(query_url, verify=False, timeout=30, headers=headers)
 
         # Check if the request was successful (status code 200)
         if response.status_code >= 200 and response.status_code < 300:
@@ -48,5 +54,5 @@ class GrafanaLokiChecker:
 
         return True
 
-    def wait_for_lines_on_grafana_loki(self, lines: List[str], timeout_seconds: int, ssl: bool):
-        return wait_for(lambda: self.veify_log_lines_on_grafana_loki(lines, ssl), timeout_seconds)
+    def wait_for_lines_on_grafana_loki(self, lines: List[str], timeout_seconds: int, ssl: bool, tenant_id: str):
+        return wait_for(lambda: self.veify_log_lines_on_grafana_loki(lines, ssl, tenant_id), timeout_seconds)

@@ -22,13 +22,18 @@ from .Container import Container
 from ssl_utils.SSL_cert_utils import make_server_cert
 
 
+class GrafanaLokiOptions:
+    def __init__(self):
+        self.enable_ssl = False
+        self.enable_multi_tenancy = False
+
+
 class GrafanaLokiContainer(Container):
-    def __init__(self, feature_context, name, vols, network, image_store, command=None, ssl=False):
-        engine = "grafana-loki-server-ssl" if ssl else "grafana-loki-server"
-        super().__init__(feature_context, name, engine, vols, network, image_store, command)
-        self.ssl = ssl
+    def __init__(self, feature_context, name, vols, network, image_store, options: GrafanaLokiOptions, command=None):
+        super().__init__(feature_context, name, "grafana-loki-server", vols, network, image_store, command)
+        self.ssl = options.enable_ssl
         extra_ssl_settings = ""
-        if ssl:
+        if self.ssl:
             grafana_loki_cert, grafana_loki_key = make_server_cert(f"grafana-loki-server-{feature_context.id}", feature_context.root_ca_cert, feature_context.root_ca_key)
 
             self.root_ca_file = tempfile.NamedTemporaryFile(delete=False)
@@ -55,7 +60,7 @@ class GrafanaLokiContainer(Container):
 """
 
         grafana_loki_yml_content = """
-auth_enabled: false
+auth_enabled: {enable_multi_tenancy}
 
 server:
   http_listen_port: 3100
@@ -87,7 +92,7 @@ ruler:
 
 analytics:
   reporting_enabled: false
-""".format(feature_id=self.feature_context.id, extra_ssl_settings=extra_ssl_settings)
+""".format(feature_id=self.feature_context.id, extra_ssl_settings=extra_ssl_settings, enable_multi_tenancy=options.enable_multi_tenancy)
 
         self.yaml_file = tempfile.NamedTemporaryFile(delete=False)
         self.yaml_file.write(grafana_loki_yml_content.encode())

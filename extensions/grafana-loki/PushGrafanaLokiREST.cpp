@@ -97,7 +97,7 @@ void setupClientTimeouts(extensions::curl::HTTPClient& client, const core::Proce
     client.setReadTimeout(read_timeout->getMilliseconds());
   }
 }
-} // namespace
+}  // namespace
 
 void PushGrafanaLokiREST::setUpStateManager(core::ProcessContext& context) {
   auto state_manager = context.getStateManager();
@@ -187,12 +187,6 @@ void PushGrafanaLokiREST::onSchedule(const std::shared_ptr<core::ProcessContext>
   }
 
   setupClientTimeouts(client_, *context);
-  bool use_chunked_encoding = (context->getProperty(UseChunkedEncoding) | utils::andThen(&utils::StringUtils::toBool)).value_or(false);
-  if (use_chunked_encoding) {
-    client_.setRequestHeader("Transfer-Encoding", "chunked");
-  } else {
-    client_.setRequestHeader("Transfer-Encoding", std::nullopt);
-  }
 }
 
 void PushGrafanaLokiREST::addLogLineMetadata(rapidjson::Value& log_line, rapidjson::Document::AllocatorType& allocator, core::FlowFile& flow_file) const {

@@ -81,10 +81,6 @@ class PushGrafanaLokiRESTTestFixture {
     REQUIRE(mock_loki_.getLastTenantId() == tenant_id);
   }
 
-  void verifyChunkedEncoding(bool is_chunked) {
-    REQUIRE(mock_loki_.isLastEncodingChunked() == is_chunked);
-  }
-
   void verifyStreamLabels() {
     const auto& request = mock_loki_.getLastRequest();
     REQUIRE(request.HasMember("streams"));
@@ -100,7 +96,8 @@ class PushGrafanaLokiRESTTestFixture {
     REQUIRE(directory_string == "/opt/minifi/logs/");
   }
 
-  void verifySentRequestToLoki(uint64_t start_timestamp, const std::vector<std::string>& expected_log_values, const std::vector<std::map<std::string, std::string>>& expected_log_line_attribute_values = {}) {
+  void verifySentRequestToLoki(uint64_t start_timestamp, const std::vector<std::string>& expected_log_values,
+      const std::vector<std::map<std::string, std::string>>& expected_log_line_attribute_values = {}) {
     const auto& request = mock_loki_.getLastRequest();
     REQUIRE(request.HasMember("streams"));
     const auto& stream_array = request["streams"].GetArray();
@@ -176,7 +173,8 @@ TEST_CASE_METHOD(PushGrafanaLokiRESTTestFixture, "Log line metadata can be added
   uint64_t start_timestamp = std::chrono::system_clock::now().time_since_epoch() / std::chrono::nanoseconds(1);
   setProperty(PushGrafanaLokiREST::MaxBatchSize, "2");
   setProperty(PushGrafanaLokiREST::LogLineMetadataAttributes, "label1, label2, label3");
-  auto results = test_controller_.trigger({minifi::test::InputFlowFileData{"log line 1", {{"label1", "value1"}, {"label4", "value4"}}}, minifi::test::InputFlowFileData{"log line 2", {{"label1", "value1"}, {"label2", "value2"}}}, minifi::test::InputFlowFileData{"log line 3", {}}});
+  auto results = test_controller_.trigger({minifi::test::InputFlowFileData{"log line 1", {{"label1", "value1"}, {"label4", "value4"}}},
+    minifi::test::InputFlowFileData{"log line 2", {{"label1", "value1"}, {"label2", "value2"}}}, minifi::test::InputFlowFileData{"log line 3", {}}});
   verifyStreamLabels();
   std::vector<std::string> expected_log_values = {"log line 1", "log line 2"};
   std::vector<std::map<std::string, std::string>> expected_log_line_attribute_values = {{{"label1", "value1"}}, {{"label1", "value1"}, {"label2", "value2"}}};
@@ -202,14 +200,6 @@ TEST_CASE_METHOD(PushGrafanaLokiRESTTestFixture, "PushGrafanaLokiREST should wai
   verifyStreamLabels();
   std::vector<std::string> expected_log_values = {"log line 1", "log line 2", "log line 3", "log line 4"};
   verifySentRequestToLoki(start_timestamp, expected_log_values);
-}
-
-TEST_CASE_METHOD(PushGrafanaLokiRESTTestFixture, "Chunked encoding can be set in properties", "[PushGrafanaLokiREST]") {
-  setProperty(PushGrafanaLokiREST::LogLineBatchSize, "1");
-  setProperty(PushGrafanaLokiREST::MaxBatchSize, "1");
-  setProperty(PushGrafanaLokiREST::UseChunkedEncoding, "true");
-  auto results = test_controller_.trigger({minifi::test::InputFlowFileData{"log line 1", {}}});
-  verifyChunkedEncoding(true);
 }
 
 }  // namespace org::apache::nifi::minifi::extensions::grafana::loki::test

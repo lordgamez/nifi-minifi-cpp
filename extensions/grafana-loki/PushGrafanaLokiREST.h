@@ -82,18 +82,11 @@ class PushGrafanaLokiREST : public core::Processor {
     .withDefaultValue("15 s")
     .isRequired(true)
     .build();
-  EXTENSIONAPI static constexpr auto UseChunkedEncoding = core::PropertyDefinitionBuilder<>::createProperty("Use Chunked Encoding")
-    .withDescription("Set this property to true in order to not pass the 'Content-length' header and instead send 'Transfer-Encoding' with a value of 'chunked'. "
-                     "This will enable the data transfer mechanism which was introduced in HTTP 1.1 to pass data of unknown lengths in chunks.")
-    .withPropertyType(core::StandardPropertyTypes::BOOLEAN_TYPE)
-    .withDefaultValue("false")
-    .isRequired(true)
-    .build();
   EXTENSIONAPI static constexpr auto SSLContextService = core::PropertyDefinitionBuilder<>::createProperty("SSL Context Service")
     .withDescription("The SSL Context Service used to provide client certificate information for TLS/SSL (https) connections.")
     .withAllowedTypes<minifi::controllers::SSLContextService>()
     .build();
-  EXTENSIONAPI static constexpr auto Properties = std::array<core::PropertyReference, 12>{
+  EXTENSIONAPI static constexpr auto Properties = std::array<core::PropertyReference, 11>{
       Url,
       StreamLabels,
       LogLineMetadataAttributes,
@@ -103,7 +96,6 @@ class PushGrafanaLokiREST : public core::Processor {
       LogLineBatchSize,
       ConnectTimeout,
       ReadTimeout,
-      UseChunkedEncoding,
       SSLContextService
   };
 
