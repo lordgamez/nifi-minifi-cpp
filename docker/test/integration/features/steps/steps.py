@@ -1222,7 +1222,29 @@ def step_impl(context):
     context.test.acquire_container(context=context, name="grafana-loki-server", engine="grafana-loki-server")
 
 
+@given("a Grafana Loki server with SSL is set up")
+def step_impl(context):
+    context.test.acquire_container(context=context, name="grafana-loki-server", engine="grafana-loki-server-ssl")
+
+
 @then("\"{lines}\" lines are published to the Grafana Loki server in less than {timeout_seconds:d} seconds")
 @then("\"{lines}\" line is published to the Grafana Loki server in less than {timeout_seconds:d} seconds")
 def step_impl(context, lines: str, timeout_seconds: int):
-    context.test.check_lines_on_grafana_loki(lines.split(";"), timeout_seconds)
+    context.test.check_lines_on_grafana_loki(lines.split(";"), timeout_seconds, False)
+
+
+@then("\"{lines}\" lines are published using SSL to the Grafana Loki server in less than {timeout_seconds:d} seconds")
+@then("\"{lines}\" line is published using SSL to the Grafana Loki server in less than {timeout_seconds:d} seconds")
+def step_impl(context, lines: str, timeout_seconds: int):
+    context.test.check_lines_on_grafana_loki(lines.split(";"), timeout_seconds, True)
+
+
+@given(u'a SSL context service is set up for PushGrafanaLokiREST')
+def step_impl(context):
+    minifi_crt_file = '/tmp/resources/minifi_client.crt'
+    minifi_key_file = '/tmp/resources/minifi_client.key'
+    root_ca_crt_file = '/tmp/resources/root_ca.crt'
+    ssl_context_service = SSLContextService(cert=minifi_crt_file, ca_cert=root_ca_crt_file, key=minifi_key_file)
+    push_grafana_loki_rest = context.test.get_node_by_name("PushGrafanaLokiREST")
+    push_grafana_loki_rest.controller_services.append(ssl_context_service)
+    push_grafana_loki_rest.set_property("SSL Context Service", ssl_context_service.name)

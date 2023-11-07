@@ -16,10 +16,10 @@ import logging
 import os
 import tempfile
 import docker.types
+import OpenSSL.crypto
 
 from .Container import Container
-from OpenSSL import crypto
-from ssl_utils.SSL_cert_utils import make_cert_without_extended_usage
+from ssl_utils.SSL_cert_utils import make_server_cert
 
 
 class GrafanaLokiContainer(Container):
@@ -29,20 +29,20 @@ class GrafanaLokiContainer(Container):
         self.ssl = ssl
         extra_ssl_settings = ""
         if ssl:
-            grafana_loki_cert, grafana_loki_key = make_cert_without_extended_usage(f"grafana-loki-server-{feature_context.id}", feature_context.root_ca_cert, feature_context.root_ca_key)
+            grafana_loki_cert, grafana_loki_key = make_server_cert(f"grafana-loki-server-{feature_context.id}", feature_context.root_ca_cert, feature_context.root_ca_key)
 
             self.root_ca_file = tempfile.NamedTemporaryFile(delete=False)
-            self.root_ca_file.write(crypto.dump_certificate(type=crypto.FILETYPE_PEM, cert=feature_context.root_ca_cert))
+            self.root_ca_file.write(OpenSSL.crypto.dump_certificate(type=OpenSSL.crypto.FILETYPE_PEM, cert=feature_context.root_ca_cert))
             self.root_ca_file.close()
             os.chmod(self.root_ca_file.name, 0o644)
 
             self.grafana_loki_cert_file = tempfile.NamedTemporaryFile(delete=False)
-            self.grafana_loki_cert_file.write(crypto.dump_certificate(type=crypto.FILETYPE_PEM, cert=grafana_loki_cert))
+            self.grafana_loki_cert_file.write(OpenSSL.crypto.dump_certificate(type=OpenSSL.crypto.FILETYPE_PEM, cert=grafana_loki_cert))
             self.grafana_loki_cert_file.close()
             os.chmod(self.grafana_loki_cert_file.name, 0o644)
 
             self.grafana_loki_key_file = tempfile.NamedTemporaryFile(delete=False)
-            self.grafana_loki_key_file.write(crypto.dump_privatekey(type=crypto.FILETYPE_PEM, pkey=grafana_loki_key))
+            self.grafana_loki_key_file.write(OpenSSL.crypto.dump_privatekey(type=OpenSSL.crypto.FILETYPE_PEM, pkey=grafana_loki_key))
             self.grafana_loki_key_file.close()
             os.chmod(self.grafana_loki_key_file.name, 0o644)
 
@@ -50,7 +50,8 @@ class GrafanaLokiContainer(Container):
   http_tls_config:
     cert_file: /etc/loki/cert.pem
     key_file: /etc/loki/key.pem
-    client_ca_file: /etc/loki/root-ca.pem
+    client_ca_file: /etc/loki/root_ca.crt
+    client_auth_type: VerifyClientCertIfGiven
 """
 
         grafana_loki_yml_content = """
@@ -112,12 +113,12 @@ analytics:
             mounts.append(docker.types.Mount(
                 type='bind',
                 source=self.root_ca_file.name,
-                target='/etc/loki/root-ca.pem'
+                target='/etc/loki/root_ca.crt'
             ))
             mounts.append(docker.types.Mount(
                 type='bind',
                 source=self.grafana_loki_cert_file.name,
-                target='/etc/loki/key.pem'
+                target='/etc/loki/cert.pem'
             ))
             mounts.append(docker.types.Mount(
                 type='bind',

@@ -387,5 +387,5 @@ class DockerTestCluster:
 
             return True
 
-    def wait_for_lines_on_grafana_loki(self, lines: List[str], timeout_seconds: int):
-        return self.grafana_loki_checker.wait_for_lines_on_grafana_loki(lines, timeout_seconds)
+    def wait_for_lines_on_grafana_loki(self, lines: List[str], timeout_seconds: int, ssl: bool):
+        return self.grafana_loki_checker.wait_for_lines_on_grafana_loki(lines, timeout_seconds, ssl)

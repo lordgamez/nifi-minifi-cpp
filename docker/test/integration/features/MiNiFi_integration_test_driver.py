@@ -453,5 +453,5 @@ class MiNiFi_integration_test:
     def debug_bundle_can_be_retrieved_through_minifi_controller(self, container_name: str):
         assert self.cluster.debug_bundle_can_be_retrieved_through_minifi_controller(container_name) or self.cluster.log_app_output()
 
-    def check_lines_on_grafana_loki(self, lines: List[str], timeout_seconds: int):
-        assert self.cluster.wait_for_lines_on_grafana_loki(lines, timeout_seconds) or self.cluster.log_app_output()
+    def check_lines_on_grafana_loki(self, lines: List[str], timeout_seconds: int, ssl: bool):
+        assert self.cluster.wait_for_lines_on_grafana_loki(lines, timeout_seconds, ssl) or self.cluster.log_app_output()
