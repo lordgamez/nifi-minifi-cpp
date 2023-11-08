@@ -77,6 +77,7 @@ limitations under the License.
 - [ProcFsMonitor](#ProcFsMonitor)
 - [PublishKafka](#PublishKafka)
 - [PublishMQTT](#PublishMQTT)
+- [PushGrafanaLokiREST](#PushGrafanaLokiREST)
 - [PutAzureBlobStorage](#PutAzureBlobStorage)
 - [PutAzureDataLakeStorage](#PutAzureDataLakeStorage)
 - [PutFile](#PutFile)
@@ -2155,6 +2156,38 @@ In the list below, the names of required properties appear in bold. Any other pr
 |---------|----------------------------------------------------------------------------------------------|
 | success | FlowFiles that are sent successfully to the destination are transferred to this relationship |
 | failure | FlowFiles that failed to be sent to the destination are transferred to this relationship     |
+
+
+## PushGrafanaLokiREST
+
+### Description
+
+A Grafana Loki push processor that uses the Grafana Loki REST API.
+
+### Properties
+
+In the list below, the names of required properties appear in bold. Any other properties (not in bold) are considered optional. The table also indicates any default values, and whether a property supports the NiFi Expression Language.
+
+| Name                         | Default Value | Allowable Values | Description                                                                                                                                                                                        |
+|------------------------------|---------------|------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Url**                      |               |                  | Url of loki server API endpoint.                                                                                                                                                                   |
+| **Stream Labels**            |               |                  | Comma separated list of <key>=<value> labels to be sent as stream labels.                                                                                                                          |
+| Log Line Metadata Attributes |               |                  | Comma separated list of attributes to be sent as log line metadata.                                                                                                                                |
+| Tenant ID                    |               |                  | The tenant ID used by default to push logs to Grafana Loki. If omitted or empty it assumes Grafana Loki is running in single-tenant mode and no X-Scope-OrgID header is sent.                      |
+| Max Batch Size               | 100           |                  | The maximum number of flow files to process at a time.                                                                                                                                             |
+| Log Line Batch Wait          |               |                  | Time to wait before sending a log line batch to Grafana Loki, full or not. If this property and Log Line Batch Size are both unset, the log batch of the current trigger will be sent immediately. |
+| Log Line Batch Size          |               |                  | Number of log lines to send in a batch to Loki. If this property and Log Line Batch Wait are both unset, the log batch of the current trigger will be sent immediately.                            |
+| **Connection Timeout**       | 5 s           |                  | Max wait time for connection to the Grafana Loki service                                                                                                                                           |
+| **Read Timeout**             | 15 s          |                  | Max wait time for response from remote service                                                                                                                                                     |
+| SSL Context Service          |               |                  | The SSL Context Service used to provide client certificate information for TLS/SSL (https) connections.                                                                                            |
+|                              |               |                  |                                                                                                                                                                                                    |
+
+### Relationships
+
+| Name    | Description                                                                                   |
+|---------|-----------------------------------------------------------------------------------------------|
+| success | All flowfiles that succeed in being transferred into Grafana Loki go here.                    |
+| failure | All flowfiles that fail for reasons unrelated to server availability go to this relationship. |
 
 
 ## PutAzureBlobStorage
