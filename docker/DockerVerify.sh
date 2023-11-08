@@ -169,8 +169,7 @@ TEST_DIRECTORY="${docker_dir}/test/integration"
 export TEST_DIRECTORY
 
 # Add --no-logcapture to see logs interleaved with the test output
-# BEHAVE_OPTS=(--logging-level INFO --parallel-processes "${_arg_parallel_processes}" --parallel-scheme feature -o "${PWD}/behavex_output" -t "${_arg_tags_to_run}")
-BEHAVE_OPTS=(-f pretty --logging-level INFO --logging-clear-handlers --no-logcapture)
+BEHAVE_OPTS=(--logging-level INFO --parallel-processes "${_arg_parallel_processes}" --parallel-scheme feature -o "${PWD}/behavex_output" -t "${_arg_tags_to_run}")
 if ! test -z "${_arg_tags_to_exclude}"
 then
   IFS=','
@@ -185,6 +184,4 @@ echo "${BEHAVE_OPTS[@]}"
 
 cd "${docker_dir}/test/integration"
 exec
-  # behavex "${BEHAVE_OPTS[@]}"
-
-  behave "${BEHAVE_OPTS[@]}" "features/grafana_loki.feature"
+  behavex "${BEHAVE_OPTS[@]}"
