@@ -248,7 +248,7 @@ std::string PushGrafanaLokiREST::createLokiJson(const std::vector<std::shared_pt
   rapidjson::Value values(rapidjson::kArrayType);
   for (const auto& flow_file : batched_flow_files) {
     std::string line;
-    session.read(flow_file, [this, &flow_file, &line](const std::shared_ptr<io::InputStream>& input_stream) -> int64_t {
+    session.read(flow_file, [&line](const std::shared_ptr<io::InputStream>& input_stream) -> int64_t {
       const size_t BUFFER_SIZE = 8192;
       std::array<char, BUFFER_SIZE> buffer;
       size_t read_size = 0;

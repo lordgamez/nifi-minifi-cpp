@@ -146,7 +146,6 @@ class PushGrafanaLokiREST : public core::Processor {
     std::optional<uint64_t> log_line_batch_size_ = 1;
     std::optional<std::chrono::milliseconds> log_line_batch_wait_;
     std::chrono::steady_clock::time_point start_push_time_;
-    uint64_t batched_flowfiles_size_ = 0;
     std::vector<std::shared_ptr<core::FlowFile>> batched_flowfiles_;
     core::StateManager* state_manager_;
   };
