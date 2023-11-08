@@ -86,7 +86,16 @@ class PushGrafanaLokiREST : public core::Processor {
     .withDescription("The SSL Context Service used to provide client certificate information for TLS/SSL (https) connections.")
     .withAllowedTypes<minifi::controllers::SSLContextService>()
     .build();
-  EXTENSIONAPI static constexpr auto Properties = std::array<core::PropertyReference, 11>{
+  EXTENSIONAPI static constexpr auto Username = core::PropertyDefinitionBuilder<>::createProperty("Username")
+    .withDescription("Username for authenticating using basic authentication (in case reverse proxy is used in front of Grafana Loki server).")
+    .build();
+  EXTENSIONAPI static constexpr auto Password = core::PropertyDefinitionBuilder<>::createProperty("Password")
+    .withDescription("Password for authenticating using basic authentication (in case reverse proxy is used in front of Grafana Loki server).")
+    .build();
+  EXTENSIONAPI static constexpr auto BearerTokenFile = core::PropertyDefinitionBuilder<>::createProperty("Bearer Token File")
+    .withDescription("Path of file containing bearer token for bearer token authentication.")
+    .build();
+  EXTENSIONAPI static constexpr auto Properties = std::array<core::PropertyReference, 13>{
       Url,
       StreamLabels,
       LogLineMetadataAttributes,
@@ -96,7 +105,10 @@ class PushGrafanaLokiREST : public core::Processor {
       LogLineBatchSize,
       ConnectTimeout,
       ReadTimeout,
-      SSLContextService
+      SSLContextService,
+      Username,
+      Password,
+      BearerTokenFile
   };
 
   EXTENSIONAPI static constexpr auto Success = core::RelationshipDefinition{"success", "All flowfiles that succeed in being transferred into Grafana Loki go here."};

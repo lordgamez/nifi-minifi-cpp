@@ -17,6 +17,8 @@
 #include "PushGrafanaLokiREST.h"
 
 #include <utility>
+#include <fstream>
+#include <filesystem>
 
 #include "core/ProcessContext.h"
 #include "core/ProcessSession.h"
@@ -95,6 +97,29 @@ void setupClientTimeouts(extensions::curl::HTTPClient& client, const core::Proce
 
   if (auto read_timeout = context.getProperty<core::TimePeriodValue>(PushGrafanaLokiREST::ReadTimeout)) {
     client.setReadTimeout(read_timeout->getMilliseconds());
+  }
+}
+
+void setAuthorization(extensions::curl::HTTPClient& client, const core::ProcessContext& context) {
+  if (auto username = context.getProperty(PushGrafanaLokiREST::Username)) {
+    auto password = context.getProperty(PushGrafanaLokiREST::Password);
+    if (!password) {
+      throw Exception(PROCESS_SCHEDULE_EXCEPTION, "Username is set, but Password property is not!");
+    }
+    std::string auth = *username + ":" + *password;
+    auto base64_encoded_auth = utils::StringUtils::to_base64(auth);
+    client.setRequestHeader("Authorization", "Basic " + base64_encoded_auth);
+  } else if (auto bearer_token_file = context.getProperty(PushGrafanaLokiREST::BearerTokenFile)) {
+    if (!std::filesystem::exists(*bearer_token_file) || !std::filesystem::is_regular_file(*bearer_token_file)) {
+      throw Exception(PROCESS_SCHEDULE_EXCEPTION, "Bearer Token File is not a regular file!");
+    }
+    std::ifstream file(*bearer_token_file);
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+    std::string bearer_token = utils::StringUtils::trim(buffer.str());
+    client.setRequestHeader("Authorization", "Bearer " + bearer_token);
+  } else {
+    client.setRequestHeader("Authorization", std::nullopt);
   }
 }
 }  // namespace
@@ -187,6 +212,7 @@ void PushGrafanaLokiREST::onSchedule(const std::shared_ptr<core::ProcessContext>
   }
 
   setupClientTimeouts(client_, *context);
+  setAuthorization(client_, *context);
 }
 
 void PushGrafanaLokiREST::addLogLineMetadata(rapidjson::Value& log_line, rapidjson::Document::AllocatorType& allocator, core::FlowFile& flow_file) const {

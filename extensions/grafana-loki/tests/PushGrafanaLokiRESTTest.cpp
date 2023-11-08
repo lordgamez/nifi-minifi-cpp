@@ -19,6 +19,8 @@
 #include "MockGrafanaLoki.h"
 #include "SingleProcessorTestController.h"
 #include "Catch.h"
+#include "utils/StringUtils.h"
+#include "utils/TestUtils.h"
 
 namespace org::apache::nifi::minifi::extensions::grafana::loki::test {
 
@@ -79,6 +81,22 @@ class PushGrafanaLokiRESTTestFixture {
 
   void verifyTenantId(const std::string& tenant_id) {
     REQUIRE(mock_loki_.getLastTenantId() == tenant_id);
+  }
+
+  void verifyBasicAuthorization(const std::string& expected_username_and_password) {
+    auto last_authorization = mock_loki_.getLastAuthorization();
+    std::string expected_authorization = "Basic ";
+    REQUIRE(minifi::utils::StringUtils::startsWith(last_authorization, expected_authorization));
+    std::string username_and_password_decoded = minifi::utils::StringUtils::from_base64(last_authorization.substr(expected_authorization.size()), minifi::utils::as_string_tag_t{});
+    REQUIRE(username_and_password_decoded == expected_username_and_password);
+  }
+
+  void verifyBearerTokenAuthorization(const std::string& expected_bearer_token) {
+    auto last_authorization = mock_loki_.getLastAuthorization();
+    std::string expected_authorization = "Bearer ";
+    REQUIRE(minifi::utils::StringUtils::startsWith(last_authorization, expected_authorization));
+    auto bearer_token = last_authorization.substr(expected_authorization.size());
+    REQUIRE(bearer_token == expected_bearer_token);
   }
 
   void verifyStreamLabels() {
@@ -200,6 +218,34 @@ TEST_CASE_METHOD(PushGrafanaLokiRESTTestFixture, "PushGrafanaLokiREST should wai
   verifyStreamLabels();
   std::vector<std::string> expected_log_values = {"log line 1", "log line 2", "log line 3", "log line 4"};
   verifySentRequestToLoki(start_timestamp, expected_log_values);
+}
+
+TEST_CASE("If username is set, password is also required to be set", "[PushGrafanaLokiREST]") {
+  auto push_grafana_loki_rest = std::make_shared<PushGrafanaLokiREST>("PushGrafanaLokiREST");
+  minifi::test::SingleProcessorTestController test_controller(push_grafana_loki_rest);
+  CHECK(test_controller.plan->setProperty(push_grafana_loki_rest, PushGrafanaLokiREST::Url, "localhost:3100"));
+  CHECK(test_controller.plan->setProperty(push_grafana_loki_rest, PushGrafanaLokiREST::StreamLabels, "job=minifi,directory=/opt/minifi/logs/"));
+  CHECK(test_controller.plan->setProperty(push_grafana_loki_rest, PushGrafanaLokiREST::LogLineBatchSize, "1"));
+  CHECK(test_controller.plan->setProperty(push_grafana_loki_rest, PushGrafanaLokiREST::Username, "admin"));
+  REQUIRE_THROWS_AS(test_controller.trigger(), minifi::Exception);
+}
+
+TEST_CASE_METHOD(PushGrafanaLokiRESTTestFixture, "Basic authentication is set in HTTP header", "[PushGrafanaLokiREST]") {
+  setProperty(PushGrafanaLokiREST::LogLineBatchSize, "1");
+  setProperty(PushGrafanaLokiREST::Username, "admin");
+  setProperty(PushGrafanaLokiREST::Password, "admin");
+  setProperty(PushGrafanaLokiREST::BearerTokenFile, "mytoken");  // Basic authentication should take precedence
+  auto results = test_controller_.trigger({minifi::test::InputFlowFileData{"log line 1", {}}});
+  verifyBasicAuthorization("admin:admin");
+}
+
+TEST_CASE_METHOD(PushGrafanaLokiRESTTestFixture, "Bearer token is set for authentication", "[PushGrafanaLokiREST]") {
+  auto temp_dir = test_controller_.createTempDirectory();
+  auto test_file_path = minifi::utils::putFileToDir(temp_dir, "test1.txt", "mytoken\n");
+  setProperty(PushGrafanaLokiREST::LogLineBatchSize, "1");
+  setProperty(PushGrafanaLokiREST::BearerTokenFile, test_file_path.string());
+  auto results = test_controller_.trigger({minifi::test::InputFlowFileData{"log line 1", {}}});
+  verifyBearerTokenAuthorization("mytoken");
 }
 
 }  // namespace org::apache::nifi::minifi::extensions::grafana::loki::test
