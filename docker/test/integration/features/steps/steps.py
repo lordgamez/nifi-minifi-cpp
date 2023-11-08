@@ -1261,3 +1261,9 @@ def step_impl(context):
     push_grafana_loki_rest = context.test.get_node_by_name("PushGrafanaLokiREST")
     push_grafana_loki_rest.controller_services.append(ssl_context_service)
     push_grafana_loki_rest.set_property("SSL Context Service", ssl_context_service.name)
+
+
+# Nginx reverse proxy
+@given(u'a reverse proxy is set up to forward requests to the Grafana Loki server')
+def step_impl(context):
+    context.test.acquire_container(context=context, name="reverse-proxy", engine="reverse-proxy")
