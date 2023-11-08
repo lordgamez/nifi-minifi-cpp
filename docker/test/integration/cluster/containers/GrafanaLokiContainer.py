@@ -92,7 +92,7 @@ ruler:
 
 analytics:
   reporting_enabled: false
-""".format(feature_id=self.feature_context.id, extra_ssl_settings=extra_ssl_settings, enable_multi_tenancy=options.enable_multi_tenancy)
+""".format(extra_ssl_settings=extra_ssl_settings, enable_multi_tenancy=options.enable_multi_tenancy)
 
         self.yaml_file = tempfile.NamedTemporaryFile(delete=False)
         self.yaml_file.write(grafana_loki_yml_content.encode())
