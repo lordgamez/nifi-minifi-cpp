@@ -2162,7 +2162,7 @@ In the list below, the names of required properties appear in bold. Any other pr
 
 ### Description
 
-A Grafana Loki push processor that uses the Grafana Loki REST API.
+A Grafana Loki push processor that uses the Grafana Loki REST API. The processor expects each flow file to contain a single log line to be pushed to Grafana Loki, therefore it is usually used together with the TailFile processor.
 
 ### Properties
 
@@ -2170,17 +2170,19 @@ In the list below, the names of required properties appear in bold. Any other pr
 
 | Name                         | Default Value | Allowable Values | Description                                                                                                                                                                                        |
 |------------------------------|---------------|------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **Url**                      |               |                  | Url of loki server API endpoint.                                                                                                                                                                   |
+| **Url**                      |               |                  | Url of the Grafana Loki server. For example http://localhost:3100/.                                                                                                                                |
 | **Stream Labels**            |               |                  | Comma separated list of <key>=<value> labels to be sent as stream labels.                                                                                                                          |
-| Log Line Metadata Attributes |               |                  | Comma separated list of attributes to be sent as log line metadata.                                                                                                                                |
+| Log Line Metadata Attributes |               |                  | Comma separated list of attributes to be sent as log line metadata for a log line.                                                                                                                 |
 | Tenant ID                    |               |                  | The tenant ID used by default to push logs to Grafana Loki. If omitted or empty it assumes Grafana Loki is running in single-tenant mode and no X-Scope-OrgID header is sent.                      |
-| Max Batch Size               | 100           |                  | The maximum number of flow files to process at a time.                                                                                                                                             |
+| Max Batch Size               | 100           |                  | The maximum number of flow files to process at a time. If not set, or set to 0, all FlowFiles will be processed at once.                                                                           |
 | Log Line Batch Wait          |               |                  | Time to wait before sending a log line batch to Grafana Loki, full or not. If this property and Log Line Batch Size are both unset, the log batch of the current trigger will be sent immediately. |
 | Log Line Batch Size          |               |                  | Number of log lines to send in a batch to Loki. If this property and Log Line Batch Wait are both unset, the log batch of the current trigger will be sent immediately.                            |
-| **Connection Timeout**       | 5 s           |                  | Max wait time for connection to the Grafana Loki service                                                                                                                                           |
-| **Read Timeout**             | 15 s          |                  | Max wait time for response from remote service                                                                                                                                                     |
+| **Connection Timeout**       | 5 s           |                  | Max wait time for connection to the Grafana Loki service.                                                                                                                                          |
+| **Read Timeout**             | 15 s          |                  | Max wait time for response from remote service.                                                                                                                                                    |
 | SSL Context Service          |               |                  | The SSL Context Service used to provide client certificate information for TLS/SSL (https) connections.                                                                                            |
-|                              |               |                  |                                                                                                                                                                                                    |
+| Username                     |               |                  | Username for authenticating using basic authentication.                                                                                                                                            |
+| Password                     |               |                  | Password for authenticating using basic authentication.                                                                                                                                            |
+| Bearer Token File            |               |                  | Path of file containing bearer token for bearer token authentication.                                                                                                                              |
 
 ### Relationships
 

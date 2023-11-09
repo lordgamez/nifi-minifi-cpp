@@ -34,11 +34,8 @@ class GrafanaLokiChecker:
             headers = {'X-Scope-OrgID': tenant_id}
 
         response = requests.get(query_url, verify=False, timeout=30, headers=headers)
-
-        # Check if the request was successful (status code 200)
         if response.status_code >= 200 and response.status_code < 300:
             json_response = response.json()
-            print(str(json_response))
             if "data" not in json_response or "result" not in json_response["data"] or len(json_response["data"]["result"]) < 1:
                 return False
 
@@ -49,10 +46,9 @@ class GrafanaLokiChecker:
             for line in lines:
                 if line not in str(result["values"]):
                     return False
-        else:
-            return False
+            return True
 
-        return True
+        return False
 
     def wait_for_lines_on_grafana_loki(self, lines: List[str], timeout_seconds: int, ssl: bool, tenant_id: str):
         return wait_for(lambda: self.veify_log_lines_on_grafana_loki(lines, ssl, tenant_id), timeout_seconds)

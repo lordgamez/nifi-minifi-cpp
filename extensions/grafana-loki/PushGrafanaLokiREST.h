@@ -34,7 +34,8 @@ namespace org::apache::nifi::minifi::extensions::grafana::loki {
 
 class PushGrafanaLokiREST : public core::Processor {
  public:
-  EXTENSIONAPI static constexpr const char* Description = "A Grafana Loki push processor that uses the Grafana Loki REST API.";
+  EXTENSIONAPI static constexpr const char* Description = "A Grafana Loki push processor that uses the Grafana Loki REST API. The processor expects each flow file to contain a single log line to be "
+                                                          "pushed to Grafana Loki, therefore it is usually used together with the TailFile processor.";
 
   explicit PushGrafanaLokiREST(const std::string& name, const utils::Identifier& uuid = {})
       : Processor(name, uuid) {
@@ -42,7 +43,7 @@ class PushGrafanaLokiREST : public core::Processor {
   ~PushGrafanaLokiREST() override = default;
 
   EXTENSIONAPI static constexpr auto Url = core::PropertyDefinitionBuilder<>::createProperty("Url")
-    .withDescription("Url of loki server API endpoint.")
+    .withDescription("Url of the Grafana Loki server. For example http://localhost:3100/.")
     .isRequired(true)
     .build();
   EXTENSIONAPI static constexpr auto StreamLabels = core::PropertyDefinitionBuilder<>::createProperty("Stream Labels")
@@ -50,13 +51,13 @@ class PushGrafanaLokiREST : public core::Processor {
     .isRequired(true)
     .build();
   EXTENSIONAPI static constexpr auto LogLineMetadataAttributes = core::PropertyDefinitionBuilder<>::createProperty("Log Line Metadata Attributes")
-    .withDescription("Comma separated list of attributes to be sent as log line metadata.")
+    .withDescription("Comma separated list of attributes to be sent as log line metadata for a log line.")
     .build();
   EXTENSIONAPI static constexpr auto TenantID = core::PropertyDefinitionBuilder<>::createProperty("Tenant ID")
     .withDescription("The tenant ID used by default to push logs to Grafana Loki. If omitted or empty it assumes Grafana Loki is running in single-tenant mode and no X-Scope-OrgID header is sent.")
     .build();
   EXTENSIONAPI static constexpr auto MaxBatchSize = core::PropertyDefinitionBuilder<>::createProperty("Max Batch Size")
-    .withDescription("The maximum number of flow files to process at a time.")
+    .withDescription("The maximum number of flow files to process at a time. If not set, or set to 0, all FlowFiles will be processed at once.")
     .withPropertyType(core::StandardPropertyTypes::UNSIGNED_LONG_TYPE)
     .withDefaultValue("100")
     .build();
@@ -71,13 +72,13 @@ class PushGrafanaLokiREST : public core::Processor {
     .withPropertyType(core::StandardPropertyTypes::UNSIGNED_INT_TYPE)
     .build();
   EXTENSIONAPI static constexpr auto ConnectTimeout = core::PropertyDefinitionBuilder<>::createProperty("Connection Timeout")
-    .withDescription("Max wait time for connection to the Grafana Loki service")
+    .withDescription("Max wait time for connection to the Grafana Loki service.")
     .withPropertyType(core::StandardPropertyTypes::TIME_PERIOD_TYPE)
     .withDefaultValue("5 s")
     .isRequired(true)
     .build();
   EXTENSIONAPI static constexpr auto ReadTimeout = core::PropertyDefinitionBuilder<>::createProperty("Read Timeout")
-    .withDescription("Max wait time for response from remote service")
+    .withDescription("Max wait time for response from remote service.")
     .withPropertyType(core::StandardPropertyTypes::TIME_PERIOD_TYPE)
     .withDefaultValue("15 s")
     .isRequired(true)
@@ -87,10 +88,10 @@ class PushGrafanaLokiREST : public core::Processor {
     .withAllowedTypes<minifi::controllers::SSLContextService>()
     .build();
   EXTENSIONAPI static constexpr auto Username = core::PropertyDefinitionBuilder<>::createProperty("Username")
-    .withDescription("Username for authenticating using basic authentication (in case reverse proxy is used in front of Grafana Loki server).")
+    .withDescription("Username for authenticating using basic authentication.")
     .build();
   EXTENSIONAPI static constexpr auto Password = core::PropertyDefinitionBuilder<>::createProperty("Password")
-    .withDescription("Password for authenticating using basic authentication (in case reverse proxy is used in front of Grafana Loki server).")
+    .withDescription("Password for authenticating using basic authentication.")
     .build();
   EXTENSIONAPI static constexpr auto BearerTokenFile = core::PropertyDefinitionBuilder<>::createProperty("Bearer Token File")
     .withDescription("Path of file containing bearer token for bearer token authentication.")
@@ -153,8 +154,11 @@ class PushGrafanaLokiREST : public core::Processor {
   void processBatch(const std::vector<std::shared_ptr<core::FlowFile>>& batched_flow_files, core::ProcessSession& session);
   std::string createLokiJson(const std::vector<std::shared_ptr<core::FlowFile>>& batched_flow_files, core::ProcessSession& session) const;
   nonstd::expected<void, std::string> submitRequest(const std::string& loki_json);
+  void initializeHttpClient(core::ProcessContext& context);
   void setUpStateManager(core::ProcessContext& context);
   void setUpStreamLableAttributes(core::ProcessContext& context);
+  void setupClientTimeouts(const core::ProcessContext& context);
+  void setAuthorization(const core::ProcessContext& context);
   void addLogLineMetadata(rapidjson::Value& log_line, rapidjson::Document::AllocatorType& allocator, core::FlowFile& flow_file) const;
 
   std::optional<uint64_t> max_batch_size_;

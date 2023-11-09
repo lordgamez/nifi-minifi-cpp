@@ -45,7 +45,8 @@ void PushGrafanaLokiREST::LogBatch::add(const std::shared_ptr<core::FlowFile>& f
 std::vector<std::shared_ptr<core::FlowFile>> PushGrafanaLokiREST::LogBatch::flush() {
   gsl_Expects(state_manager_);
   start_push_time_ = {};
-  auto result = std::move(batched_flowfiles_);
+  auto result = batched_flowfiles_;
+  batched_flowfiles_.clear();
   if (log_line_batch_wait_) {
     start_push_time_ = {};
     std::unordered_map<std::string, std::string> state;
@@ -90,37 +91,27 @@ auto getSSLContextService(core::ProcessContext& context) {
   return std::shared_ptr<minifi::controllers::SSLContextService>{};
 }
 
-void setupClientTimeouts(extensions::curl::HTTPClient& client, const core::ProcessContext& context) {
-  if (auto connection_timeout = context.getProperty<core::TimePeriodValue>(PushGrafanaLokiREST::ConnectTimeout)) {
-    client.setConnectionTimeout(connection_timeout->getMilliseconds());
-  }
-
-  if (auto read_timeout = context.getProperty<core::TimePeriodValue>(PushGrafanaLokiREST::ReadTimeout)) {
-    client.setReadTimeout(read_timeout->getMilliseconds());
-  }
-}
-
-void setAuthorization(extensions::curl::HTTPClient& client, const core::ProcessContext& context) {
-  if (auto username = context.getProperty(PushGrafanaLokiREST::Username)) {
-    auto password = context.getProperty(PushGrafanaLokiREST::Password);
-    if (!password) {
-      throw Exception(PROCESS_SCHEDULE_EXCEPTION, "Username is set, but Password property is not!");
+std::string readLogLineFromFlowFile(const std::shared_ptr<core::FlowFile>& flow_file, core::ProcessSession& session) {
+  std::string line;
+  session.read(flow_file, [&line](const std::shared_ptr<io::InputStream>& input_stream) -> int64_t {
+    const size_t BUFFER_SIZE = 8192;
+    std::array<char, BUFFER_SIZE> buffer{};
+    size_t read_size = 0;
+    while (read_size < input_stream->size()) {
+      const size_t next_read_size = (std::min)(gsl::narrow<size_t>(input_stream->size() - read_size), BUFFER_SIZE);
+      const auto ret = input_stream->read(as_writable_bytes(std::span(buffer).subspan(0, next_read_size)));
+      if (io::isError(ret)) {
+        return -1;
+      } else if (ret == 0) {
+        break;
+      } else {
+        line.append(buffer.data(), ret);
+        read_size += ret;
+      }
     }
-    std::string auth = *username + ":" + *password;
-    auto base64_encoded_auth = utils::StringUtils::to_base64(auth);
-    client.setRequestHeader("Authorization", "Basic " + base64_encoded_auth);
-  } else if (auto bearer_token_file = context.getProperty(PushGrafanaLokiREST::BearerTokenFile)) {
-    if (!std::filesystem::exists(*bearer_token_file) || !std::filesystem::is_regular_file(*bearer_token_file)) {
-      throw Exception(PROCESS_SCHEDULE_EXCEPTION, "Bearer Token File is not a regular file!");
-    }
-    std::ifstream file(*bearer_token_file);
-    std::stringstream buffer;
-    buffer << file.rdbuf();
-    std::string bearer_token = utils::StringUtils::trim(buffer.str());
-    client.setRequestHeader("Authorization", "Bearer " + bearer_token);
-  } else {
-    client.setRequestHeader("Authorization", std::nullopt);
-  }
+    return gsl::narrow<int64_t>(read_size);
+  });
+  return line;
 }
 }  // namespace
 
@@ -159,11 +150,41 @@ void PushGrafanaLokiREST::setUpStreamLableAttributes(core::ProcessContext& conte
   }
 }
 
-void PushGrafanaLokiREST::onSchedule(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSessionFactory>&) {
-  gsl_Expects(context);
-  setUpStateManager(*context);
+void PushGrafanaLokiREST::setupClientTimeouts(const core::ProcessContext& context) {
+  if (auto connection_timeout = context.getProperty<core::TimePeriodValue>(PushGrafanaLokiREST::ConnectTimeout)) {
+    client_.setConnectionTimeout(connection_timeout->getMilliseconds());
+  }
 
-  auto url = utils::getRequiredPropertyOrThrow<std::string>(*context, Url.name);
+  if (auto read_timeout = context.getProperty<core::TimePeriodValue>(PushGrafanaLokiREST::ReadTimeout)) {
+    client_.setReadTimeout(read_timeout->getMilliseconds());
+  }
+}
+
+void PushGrafanaLokiREST::setAuthorization(const core::ProcessContext& context) {
+  if (auto username = context.getProperty(PushGrafanaLokiREST::Username)) {
+    auto password = context.getProperty(PushGrafanaLokiREST::Password);
+    if (!password) {
+      throw Exception(PROCESS_SCHEDULE_EXCEPTION, "Username is set, but Password property is not!");
+    }
+    std::string auth = *username + ":" + *password;
+    auto base64_encoded_auth = utils::StringUtils::to_base64(auth);
+    client_.setRequestHeader("Authorization", "Basic " + base64_encoded_auth);
+  } else if (auto bearer_token_file = context.getProperty(PushGrafanaLokiREST::BearerTokenFile)) {
+    if (!std::filesystem::exists(*bearer_token_file) || !std::filesystem::is_regular_file(*bearer_token_file)) {
+      throw Exception(PROCESS_SCHEDULE_EXCEPTION, "Bearer Token File is not a regular file!");
+    }
+    std::ifstream file(*bearer_token_file);
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+    std::string bearer_token = utils::StringUtils::trim(buffer.str());
+    client_.setRequestHeader("Authorization", "Bearer " + bearer_token);
+  } else {
+    client_.setRequestHeader("Authorization", std::nullopt);
+  }
+}
+
+void PushGrafanaLokiREST::initializeHttpClient(core::ProcessContext& context) {
+  auto url = utils::getRequiredPropertyOrThrow<std::string>(context, Url.name);
   if (url.empty()) {
     throw Exception(PROCESS_SCHEDULE_EXCEPTION, "Url property cannot be empty!");
   }
@@ -173,7 +194,13 @@ void PushGrafanaLokiREST::onSchedule(const std::shared_ptr<core::ProcessContext>
     url += "/loki/api/v1/push";
   }
   logger_->log_debug("PushGrafanaLokiREST push url is set to: {}", url);
-  client_.initialize(utils::HttpRequestMethod::POST, url, getSSLContextService(*context));
+  client_.initialize(utils::HttpRequestMethod::POST, url, getSSLContextService(context));
+}
+
+void PushGrafanaLokiREST::onSchedule(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSessionFactory>&) {
+  gsl_Expects(context);
+  setUpStateManager(*context);
+  initializeHttpClient(*context);
   client_.setContentType("application/json");
   client_.setFollowRedirects(true);
 
@@ -211,24 +238,26 @@ void PushGrafanaLokiREST::onSchedule(const std::shared_ptr<core::ProcessContext>
     logger_->log_debug("PushGrafanaLokiREST Log Line Batch Wait is set to {} milliseconds", log_line_batch_wait->getMilliseconds());
   }
 
-  setupClientTimeouts(client_, *context);
-  setAuthorization(client_, *context);
+  setupClientTimeouts(*context);
+  setAuthorization(*context);
 }
 
 void PushGrafanaLokiREST::addLogLineMetadata(rapidjson::Value& log_line, rapidjson::Document::AllocatorType& allocator, core::FlowFile& flow_file) const {
-  if (!log_line_metadata_attributes_.empty()) {
-    rapidjson::Value labels(rapidjson::kObjectType);
-    for (const auto& label : log_line_metadata_attributes_) {
-      auto attribute_value = flow_file.getAttribute(label);
-      if (!attribute_value) {
-        continue;
-      }
-      rapidjson::Value label_key(label.c_str(), gsl::narrow<rapidjson::SizeType>(label.length()), allocator);
-      rapidjson::Value label_value(attribute_value->c_str(), gsl::narrow<rapidjson::SizeType>(attribute_value->length()), allocator);
-      labels.AddMember(label_key, label_value, allocator);
-    }
-    log_line.PushBack(labels, allocator);
+  if (log_line_metadata_attributes_.empty()) {
+    return;
   }
+
+  rapidjson::Value labels(rapidjson::kObjectType);
+  for (const auto& label : log_line_metadata_attributes_) {
+    auto attribute_value = flow_file.getAttribute(label);
+    if (!attribute_value) {
+      continue;
+    }
+    rapidjson::Value label_key(label.c_str(), gsl::narrow<rapidjson::SizeType>(label.length()), allocator);
+    rapidjson::Value label_value(attribute_value->c_str(), gsl::narrow<rapidjson::SizeType>(attribute_value->length()), allocator);
+    labels.AddMember(label_key, label_value, allocator);
+  }
+  log_line.PushBack(labels, allocator);
 }
 
 std::string PushGrafanaLokiREST::createLokiJson(const std::vector<std::shared_ptr<core::FlowFile>>& batched_flow_files, core::ProcessSession& session) const {
@@ -247,31 +276,14 @@ std::string PushGrafanaLokiREST::createLokiJson(const std::vector<std::shared_pt
 
   rapidjson::Value values(rapidjson::kArrayType);
   for (const auto& flow_file : batched_flow_files) {
-    std::string line;
-    session.read(flow_file, [&line](const std::shared_ptr<io::InputStream>& input_stream) -> int64_t {
-      const size_t BUFFER_SIZE = 8192;
-      std::array<char, BUFFER_SIZE> buffer;
-      size_t read_size = 0;
-      while (read_size < input_stream->size()) {
-        const size_t next_read_size = (std::min)(gsl::narrow<size_t>(input_stream->size() - read_size), BUFFER_SIZE);
-        const auto ret = input_stream->read(as_writable_bytes(std::span(buffer).subspan(0, next_read_size)));
-        if (io::isError(ret)) {
-          return -1;
-        } else if (ret == 0) {
-          break;
-        } else {
-          line.append(buffer.data(), ret);
-          read_size += ret;
-        }
-      }
-      return gsl::narrow<int64_t>(read_size);
-    });
     rapidjson::Value log_line(rapidjson::kArrayType);
 
     auto timestamp_str = std::to_string(flow_file->getlineageStartDate().time_since_epoch() / std::chrono::nanoseconds(1));
     rapidjson::Value timestamp;
     timestamp.SetString(timestamp_str.c_str(), gsl::narrow<rapidjson::SizeType>(timestamp_str.length()), allocator);
     rapidjson::Value log_line_value;
+
+    auto line = readLogLineFromFlowFile(flow_file, session);
     log_line_value.SetString(line.c_str(), gsl::narrow<rapidjson::SizeType>(line.length()), allocator);
 
     log_line.PushBack(timestamp, allocator);
