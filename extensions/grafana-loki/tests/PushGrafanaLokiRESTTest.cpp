@@ -36,7 +36,7 @@ TEST_CASE("Url property is required", "[PushGrafanaLokiREST]") {
 TEST_CASE("Valid stream labels need to be set", "[PushGrafanaLokiREST]") {
   auto push_grafana_loki_rest = std::make_shared<PushGrafanaLokiREST>("PushGrafanaLokiREST");
   minifi::test::SingleProcessorTestController test_controller(push_grafana_loki_rest);
-  CHECK(test_controller.plan->setProperty(push_grafana_loki_rest, PushGrafanaLokiREST::Url, "localhost:3100"));
+  CHECK(test_controller.plan->setProperty(push_grafana_loki_rest, PushGrafanaLokiREST::Url, "localhost:10990"));
   CHECK(test_controller.plan->setProperty(push_grafana_loki_rest, PushGrafanaLokiREST::LogLineBatchSize, "1"));
   SECTION("Stream labels cannot be empty") {
     test_controller.plan->setProperty(push_grafana_loki_rest, PushGrafanaLokiREST::StreamLabels, "");
@@ -50,7 +50,7 @@ TEST_CASE("Valid stream labels need to be set", "[PushGrafanaLokiREST]") {
 TEST_CASE("Log Line Batch Size cannot be 0", "[PushGrafanaLokiREST]") {
   auto push_grafana_loki_rest = std::make_shared<PushGrafanaLokiREST>("PushGrafanaLokiREST");
   minifi::test::SingleProcessorTestController test_controller(push_grafana_loki_rest);
-  CHECK(test_controller.plan->setProperty(push_grafana_loki_rest, PushGrafanaLokiREST::Url, "localhost:3100"));
+  CHECK(test_controller.plan->setProperty(push_grafana_loki_rest, PushGrafanaLokiREST::Url, "localhost:10990"));
   CHECK(test_controller.plan->setProperty(push_grafana_loki_rest, PushGrafanaLokiREST::StreamLabels, "job=minifi,directory=/opt/minifi/logs/"));
   test_controller.plan->setProperty(push_grafana_loki_rest, PushGrafanaLokiREST::LogLineBatchSize, "0");
   REQUIRE_THROWS_AS(test_controller.trigger(), minifi::Exception);
@@ -59,14 +59,14 @@ TEST_CASE("Log Line Batch Size cannot be 0", "[PushGrafanaLokiREST]") {
 class PushGrafanaLokiRESTTestFixture {
  public:
   PushGrafanaLokiRESTTestFixture()
-      : mock_loki_("3100"),
+      : mock_loki_("10990"),
         push_grafana_loki_rest_(std::make_shared<PushGrafanaLokiREST>("PushGrafanaLokiREST")),
         test_controller_(push_grafana_loki_rest_) {
     LogTestController::getInstance().setDebug<TestPlan>();
     LogTestController::getInstance().setDebug<minifi::core::Processor>();
     LogTestController::getInstance().setTrace<minifi::core::ProcessSession>();
     LogTestController::getInstance().setTrace<PushGrafanaLokiREST>();
-    CHECK(test_controller_.plan->setProperty(push_grafana_loki_rest_, PushGrafanaLokiREST::Url, "localhost:3100"));
+    CHECK(test_controller_.plan->setProperty(push_grafana_loki_rest_, PushGrafanaLokiREST::Url, "localhost:10990"));
     CHECK(test_controller_.plan->setProperty(push_grafana_loki_rest_, PushGrafanaLokiREST::StreamLabels, "job=minifi,directory=/opt/minifi/logs/"));
   }
 
@@ -144,6 +144,13 @@ class PushGrafanaLokiRESTTestFixture {
     }
   }
 
+  void verifyTransferredFlowContent(const std::vector<std::shared_ptr<core::FlowFile>>& flow_files, const std::vector<std::string>& expected_log_values) {
+    CHECK(flow_files.size() == expected_log_values.size());
+    for (const auto& flow_file : flow_files) {
+      CHECK(std::find(expected_log_values.begin(), expected_log_values.end(), test_controller_.plan->getContent(flow_file)) != expected_log_values.end());
+    }
+  }
+
  protected:
   MockGrafanaLoki mock_loki_;
   std::shared_ptr<PushGrafanaLokiREST> push_grafana_loki_rest_;
@@ -158,6 +165,7 @@ TEST_CASE_METHOD(PushGrafanaLokiRESTTestFixture, "PushGrafanaLokiREST should sen
   verifyStreamLabels();
   std::vector<std::string> expected_log_values = {"log line 1"};
   verifySentRequestToLoki(start_timestamp, expected_log_values);
+  verifyTransferredFlowContent(results.at(PushGrafanaLokiREST::Success), expected_log_values);
 }
 
 TEST_CASE_METHOD(PushGrafanaLokiRESTTestFixture, "PushGrafanaLokiREST should wait for Log Line Batch Size limit to be reached", "[PushGrafanaLokiREST]") {
@@ -165,11 +173,26 @@ TEST_CASE_METHOD(PushGrafanaLokiRESTTestFixture, "PushGrafanaLokiREST should wai
   setProperty(PushGrafanaLokiREST::LogLineBatchSize, "4");
   setProperty(PushGrafanaLokiREST::MaxBatchSize, "2");
   auto results = test_controller_.trigger({minifi::test::InputFlowFileData{"log line 1", {}}, minifi::test::InputFlowFileData{"log line 2", {}}, minifi::test::InputFlowFileData{"log line 3", {}}});
+  CHECK(results.at(PushGrafanaLokiREST::Success).empty());
   verifyLastRequestIsEmpty();
   results = test_controller_.trigger({minifi::test::InputFlowFileData{"log line 4", {}}});
   verifyStreamLabels();
   std::vector<std::string> expected_log_values = {"log line 1", "log line 2", "log line 3", "log line 4"};
   verifySentRequestToLoki(start_timestamp, expected_log_values);
+  verifyTransferredFlowContent(results.at(PushGrafanaLokiREST::Success), expected_log_values);
+}
+
+TEST_CASE_METHOD(PushGrafanaLokiRESTTestFixture, "If submitting to Grafana Loki fails then the flow files should be transferred to failure", "[PushGrafanaLokiREST]") {
+  setProperty(PushGrafanaLokiREST::Url, "http://invalid-url");
+  setProperty(PushGrafanaLokiREST::LogLineBatchSize, "4");
+  setProperty(PushGrafanaLokiREST::MaxBatchSize, "2");
+  auto results = test_controller_.trigger({minifi::test::InputFlowFileData{"log line 1", {}}, minifi::test::InputFlowFileData{"log line 2", {}}, minifi::test::InputFlowFileData{"log line 3", {}}});
+  CHECK(results.at(PushGrafanaLokiREST::Success).empty());
+  CHECK(results.at(PushGrafanaLokiREST::Failure).empty());
+  results = test_controller_.trigger({minifi::test::InputFlowFileData{"log line 4", {}}});
+  std::vector<std::string> expected_log_values = {"log line 1", "log line 2", "log line 3", "log line 4"};
+  CHECK(results.at(PushGrafanaLokiREST::Success).empty());
+  verifyTransferredFlowContent(results.at(PushGrafanaLokiREST::Failure), expected_log_values);
 }
 
 TEST_CASE_METHOD(PushGrafanaLokiRESTTestFixture, "If no log line batch limit is set, all log files in a single trigger should be processed", "[PushGrafanaLokiREST]") {
@@ -185,6 +208,7 @@ TEST_CASE_METHOD(PushGrafanaLokiRESTTestFixture, "If no log line batch limit is 
   auto results = test_controller_.trigger({minifi::test::InputFlowFileData{"log line 1", {}}, minifi::test::InputFlowFileData{"log line 2", {}}, minifi::test::InputFlowFileData{"log line 3", {}}});
   verifyStreamLabels();
   verifySentRequestToLoki(start_timestamp, expected_log_values);
+  verifyTransferredFlowContent(results.at(PushGrafanaLokiREST::Success), expected_log_values);
 }
 
 TEST_CASE_METHOD(PushGrafanaLokiRESTTestFixture, "Log line metadata can be added with flow file attributes", "[PushGrafanaLokiREST]") {
@@ -197,6 +221,7 @@ TEST_CASE_METHOD(PushGrafanaLokiRESTTestFixture, "Log line metadata can be added
   std::vector<std::string> expected_log_values = {"log line 1", "log line 2"};
   std::vector<std::map<std::string, std::string>> expected_log_line_attribute_values = {{{"label1", "value1"}}, {{"label1", "value1"}, {"label2", "value2"}}};
   verifySentRequestToLoki(start_timestamp, expected_log_values, expected_log_line_attribute_values);
+  verifyTransferredFlowContent(results.at(PushGrafanaLokiREST::Success), expected_log_values);
 }
 
 TEST_CASE_METHOD(PushGrafanaLokiRESTTestFixture, "Tenant ID can be set in properties", "[PushGrafanaLokiREST]") {
@@ -218,12 +243,13 @@ TEST_CASE_METHOD(PushGrafanaLokiRESTTestFixture, "PushGrafanaLokiREST should wai
   verifyStreamLabels();
   std::vector<std::string> expected_log_values = {"log line 1", "log line 2", "log line 3", "log line 4"};
   verifySentRequestToLoki(start_timestamp, expected_log_values);
+  verifyTransferredFlowContent(results.at(PushGrafanaLokiREST::Success), expected_log_values);
 }
 
 TEST_CASE("If username is set, password is also required to be set", "[PushGrafanaLokiREST]") {
   auto push_grafana_loki_rest = std::make_shared<PushGrafanaLokiREST>("PushGrafanaLokiREST");
   minifi::test::SingleProcessorTestController test_controller(push_grafana_loki_rest);
-  CHECK(test_controller.plan->setProperty(push_grafana_loki_rest, PushGrafanaLokiREST::Url, "localhost:3100"));
+  CHECK(test_controller.plan->setProperty(push_grafana_loki_rest, PushGrafanaLokiREST::Url, "localhost:10990"));
   CHECK(test_controller.plan->setProperty(push_grafana_loki_rest, PushGrafanaLokiREST::StreamLabels, "job=minifi,directory=/opt/minifi/logs/"));
   CHECK(test_controller.plan->setProperty(push_grafana_loki_rest, PushGrafanaLokiREST::LogLineBatchSize, "1"));
   CHECK(test_controller.plan->setProperty(push_grafana_loki_rest, PushGrafanaLokiREST::Username, "admin"));

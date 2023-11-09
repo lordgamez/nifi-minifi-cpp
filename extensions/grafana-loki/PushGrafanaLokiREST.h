@@ -38,7 +38,8 @@ class PushGrafanaLokiREST : public core::Processor {
                                                           "pushed to Grafana Loki, therefore it is usually used together with the TailFile processor.";
 
   explicit PushGrafanaLokiREST(const std::string& name, const utils::Identifier& uuid = {})
-      : Processor(name, uuid) {
+      : Processor(name, uuid),
+        log_batch_(logger_) {
   }
   ~PushGrafanaLokiREST() override = default;
 
@@ -135,7 +136,9 @@ class PushGrafanaLokiREST : public core::Processor {
  private:
   class LogBatch {
    public:
+    explicit LogBatch(const std::shared_ptr<core::logging::Logger>& logger) : logger_(logger) {}
     void add(const std::shared_ptr<core::FlowFile>& flowfile);
+    void restore(const std::shared_ptr<core::FlowFile>& flowfile);
     bool isReady() const;
     std::vector<std::shared_ptr<core::FlowFile>> flush();
     void setLogLineBatchSize(std::optional<uint64_t> log_line_batch_size);
@@ -149,6 +152,7 @@ class PushGrafanaLokiREST : public core::Processor {
     std::chrono::steady_clock::time_point start_push_time_;
     std::vector<std::shared_ptr<core::FlowFile>> batched_flowfiles_;
     core::StateManager* state_manager_;
+    std::shared_ptr<core::logging::Logger> logger_;
   };
 
   void processBatch(const std::vector<std::shared_ptr<core::FlowFile>>& batched_flow_files, core::ProcessSession& session);
@@ -161,15 +165,14 @@ class PushGrafanaLokiREST : public core::Processor {
   void setAuthorization(const core::ProcessContext& context);
   void addLogLineMetadata(rapidjson::Value& log_line, rapidjson::Document::AllocatorType& allocator, core::FlowFile& flow_file) const;
 
+  std::shared_ptr<core::logging::Logger> logger_ = core::logging::LoggerFactory<PushGrafanaLokiREST>::getLogger(uuid_);
   std::optional<uint64_t> max_batch_size_;
   std::map<std::string, std::string> stream_label_attributes_;
   std::vector<std::string> log_line_metadata_attributes_;
   std::optional<std::string> tenant_id_;
-  LogBatch log_batch_;
   bool no_log_line_batch_limit_is_set_ = false;
-
+  LogBatch log_batch_;
   curl::HTTPClient client_;
-  std::shared_ptr<core::logging::Logger> logger_ = core::logging::LoggerFactory<PushGrafanaLokiREST>::getLogger(uuid_);
 };
 
 }  // namespace org::apache::nifi::minifi::extensions::grafana::loki

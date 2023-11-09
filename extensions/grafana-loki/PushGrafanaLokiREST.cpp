@@ -37,8 +37,13 @@ void PushGrafanaLokiREST::LogBatch::add(const std::shared_ptr<core::FlowFile>& f
     start_push_time_ = std::chrono::steady_clock::now();
     std::unordered_map<std::string, std::string> state;
     state["start_push_time"] = std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(start_push_time_.time_since_epoch()).count());
+    logger_->log_debug("Saved start push time to state: {}", state["start_push_time"]);
     state_manager_->set(state);
   }
+  batched_flowfiles_.push_back(flowfile);
+}
+
+void PushGrafanaLokiREST::LogBatch::restore(const std::shared_ptr<core::FlowFile>& flowfile) {
   batched_flowfiles_.push_back(flowfile);
 }
 
@@ -50,6 +55,7 @@ std::vector<std::shared_ptr<core::FlowFile>> PushGrafanaLokiREST::LogBatch::flus
   if (log_line_batch_wait_) {
     start_push_time_ = {};
     std::unordered_map<std::string, std::string> state;
+    logger_->log_debug("Reset start push time state");
     state["start_push_time"] = "0";
     state_manager_->set(state);
   }
@@ -126,6 +132,7 @@ void PushGrafanaLokiREST::setUpStateManager(core::ProcessContext& context) {
   if (state_manager->get(state_map)) {
     auto it = state_map.find("start_push_time");
     if (it != state_map.end()) {
+      logger_->log_info("Restored start push time from processor state: {}", it->second);
       std::chrono::steady_clock::time_point start_push_time{std::chrono::milliseconds{std::stoll(it->second)}};
       log_batch_.setStartPushTime(start_push_time);
     }
@@ -338,20 +345,27 @@ void PushGrafanaLokiREST::processBatch(const std::vector<std::shared_ptr<core::F
 void PushGrafanaLokiREST::onTrigger(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSession>& session) {
   gsl_Expects(context && session);
   uint64_t flow_files_read = 0;
-  std::vector<std::shared_ptr<core::FlowFile>> handled_flow_files;
+  std::vector<std::shared_ptr<core::FlowFile>> to_be_transferred_flow_files;
   while (!max_batch_size_ || *max_batch_size_ == 0 || flow_files_read < *max_batch_size_) {
     std::shared_ptr<core::FlowFile> flow_file = session->get();
     if (!flow_file) {
       break;
     }
 
-    handled_flow_files.push_back(flow_file);
+    to_be_transferred_flow_files.push_back(flow_file);
     logger_->log_debug("Enqueuing flow file {} to be sent to Loki", flow_file->getUUIDStr());
     log_batch_.add(flow_file);
     if (log_batch_.isReady()) {
       auto batched_flow_files = log_batch_.flush();
+      for (const auto& flow : batched_flow_files) {
+        if (std::find(to_be_transferred_flow_files.begin(), to_be_transferred_flow_files.end(), flow) != to_be_transferred_flow_files.end()) {
+          break;
+        }
+        session->add(flow);
+      }
       logger_->log_debug("Sending {} log lines to Loki", batched_flow_files.size());
       processBatch(batched_flow_files, *session);
+      to_be_transferred_flow_files.clear();
     }
 
     ++flow_files_read;
@@ -360,10 +374,8 @@ void PushGrafanaLokiREST::onTrigger(const std::shared_ptr<core::ProcessContext>&
     auto batched_flow_files = log_batch_.flush();
     logger_->log_debug("Sending {} log lines to Loki", batched_flow_files.size());
     processBatch(batched_flow_files, *session);
-  }
-
-  for (const auto& flow_file : handled_flow_files) {
-    if (!session->hasBeenTransferred(*flow_file)) {
+  } else {
+    for (const auto& flow_file : to_be_transferred_flow_files) {
       session->transfer(flow_file, Self);
     }
   }
@@ -373,7 +385,8 @@ void PushGrafanaLokiREST::restore(const std::shared_ptr<core::FlowFile>& flow_fi
   if (!flow_file) {
     return;
   }
-  log_batch_.add(flow_file);
+  logger_->log_debug("Restoring flow file {} from flow file repository", flow_file->getUUIDStr());
+  log_batch_.restore(flow_file);
 }
 
 std::set<core::Connectable*> PushGrafanaLokiREST::getOutGoingConnections(const std::string &relationship) {
