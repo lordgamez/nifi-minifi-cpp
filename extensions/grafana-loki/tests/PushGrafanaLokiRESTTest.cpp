@@ -182,6 +182,18 @@ TEST_CASE_METHOD(PushGrafanaLokiRESTTestFixture, "PushGrafanaLokiREST should wai
   verifyTransferredFlowContent(results.at(PushGrafanaLokiREST::Success), expected_log_values);
 }
 
+TEST_CASE_METHOD(PushGrafanaLokiRESTTestFixture, "Multiple batches are sent in a single trigger", "[PushGrafanaLokiREST]") {
+  uint64_t start_timestamp = std::chrono::system_clock::now().time_since_epoch() / std::chrono::nanoseconds(1);
+  setProperty(PushGrafanaLokiREST::LogLineBatchSize, "2");
+  setProperty(PushGrafanaLokiREST::MaxBatchSize, "4");
+  auto results = test_controller_.trigger({minifi::test::InputFlowFileData{"log line 1", {}}, minifi::test::InputFlowFileData{"log line 2", {}}, minifi::test::InputFlowFileData{"log line 3", {}},
+    minifi::test::InputFlowFileData{"log line 4", {}}, minifi::test::InputFlowFileData{"log line 5", {}}});
+  verifyStreamLabels();
+  std::vector<std::string> expected_log_values = {"log line 1", "log line 2", "log line 3", "log line 4"};
+  verifySentRequestToLoki(start_timestamp, {"log line 3", "log line 4"});
+  verifyTransferredFlowContent(results.at(PushGrafanaLokiREST::Success), expected_log_values);
+}
+
 TEST_CASE_METHOD(PushGrafanaLokiRESTTestFixture, "If submitting to Grafana Loki fails then the flow files should be transferred to failure", "[PushGrafanaLokiREST]") {
   setProperty(PushGrafanaLokiREST::Url, "http://invalid-url");
   setProperty(PushGrafanaLokiREST::LogLineBatchSize, "4");

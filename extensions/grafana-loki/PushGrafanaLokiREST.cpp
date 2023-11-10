@@ -358,7 +358,7 @@ void PushGrafanaLokiREST::onTrigger(const std::shared_ptr<core::ProcessContext>&
     if (log_batch_.isReady()) {
       auto batched_flow_files = log_batch_.flush();
       for (const auto& flow : batched_flow_files) {
-        if (std::find(to_be_transferred_flow_files.begin(), to_be_transferred_flow_files.end(), flow) != to_be_transferred_flow_files.end()) {
+        if (to_be_transferred_flow_files[0] == flow) {  // we don't want to add the flowfiles that are already in this session
           break;
         }
         session->add(flow);
