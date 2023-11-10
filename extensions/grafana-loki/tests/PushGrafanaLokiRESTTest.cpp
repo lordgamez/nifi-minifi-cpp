@@ -251,9 +251,16 @@ TEST_CASE_METHOD(PushGrafanaLokiRESTTestFixture, "PushGrafanaLokiREST should wai
   auto results = test_controller_.trigger({minifi::test::InputFlowFileData{"log line 1", {}}, minifi::test::InputFlowFileData{"log line 2", {}}, minifi::test::InputFlowFileData{"log line 3", {}}});
   verifyLastRequestIsEmpty();
   std::this_thread::sleep_for(300ms);
-  results = test_controller_.trigger({minifi::test::InputFlowFileData{"log line 4", {}}});
+  std::vector<std::string> expected_log_values;
+  SECTION("Trigger with new flow file") {
+    results = test_controller_.trigger({minifi::test::InputFlowFileData{"log line 4", {}}});
+    expected_log_values = {"log line 1", "log line 2", "log line 3", "log line 4"};
+  }
+  SECTION("Trigger without new flow file should also send the batch") {
+    results = test_controller_.trigger(std::vector<minifi::test::InputFlowFileData>{});
+    expected_log_values = {"log line 1", "log line 2", "log line 3"};
+  }
   verifyStreamLabels();
-  std::vector<std::string> expected_log_values = {"log line 1", "log line 2", "log line 3", "log line 4"};
   verifySentRequestToLoki(start_timestamp, expected_log_values);
   verifyTransferredFlowContent(results.at(PushGrafanaLokiREST::Success), expected_log_values);
 }

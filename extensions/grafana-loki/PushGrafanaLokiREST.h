@@ -170,7 +170,8 @@ class PushGrafanaLokiREST : public core::Processor {
   std::map<std::string, std::string> stream_label_attributes_;
   std::vector<std::string> log_line_metadata_attributes_;
   std::optional<std::string> tenant_id_;
-  bool no_log_line_batch_limit_is_set_ = false;
+  bool log_line_batch_size_is_set_ = false;
+  bool log_line_batch_wait_is_set_ = false;
   LogBatch log_batch_;
   curl::HTTPClient client_;
 };

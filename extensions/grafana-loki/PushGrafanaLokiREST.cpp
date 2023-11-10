@@ -98,26 +98,8 @@ auto getSSLContextService(core::ProcessContext& context) {
 }
 
 std::string readLogLineFromFlowFile(const std::shared_ptr<core::FlowFile>& flow_file, core::ProcessSession& session) {
-  std::string line;
-  session.read(flow_file, [&line](const std::shared_ptr<io::InputStream>& input_stream) -> int64_t {
-    const size_t BUFFER_SIZE = 8192;
-    std::array<char, BUFFER_SIZE> buffer{};
-    size_t read_size = 0;
-    while (read_size < input_stream->size()) {
-      const size_t next_read_size = (std::min)(gsl::narrow<size_t>(input_stream->size() - read_size), BUFFER_SIZE);
-      const auto ret = input_stream->read(as_writable_bytes(std::span(buffer).subspan(0, next_read_size)));
-      if (io::isError(ret)) {
-        return -1;
-      } else if (ret == 0) {
-        break;
-      } else {
-        line.append(buffer.data(), ret);
-        read_size += ret;
-      }
-    }
-    return gsl::narrow<int64_t>(read_size);
-  });
-  return line;
+  auto read_buffer_result = session.readBuffer(flow_file);
+  return {reinterpret_cast<const char*>(read_buffer_result.buffer.data()), read_buffer_result.buffer.size()};
 }
 }  // namespace
 
@@ -228,7 +210,8 @@ void PushGrafanaLokiREST::onSchedule(const std::shared_ptr<core::ProcessContext>
     if (log_line_batch_size && *log_line_batch_size < 1) {
     throw Exception(PROCESS_SCHEDULE_EXCEPTION, "Log Line Batch Size property is invalid!");
   }
-  no_log_line_batch_limit_is_set_ = !log_line_batch_size && !log_line_batch_wait;
+  log_line_batch_size_is_set_ = log_line_batch_size.has_value();
+  log_line_batch_wait_is_set_ = log_line_batch_wait.has_value();
 
   max_batch_size_ = context->getProperty<uint64_t>(MaxBatchSize);
   if (max_batch_size_) {
@@ -355,7 +338,7 @@ void PushGrafanaLokiREST::onTrigger(const std::shared_ptr<core::ProcessContext>&
     to_be_transferred_flow_files.push_back(flow_file);
     logger_->log_debug("Enqueuing flow file {} to be sent to Loki", flow_file->getUUIDStr());
     log_batch_.add(flow_file);
-    if (log_batch_.isReady()) {
+    if (log_batch_.isReady()) {  // if no log line batch limit is set, then log batch will never be ready
       auto batched_flow_files = log_batch_.flush();
       for (const auto& flow : batched_flow_files) {
         if (to_be_transferred_flow_files[0] == flow) {  // we don't want to add the flowfiles that are already in this session
@@ -370,11 +353,24 @@ void PushGrafanaLokiREST::onTrigger(const std::shared_ptr<core::ProcessContext>&
 
     ++flow_files_read;
   }
-  if (no_log_line_batch_limit_is_set_) {
+
+  if (!log_line_batch_size_is_set_ && !log_line_batch_wait_is_set_) {  // if no log line batch limit is set, then the log batch will contain all the flow files in the trigger that should be sent
     auto batched_flow_files = log_batch_.flush();
     logger_->log_debug("Sending {} log lines to Loki", batched_flow_files.size());
     processBatch(batched_flow_files, *session);
-  } else {
+  } else if (flow_files_read == 0 && log_line_batch_wait_is_set_) {  // if no flow files were read, but wait time is set for log batch, we should see if it is ready to be sent
+    if (!log_batch_.isReady()) {
+      return;
+    }
+    auto batched_flow_files = log_batch_.flush();
+    for (const auto& flow : batched_flow_files) {
+      session->add(flow);
+    }
+    logger_->log_debug("Sending {} log lines to Loki", batched_flow_files.size());
+    processBatch(batched_flow_files, *session);
+  } else if (flow_files_read == 0) {  // if no flow files were read and no log batch wait time is set, then we should yield
+    context->yield();
+  } else {  // if flow files were read, then assume ownership of incoming, non-transferred flow files
     for (const auto& flow_file : to_be_transferred_flow_files) {
       session->transfer(flow_file, Self);
     }
