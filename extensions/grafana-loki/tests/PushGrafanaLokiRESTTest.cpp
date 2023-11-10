@@ -144,7 +144,7 @@ class PushGrafanaLokiRESTTestFixture {
     }
   }
 
-  void verifyTransferredFlowContent(const std::vector<std::shared_ptr<core::FlowFile>>& flow_files, const std::vector<std::string>& expected_log_values) {
+  void verifyTransferredFlowContent(const std::vector<std::shared_ptr<core::FlowFile>>& flow_files, const std::vector<std::string>& expected_log_values) const {
     CHECK(flow_files.size() == expected_log_values.size());
     for (const auto& flow_file : flow_files) {
       CHECK(std::find(expected_log_values.begin(), expected_log_values.end(), test_controller_.plan->getContent(flow_file)) != expected_log_values.end());
