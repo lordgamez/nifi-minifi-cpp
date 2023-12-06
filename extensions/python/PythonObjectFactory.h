@@ -31,11 +31,17 @@
 #pragma GCC visibility push(hidden)
 #endif
 
+enum class PythonProcessorType {
+  MINIFI_TYPE,
+  NIFI_TYPE
+};
+
 class PythonObjectFactory : public org::apache::nifi::minifi::core::DefautObjectFactory<org::apache::nifi::minifi::extensions::python::processors::ExecutePythonProcessor> {
  public:
-  explicit PythonObjectFactory(std::string file, std::string name)
+  explicit PythonObjectFactory(std::string file, std::string name, PythonProcessorType python_processor_type)
       : file_(std::move(file)),
-        name_(std::move(name)) {
+        name_(std::move(name)),
+        python_processor_type_(python_processor_type) {
   }
 
   std::unique_ptr<org::apache::nifi::minifi::core::CoreComponent> create(const std::string &name) override {
@@ -46,6 +52,9 @@ class PythonObjectFactory : public org::apache::nifi::minifi::core::DefautObject
     }
     ptr->initialize();
     ptr->setProperty(org::apache::nifi::minifi::extensions::python::processors::ExecutePythonProcessor::ScriptFile, file_);
+    if (python_processor_type_ == PythonProcessorType::NIFI_TYPE) {
+      ptr->setPythonClassName(name_);
+    }
     return ptr;
   }
 
@@ -57,6 +66,9 @@ class PythonObjectFactory : public org::apache::nifi::minifi::core::DefautObject
     }
     ptr->initialize();
     ptr->setProperty(org::apache::nifi::minifi::extensions::python::processors::ExecutePythonProcessor::ScriptFile, file_);
+    if (python_processor_type_ == PythonProcessorType::NIFI_TYPE) {
+      ptr->setPythonClassName(name_);
+    }
     return ptr;
   }
 
@@ -71,12 +83,16 @@ class PythonObjectFactory : public org::apache::nifi::minifi::core::DefautObject
     auto ptr = dynamic_cast<org::apache::nifi::minifi::extensions::python::processors::ExecutePythonProcessor*>(DefautObjectFactory::createRaw(name, uuid));
     ptr->initialize();
     ptr->setProperty(org::apache::nifi::minifi::extensions::python::processors::ExecutePythonProcessor::ScriptFile, file_);
+    if (python_processor_type_ == PythonProcessorType::NIFI_TYPE) {
+      ptr->setPythonClassName(name_);
+    }
     return dynamic_cast<org::apache::nifi::minifi::core::CoreComponent*>(ptr);
   }
 
  private:
   std::string file_;
   std::string name_;
+  PythonProcessorType python_processor_type_;
 };
 
 #if defined(__GNUC__) || defined(__GNUG__)

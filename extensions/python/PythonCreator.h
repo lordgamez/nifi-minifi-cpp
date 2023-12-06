@@ -55,7 +55,7 @@ class PythonCreator : public minifi::core::CoreComponent {
   void configure(const std::shared_ptr<Configure> &configuration) override {
     python::PythonScriptEngine::initialize();
 
-    auto engine = std::make_shared<python::PythonScriptEngine>();
+    auto engine = std::make_shared<python::PythonScriptEngine>();  // TODO: is this needed? probably interpreter init
     std::optional<std::string> pathListings = configuration ? configuration->get(minifi::Configuration::nifi_python_processor_dir) : std::nullopt;
     if (!pathListings) {
       return;
@@ -71,7 +71,11 @@ class PythonCreator : public minifi::core::CoreComponent {
         full_name = utils::StringUtils::join_pack("org.apache.nifi.minifi.processors.", package, ".", script_name.string());
         class_name = full_name;
       }
-      core::getClassLoader().registerClass(class_name, std::make_unique<PythonObjectFactory>(path.string(), class_name));
+      if (path.string().find("nifi_python_processors") != std::string::npos) {
+        core::getClassLoader().registerClass(class_name, std::make_unique<PythonObjectFactory>(path.string(), class_name, PythonProcessorType::NIFI_TYPE));
+      } else if (path.string().find("nifiapi") == std::string::npos) {
+        core::getClassLoader().registerClass(class_name, std::make_unique<PythonObjectFactory>(path.string(), class_name, PythonProcessorType::MINIFI_TYPE));
+      }
       registered_classes_.push_back(class_name);
       try {
         registerScriptDescription(class_name, full_name, path, script_name.string());
