@@ -118,6 +118,10 @@ class ExecutePythonProcessor : public core::Processor {
     return description_;
   }
 
+  void setPythonClassName(const std::string& python_class_name) {
+    python_class_name_ = python_class_name;
+  }
+
  private:
   std::vector<core::Property> python_properties_;
 
@@ -134,6 +138,7 @@ class ExecutePythonProcessor : public core::Processor {
   std::string script_file_path_;
   std::shared_ptr<core::logging::Logger> python_logger_;
   std::unique_ptr<PythonScriptEngine> python_script_engine_;
+  std::optional<std::string> python_class_name_;
 
   void appendPathForImportModules();
   void loadScriptFromFile();

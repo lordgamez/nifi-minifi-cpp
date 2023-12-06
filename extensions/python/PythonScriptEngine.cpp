@@ -182,4 +182,16 @@ void PythonScriptEngine::evaluateModuleImports() {
   }
 }
 
+void PythonScriptEngine::initializeProcessorObject(const std::string& python_class_name) {
+  GlobalInterpreterLock gil;
+  if (auto python_class = bindings_[python_class_name]) {
+    processor_instance_ = OwnedObject(PyObject_CallObject(python_class->get(), nullptr));
+    if (!processor_instance_->get()) {
+      throw PyException();
+    }
+  } else {
+    throw PyException();
+  }
+}
+
 }  // namespace org::apache::nifi::minifi::extensions::python

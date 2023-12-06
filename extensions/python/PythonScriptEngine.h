@@ -132,11 +132,14 @@ class PythonScriptEngine {
   void onSchedule(const std::shared_ptr<core::ProcessContext>& context);
   void onTrigger(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSession>& session);
   void initialize(const core::Relationship& success, const core::Relationship& failure, const std::shared_ptr<core::logging::Logger>& logger);
+  void initializeProcessorObject(const std::string& python_class_name);
  private:
   void evalInternal(std::string_view script);
 
   void evaluateModuleImports();
   OwnedDict bindings_;
+  std::optional<OwnedObject> processor_instance_;
+  std::optional<std::string> processor_class_name_;
   std::vector<std::filesystem::path> module_paths_;
 };
 
