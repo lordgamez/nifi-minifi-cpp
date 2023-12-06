@@ -137,6 +137,23 @@ PyObject* PyScriptFlowFile::setAttribute(PyScriptFlowFile* self, PyObject* args)
   return object::returnReference(flow_file->setAttribute(key, value));
 }
 
+// PyObject* PyScriptFlowFile::getContentsAsBytes(PyObject* self, PyObject* args) {
+//   auto flow_file = self->script_flow_file_.lock();
+//   if (!flow_file) {
+//     PyErr_SetString(PyExc_AttributeError, "tried reading FlowFile outside 'on_trigger'");
+//     return nullptr;
+//   }
+
+//   const char* key;
+//   const char* value;
+//   if (!PyArg_ParseTuple(args, "ss", &key, &value)) {
+//     throw PyException();
+//   }
+
+//   return object::returnReference(flow_file->setAttribute(key, value));
+//   return PyBytes_FromStringAndSize(contents, strlen(contents));
+// }
+
 PyTypeObject* PyScriptFlowFile::typeObject() {
   static OwnedObject PyScriptFlowFileType{PyType_FromSpec(&PyScriptFlowFileTypeSpec)};
   return reinterpret_cast<PyTypeObject*>(PyScriptFlowFileType.get());

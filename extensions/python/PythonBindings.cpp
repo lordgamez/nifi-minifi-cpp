@@ -27,13 +27,12 @@
 #include "types/PyOutputStream.h"
 #include "types/PyStateManager.h"
 
-namespace org::apache::nifi::minifi::extensions::python {
-extern "C" {
+namespace minifi_python = org::apache::nifi::minifi::extensions::python;
 
-struct PyModuleDef minifi_module = {
+static struct PyModuleDef minifi_module = {
   .m_base = PyModuleDef_HEAD_INIT,
   .m_name = "minifi_native",    // name of module
-  .m_doc = nullptr,             // module documentation, may be NULL
+  .m_doc = "Example",             // module documentation, may be NULL
   .m_size = -1,                 // size of per-interpreter state of the module, or -1 if the module keeps state in global variables.
   .m_methods = nullptr,
   .m_slots = nullptr,
@@ -42,18 +41,18 @@ struct PyModuleDef minifi_module = {
   .m_free = nullptr
 };
 
-PyMODINIT_FUNC
-PyInit_minifi_native(void) {
+PyMODINIT_FUNC PyInit_minifi_native(void) {
+  PyObject* minifi_module_instance;
   const std::array types = std::to_array<std::pair<PyTypeObject*, std::string_view>>({
-      std::make_pair(PyLogger::typeObject(), "Logger"),
-      std::make_pair(PyProcessSessionObject::typeObject(), "ProcessSession"),
-      std::make_pair(PyProcessContext::typeObject(), "ProcessContext"),
-      std::make_pair(PyProcessor::typeObject(), "Processor"),
-      std::make_pair(PyScriptFlowFile::typeObject(), "FlowFile"),
-      std::make_pair(PyRelationship::typeObject(), "Relationship"),
-      std::make_pair(PyInputStream::typeObject(), "InputStream"),
-      std::make_pair(PyOutputStream::typeObject(), "OutputStream"),
-      std::make_pair(PyStateManager::typeObject(), "StateManager")
+      std::make_pair(minifi_python::PyLogger::typeObject(), "Logger"),
+      std::make_pair(minifi_python::PyProcessSessionObject::typeObject(), "ProcessSession"),
+      std::make_pair(minifi_python::PyProcessContext::typeObject(), "ProcessContext"),
+      std::make_pair(minifi_python::PyProcessor::typeObject(), "Processor"),
+      std::make_pair(minifi_python::PyScriptFlowFile::typeObject(), "FlowFile"),
+      std::make_pair(minifi_python::PyRelationship::typeObject(), "Relationship"),
+      std::make_pair(minifi_python::PyInputStream::typeObject(), "InputStream"),
+      std::make_pair(minifi_python::PyOutputStream::typeObject(), "OutputStream"),
+      std::make_pair(minifi_python::PyStateManager::typeObject(), "StateManager")
   });
 
   for (const auto& type : types) {
@@ -62,7 +61,7 @@ PyInit_minifi_native(void) {
     }
   }
 
-  auto minifi_module_instance = PyModule_Create(&minifi_module);
+  minifi_module_instance = PyModule_Create(&minifi_module);
   if (minifi_module_instance == nullptr) {
       return nullptr;
   }
@@ -84,6 +83,3 @@ PyInit_minifi_native(void) {
 
   return minifi_module_instance;
 }
-
-}  // extern "C"
-}  // namespace org::apache::nifi::minifi::extensions::python

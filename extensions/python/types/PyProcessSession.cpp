@@ -111,6 +111,23 @@ void PyProcessSession::remove(const std::shared_ptr<core::FlowFile>& flow_file) 
   flow_files_.erase(ranges::remove_if(flow_files_, [&flow_file](const auto& ff)-> bool { return ff == flow_file; }), flow_files_.end());
 }
 
+std::string PyProcessSession::getContentsAsString(const std::shared_ptr<core::FlowFile>& flow_file) {
+  if (!session_) {
+    throw std::runtime_error("Access of ProcessSession after it has been released");
+  }
+
+  if (!flow_file) {
+    throw std::runtime_error("Access of FlowFile after it has been released");
+  }
+
+  std::string content;
+  session_->read(flow_file, [&content](const std::shared_ptr<io::InputStream>& input_stream) -> int64_t {
+    content.resize(input_stream->size());
+    return input_stream->read(as_writable_bytes(std::span(content)));
+  });
+  return content;
+}
+
 extern "C" {
 
 static PyMethodDef PyProcessSessionObject_methods[] = {
@@ -254,6 +271,22 @@ PyObject* PyProcessSessionObject::transfer(PyProcessSessionObject* self, PyObjec
   }
   session->transfer(flow_file, reinterpret_cast<PyRelationship*>(relationship)->relationship_);
   Py_RETURN_NONE;
+}
+
+PyObject* PyProcessSessionObject::getContentsAsBytes(PyProcessSessionObject* self, PyObject* args) {
+  auto session = self->process_session_.lock();
+  if (!session) {
+    PyErr_SetString(PyExc_AttributeError, "tried reading process session outside 'on_trigger'");
+    return nullptr;
+  }
+  PyObject* script_flow_file;
+  if (!PyArg_ParseTuple(args, "O!", PyScriptFlowFile::typeObject(), &script_flow_file)) {
+    throw PyException();
+  }
+  const auto flow_file = reinterpret_cast<PyScriptFlowFile*>(script_flow_file)->script_flow_file_.lock();
+  auto content = session->getContentsAsString(flow_file);
+
+  return PyBytes_FromStringAndSize(content.c_str(), content.size());
 }
 
 PyTypeObject* PyProcessSessionObject::typeObject() {

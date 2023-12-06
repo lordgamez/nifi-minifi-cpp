@@ -14,22 +14,28 @@
 # limitations under the License.
 
 from abc import ABC, abstractmethod
-from nifiapi.properties import ProcessContext
+from .properties import ExpressionLanguageScope, FlowFileProxy
 
 
 class FlowFileTransform(ABC):
-    # These will be set by the PythonProcessorAdapter when the component is created
-    identifier = None
-    logger = None
-
     def __init__(self):
-        pass
+        self.logger = log
 
-    def setContext(self, context):
-        self.process_context = ProcessContext(context)
+    def describe(self, processor):
+        processor.setDescription(self.ProcessorDetails.description)
 
-    def transformFlowFile(self, flowfile):
-        return self.transform(self.process_context, flowfile)
+    def onInitialize(self, processor):
+        processor.setSupportsDynamicProperties()
+        for prop in self.property_descriptors:
+            processor.addProperty(prop.name, prop.description, prop.defaultValue if prop.defaultValue is not None else "", prop.required, True if prop.expression_language_scope != ExpressionLanguageScope.NONE else False)
+
+    def onTrigger(self, context, session):
+        flow_file = session.get()
+        if not flow_file:
+            return
+
+        proxy = FlowFileProxy(session, flow_file)
+        self.transform(context, proxy)  # TODO: handle FlowFileTransformResult
 
     @abstractmethod
     def transform(self, context, flowFile):
@@ -51,12 +57,12 @@ class FlowFileTransformResult:
     def getContents(self):
         return self.contents
 
-    def getAttributes(self):
-        if self.attributes is None:
-            return None
+    # def getAttributes(self):
+    #     if self.attributes is None:
+    #         return None
 
-        map = JvmHolder.jvm.java.util.HashMap()
-        for key, value in self.attributes.items():
-            map.put(key, value)
+    #     map = JvmHolder.jvm.java.util.HashMap()
+    #     for key, value in self.attributes.items():
+    #         map.put(key, value)
 
-        return map
+    #     return map
