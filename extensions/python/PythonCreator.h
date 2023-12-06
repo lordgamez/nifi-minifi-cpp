@@ -121,7 +121,9 @@ class PythonCreator : public minifi::core::CoreComponent {
 
     for (const auto &path : pathOrFiles) {
       // TODO: filter classes
-      utils::file::addFilesMatchingExtension(logger_, path, ".py", classpaths_);
+      if (path.find("__init__") == std::string::npos) {
+        utils::file::addFilesMatchingExtension(logger_, path, ".py", classpaths_);
+      }
     }
   }
 

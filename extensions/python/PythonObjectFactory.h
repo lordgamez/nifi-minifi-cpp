@@ -53,7 +53,8 @@ class PythonObjectFactory : public org::apache::nifi::minifi::core::DefautObject
     ptr->initialize();
     ptr->setProperty(org::apache::nifi::minifi::extensions::python::processors::ExecutePythonProcessor::ScriptFile, file_);
     if (python_processor_type_ == PythonProcessorType::NIFI_TYPE) {
-      ptr->setPythonClassName(name_);
+      auto splitted = org::apache::nifi::minifi::utils::StringUtils::split(name_, ".");
+      ptr->setPythonClassName(splitted[splitted.size() - 1]);
     }
     return ptr;
   }
@@ -67,7 +68,8 @@ class PythonObjectFactory : public org::apache::nifi::minifi::core::DefautObject
     ptr->initialize();
     ptr->setProperty(org::apache::nifi::minifi::extensions::python::processors::ExecutePythonProcessor::ScriptFile, file_);
     if (python_processor_type_ == PythonProcessorType::NIFI_TYPE) {
-      ptr->setPythonClassName(name_);
+      auto splitted = org::apache::nifi::minifi::utils::StringUtils::split(name_, ".");
+      ptr->setPythonClassName(splitted[splitted.size() - 1]);
     }
     return ptr;
   }

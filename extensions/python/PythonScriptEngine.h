@@ -121,6 +121,46 @@ class PythonScriptEngine {
     }
   }
 
+  template<typename ... Args>
+  void callProcessorObjectMethod(const std::string& fn_name, Args&& ...args) {
+    GlobalInterpreterLock gil_lock;
+    if (processor_instance_.get() == nullptr) {
+      throw std::runtime_error("No python process instance is set!");
+    }
+
+    try {
+      auto callable_method = OwnedCallable(PyObject_GetAttrString(processor_instance_.get(), fn_name.c_str()));
+      if (callable_method.get() == nullptr) {
+        return;
+      }
+
+      auto result = callable_method(std::forward<Args>(args)...);
+      if (!result) {
+        throw PyException();
+      }
+    } catch (const std::exception& e) {
+      throw PythonScriptException(e.what());
+    }
+  }
+
+  template<typename ... Args>
+  void callRequiredProcessorObjectMethod(const std::string& fn_name, Args&& ...args) {
+    GlobalInterpreterLock gil_lock;
+    if (processor_instance_.get() == nullptr) {
+      throw std::runtime_error("No python process instance is set!");
+    }
+
+    auto callable_method = OwnedCallable(PyObject_GetAttrString(processor_instance_.get(), fn_name.c_str()));
+    if (callable_method.get() == nullptr) {
+      throw std::runtime_error("Required method '" + fn_name + "' is not found in python processor object!");
+    }
+
+    auto result = callable_method(std::forward<Args>(args)...);
+    if (!result) {
+      throw PyException();
+    }
+  }
+
   template<object::convertible T>
   void bind(const std::string& name, const T& value) {
     GlobalInterpreterLock gil_lock;
@@ -138,7 +178,7 @@ class PythonScriptEngine {
 
   void evaluateModuleImports();
   OwnedDict bindings_;
-  std::optional<OwnedObject> processor_instance_;
+  OwnedObject processor_instance_;
   std::optional<std::string> processor_class_name_;
   std::vector<std::filesystem::path> module_paths_;
 };
