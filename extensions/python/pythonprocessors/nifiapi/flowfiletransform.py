@@ -27,7 +27,7 @@ class FlowFileTransform(ABC):
     def onInitialize(self, processor):
         processor.setSupportsDynamicProperties()
         for prop in self.property_descriptors:
-            processor.addProperty(prop.name, prop.description, prop.defaultValue if prop.defaultValue is not None else "", prop.required, True if prop.expression_language_scope != ExpressionLanguageScope.NONE else False)
+            processor.addProperty(prop.name, prop.description, prop.defaultValue if prop.defaultValue is not None else "", prop.required, True if prop.expressionLanguageScope != ExpressionLanguageScope.NONE else False)
 
     def onTrigger(self, context, session):
         flow_file = session.get()
