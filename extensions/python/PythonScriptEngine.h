@@ -117,7 +117,7 @@ class PythonScriptEngine {
         throw PyException();
       }
     } else {
-      throw std::runtime_error("Required Function" + fn_name + " is not found within Python bindings");
+      throw std::runtime_error("Required Function '" + fn_name + "' is not found within Python bindings");
     }
   }
 

@@ -166,11 +166,13 @@ void PythonScriptEngine::evalInternal(std::string_view script) {
 
 void PythonScriptEngine::evaluateModuleImports() {
   bindings_.put("__builtins__", OwnedObject(PyImport_ImportModule("builtins")));
+  evalInternal("import sys");
+  evalInternal("sys.path.append(r'/home/ggyimesi/projects/nifi-minifi-cpp-fork/build/nifi-minifi-cpp-0.15.0/extensions')");
+  evalInternal("sys.path.append(r'/home/ggyimesi/projects/nifi-minifi-cpp-fork/build/nifi-minifi-cpp-0.15.0/minifi-python')");
   if (module_paths_.empty()) {
     return;
   }
 
-  evalInternal("import sys");
   for (const auto& module_path : module_paths_) {
     if (std::filesystem::is_regular_file(module_path)) {
       evalInternal("sys.path.append(r'" + module_path.parent_path().string() + "')");

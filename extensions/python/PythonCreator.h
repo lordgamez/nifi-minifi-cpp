@@ -116,9 +116,8 @@ class PythonCreator : public minifi::core::CoreComponent {
     }
 
     for (const auto &path : pathOrFiles) {
-      if (path.string().find("nifiapi") == std::string::npos && path.string().find("nifi-python-processors") == std::string::npos) {
-        utils::file::addFilesMatchingExtension(logger_, path, ".py", classpaths_);
-      }
+      // TODO: filter classes
+      utils::file::addFilesMatchingExtension(logger_, path, ".py", classpaths_);
     }
   }
 
