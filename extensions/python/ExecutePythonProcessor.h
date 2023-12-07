@@ -122,6 +122,9 @@ class ExecutePythonProcessor : public core::Processor {
     python_class_name_ = python_class_name;
   }
 
+ protected:
+  core::Property* findProperty(const std::string& name) const override;
+
  private:
   std::vector<core::Property> python_properties_;
 
