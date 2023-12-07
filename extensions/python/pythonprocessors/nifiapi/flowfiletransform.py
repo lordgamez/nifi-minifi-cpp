@@ -27,7 +27,10 @@ class WriteCallback:
 
 
 class FlowFileTransform(ABC):
-    logger = log
+    # These will be added through the python bindings using C API
+    logger = None
+    REL_SUCCESS = None
+    REL_FAILURE = None
 
     def describe(self, processor):
         processor.setDescription(self.ProcessorDetails.description)
@@ -46,11 +49,19 @@ class FlowFileTransform(ABC):
         context_proxy = ProcessContextProxy(context)
         result = self.transform(context_proxy, flow_file_proxy)
 
+        result_content = result.getContents()
+        if result_content is not None:
+            session.write(flow_file, WriteCallback(str(result_content)))
+
+        result_attributes = result.getAttributes()
+        if result_attributes is not None:
+            for attribute in result_attributes:
+                flow_file.addAttribute(attribute, result_attributes[attribute])
+
         if result.getRelationship() == "success":
-            session.write(flow_file, WriteCallback(result.getContents()))
-            session.transfer(flow_file, REL_SUCCESS)
+            session.transfer(flow_file, self.REL_SUCCESS)
         elif result.getRelationship() == "failure":
-            session.transfer(flow_file, REL_FAILURE)  # TODO add original relationship
+            session.transfer(flow_file, self.REL_FAILURE)  # TODO add original relationship
 
     @abstractmethod
     def transform(self, context, flowFile):
@@ -72,12 +83,5 @@ class FlowFileTransformResult:
     def getContents(self):
         return self.contents
 
-    # def getAttributes(self):
-    #     if self.attributes is None:
-    #         return None
-
-    #     map = JvmHolder.jvm.java.util.HashMap()
-    #     for key, value in self.attributes.items():
-    #         map.put(key, value)
-
-    #     return map
+    def getAttributes(self):
+        return self.attributes

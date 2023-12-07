@@ -167,7 +167,9 @@ class DataUnit(Enum):
 
 class PythonPropertyValue:
     def __init__(self, string_value):
-        self.value = string_value
+        self.value = None
+        if string_value:
+            self.value = string_value
         # self.property_value = property_value
         # self.el_supported = el_supported
         # self.el_present = el_present
