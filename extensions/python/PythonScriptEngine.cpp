@@ -206,6 +206,19 @@ void PythonScriptEngine::initializeProcessorObject(const std::string& python_cla
     if (processor_instance_.get() == nullptr) {
       throw PythonScriptException(PyException().what());
     }
+
+    auto result = PyObject_SetAttrString(processor_instance_.get(), "logger", bindings_[std::string("log")]->get());
+    if (result < 0) {
+      throw PythonScriptException("Could not bind 'logger' object to '" + python_class_name + "' python processor object");
+    }
+    result = PyObject_SetAttrString(processor_instance_.get(), "REL_SUCCESS", bindings_[std::string("REL_SUCCESS")]->get());
+    if (result < 0) {
+      throw PythonScriptException("Could not bind 'REL_SUCCESS' object to '" + python_class_name + "' python processor object");
+    }
+    result = PyObject_SetAttrString(processor_instance_.get(), "REL_FAILURE", bindings_[std::string("REL_FAILURE")]->get());
+    if (result < 0) {
+      throw PythonScriptException("Could not bind 'REL_FAILURE' object to '" + python_class_name + "' python processor object");
+    }
   } else {
     throw PythonScriptException("No python class '" + python_class_name + "' was found!");
   }

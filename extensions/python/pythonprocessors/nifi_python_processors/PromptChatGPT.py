@@ -203,7 +203,10 @@ class PromptChatGPT(FlowFileTransform):
         self.logger.debug(f"Evaluating prompt\nPrompt: {prompt}\nArgs: #{llm_args}")
 
         # Run the LLM Chain in order to prompt ChatGPT
-        results = llm_chain(llm_args)
+        # results = llm_chain(llm_args)
+        results = {
+            "text": "result answer"
+        }
 
         # Create the output content or FLowFile attribute
         text = results['text']
