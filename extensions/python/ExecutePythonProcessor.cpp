@@ -27,6 +27,7 @@
 #include "utils/file/FileUtils.h"
 #include "core/Resource.h"
 #include "range/v3/range/conversion.hpp"
+#include "range/v3/algorithm/find_if.hpp"
 
 namespace org::apache::nifi::minifi::extensions::python::processors {
 
@@ -152,6 +153,21 @@ std::unique_ptr<PythonScriptEngine> ExecutePythonProcessor::createScriptEngine()
   engine->initialize(Success, Failure, python_logger_);
 
   return engine;
+}
+
+core::Property* ExecutePythonProcessor::findProperty(const std::string& name) const {
+  if (auto prop_ptr = core::ConfigurableComponent::findProperty(name)) {
+    return prop_ptr;
+  }
+
+  auto it = ranges::find_if(python_properties_, [&name](const auto& item){
+    return item.getName() == name;
+  });
+  if (it != python_properties_.end()) {
+    return const_cast<core::Property*>(&*it);
+  }
+
+  return nullptr;
 }
 
 REGISTER_RESOURCE(ExecutePythonProcessor, Processor);

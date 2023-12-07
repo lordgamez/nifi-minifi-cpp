@@ -177,23 +177,23 @@ class PythonPropertyValue:
         return self.value
 
     def isSet(self):
-        return self.value is not None
+        return not self.value
 
     # def isExpressionLanguagePresent(self):
     #     return self.el_present
 
     def asInteger(self):
-        if self.value is None:
+        if not self.value:
             return None
         return int(self.value)
 
     def asBoolean(self):
-        if self.value is None:
+        if not self.value:
             return None
         return self.value.lower() == 'true'
 
     def asFloat(self):
-        if self.value is None:
+        if not self.value:
             return None
         return float(self.value)
 
@@ -214,27 +214,27 @@ class PythonPropertyValue:
     # def asResources(self):
     #     return self.property_value.asResources()
 
-    # def evaluateAttributeExpressions(self, attributeMap=None):
-    #     # If Expression Language is supported and present, evaluate it and return a new PropertyValue.
-    #     # Otherwise just return self, in order to avoid the cost of making the call to Java for evaluateAttributeExpressions
-    #     if self.el_supported and self.el_present:
-    #         new_property_value = None
-    #         if self.referenced_attribute is not None:
-    #             attribute_value = attributeMap.getAttribute(self.referenced_attribute)
-    #             new_property_value = self.property_value
-    #             if attribute_value is None:
-    #                 new_string_value = ""
-    #             else:
-    #                 new_string_value = attribute_value
-    #         else:
-    #             # TODO: Consider having property_value wrapped in another class that delegates to the existing property_value but allows evaluateAttributeExpressions to take in an AttributeMap.
-    #             #       This way we can avoid the call to getAttributes() here, which is quite expensive
-    #             new_property_value = self.property_value.evaluateAttributeExpressions(attributeMap.getAttributes())
-    #             new_string_value = new_property_value.getValue()
+    def evaluateAttributeExpressions(self, attributeMap=None):
+        # # If Expression Language is supported and present, evaluate it and return a new PropertyValue.
+        # # Otherwise just return self, in order to avoid the cost of making the call to Java for evaluateAttributeExpressions
+        # if self.el_supported and self.el_present:
+        #     new_property_value = None
+        #     if self.referenced_attribute is not None:
+        #         attribute_value = attributeMap.getAttribute(self.referenced_attribute)
+        #         new_property_value = self.property_value
+        #         if attribute_value is None:
+        #             new_string_value = ""
+        #         else:
+        #             new_string_value = attribute_value
+        #     else:
+        #         # TODO: Consider having property_value wrapped in another class that delegates to the existing property_value but allows evaluateAttributeExpressions to take in an AttributeMap.
+        #         #       This way we can avoid the call to getAttributes() here, which is quite expensive
+        #         new_property_value = self.property_value.evaluateAttributeExpressions(attributeMap.getAttributes())
+        #         new_string_value = new_property_value.getValue()
 
-    #         return PythonPropertyValue(new_property_value, new_string_value, self.el_supported, False, None)
+        #     return PythonPropertyValue(new_property_value, new_string_value, self.el_supported, False, None)
 
-    #     return self
+        return self
 
 
 class FlowFileProxy:

@@ -71,10 +71,12 @@ class PythonCreator : public minifi::core::CoreComponent {
         full_name = utils::string::join_pack("org.apache.nifi.minifi.processors.", package, ".", script_name.string());
         class_name = full_name;
       }
-      if (path.string().find("nifi_python_processors") != std::string::npos) {
+      if (path.string().find("nifi_python_processors") != std::string::npos && class_name.find("__init__") == std::string::npos) {
         core::getClassLoader().registerClass(class_name, std::make_unique<PythonObjectFactory>(path.string(), class_name, PythonProcessorType::NIFI_TYPE));
       } else if (path.string().find("nifiapi") == std::string::npos) {
         core::getClassLoader().registerClass(class_name, std::make_unique<PythonObjectFactory>(path.string(), class_name, PythonProcessorType::MINIFI_TYPE));
+      } else {
+        continue;
       }
       registered_classes_.push_back(class_name);
       try {

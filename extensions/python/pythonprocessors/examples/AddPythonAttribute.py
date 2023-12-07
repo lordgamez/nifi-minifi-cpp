@@ -24,7 +24,6 @@ def onInitialize(processor):
 
 
 def onTrigger(context, session):
-    log.info("asd")
     flow_file = session.get()
     if flow_file is not None:
         flow_file.addAttribute("Python attribute", "attributevalue")

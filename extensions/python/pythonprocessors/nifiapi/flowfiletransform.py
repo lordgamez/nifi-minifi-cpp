@@ -14,12 +14,20 @@
 # limitations under the License.
 
 from abc import ABC, abstractmethod
-from .properties import ExpressionLanguageScope, FlowFileProxy
+from .properties import ExpressionLanguageScope, FlowFileProxy, ProcessContextProxy
+
+
+class WriteCallback:
+    def __init__(self, content):
+        self.content = content
+
+    def process(self, output_stream):
+        output_stream.write(self.content.encode('utf-8'))
+        return len(self.content)
 
 
 class FlowFileTransform(ABC):
-    def __init__(self):
-        self.logger = log
+    logger = log
 
     def describe(self, processor):
         processor.setDescription(self.ProcessorDetails.description)
@@ -34,8 +42,15 @@ class FlowFileTransform(ABC):
         if not flow_file:
             return
 
-        proxy = FlowFileProxy(session, flow_file)
-        self.transform(context, proxy)  # TODO: handle FlowFileTransformResult
+        flow_file_proxy = FlowFileProxy(session, flow_file)
+        context_proxy = ProcessContextProxy(context)
+        result = self.transform(context_proxy, flow_file_proxy)
+
+        if result.getRelationship() == "success":
+            session.write(flow_file, WriteCallback(result.getContents()))
+            session.transfer(flow_file, REL_SUCCESS)
+        elif result.getRelationship() == "failure":
+            session.transfer(flow_file, REL_FAILURE)  # TODO add original relationship
 
     @abstractmethod
     def transform(self, context, flowFile):
