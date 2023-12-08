@@ -38,7 +38,7 @@ void PythonProcessor::setDescription(const std::string& desc) {
   processor_->setDescription(desc);
 }
 
-void PythonProcessor::addProperty(const std::string& name, const std::string& description, const std::string& defaultvalue, bool required, bool el) {
+void PythonProcessor::addProperty(const std::string& name, const std::string& description, const std::optional<std::string>& defaultvalue, bool required, bool el) {
   processor_->addProperty(name, description, defaultvalue, required, el);
 }
 

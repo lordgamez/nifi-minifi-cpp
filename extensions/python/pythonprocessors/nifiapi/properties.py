@@ -137,7 +137,7 @@ class PropertyDescriptor:
         self.required = required
         self.sensitive = sensitive
         self.displayName = display_name
-        self.defaultValue = None if default_value is None else str(default_value)
+        self.defaultValue = default_value
         self.allowableValues = allowable_values
         self.dependencies = dependencies
         self.expressionLanguageScope = expression_language_scope
@@ -179,21 +179,15 @@ class PythonPropertyValue:
         self.cpp_context = cpp_context
         self.value = None
         self.name = name
-        if string_value:
+        if string_value is not None:
             self.value = string_value
-        # self.property_value = property_value
         self.el_supported = el_supported
-        # self.el_present = el_present
-        # self.referenced_attribute = referenced_attribute
 
     def getValue(self):
         return self.value
 
     def isSet(self):
-        return not self.value
-
-    # def isExpressionLanguagePresent(self):
-    #     return self.el_present
+        return self.value is not None
 
     def asInteger(self):
         if not self.value:
@@ -217,15 +211,6 @@ class PythonPropertyValue:
     # def asDataSize(self, data_unit):
     #     javaDataUnit = JvmHolder.jvm.org.apache.nifi.processor.DataUnit.valueOf(data_unit._name_)
     #     return self.property_value.asDataSize(javaDataUnit)
-
-    # def asControllerService(self):
-    #     return self.property_value.asControllerService()
-
-    # def asResource(self):
-    #     return self.property_value.asResource()
-
-    # def asResources(self):
-    #     return self.property_value.asResources()
 
     def evaluateAttributeExpressions(self, flow_file_proxy: FlowFileProxy):
         # If Expression Language is supported and present, evaluate it and return a new PropertyValue.
