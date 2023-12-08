@@ -155,13 +155,13 @@ class PromptChatGPT(FlowFileTransform):
         temperature = context.getProperty(self.TEMPERATURE).evaluateAttributeExpressions(flowFile).asFloat()
         model_name = context.getProperty(self.MODEL).evaluateAttributeExpressions(flowFile).getValue()
         api_key = context.getProperty(self.API_KEY).getValue()
-        # timeout = context.getProperty(self.TIMEOUT).asTimePeriod(TimeUnit.SECONDS)
+        timeout = context.getProperty(self.TIMEOUT).asTimePeriod(TimeUnit.SECONDS)
         max_tokens = context.getProperty(self.MAX_TOKENS).asInteger()
         organization = context.getProperty(self.ORGANIZATION).getValue()
         api_base = context.getProperty(self.API_BASE).getValue()
 
         # Build out our LLMChain
-        llm = ChatOpenAI(model_name=model_name, temperature=temperature, openai_api_key=api_key, request_timeout=50, max_retries=0,
+        llm = ChatOpenAI(model_name=model_name, temperature=temperature, openai_api_key=api_key, request_timeout=timeout, max_retries=0,
                          max_tokens=max_tokens, openai_organization=organization, openai_api_base=api_base)
 
         prompt_template = PromptTemplate(

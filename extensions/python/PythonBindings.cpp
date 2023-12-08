@@ -26,6 +26,7 @@
 #include "types/PyInputStream.h"
 #include "types/PyOutputStream.h"
 #include "types/PyStateManager.h"
+#include "types/PyDataConverter.h"
 
 namespace minifi_python = org::apache::nifi::minifi::extensions::python;
 
@@ -52,7 +53,8 @@ PyMODINIT_FUNC PyInit_minifi_native(void) {
       std::make_pair(minifi_python::PyRelationship::typeObject(), "Relationship"),
       std::make_pair(minifi_python::PyInputStream::typeObject(), "InputStream"),
       std::make_pair(minifi_python::PyOutputStream::typeObject(), "OutputStream"),
-      std::make_pair(minifi_python::PyStateManager::typeObject(), "StateManager")
+      std::make_pair(minifi_python::PyStateManager::typeObject(), "StateManager"),
+      std::make_pair(minifi_python::PyDataConverter::typeObject(), "DataConverter"),
   });
 
   for (const auto& type : types) {
