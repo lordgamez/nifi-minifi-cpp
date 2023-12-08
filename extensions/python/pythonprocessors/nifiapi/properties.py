@@ -165,13 +165,24 @@ class DataUnit(Enum):
     TB = "TB"
 
 
+class FlowFileProxy:
+    def __init__(self, session, flow_file):
+        self.session = session
+        self.flow_file = flow_file
+
+    def getContentsAsBytes(self):
+        return self.session.getContentsAsBytes(self.flow_file)
+
+
 class PythonPropertyValue:
-    def __init__(self, string_value):
+    def __init__(self, cpp_context, name: str, string_value: str, el_supported: bool):
+        self.cpp_context = cpp_context
         self.value = None
+        self.name = name
         if string_value:
             self.value = string_value
         # self.property_value = property_value
-        # self.el_supported = el_supported
+        self.el_supported = el_supported
         # self.el_present = el_present
         # self.referenced_attribute = referenced_attribute
 
@@ -216,36 +227,14 @@ class PythonPropertyValue:
     # def asResources(self):
     #     return self.property_value.asResources()
 
-    def evaluateAttributeExpressions(self, attributeMap=None):
-        # # If Expression Language is supported and present, evaluate it and return a new PropertyValue.
-        # # Otherwise just return self, in order to avoid the cost of making the call to Java for evaluateAttributeExpressions
-        # if self.el_supported and self.el_present:
-        #     new_property_value = None
-        #     if self.referenced_attribute is not None:
-        #         attribute_value = attributeMap.getAttribute(self.referenced_attribute)
-        #         new_property_value = self.property_value
-        #         if attribute_value is None:
-        #             new_string_value = ""
-        #         else:
-        #             new_string_value = attribute_value
-        #     else:
-        #         # TODO: Consider having property_value wrapped in another class that delegates to the existing property_value but allows evaluateAttributeExpressions to take in an AttributeMap.
-        #         #       This way we can avoid the call to getAttributes() here, which is quite expensive
-        #         new_property_value = self.property_value.evaluateAttributeExpressions(attributeMap.getAttributes())
-        #         new_string_value = new_property_value.getValue()
-
-        #     return PythonPropertyValue(new_property_value, new_string_value, self.el_supported, False, None)
+    def evaluateAttributeExpressions(self, flow_file_proxy: FlowFileProxy):
+        # If Expression Language is supported and present, evaluate it and return a new PropertyValue.
+        # Otherwise just return self, in order to avoid the cost of making the call to cpp for getProperty
+        if self.el_supported:
+            new_string_value = self.cpp_context.getProperty(self.name, flow_file_proxy.flow_file)
+            return PythonPropertyValue(self.cpp_context, self.name, new_string_value, self.el_supported)
 
         return self
-
-
-class FlowFileProxy:
-    def __init__(self, session, flow_file):
-        self.session = session
-        self.flow_file = flow_file
-
-    def getContentsAsBytes(self):
-        return self.session.getContentsAsBytes(self.flow_file)
 
 
 class ProcessContextProxy:
@@ -253,5 +242,5 @@ class ProcessContextProxy:
         self.cpp_context = cpp_context
 
     def getProperty(self, descriptor: PropertyDescriptor) -> PythonPropertyValue:
-        property = self.cpp_context.getProperty(descriptor.name)
-        return PythonPropertyValue(property)
+        property_value = self.cpp_context.getProperty(descriptor.name)
+        return PythonPropertyValue(self.cpp_context, descriptor.name, property_value, descriptor.expressionLanguageScope != ExpressionLanguageScope.NONE)

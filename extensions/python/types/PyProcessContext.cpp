@@ -17,6 +17,7 @@ a * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 
 #include "PyProcessContext.h"
 #include "PyStateManager.h"
+#include "PyScriptFlowFile.h"
 #include <string>
 #include "PyException.h"
 
@@ -66,11 +67,24 @@ PyObject* PyProcessContext::getProperty(PyProcessContext* self, PyObject* args) 
   }
 
   const char* property;
-  if (!PyArg_ParseTuple(args, "s", &property)) {
+  PyObject* script_flow_file = nullptr;
+  if (!PyArg_ParseTuple(args, "s|O", &property, &script_flow_file)) {
     throw PyException();
   }
+
   std::string value;
-  context->getProperty(property, value);
+  if (!script_flow_file) {
+    context->getProperty(property, value);
+  } else {
+    auto py_flow = reinterpret_cast<PyScriptFlowFile*>(script_flow_file);
+    const auto flow_file = py_flow->script_flow_file_.lock();
+    if (!flow_file) {
+      PyErr_SetString(PyExc_AttributeError, "tried reading FlowFile outside 'on_trigger'");
+      Py_RETURN_NONE;
+    }
+    context->getProperty(true, property, value, flow_file);
+  }
+
   return object::returnReference(value);
 }
 
