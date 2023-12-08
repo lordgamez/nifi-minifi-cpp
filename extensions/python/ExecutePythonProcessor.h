@@ -97,9 +97,12 @@ class ExecutePythonProcessor : public core::Processor {
     python_dynamic_ = true;
   }
 
-  void addProperty(const std::string &name, const std::string &description, const std::string &defaultvalue, bool required, bool el) {
-    python_properties_.emplace_back(
-        core::PropertyDefinitionBuilder<>::createProperty(name).withDefaultValue(defaultvalue).withDescription(description).isRequired(required).supportsExpressionLanguage(el).build());
+  void addProperty(const std::string &name, const std::string &description, const std::optional<std::string> &defaultvalue, bool required, bool el) {
+    auto property = core::PropertyDefinitionBuilder<>::createProperty(name).withDescription(description).isRequired(required).supportsExpressionLanguage(el);
+    if (defaultvalue) {
+      property.withDefaultValue(*defaultvalue);
+    }
+    python_properties_.emplace_back(property.build());
   }
 
   const std::vector<core::Property> &getPythonProperties() const {

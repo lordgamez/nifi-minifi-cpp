@@ -74,15 +74,19 @@ PyObject* PyProcessContext::getProperty(PyProcessContext* self, PyObject* args) 
 
   std::string value;
   if (!script_flow_file) {
-    context->getProperty(property, value);
+    if (!context->getProperty(property, value)) {
+      Py_RETURN_NONE;
+    }
   } else {
     auto py_flow = reinterpret_cast<PyScriptFlowFile*>(script_flow_file);
     const auto flow_file = py_flow->script_flow_file_.lock();
     if (!flow_file) {
       PyErr_SetString(PyExc_AttributeError, "tried reading FlowFile outside 'on_trigger'");
+      return nullptr;
+    }
+    if (!context->getProperty(true, property, value, flow_file)) {
       Py_RETURN_NONE;
     }
-    context->getProperty(true, property, value, flow_file);
   }
 
   return object::returnReference(value);

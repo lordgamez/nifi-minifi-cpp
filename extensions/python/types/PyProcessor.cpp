@@ -17,6 +17,7 @@
 
 #include "PyProcessor.h"
 #include <string>
+#include <optional>
 #include "PyException.h"
 #include "Types.h"
 
@@ -110,11 +111,15 @@ PyObject* PyProcessor::addProperty(PyProcessor* self, PyObject* args) {
 
   BorrowedStr name = BorrowedStr::fromTuple(args, 0);
   BorrowedStr description = BorrowedStr::fromTuple(args, 1);
-  BorrowedStr default_value = BorrowedStr::fromTuple(args, 2);
+  std::optional<std::string> default_value;
+  auto default_value_pystr = BorrowedStr::fromTuple(args, 2);
+  if (default_value_pystr.get() && default_value_pystr.get() != Py_None) {
+    default_value = default_value_pystr.toUtf8String();
+  }
   bool is_required = getBoolFromTuple(args, 3);
   bool supports_expression_language = getBoolFromTuple(args, 4);
 
-  processor->addProperty(name.toUtf8String(), description.toUtf8String(), default_value.toUtf8String(), is_required, supports_expression_language);
+  processor->addProperty(name.toUtf8String(), description.toUtf8String(), default_value, is_required, supports_expression_language);
   Py_RETURN_NONE;
 }
 
