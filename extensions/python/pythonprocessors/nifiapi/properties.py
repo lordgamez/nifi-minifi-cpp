@@ -13,9 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import re
 from enum import Enum
-from minifi_native import FlowFile
+from minifi_native import DataConverter
 
 
 class ExpressionLanguageScope(Enum):
@@ -175,8 +174,9 @@ class FlowFileProxy:
 
 
 class PythonPropertyValue:
-    def __init__(self, cpp_context, name: str, string_value: str, el_supported: bool):
+    def __init__(self, cpp_context, cpp_data_converter: DataConverter, name: str, string_value: str, el_supported: bool):
         self.cpp_context = cpp_context
+        self.cpp_data_converter = cpp_data_converter
         self.value = None
         self.name = name
         if string_value is not None:
@@ -204,9 +204,25 @@ class PythonPropertyValue:
             return None
         return float(self.value)
 
-    # def asTimePeriod(self, time_unit):
-    #     javaTimeUnit = JvmHolder.jvm.java.util.concurrent.TimeUnit.valueOf(time_unit._name_)
-    #     return self.property_value.asTimePeriod(javaTimeUnit)
+    def asTimePeriod(self, time_unit):
+        if not self.value:
+            return None
+        milliseconds = self.cpp_data_converter.timePeriodStringToMilliseconds(self.value)
+        if time_unit == TimeUnit.NANOSECONDS:
+            return milliseconds * 1000000
+        if time_unit == TimeUnit.MICROSECONDS:
+            return milliseconds * 1000
+        if time_unit == TimeUnit.MILLISECONDS:
+            return milliseconds
+        if time_unit == TimeUnit.SECONDS:
+            return int(round(milliseconds / 1000))
+        if time_unit == TimeUnit.MINUTES:
+            return int(round(milliseconds / 1000 / 60))
+        if time_unit == TimeUnit.HOURS:
+            return int(round(milliseconds / 1000 / 60 / 60))
+        if time_unit == TimeUnit.DAYS:
+            return int(round(milliseconds / 1000 / 60 / 60 / 24))
+        return 0
 
     # def asDataSize(self, data_unit):
     #     javaDataUnit = JvmHolder.jvm.org.apache.nifi.processor.DataUnit.valueOf(data_unit._name_)
@@ -217,7 +233,7 @@ class PythonPropertyValue:
         # Otherwise just return self, in order to avoid the cost of making the call to cpp for getProperty
         if self.el_supported:
             new_string_value = self.cpp_context.getProperty(self.name, flow_file_proxy.flow_file)
-            return PythonPropertyValue(self.cpp_context, self.name, new_string_value, self.el_supported)
+            return PythonPropertyValue(self.cpp_context, self.cpp_data_converter, self.name, new_string_value, self.el_supported)
 
         return self
 
@@ -225,7 +241,8 @@ class PythonPropertyValue:
 class ProcessContextProxy:
     def __init__(self, cpp_context):
         self.cpp_context = cpp_context
+        self.cpp_data_converter = DataConverter()
 
     def getProperty(self, descriptor: PropertyDescriptor) -> PythonPropertyValue:
         property_value = self.cpp_context.getProperty(descriptor.name)
-        return PythonPropertyValue(self.cpp_context, descriptor.name, property_value, descriptor.expressionLanguageScope != ExpressionLanguageScope.NONE)
+        return PythonPropertyValue(self.cpp_context, self.cpp_data_converter, descriptor.name, property_value, descriptor.expressionLanguageScope != ExpressionLanguageScope.NONE)
