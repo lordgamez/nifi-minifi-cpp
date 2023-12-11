@@ -26,6 +26,8 @@ struct PyDataConverter {
   static int init(PyDataConverter* self, PyObject* args, PyObject* kwds);
 
   static PyObject* timePeriodStringToMilliseconds(PyDataConverter* self, PyObject* args);
+  static PyObject* dataSizeStringToBytes(PyDataConverter* self, PyObject* args);
+
 
   static PyTypeObject* typeObject();
 };

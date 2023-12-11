@@ -224,9 +224,21 @@ class PythonPropertyValue:
             return int(round(milliseconds / 1000 / 60 / 60 / 24))
         return 0
 
-    # def asDataSize(self, data_unit):
-    #     javaDataUnit = JvmHolder.jvm.org.apache.nifi.processor.DataUnit.valueOf(data_unit._name_)
-    #     return self.property_value.asDataSize(javaDataUnit)
+    def asDataSize(self, data_unit):
+        if not self.value:
+            return None
+        bytes = self.cpp_data_converter.dataSizeStringToBytes(self.value)
+        if data_unit == DataUnit.B:
+            return bytes
+        if data_unit == DataUnit.KB:
+            return int(bytes / 1000)
+        if data_unit == DataUnit.MB:
+            return int(bytes / 1000 / 1000)
+        if data_unit == DataUnit.GB:
+            return int(bytes / 1000 / 1000 / 1000)
+        if data_unit == DataUnit.TB:
+            return int(bytes / 1000 / 1000 / 1000 / 1000)
+        return 0
 
     def evaluateAttributeExpressions(self, flow_file_proxy: FlowFileProxy):
         # If Expression Language is supported and present, evaluate it and return a new PropertyValue.
