@@ -57,7 +57,7 @@ class PromptChatGPT(FlowFileTransform):
         name="Temperature",
         description="The Temperature parameter to submit to OpenAI. A lower value will result in more consistent answers while a higher value will result in a more creative answer. " +
                     "The value must be between 0 and 2, inclusive.",
-        validators=[StandardValidators.NON_NEGATIVE_FLOATING_POINT_VALIDATOR],
+        validators=[StandardValidators._standard_validators.createNonNegativeFloatingPointValidator(2.0)],
         expression_language_scope=ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
         required=True,
         default_value="1.0"

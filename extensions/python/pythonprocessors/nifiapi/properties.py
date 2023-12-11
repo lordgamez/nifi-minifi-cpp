@@ -15,6 +15,7 @@
 
 from enum import Enum
 from minifi_native import DataConverter
+from typing import List
 
 
 class ExpressionLanguageScope(Enum):
@@ -23,7 +24,41 @@ class ExpressionLanguageScope(Enum):
     FLOWFILE_ATTRIBUTES = 3
 
 
+class ValidatorGenerator:
+    def createNonNegativeFloatingPointValidator(self, *args):
+        return StandardValidators.ALWAYS_VALID
+
+    def createDirectoryExistsValidator(self, *args):
+        return StandardValidators.ALWAYS_VALID
+
+    def createURLValidator(self, *args):
+        return StandardValidators.ALWAYS_VALID
+
+    def createListValidator(self, *args):
+        return StandardValidators.ALWAYS_VALID
+
+    def createTimePeriodValidator(self, *args):
+        return StandardValidators.TIME_PERIOD_VALIDATOR
+
+    def createAttributeExpressionLanguageValidator(self, *args):
+        return StandardValidators.ALWAYS_VALID
+
+    def createDataSizeBoundsValidator(self, *args):
+        return StandardValidators.DATA_SIZE_VALIDATOR
+
+    def createRegexMatchingValidator(self, *args):
+        return StandardValidators.ALWAYS_VALID
+
+    def createRegexValidator(self, *args):
+        return StandardValidators.ALWAYS_VALID
+
+    def createLongValidator(self, *args):
+        return StandardValidators.LONG_VALIDATOR
+
+
 class StandardValidators:
+    _standard_validators = ValidatorGenerator()
+
     ALWAYS_VALID = 0
     NON_EMPTY_VALIDATOR = 1
     INTEGER_VALIDATOR = 2
@@ -44,6 +79,39 @@ class StandardValidators:
     DATA_SIZE_VALIDATOR = 17
     FILE_EXISTS_VALIDATOR = 18
     NON_NEGATIVE_FLOATING_POINT_VALIDATOR = 19
+
+
+class MinifiPropertyTypes:
+    INTEGER_TYPE = 0
+    LONG_TYPE = 1
+    BOOLEAN_TYPE = 2
+    DATA_SIZE_TYPE = 3
+    TIME_PERIOD_TYPE = 4
+    NON_BLANK_TYPE = 5
+    PORT_TYPE = 6
+
+
+def translateStandardValidatorToMiNiFiPropertype(validators: List[StandardValidators]) -> MinifiPropertyTypes:
+    if validators is None or len(validators) == 0 or len(validators) > 1:
+        return None
+
+    validator = validators[0]
+    if validator == StandardValidators.INTEGER_VALIDATOR:
+        return MinifiPropertyTypes.INTEGER_TYPE
+    if validator == StandardValidators.LONG_VALIDATOR:
+        return MinifiPropertyTypes.LONG_TYPE
+    if validator == StandardValidators.BOOLEAN_VALIDATOR:
+        return MinifiPropertyTypes.BOOLEAN_TYPE
+    if validator == StandardValidators.DATA_SIZE_VALIDATOR:
+        return MinifiPropertyTypes.DATA_SIZE_TYPE
+    if validator == StandardValidators.TIME_PERIOD_VALIDATOR:
+        return MinifiPropertyTypes.TIME_PERIOD_TYPE
+    if validator == StandardValidators.NON_EMPTY_VALIDATOR:
+        return MinifiPropertyTypes.NON_BLANK_TYPE
+    if validator == StandardValidators.PORT_VALIDATOR:
+        return MinifiPropertyTypes.PORT_TYPE
+
+    return None
 
 
 class PropertyDependency:
@@ -128,8 +196,8 @@ class PropertyDescriptor:
         :param controller_service_definition: if this Processor is to make use of a Controller Service, this indicates the type of Controller Service. This will always be a fully-qualified
                                               classname of a Java interface that extends from `ControllerService`.
         """
-        # if validators is None:
-        #     validators = [StandardValidators.ALWAYS_VALID]
+        if validators is None:
+            validators = [StandardValidators.ALWAYS_VALID]
 
         self.name = name
         self.description = description

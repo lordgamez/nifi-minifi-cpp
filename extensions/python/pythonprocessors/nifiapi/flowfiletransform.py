@@ -14,7 +14,7 @@
 # limitations under the License.
 
 from abc import ABC, abstractmethod
-from .properties import ExpressionLanguageScope, FlowFileProxy, ProcessContextProxy
+from .properties import ExpressionLanguageScope, FlowFileProxy, ProcessContextProxy, translateStandardValidatorToMiNiFiPropertype
 
 
 class WriteCallback:
@@ -37,8 +37,10 @@ class FlowFileTransform(ABC):
 
     def onInitialize(self, processor):
         processor.setSupportsDynamicProperties()
-        for prop in self.property_descriptors:
-            processor.addProperty(prop.name, prop.description, prop.defaultValue, prop.required, True if prop.expressionLanguageScope != ExpressionLanguageScope.NONE else False)
+        for property in self.property_descriptors:
+            validator = translateStandardValidatorToMiNiFiPropertype(property.validators)
+            expression_language_supported = True if property.expressionLanguageScope != ExpressionLanguageScope.NONE else False
+            processor.addProperty(property.name, property.description, property.defaultValue, property.required, expression_language_supported, validator)
 
     def onTrigger(self, context, session):
         flow_file = session.get()

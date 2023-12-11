@@ -38,8 +38,8 @@ void PythonProcessor::setDescription(const std::string& desc) {
   processor_->setDescription(desc);
 }
 
-void PythonProcessor::addProperty(const std::string& name, const std::string& description, const std::optional<std::string>& defaultvalue, bool required, bool el) {
-  processor_->addProperty(name, description, defaultvalue, required, el);
+void PythonProcessor::addProperty(const std::string& name, const std::string& description, const std::optional<std::string>& defaultvalue, bool required, bool el, const std::optional<int64_t>& validator_value) {
+  processor_->addProperty(name, description, defaultvalue, required, el, validator_value);
 }
 
 }  // namespace org::apache::nifi::minifi::extensions::python

@@ -97,10 +97,13 @@ class ExecutePythonProcessor : public core::Processor {
     python_dynamic_ = true;
   }
 
-  void addProperty(const std::string &name, const std::string &description, const std::optional<std::string> &defaultvalue, bool required, bool el) {
+  void addProperty(const std::string &name, const std::string &description, const std::optional<std::string> &defaultvalue, bool required, bool el, const std::optional<int64_t>& validator_value) {
     auto property = core::PropertyDefinitionBuilder<>::createProperty(name).withDescription(description).isRequired(required).supportsExpressionLanguage(el);
     if (defaultvalue) {
       property.withDefaultValue(*defaultvalue);
+    }
+    if (validator_value) {
+      property.withPropertyType(translateCodeToPropertyType(static_cast<PropertyTypeCode>(*validator_value)));
     }
     python_properties_.emplace_back(property.build());
   }
@@ -129,6 +132,37 @@ class ExecutePythonProcessor : public core::Processor {
   core::Property* findProperty(const std::string& name) const override;
 
  private:
+  enum class PropertyTypeCode : int64_t {
+    INTEGER_TYPE = 0,
+    LONG_TYPE = 1,
+    BOOLEAN_TYPE = 2,
+    DATA_SIZE_TYPE = 3,
+    TIME_PERIOD_TYPE = 4,
+    NON_BLANK_TYPE = 5,
+    PORT_TYPE = 6
+  };
+
+  const core::PropertyType& translateCodeToPropertyType(const PropertyTypeCode& code) const {
+    switch (code) {
+      case PropertyTypeCode::INTEGER_TYPE:
+        return core::StandardPropertyTypes::INTEGER_TYPE;
+      case PropertyTypeCode::LONG_TYPE:
+        return core::StandardPropertyTypes::LONG_TYPE;
+      case PropertyTypeCode::BOOLEAN_TYPE:
+        return core::StandardPropertyTypes::BOOLEAN_TYPE;
+      case PropertyTypeCode::DATA_SIZE_TYPE:
+        return core::StandardPropertyTypes::DATA_SIZE_TYPE;
+      case PropertyTypeCode::TIME_PERIOD_TYPE:
+        return core::StandardPropertyTypes::TIME_PERIOD_TYPE;
+      case PropertyTypeCode::NON_BLANK_TYPE:
+        return core::StandardPropertyTypes::NON_BLANK_TYPE;
+      case PropertyTypeCode::PORT_TYPE:
+        return core::StandardPropertyTypes::PORT_TYPE;
+      default:
+        throw std::invalid_argument("Unknown PropertyTypeCode");
+    }
+  }
+
   std::vector<core::Property> python_properties_;
 
   std::string description_;

@@ -118,8 +118,13 @@ PyObject* PyProcessor::addProperty(PyProcessor* self, PyObject* args) {
   }
   bool is_required = getBoolFromTuple(args, 3);
   bool supports_expression_language = getBoolFromTuple(args, 4);
+  auto validator_value_pyint = BorrowedLong::fromTuple(args, 5);
+  std::optional<int64_t> validator_value;
+  if (validator_value_pyint.get() && validator_value_pyint.get() != Py_None) {
+    validator_value = validator_value_pyint.asInt64();
+  }
 
-  processor->addProperty(name.toUtf8String(), description.toUtf8String(), default_value, is_required, supports_expression_language);
+  processor->addProperty(name.toUtf8String(), description.toUtf8String(), default_value, is_required, supports_expression_language, validator_value);
   Py_RETURN_NONE;
 }
 
