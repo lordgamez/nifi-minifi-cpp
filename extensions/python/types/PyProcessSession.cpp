@@ -101,6 +101,21 @@ std::shared_ptr<core::FlowFile> PyProcessSession::create(const std::shared_ptr<c
   return result;
 }
 
+std::shared_ptr<core::FlowFile> PyProcessSession::clone(const std::shared_ptr<core::FlowFile>& flow_file) {
+  if (!session_) {
+    throw std::runtime_error("Access of ProcessSession after it has been released");
+  }
+
+  if (!flow_file) {
+    throw std::runtime_error("Flow file to clone is nullptr");
+  }
+
+  auto result = session_->clone(flow_file);
+
+  flow_files_.push_back(result);
+  return result;
+}
+
 void PyProcessSession::remove(const std::shared_ptr<core::FlowFile>& flow_file) {
   if (!session_) {
     throw std::runtime_error("Access of ProcessSession after it has been released");
@@ -133,6 +148,7 @@ extern "C" {
 static PyMethodDef PyProcessSessionObject_methods[] = {
     {"get", (PyCFunction) PyProcessSessionObject::get, METH_NOARGS, nullptr},
     {"create", (PyCFunction) PyProcessSessionObject::create, METH_VARARGS, nullptr},
+    {"clone", (PyCFunction) PyProcessSessionObject::clone, METH_VARARGS, nullptr},
     {"read", (PyCFunction) PyProcessSessionObject::read, METH_VARARGS, nullptr},
     {"write", (PyCFunction) PyProcessSessionObject::write, METH_VARARGS, nullptr},
     {"transfer", (PyCFunction) PyProcessSessionObject::transfer, METH_VARARGS, nullptr},
@@ -189,6 +205,23 @@ PyObject* PyProcessSessionObject::create(PyProcessSessionObject* self, PyObject*
 
   if (auto flow_file = session->create(nullptr))
     return object::returnReference(std::weak_ptr(flow_file));
+  return object::returnReference(nullptr);
+}
+
+PyObject* PyProcessSessionObject::clone(PyProcessSessionObject* self, PyObject* args) {
+  auto session = self->process_session_.lock();
+  if (!session) {
+    PyErr_SetString(PyExc_AttributeError, "tried reading process session outside 'on_trigger'");
+    return nullptr;
+  }
+  PyObject* script_flow_file;
+  if (!PyArg_ParseTuple(args, "O!", PyScriptFlowFile::typeObject(), &script_flow_file)) {
+    throw PyException();
+  }
+  const auto flow_file = reinterpret_cast<PyScriptFlowFile*>(script_flow_file)->script_flow_file_.lock();
+
+  if (auto cloned_flow_file = session->clone(flow_file))
+    return object::returnReference(std::weak_ptr(cloned_flow_file));
   return object::returnReference(nullptr);
 }
 

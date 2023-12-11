@@ -68,6 +68,7 @@ void ExecutePythonProcessor::initalizeThroughScriptEngine() {
 }
 
 void ExecutePythonProcessor::onScheduleSharedPtr(const std::shared_ptr<core::ProcessContext> &context, const std::shared_ptr<core::ProcessSessionFactory>& /*sessionFactory*/) {
+  setAutoTerminatedRelationships(std::vector<core::Relationship>{Original});
   if (!processor_initialized_) {
     loadScript();
     python_script_engine_ = createScriptEngine();
@@ -150,7 +151,7 @@ std::unique_ptr<PythonScriptEngine> ExecutePythonProcessor::createScriptEngine()
   auto engine = std::make_unique<PythonScriptEngine>();
 
   python_logger_ = core::logging::LoggerFactory<ExecutePythonProcessor>::getAliasedLogger(getName());
-  engine->initialize(Success, Failure, python_logger_);
+  engine->initialize(Success, Failure, Original, python_logger_);
 
   return engine;
 }
