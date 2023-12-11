@@ -58,6 +58,9 @@ void ExecutePythonProcessor::initialize() {
 
 void ExecutePythonProcessor::initalizeThroughScriptEngine() {
   appendPathForImportModules();
+  if (minifi_python_path_) {
+    python_script_engine_->appendModulePaths(std::vector<std::filesystem::path>{*minifi_python_path_});
+  }
   python_script_engine_->eval(script_to_exec_);
   if (python_class_name_) {
     python_script_engine_->initializeProcessorObject(*python_class_name_);
@@ -100,7 +103,7 @@ void ExecutePythonProcessor::appendPathForImportModules() {
   std::string module_directory;
   getProperty(ModuleDirectory, module_directory);
   if (!module_directory.empty()) {
-    python_script_engine_->setModulePaths(utils::StringUtils::splitAndTrimRemovingEmpty(module_directory, ",") | ranges::to<std::vector<std::filesystem::path>>());
+    python_script_engine_->appendModulePaths(utils::StringUtils::splitAndTrimRemovingEmpty(module_directory, ",") | ranges::to<std::vector<std::filesystem::path>>());
   }
 }
 

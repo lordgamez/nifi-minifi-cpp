@@ -129,6 +129,10 @@ class ExecutePythonProcessor : public core::Processor {
     python_class_name_ = python_class_name;
   }
 
+  void setMinifiPythonPath(const std::string& minifi_python_path) {
+    minifi_python_path_ = minifi_python_path;
+  }
+
  protected:
   core::Property* findProperty(const std::string& name) const override;
 
@@ -180,6 +184,7 @@ class ExecutePythonProcessor : public core::Processor {
   std::shared_ptr<core::logging::Logger> python_logger_;
   std::unique_ptr<PythonScriptEngine> python_script_engine_;
   std::optional<std::string> python_class_name_;
+  std::optional<std::string> minifi_python_path_;
 
   void appendPathForImportModules();
   void loadScriptFromFile();

@@ -72,9 +72,9 @@ class PythonCreator : public minifi::core::CoreComponent {
         class_name = full_name;
       }
       if (path.string().find("nifi_python_processors") != std::string::npos && class_name.find("__init__") == std::string::npos) {
-        core::getClassLoader().registerClass(class_name, std::make_unique<PythonObjectFactory>(path.string(), class_name, PythonProcessorType::NIFI_TYPE));
+        core::getClassLoader().registerClass(class_name, std::make_unique<PythonObjectFactory>(path.string(), class_name, PythonProcessorType::NIFI_TYPE, pathListings.value()));
       } else if (path.string().find("nifiapi") == std::string::npos) {
-        core::getClassLoader().registerClass(class_name, std::make_unique<PythonObjectFactory>(path.string(), class_name, PythonProcessorType::MINIFI_TYPE));
+        core::getClassLoader().registerClass(class_name, std::make_unique<PythonObjectFactory>(path.string(), class_name, PythonProcessorType::MINIFI_TYPE, pathListings.value()));
       } else {
         continue;
       }

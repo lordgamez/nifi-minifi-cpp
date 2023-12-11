@@ -89,8 +89,12 @@ class PythonScriptEngine {
   void eval(const std::string& script);
   void evalFile(const std::filesystem::path& file_name);
 
-  void setModulePaths(std::vector<std::filesystem::path> module_paths) {
-    module_paths_ = std::move(module_paths);
+  void appendModulePaths(std::vector<std::filesystem::path> module_paths) {
+    if (module_paths_.empty()) {
+      module_paths_ = std::move(module_paths);
+    } else {
+      module_paths_.insert(module_paths_.end(), module_paths.begin(), module_paths.end());
+    }
   }
 
   template<typename... Args>
