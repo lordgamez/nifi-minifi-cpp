@@ -29,6 +29,7 @@ namespace org::apache::nifi::minifi::extensions::python {
 
 static PyMethodDef PyDataConverter_methods[] = {
     {"timePeriodStringToMilliseconds", (PyCFunction) PyDataConverter::timePeriodStringToMilliseconds, METH_VARARGS, nullptr},
+    {"dataSizeStringToBytes", (PyCFunction) PyDataConverter::dataSizeStringToBytes, METH_VARARGS, nullptr},
     {}  /* Sentinel */
 };
 
@@ -61,6 +62,17 @@ PyObject* PyDataConverter::timePeriodStringToMilliseconds(PyDataConverter*, PyOb
   auto milliseconds = core::TimePeriodValue(std::string(time_period_str)).getMilliseconds().count();
 
   return object::returnReference(milliseconds);
+}
+
+PyObject* PyDataConverter::dataSizeStringToBytes(PyDataConverter*, PyObject* args) {
+  const char* data_size_str = nullptr;
+  if (!PyArg_ParseTuple(args, "s", &data_size_str)) {
+    throw PyException();
+  }
+
+  uint64_t bytes = core::DataSizeValue(std::string(data_size_str)).getValue();
+
+  return object::returnReference(bytes);
 }
 
 PyTypeObject* PyDataConverter::typeObject() {
