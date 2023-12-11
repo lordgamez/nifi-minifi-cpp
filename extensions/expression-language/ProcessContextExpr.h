@@ -60,7 +60,7 @@ class ProcessContextExpr final : public core::ProcessContext {
 
   bool setDynamicProperty(const std::string& property, std::string value) override;
 
-  bool getProperty(bool supports_expression_language, std::string_view property_name, std::string& value, const std::shared_ptr<FlowFile>& flow_file);
+  bool getProperty(bool supports_expression_language, std::string_view property_name, std::string& value, const std::shared_ptr<FlowFile>& flow_file) override;
 
  private:
   std::unordered_map<std::string, org::apache::nifi::minifi::expression::Expression> expressions_;

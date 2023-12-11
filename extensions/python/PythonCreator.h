@@ -55,7 +55,7 @@ class PythonCreator : public minifi::core::CoreComponent {
   void configure(const std::shared_ptr<Configure> &configuration) override {
     python::PythonScriptEngine::initialize();
 
-    auto engine = std::make_shared<python::PythonScriptEngine>();  // TODO: is this needed? probably interpreter init
+    auto engine = std::make_shared<python::PythonScriptEngine>();  // TODO(lordgamez): is this needed? probably interpreter init
     std::optional<std::string> pathListings = configuration ? configuration->get(minifi::Configuration::nifi_python_processor_dir) : std::nullopt;
     if (!pathListings) {
       return;
@@ -122,7 +122,7 @@ class PythonCreator : public minifi::core::CoreComponent {
     }
 
     for (const auto &path : pathOrFiles) {
-      // TODO: filter classes
+      // TODO(lordgamez): filter classes
       if (path.find("__init__") == std::string::npos) {
         utils::file::addFilesMatchingExtension(logger_, path, ".py", classpaths_);
       }
