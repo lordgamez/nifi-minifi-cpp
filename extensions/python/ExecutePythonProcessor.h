@@ -81,7 +81,8 @@ class ExecutePythonProcessor : public core::Processor {
 
   EXTENSIONAPI static constexpr auto Success = core::RelationshipDefinition{"success", "Script succeeds"};
   EXTENSIONAPI static constexpr auto Failure = core::RelationshipDefinition{"failure", "Script fails"};
-  EXTENSIONAPI static constexpr auto Relationships = std::array{Success, Failure};
+  EXTENSIONAPI static constexpr auto Original = core::RelationshipDefinition{"original", "Original flow file"};
+  EXTENSIONAPI static constexpr auto Relationships = std::array{Success, Failure, Original};
 
   EXTENSIONAPI static constexpr bool SupportsDynamicProperties = false;
   EXTENSIONAPI static constexpr bool SupportsDynamicRelationships = false;

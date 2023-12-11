@@ -37,7 +37,6 @@ struct PyScriptFlowFile {
   static PyObject* updateAttribute(PyScriptFlowFile* self, PyObject* args);
   static PyObject* removeAttribute(PyScriptFlowFile* self, PyObject* args);
   static PyObject* setAttribute(PyScriptFlowFile* self, PyObject* args);
-  // static PyObject* getContentsAsBytes(PyScriptFlowFile* self, PyObject* args);
 
   static PyTypeObject* typeObject();
 };

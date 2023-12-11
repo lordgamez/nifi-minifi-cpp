@@ -31,6 +31,7 @@ class FlowFileTransform(ABC):
     logger = None
     REL_SUCCESS = None
     REL_FAILURE = None
+    REL_ORIGINAL = None
 
     def describe(self, processor):
         processor.setDescription(self.ProcessorDetails.description)
@@ -43,27 +44,38 @@ class FlowFileTransform(ABC):
             processor.addProperty(property.name, property.description, property.defaultValue, property.required, expression_language_supported, validator)
 
     def onTrigger(self, context, session):
-        flow_file = session.get()
-        if not flow_file:
+        original_flow_file = session.get()
+        if not original_flow_file:
             return
+
+        flow_file = session.clone(original_flow_file)
 
         flow_file_proxy = FlowFileProxy(session, flow_file)
         context_proxy = ProcessContextProxy(context)
-        result = self.transform(context_proxy, flow_file_proxy)
+        try:
+            result = self.transform(context_proxy, flow_file_proxy)
+        except Exception as e:
+            self.logger.error("Failed to transform flow file due to error: {}".format(str(e)))
+            session.remove(flow_file)
+            session.transfer(original_flow_file, self.REL_FAILURE)
+            return
 
-        result_content = result.getContents()
-        if result_content is not None:
-            session.write(flow_file, WriteCallback(str(result_content)))
+        if result.getRelationship() == "failure":
+            session.remove(flow_file)
+            session.transfer(original_flow_file, self.REL_FAILURE)
+            return
 
         result_attributes = result.getAttributes()
         if result_attributes is not None:
             for attribute in result_attributes:
                 flow_file.addAttribute(attribute, result_attributes[attribute])
 
-        if result.getRelationship() == "success":
-            session.transfer(flow_file, self.REL_SUCCESS)
-        elif result.getRelationship() == "failure":
-            session.transfer(flow_file, self.REL_FAILURE)  # TODO add original relationship
+        result_content = result.getContents()
+        if result_content is not None:
+            session.write(flow_file, WriteCallback(str(result_content)))
+
+        session.transfer(flow_file, self.REL_SUCCESS)
+        session.transfer(original_flow_file, self.REL_ORIGINAL)
 
     @abstractmethod
     def transform(self, context, flowFile):
