@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <string>
 #include <memory>
+#include <filesystem>
 #include "core/Core.h"
 #include "core/logging/LoggerConfiguration.h"
 #include "core/Resource.h"
@@ -34,6 +35,7 @@
 #include "utils/StringUtils.h"
 #include "range/v3/algorithm.hpp"
 #include "properties/Configuration.h"
+#include "utils/file/FilePattern.h"
 
 namespace org::apache::nifi::minifi::extensions::python {
 
@@ -62,6 +64,26 @@ class PythonCreator : public minifi::core::CoreComponent {
     }
     configure({pathListings.value()});
 
+    constexpr const char* DEFAULT_EXTENSION_PATH = "../extensions/*";
+    std::string pattern = [&] {
+      auto opt_pattern = configuration->get(minifi::Configuration::nifi_extension_path);
+      if (!opt_pattern) {
+        logger_->log_warn("No extension path is provided, using default: '{}'", DEFAULT_EXTENSION_PATH);
+      }
+      return opt_pattern.value_or(DEFAULT_EXTENSION_PATH);
+    }();
+    auto candidates = utils::file::match(utils::file::FilePattern(pattern, [&] (std::string_view subpattern, std::string_view error_msg) {
+      logger_->log_error("Error in subpattern '{}': {}", subpattern, error_msg);
+    }));
+
+    std::filesystem::path python_lib_path;
+    for (const auto& candidate : candidates) {
+      if (candidate.string().find("python") != std::string::npos) {
+        python_lib_path = candidate.parent_path();
+        break;
+      }
+    }
+
     for (const auto &path : classpaths_) {
       const auto script_name = path.stem();
       const auto package = getPackage(pathListings.value(), path.string());
@@ -72,9 +94,11 @@ class PythonCreator : public minifi::core::CoreComponent {
         class_name = full_name;
       }
       if (path.string().find("nifi_python_processors") != std::string::npos && class_name.find("__init__") == std::string::npos) {
-        core::getClassLoader().registerClass(class_name, std::make_unique<PythonObjectFactory>(path.string(), class_name, PythonProcessorType::NIFI_TYPE, pathListings.value()));
+        core::getClassLoader().registerClass(class_name, std::make_unique<PythonObjectFactory>(path.string(), class_name,
+          PythonProcessorType::NIFI_TYPE, std::vector<std::filesystem::path>{python_lib_path, std::filesystem::path{pathListings.value()}}));
       } else if (path.string().find("nifiapi") == std::string::npos) {
-        core::getClassLoader().registerClass(class_name, std::make_unique<PythonObjectFactory>(path.string(), class_name, PythonProcessorType::MINIFI_TYPE, pathListings.value()));
+        core::getClassLoader().registerClass(class_name, std::make_unique<PythonObjectFactory>(path.string(), class_name,
+          PythonProcessorType::MINIFI_TYPE, std::vector<std::filesystem::path>{python_lib_path, std::filesystem::path{pathListings.value()}}));
       } else {
         continue;
       }

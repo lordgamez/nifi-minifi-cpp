@@ -22,6 +22,7 @@
 #include <string>
 #include <memory>
 #include <utility>
+#include <filesystem>
 
 #include "core/ClassLoader.h"
 #include "ExecutePythonProcessor.h"
@@ -38,10 +39,10 @@ enum class PythonProcessorType {
 
 class PythonObjectFactory : public org::apache::nifi::minifi::core::DefautObjectFactory<org::apache::nifi::minifi::extensions::python::processors::ExecutePythonProcessor> {
  public:
-  explicit PythonObjectFactory(std::string file, std::string name, PythonProcessorType python_processor_type, std::string minifi_python_path)
+  explicit PythonObjectFactory(std::string file, std::string name, PythonProcessorType python_processor_type, const std::vector<std::filesystem::path>& python_paths)
       : file_(std::move(file)),
         name_(std::move(name)),
-        minifi_python_path_(std::move(minifi_python_path)),
+        python_paths_(python_paths),
         python_processor_type_(python_processor_type) {
   }
 
@@ -52,9 +53,9 @@ class PythonObjectFactory : public org::apache::nifi::minifi::core::DefautObject
       return nullptr;
     }
     if (python_processor_type_ == PythonProcessorType::NIFI_TYPE) {
-      auto splitted = org::apache::nifi::minifi::utils::StringUtils::split(name_, ".");
-      ptr->setPythonClassName(splitted[splitted.size() - 1]);
-      ptr->setMinifiPythonPath(minifi_python_path_);
+      auto name_tokens = org::apache::nifi::minifi::utils::StringUtils::split(name_, ".");
+      ptr->setPythonClassName(name_tokens[name_tokens.size() - 1]);
+      ptr->setPythonPaths(python_paths_);
     }
     ptr->initialize();
     ptr->setProperty(org::apache::nifi::minifi::extensions::python::processors::ExecutePythonProcessor::ScriptFile, file_);
@@ -68,9 +69,9 @@ class PythonObjectFactory : public org::apache::nifi::minifi::core::DefautObject
       return nullptr;
     }
     if (python_processor_type_ == PythonProcessorType::NIFI_TYPE) {
-      auto splitted = org::apache::nifi::minifi::utils::StringUtils::split(name_, ".");
-      ptr->setPythonClassName(splitted[splitted.size() - 1]);
-      ptr->setMinifiPythonPath(minifi_python_path_);
+      auto name_tokens = org::apache::nifi::minifi::utils::StringUtils::split(name_, ".");
+      ptr->setPythonClassName(name_tokens[name_tokens.size() - 1]);
+      ptr->setPythonPaths(python_paths_);
     }
     ptr->initialize();
     ptr->setProperty(org::apache::nifi::minifi::extensions::python::processors::ExecutePythonProcessor::ScriptFile, file_);
@@ -87,8 +88,9 @@ class PythonObjectFactory : public org::apache::nifi::minifi::core::DefautObject
   org::apache::nifi::minifi::core::CoreComponent* createRaw(const std::string &name, const org::apache::nifi::minifi::utils::Identifier &uuid) override {
     auto ptr = dynamic_cast<org::apache::nifi::minifi::extensions::python::processors::ExecutePythonProcessor*>(DefautObjectFactory::createRaw(name, uuid));
     if (python_processor_type_ == PythonProcessorType::NIFI_TYPE) {
-      ptr->setPythonClassName(name_);
-      ptr->setMinifiPythonPath(minifi_python_path_);
+      auto name_tokens = org::apache::nifi::minifi::utils::StringUtils::split(name_, ".");
+      ptr->setPythonClassName(name_tokens[name_tokens.size() - 1]);
+      ptr->setPythonPaths(python_paths_);
     }
     ptr->initialize();
     ptr->setProperty(org::apache::nifi::minifi::extensions::python::processors::ExecutePythonProcessor::ScriptFile, file_);
@@ -98,7 +100,7 @@ class PythonObjectFactory : public org::apache::nifi::minifi::core::DefautObject
  private:
   std::string file_;
   std::string name_;
-  std::string minifi_python_path_;
+  std::vector<std::filesystem::path> python_paths_;
   PythonProcessorType python_processor_type_;
 };
 

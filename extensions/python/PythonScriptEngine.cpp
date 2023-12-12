@@ -185,7 +185,6 @@ void PythonScriptEngine::evalInternal(std::string_view script) {
 void PythonScriptEngine::evaluateModuleImports() {
   bindings_.put("__builtins__", OwnedObject(PyImport_ImportModule("builtins")));
   evalInternal("import sys");
-  evalInternal("sys.path.append(r'/home/ggyimesi/projects/nifi-minifi-cpp-fork/build/nifi-minifi-cpp-0.15.0/extensions')");
   if (module_paths_.empty()) {
     return;
   }
