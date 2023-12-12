@@ -131,30 +131,6 @@ class ResourceDefinition:
         self.allow_directory = allow_directory
         self.allow_text = allow_text
 
-    @staticmethod
-    def from_java_definition(java_definition):
-        if java_definition is None:
-            return None
-
-        allow_multiple = java_definition.getCardinality().name() == "MULTIPLE"
-        resource_types = java_definition.getResourceTypes()
-        allow_file = False
-        allow_url = False
-        allow_directory = False
-        allow_text = False
-        for type in resource_types:
-            name = type.name()
-            if name == "FILE":
-                allow_file = True
-            elif name == "DIRECTORY":
-                allow_directory = True
-            elif name == "TEXT":
-                allow_text = True
-            elif name == "URL":
-                allow_url = True
-
-        return ResourceDefinition(allow_multiple, allow_file, allow_url, allow_directory, allow_text)
-
 
 class PropertyDescriptor:
     def __init__(self, name, description, required=False, sensitive=False,
