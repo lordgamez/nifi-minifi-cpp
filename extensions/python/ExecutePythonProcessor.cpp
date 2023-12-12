@@ -58,9 +58,7 @@ void ExecutePythonProcessor::initialize() {
 
 void ExecutePythonProcessor::initalizeThroughScriptEngine() {
   appendPathForImportModules();
-  if (minifi_python_path_) {
-    python_script_engine_->appendModulePaths(std::vector<std::filesystem::path>{*minifi_python_path_});
-  }
+  python_script_engine_->appendModulePaths(python_paths_);
   python_script_engine_->eval(script_to_exec_);
   if (python_class_name_) {
     python_script_engine_->initializeProcessorObject(*python_class_name_);

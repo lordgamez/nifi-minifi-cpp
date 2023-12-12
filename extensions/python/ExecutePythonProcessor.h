@@ -24,6 +24,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <filesystem>
 
 #include "concurrentqueue.h"
 #include "core/Processor.h"
@@ -129,8 +130,8 @@ class ExecutePythonProcessor : public core::Processor {
     python_class_name_ = python_class_name;
   }
 
-  void setMinifiPythonPath(const std::string& minifi_python_path) {
-    minifi_python_path_ = minifi_python_path;
+  void setPythonPaths(const std::vector<std::filesystem::path>& python_paths) {
+    python_paths_ = python_paths;
   }
 
  protected:
@@ -184,7 +185,7 @@ class ExecutePythonProcessor : public core::Processor {
   std::shared_ptr<core::logging::Logger> python_logger_;
   std::unique_ptr<PythonScriptEngine> python_script_engine_;
   std::optional<std::string> python_class_name_;
-  std::optional<std::string> minifi_python_path_;
+  std::vector<std::filesystem::path> python_paths_;
 
   void appendPathForImportModules();
   void loadScriptFromFile();
