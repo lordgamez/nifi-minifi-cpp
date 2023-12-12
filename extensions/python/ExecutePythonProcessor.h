@@ -148,26 +148,7 @@ class ExecutePythonProcessor : public core::Processor {
     PORT_TYPE = 6
   };
 
-  const core::PropertyType& translateCodeToPropertyType(const PropertyTypeCode& code) const {
-    switch (code) {
-      case PropertyTypeCode::INTEGER_TYPE:
-        return core::StandardPropertyTypes::INTEGER_TYPE;
-      case PropertyTypeCode::LONG_TYPE:
-        return core::StandardPropertyTypes::LONG_TYPE;
-      case PropertyTypeCode::BOOLEAN_TYPE:
-        return core::StandardPropertyTypes::BOOLEAN_TYPE;
-      case PropertyTypeCode::DATA_SIZE_TYPE:
-        return core::StandardPropertyTypes::DATA_SIZE_TYPE;
-      case PropertyTypeCode::TIME_PERIOD_TYPE:
-        return core::StandardPropertyTypes::TIME_PERIOD_TYPE;
-      case PropertyTypeCode::NON_BLANK_TYPE:
-        return core::StandardPropertyTypes::NON_BLANK_TYPE;
-      case PropertyTypeCode::PORT_TYPE:
-        return core::StandardPropertyTypes::PORT_TYPE;
-      default:
-        throw std::invalid_argument("Unknown PropertyTypeCode");
-    }
-  }
+  const core::PropertyType& translateCodeToPropertyType(const PropertyTypeCode& code) const;
 
   std::vector<core::Property> python_properties_;
 
