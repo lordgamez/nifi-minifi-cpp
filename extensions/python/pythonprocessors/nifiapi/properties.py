@@ -14,45 +14,40 @@
 # limitations under the License.
 
 from enum import Enum
-from minifi_native import DataConverter
 from typing import List
+from minifi_native import DataConverter, ProcessSession, FlowFile, ProcessContext
 
 
-class ExpressionLanguageScope(Enum):
-    NONE = 1
-    ENVIRONMENT = 2
-    FLOWFILE_ATTRIBUTES = 3
-
-
+# This is a mock for NiFi's StandardValidators class methods, that return the property type equivalent in MiNiFi C++ if exists
 class ValidatorGenerator:
-    def createNonNegativeFloatingPointValidator(self, *args):
+    def createNonNegativeFloatingPointValidator(self, *args) -> int:
         return StandardValidators.ALWAYS_VALID
 
-    def createDirectoryExistsValidator(self, *args):
+    def createDirectoryExistsValidator(self, *args) -> int:
         return StandardValidators.ALWAYS_VALID
 
-    def createURLValidator(self, *args):
+    def createURLValidator(self, *args) -> int:
         return StandardValidators.ALWAYS_VALID
 
-    def createListValidator(self, *args):
+    def createListValidator(self, *args) -> int:
         return StandardValidators.ALWAYS_VALID
 
-    def createTimePeriodValidator(self, *args):
+    def createTimePeriodValidator(self, *args) -> int:
         return StandardValidators.TIME_PERIOD_VALIDATOR
 
-    def createAttributeExpressionLanguageValidator(self, *args):
+    def createAttributeExpressionLanguageValidator(self, *args) -> int:
         return StandardValidators.ALWAYS_VALID
 
-    def createDataSizeBoundsValidator(self, *args):
+    def createDataSizeBoundsValidator(self, *args) -> int:
         return StandardValidators.DATA_SIZE_VALIDATOR
 
-    def createRegexMatchingValidator(self, *args):
+    def createRegexMatchingValidator(self, *args) -> int:
         return StandardValidators.ALWAYS_VALID
 
-    def createRegexValidator(self, *args):
+    def createRegexValidator(self, *args) -> int:
         return StandardValidators.ALWAYS_VALID
 
-    def createLongValidator(self, *args):
+    def createLongValidator(self, *args) -> int:
         return StandardValidators.LONG_VALIDATOR
 
 
@@ -91,7 +86,7 @@ class MinifiPropertyTypes:
     PORT_TYPE = 6
 
 
-def translateStandardValidatorToMiNiFiPropertype(validators: List[StandardValidators]) -> MinifiPropertyTypes:
+def translateStandardValidatorToMiNiFiPropertype(validators: List[int]) -> int:
     if validators is None or len(validators) == 0 or len(validators) > 1:
         return None
 
@@ -110,7 +105,6 @@ def translateStandardValidatorToMiNiFiPropertype(validators: List[StandardValida
         return MinifiPropertyTypes.NON_BLANK_TYPE
     if validator == StandardValidators.PORT_VALIDATOR:
         return MinifiPropertyTypes.PORT_TYPE
-
     return None
 
 
@@ -132,46 +126,17 @@ class ResourceDefinition:
         self.allow_text = allow_text
 
 
+class ExpressionLanguageScope(Enum):
+    NONE = 1
+    ENVIRONMENT = 2
+    FLOWFILE_ATTRIBUTES = 3
+
+
 class PropertyDescriptor:
-    def __init__(self, name, description, required=False, sensitive=False,
-                 display_name=None, default_value=None, allowable_values=None,
-                 dependencies=None, expression_language_scope=ExpressionLanguageScope.NONE,
-                 dynamic=False, validators=None,
-                 resource_definition=None, controller_service_definition=None):
-        """
-        :param name: the name of the property
-        :param description: a description of the property
-        :param required: a boolean indicating whether or not the property is required. Defaults to False.
-        :param sensitive: a boolean indicating whether or not the property is sensitive. Defaults to False.
-        :param display_name: Once a Processor has been released, its properties' configuration are stored as key/value pairs where the key is the name of the property.
-                             Because of that, subsequent versions of the Processor should not change the name of a property. However, there are times when renaming a property
-                             would be advantageous. For example, one might find a typo in the name of a property, or users may find a property name confusing. While the name of
-                             the property should not be changed, a display_name may be added. Doing this results in the Display Name being used in the NiFi UI but still maintains
-                             the original name as the key. Generally, this value should be left unspecified. If unspecified (or a value of `None`), the display name will default
-                             to whatever the name is. However, the display_name may be changed at any time between versions without adverse effects.
-        :param default_value: a default value for the property. If not specified, the initial value will be unset. If specified, any time the value is removed, it is reset to this
-                              default_value. That is to say, if a default value is specified, the property cannot be unset.
-        :param allowable_values: a list of string values that are allowed. If specified, the UI will present the options as a drop-down instead of a freeform text. If any other value
-                                 is specified for the property, the Processor will be invalid.
-        :param dependencies: a list of dependencies for this property. By default, all properties are always configurable. However, sometimes we want to expose a property that only makes
-                             sense in certain circumstances. In this situation, we can say that Property A depends on Property B. Now, Property A will only be shown if a value is selected
-                             for Property B. Additionally, we may say that Property A depends on Property B being set to some explicit value, say "foo." Now, Property A will only be shown
-                             in the UI if Property B is set to a value of "foo." If a Property is not shown in the UI, its value will also not be validated. For example, if we indicate that
-                             Property A is required and depends on Property B, then Property A is only required if Property B is set.
-        :param expression_language_scope: documents the scope in which Expression Language is valid. This value must be specified as one of the enum values
-                                          in `nifiapi.properties.ExpressionLanguageScope`. A value of `NONE` indicates that Expression Language will not be evaluated for this property.
-                                          This is the default. A value of `FLOWFILE_ATTRIBUTES` indicates that FlowFile attributes may be referenced when configuring the property value.
-                                          A value of `ENVIRONMENT` indicates that Expression Language may be used and may reference environment variables but may not reference FlowFile attributes.
-                                          For example, a value of `${now()}` might be used to reference the current date and time, or `${hostname(true)}` might be used to specify the hostname.
-                                          Or a value of `${ENV_VAR}` could be used to reference an environment variable named `ENV_VAR`.
-        :param dynamic: whether or not this Property Descriptor represents a dynamic (aka user-defined) property. This is not necessary to specify, as the framework can determine this.
-                        However, it is available if there is a desire to explicitly set it for completeness' sake.
-        :param validators: A list of property validators that can be used to ensure that the user-supplied value is valid. The standard validators can be referenced using the
-                           members of the `nifiapi.properties.StandardValidators` class.
-        :param resource_definition: an instance of `nifiapi.properties.ResourceDefinition`. This may be used to convey that the property references a file, directory, or URL, or a set of them.
-        :param controller_service_definition: if this Processor is to make use of a Controller Service, this indicates the type of Controller Service. This will always be a fully-qualified
-                                              classname of a Java interface that extends from `ControllerService`.
-        """
+    def __init__(self, name: str, description: str, required: bool = False, sensitive: bool = False,
+                 display_name: str = None, default_value: str = None, allowable_values: List[str] = None,
+                 dependencies: List[PropertyDependency] = None, expression_language_scope: ExpressionLanguageScope = ExpressionLanguageScope.NONE,
+                 dynamic: bool = False, validators: List[int] = None, resource_definition: ResourceDefinition = None, controller_service_definition: str = None):
         if validators is None:
             validators = [StandardValidators.ALWAYS_VALID]
 
@@ -209,7 +174,7 @@ class DataUnit(Enum):
 
 
 class FlowFileProxy:
-    def __init__(self, session, flow_file):
+    def __init__(self, session: ProcessSession, flow_file: FlowFile):
         self.session = session
         self.flow_file = flow_file
 
@@ -218,7 +183,7 @@ class FlowFileProxy:
 
 
 class PythonPropertyValue:
-    def __init__(self, cpp_context, cpp_data_converter: DataConverter, name: str, string_value: str, el_supported: bool):
+    def __init__(self, cpp_context: ProcessContext, cpp_data_converter: DataConverter, name: str, string_value: str, el_supported: bool):
         self.cpp_context = cpp_context
         self.cpp_data_converter = cpp_data_converter
         self.value = None
@@ -227,28 +192,28 @@ class PythonPropertyValue:
             self.value = string_value
         self.el_supported = el_supported
 
-    def getValue(self):
+    def getValue(self) -> str:
         return self.value
 
-    def isSet(self):
+    def isSet(self) -> bool:
         return self.value is not None
 
-    def asInteger(self):
+    def asInteger(self) -> int:
         if not self.value:
             return None
         return int(self.value)
 
-    def asBoolean(self):
+    def asBoolean(self) -> bool:
         if not self.value:
             return None
         return self.value.lower() == 'true'
 
-    def asFloat(self):
+    def asFloat(self) -> float:
         if not self.value:
             return None
         return float(self.value)
 
-    def asTimePeriod(self, time_unit):
+    def asTimePeriod(self, time_unit: TimeUnit) -> int:
         if not self.value:
             return None
         milliseconds = self.cpp_data_converter.timePeriodStringToMilliseconds(self.value)
@@ -268,7 +233,7 @@ class PythonPropertyValue:
             return int(round(milliseconds / 1000 / 60 / 60 / 24))
         return 0
 
-    def asDataSize(self, data_unit):
+    def asDataSize(self, data_unit: DataUnit) -> int:
         if not self.value:
             return None
         bytes = self.cpp_data_converter.dataSizeStringToBytes(self.value)
@@ -295,7 +260,7 @@ class PythonPropertyValue:
 
 
 class ProcessContextProxy:
-    def __init__(self, cpp_context):
+    def __init__(self, cpp_context: ProcessContext):
         self.cpp_context = cpp_context
         self.cpp_data_converter = DataConverter()
 

@@ -15,15 +15,35 @@
 
 from abc import ABC, abstractmethod
 from .properties import ExpressionLanguageScope, FlowFileProxy, ProcessContextProxy, translateStandardValidatorToMiNiFiPropertype
+from minifi_native import OutputStream, Processor, ProcessContext, ProcessSession
 
 
 class WriteCallback:
     def __init__(self, content):
         self.content = content
 
-    def process(self, output_stream):
-        output_stream.write(self.content.encode('utf-8'))
+    def process(self, output_stream: OutputStream):
+        output_stream.write(self.content)
         return len(self.content)
+
+
+class FlowFileTransformResult:
+    def __init__(self, relationship: str, attributes=None, contents=None):
+        self.relationship = relationship
+        self.attributes = attributes
+        if contents is not None and isinstance(contents, str):
+            self.contents = str.encode(contents)
+        else:
+            self.contents = contents
+
+    def getRelationship(self):
+        return self.relationship
+
+    def getContents(self):
+        return self.contents
+
+    def getAttributes(self):
+        return self.attributes
 
 
 class FlowFileTransform(ABC):
@@ -33,17 +53,17 @@ class FlowFileTransform(ABC):
     REL_FAILURE = None
     REL_ORIGINAL = None
 
-    def describe(self, processor):
+    def describe(self, processor: Processor):
         processor.setDescription(self.ProcessorDetails.description)
 
-    def onInitialize(self, processor):
+    def onInitialize(self, processor: Processor):
         processor.setSupportsDynamicProperties()
         for property in self.property_descriptors:
             validator = translateStandardValidatorToMiNiFiPropertype(property.validators)
             expression_language_supported = True if property.expressionLanguageScope != ExpressionLanguageScope.NONE else False
             processor.addProperty(property.name, property.description, property.defaultValue, property.required, expression_language_supported, validator)
 
-    def onTrigger(self, context, session):
+    def onTrigger(self, context: ProcessContext, session: ProcessSession):
         original_flow_file = session.get()
         if not original_flow_file:
             return
@@ -72,30 +92,11 @@ class FlowFileTransform(ABC):
 
         result_content = result.getContents()
         if result_content is not None:
-            session.write(flow_file, WriteCallback(str(result_content)))
+            session.write(flow_file, WriteCallback(result_content))
 
         session.transfer(flow_file, self.REL_SUCCESS)
         session.transfer(original_flow_file, self.REL_ORIGINAL)
 
     @abstractmethod
-    def transform(self, context, flowFile):
+    def transform(self, context: ProcessContextProxy, flowFile: FlowFileProxy) -> FlowFileTransformResult:
         pass
-
-
-class FlowFileTransformResult:
-    def __init__(self, relationship, attributes=None, contents=None):
-        self.relationship = relationship
-        self.attributes = attributes
-        if contents is not None and isinstance(contents, str):
-            self.contents = str.encode(contents)
-        else:
-            self.contents = contents
-
-    def getRelationship(self):
-        return self.relationship
-
-    def getContents(self):
-        return self.contents
-
-    def getAttributes(self):
-        return self.attributes
