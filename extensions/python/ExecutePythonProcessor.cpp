@@ -45,8 +45,7 @@ void ExecutePythonProcessor::initialize() {
 
   try {
     loadScript();
-  } catch(const std::runtime_error&) {
-    logger_->log_warn("Could not load python script while initializing. In case of non-native python processor this is normal and will be done in the schedule phase.");
+  } catch(const std::runtime_error& err) {
     return;
   }
 
@@ -170,6 +169,27 @@ core::Property* ExecutePythonProcessor::findProperty(const std::string& name) co
   }
 
   return nullptr;
+}
+
+const core::PropertyType& ExecutePythonProcessor::translateCodeToPropertyType(const PropertyTypeCode& code) const {
+  switch (code) {
+    case PropertyTypeCode::INTEGER_TYPE:
+      return core::StandardPropertyTypes::INTEGER_TYPE;
+    case PropertyTypeCode::LONG_TYPE:
+      return core::StandardPropertyTypes::LONG_TYPE;
+    case PropertyTypeCode::BOOLEAN_TYPE:
+      return core::StandardPropertyTypes::BOOLEAN_TYPE;
+    case PropertyTypeCode::DATA_SIZE_TYPE:
+      return core::StandardPropertyTypes::DATA_SIZE_TYPE;
+    case PropertyTypeCode::TIME_PERIOD_TYPE:
+      return core::StandardPropertyTypes::TIME_PERIOD_TYPE;
+    case PropertyTypeCode::NON_BLANK_TYPE:
+      return core::StandardPropertyTypes::NON_BLANK_TYPE;
+    case PropertyTypeCode::PORT_TYPE:
+      return core::StandardPropertyTypes::PORT_TYPE;
+    default:
+      throw std::invalid_argument("Unknown PropertyTypeCode");
+  }
 }
 
 REGISTER_RESOURCE(ExecutePythonProcessor, Processor);

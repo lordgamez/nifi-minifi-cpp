@@ -39,9 +39,9 @@ enum class PythonProcessorType {
 
 class PythonObjectFactory : public org::apache::nifi::minifi::core::DefautObjectFactory<org::apache::nifi::minifi::extensions::python::processors::ExecutePythonProcessor> {
  public:
-  explicit PythonObjectFactory(std::string file, std::string name, PythonProcessorType python_processor_type, const std::vector<std::filesystem::path>& python_paths)
+  explicit PythonObjectFactory(std::string file, std::string class_name, PythonProcessorType python_processor_type, const std::vector<std::filesystem::path>& python_paths)
       : file_(std::move(file)),
-        name_(std::move(name)),
+        class_name_(std::move(class_name)),
         python_paths_(python_paths),
         python_processor_type_(python_processor_type) {
   }
@@ -53,8 +53,7 @@ class PythonObjectFactory : public org::apache::nifi::minifi::core::DefautObject
       return nullptr;
     }
     if (python_processor_type_ == PythonProcessorType::NIFI_TYPE) {
-      auto name_tokens = org::apache::nifi::minifi::utils::StringUtils::split(name_, ".");
-      ptr->setPythonClassName(name_tokens[name_tokens.size() - 1]);
+      ptr->setPythonClassName(class_name_);
       ptr->setPythonPaths(python_paths_);
     }
     ptr->initialize();
@@ -69,8 +68,7 @@ class PythonObjectFactory : public org::apache::nifi::minifi::core::DefautObject
       return nullptr;
     }
     if (python_processor_type_ == PythonProcessorType::NIFI_TYPE) {
-      auto name_tokens = org::apache::nifi::minifi::utils::StringUtils::split(name_, ".");
-      ptr->setPythonClassName(name_tokens[name_tokens.size() - 1]);
+      ptr->setPythonClassName(class_name_);
       ptr->setPythonPaths(python_paths_);
     }
     ptr->initialize();
@@ -88,8 +86,7 @@ class PythonObjectFactory : public org::apache::nifi::minifi::core::DefautObject
   org::apache::nifi::minifi::core::CoreComponent* createRaw(const std::string &name, const org::apache::nifi::minifi::utils::Identifier &uuid) override {
     auto ptr = dynamic_cast<org::apache::nifi::minifi::extensions::python::processors::ExecutePythonProcessor*>(DefautObjectFactory::createRaw(name, uuid));
     if (python_processor_type_ == PythonProcessorType::NIFI_TYPE) {
-      auto name_tokens = org::apache::nifi::minifi::utils::StringUtils::split(name_, ".");
-      ptr->setPythonClassName(name_tokens[name_tokens.size() - 1]);
+      ptr->setPythonClassName(class_name_);
       ptr->setPythonPaths(python_paths_);
     }
     ptr->initialize();
@@ -99,7 +96,7 @@ class PythonObjectFactory : public org::apache::nifi::minifi::core::DefautObject
 
  private:
   std::string file_;
-  std::string name_;
+  std::string class_name_;
   std::vector<std::filesystem::path> python_paths_;
   PythonProcessorType python_processor_type_;
 };
