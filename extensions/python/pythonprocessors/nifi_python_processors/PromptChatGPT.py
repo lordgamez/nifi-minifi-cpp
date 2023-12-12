@@ -205,7 +205,7 @@ class PromptChatGPT(FlowFileTransform):
         # Run the LLM Chain in order to prompt ChatGPT
         # results = llm_chain(llm_args)
         results = {
-            "text": prompt
+            "text": b'spam egg bacon'
         }
 
         # Create the output content or FLowFile attribute
