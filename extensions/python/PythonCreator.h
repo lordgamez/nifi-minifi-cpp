@@ -79,7 +79,7 @@ class PythonCreator : public minifi::core::CoreComponent {
       if (path.string().find("nifi_python_processors") != std::string::npos) {
         logger_->log_info("Registering NiFi python processor: {}", class_name);
         core::getClassLoader().registerClass(class_name, std::make_unique<PythonObjectFactory>(path.string(), script_name.string(),
-          PythonProcessorType::NIFI_TYPE, std::vector<std::filesystem::path>{python_lib_path, std::filesystem::path{pathListings.value()}}));
+          PythonProcessorType::NIFI_TYPE, std::vector<std::filesystem::path>{python_lib_path, std::filesystem::path{pathListings.value()}, path.parent_path()}));
       } else {
         logger_->log_info("Registering MiNiFi python processor: {}", class_name);
         core::getClassLoader().registerClass(class_name, std::make_unique<PythonObjectFactory>(path.string(), script_name.string(),

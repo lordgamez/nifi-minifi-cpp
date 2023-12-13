@@ -58,7 +58,7 @@ class FlowFileTransform(ABC):
 
     def onInitialize(self, processor: Processor):
         processor.setSupportsDynamicProperties()
-        for property in self.property_descriptors:
+        for property in self.getPropertyDescriptors():
             validator = translateStandardValidatorToMiNiFiPropertype(property.validators)
             expression_language_supported = True if property.expressionLanguageScope != ExpressionLanguageScope.NONE else False
             processor.addProperty(property.name, property.description, property.defaultValue, property.required, expression_language_supported, validator)
