@@ -23,6 +23,8 @@ This readme defines the configuration parameters to use ExecutePythonProcessor t
 - [Requirements](#requirements)
 - [Description](#description)
 - [Configuration](#configuration)
+- [Processors](#configuration)
+- [Using NiFi Python Processors](#using-nifi-python-processors)
 
 
 ## Requirements
@@ -64,9 +66,9 @@ export LD_LIBRARY_PATH="${PYENV_ROOT}/versions/${PY_VERSION}/lib${LD_LIBRARY_PAT
 Python native processors can be updated at any time by simply adding a new processor to the directory defined in
 the configuration options. The processor name, when provided to MiNiFi C++ and any C2 manifest will be that
 of the name of the python script. For example, "AttributePrinter.py" will be named and referenced in the flow
-as "org.apache.nifi.minifi.processors.AttributePrinter" 
+as "org.apache.nifi.minifi.processors.AttributePrinter"
 
-Methods that are enabled within the processor are  describe, onSchedule, onInitialize, and onTrigger. 
+Methods that are enabled within the processor are  describe, onSchedule, onInitialize, and onTrigger.
 
 Describe is passed the processor and is a required function. You must set the description like so:
 
@@ -74,7 +76,7 @@ Describe is passed the processor and is a required function. You must set the de
 def describe(processor):
   processor.setDescription("Adds an attribute to your flow files")
 ```
-   
+
 onInitialize is also passed the processor reference and can be where you set properties. The first argument is the property display name,
 followed by the description, and default value. The last two arguments are booleans describing if the property is required or requires EL.
 
@@ -106,20 +108,34 @@ class VaderSentiment(object):
 To enable python Processor capabilities, the following options need to be provided in minifi.properties. The directory specified
 can contain processors. Note that the processor name will be the reference in your flow. Directories are treated like package names.
 Therefore if the nifi.python.processor.dir is /tmp/ and you have a subdirectory named packagedir with the file name file.py, it will
-produce a processor with the name org.apache.nifi.minifi.processors.packagedir.file. Note that each subdirectory will append a package 
-to the reference class name. 
+produce a processor with the name org.apache.nifi.minifi.processors.packagedir.file. Note that each subdirectory will append a package
+to the reference class name.
 
     in minifi.properties
 	#directory where processors exist
 	nifi.python.processor.dir=XXXX
-	
-	
+
+
 ## Processors
 The python directory (extensions/pythonprocessors) contains implementations that will be available for flows if the required dependencies
 exist.
-   
-## Sentiment Analysis
+
+### Sentiment Analysis
 
 The SentimentAnalysis processor will perform a Vader Sentiment Analysis. This requires that you install nltk and VaderSentiment
 		pip install nltk
 		pip install VaderSentiment
+
+## Using NiFi Python Processors
+
+MiNiFi C++ supports the use of NiFi Python processors, that are inherited from the FlowFileTransform base class. To use these processors, you must copy the Python processor module under the nifi_python_processors directory located under the python directory (by default ${minifi_root}/minifi-python/nifi_python_processors).
+
+In the flow configuration these Python processors can be referenced by their fully qualified class name, which looks like this: org.apache.nifi.minifi.processors.nifi_python_processors.<package_name>.<processor_name>. For example, the fully qualified class name of the PromptChatGPT processor copied under the nifi_python_processors root directory is org.apache.nifi.minifi.processors.nifi_python_processors.PromptChatGPT. If a processor is copied under a subdirectory, the subdirectory name will be appended to the fully qualified class name. For example, if the QueryPinecone processor is copied under the nifi_python_processors/vectorstores directory, the fully qualified class name will be org.apache.nifi.minifi.processors.nifi_python_processors.vectorstores.QueryPinecone.
+
+Due to some differences between the NiFi and MiNiFi C++ processors and implementation, there are some limitations using the NiFi Python processors:
+- Record based processors are not yet supported in MiNiFi C++, so the NiFi Python processors inherited from RecordTransform are not supported.
+- Virtualenv support is not yet available in MiNiFi C++, so all required packaged must be installed on the system.
+- There are some validators in NiFi that are not present in MiNiFi C++, so some property validations will be missing using the NiFi Python processors.
+- Allowable values specified in NiFi Python processors are ignored in MiNiFi C++ (due to MiNiFi C++ requiring them to be specified in compile time).
+- MiNiFi C++ does not support custom relationship names in Python processors, the only available relationships are "success", "failure" and "original".
+- MiNiFi C++ only supports expression language with flow file attributes, so only FLOWFILE_ATTRIBUTES expression language scope is supported, otherwise the expression language will be ignored.
