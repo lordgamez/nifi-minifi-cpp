@@ -41,6 +41,8 @@ class ImageStore:
 
         if container_engine == "minifi-cpp-sql":
             image = self.__build_minifi_cpp_sql_image()
+        elif container_engine == "minifi-cpp-python":
+            image = self.__build_minifi_cpp_python_image()
         elif container_engine == "http-proxy":
             image = self.__build_http_proxy_image()
         elif container_engine == "postgresql-server":
@@ -87,6 +89,21 @@ class ImageStore:
                     echo "Database = postgres" >> /etc/odbc.ini
                 USER minificpp
                 """.format(base_image='apacheminificpp:' + MinifiContainer.MINIFI_VERSION))
+
+        return self.__build_image(dockerfile)
+
+    def __build_minifi_cpp_python_image(self):
+        nifi_version = "2.0.0-M1"  # TODO: replace with NifiContainer.NIFI_VERSION
+        "https://github.com/apache/nifi/blob/rel/nifi-" + nifi_version + "/nifi-python-extensions/nifi-text-embeddings-module/src/main/python/ChunkDocument.py"
+        dockerfile = dedent("""\
+                FROM {base_image}
+                USER root
+                RUN apk --update --no-cache add py3-pip
+                USER minificpp
+                RUN pip3 install langchain==0.0.353 &&
+                    mkdir /opt/minifi/minifi-current/minifi-python/nifi_python_processors &&
+                    wget {nifi_python_processor_file} --directory-prefix=/opt/minifi/minifi-current/minifi-python/nifi_python_processors
+                """.format(base_image='apacheminificpp:' + MinifiContainer.MINIFI_VERSION, nifi_python_processor_file=nifi_version))
 
         return self.__build_image(dockerfile)
 

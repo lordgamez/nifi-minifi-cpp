@@ -47,6 +47,10 @@ def before_scenario(context, scenario):
 
     logging.info("Integration test setup at {time:%H:%M:%S.%f}".format(time=datetime.datetime.now()))
     context.test = MiNiFi_integration_test(context=context, feature_id=context.feature_id)
+
+    if context.enable_python_scripting:
+        context.test.enable_python_in_minifi()
+
     for step in scenario.steps:
         inject_feature_id(context, step)
 
@@ -74,6 +78,10 @@ def before_feature(context, feature):
         is_x86 = platform.machine() in ("i386", "AMD64", "x86_64")
         if not is_x86:
             feature.skip("This feature is only x86/x64 compatible")
+
+    context.enable_python_scripting = False
+    if "ENABLE_PYTHON_SCRIPTING" in feature.tags:
+        context.enable_python_scripting = True
     feature_id = shortuuid.uuid()
     context.feature_id = feature_id
     context.directory_bindings = DockerTestDirectoryBindings(feature_id)
