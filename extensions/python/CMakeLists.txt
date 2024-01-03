@@ -46,10 +46,11 @@ target_include_directories(minifi-python-script-extension PUBLIC ${Python_INCLUD
 get_target_property(TARGET_EXT minifi-python-script-extension SUFFIX)
 
 if (WIN32)
+    string(REPLACE "/" "\\" CMAKE_BINARY_DIR_WIN "${CMAKE_BINARY_DIR}")
     add_custom_command(
         TARGET minifi-python-script-extension
         POST_BUILD
-        COMMAND mklink "${CMAKE_BINARY_DIR}/bin/minifi_native$<TARGET_FILE_SUFFIX:minifi-python-script-extension>" "minifi-python-script-extension.lib"
+        COMMAND mklink "${CMAKE_BINARY_DIR_WIN}\\bin\\minifi_native$<TARGET_FILE_SUFFIX:minifi-python-script-extension>" "minifi-python-script-extension.lib"
         COMMENT "Creating symlink for minifi-python-script-extension"
     )
 else()
