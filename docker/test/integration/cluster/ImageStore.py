@@ -41,8 +41,8 @@ class ImageStore:
 
         if container_engine == "minifi-cpp-sql":
             image = self.__build_minifi_cpp_sql_image()
-        elif container_engine == "minifi-cpp-python":
-            image = self.__build_minifi_cpp_python_image()
+        elif container_engine == "minifi-cpp-nifi-python":
+            image = self.__build_minifi_cpp_image_with_nifi_python_processors()
         elif container_engine == "http-proxy":
             image = self.__build_http_proxy_image()
         elif container_engine == "postgresql-server":
@@ -92,18 +92,19 @@ class ImageStore:
 
         return self.__build_image(dockerfile)
 
-    def __build_minifi_cpp_python_image(self):
+    def __build_minifi_cpp_image_with_nifi_python_processors(self):
         nifi_version = "2.0.0-M1"  # TODO: replace with NifiContainer.NIFI_VERSION
-        "https://github.com/apache/nifi/blob/rel/nifi-" + nifi_version + "/nifi-python-extensions/nifi-text-embeddings-module/src/main/python/ChunkDocument.py"
+        parse_document_url = "https://raw.githubusercontent.com/apache/nifi/rel/nifi-" + nifi_version + "/nifi-python-extensions/nifi-text-embeddings-module/src/main/python/ParseDocument.py"
+        chunk_document_url = "https://raw.githubusercontent.com/apache/nifi/rel/nifi-" + nifi_version + "/nifi-python-extensions/nifi-text-embeddings-module/src/main/python/ChunkDocument.py"
         dockerfile = dedent("""\
                 FROM {base_image}
                 USER root
                 RUN apk --update --no-cache add py3-pip
                 USER minificpp
-                RUN pip3 install langchain==0.0.353 &&
-                    mkdir /opt/minifi/minifi-current/minifi-python/nifi_python_processors &&
-                    wget {nifi_python_processor_file} --directory-prefix=/opt/minifi/minifi-current/minifi-python/nifi_python_processors
-                """.format(base_image='apacheminificpp:' + MinifiContainer.MINIFI_VERSION, nifi_python_processor_file=nifi_version))
+                RUN pip3 install langchain==0.0.353 && \\
+                    wget {parse_document_url} --directory-prefix=/opt/minifi/minifi-current/minifi-python/nifi_python_processors && \\
+                    wget {chunk_document_url} --directory-prefix=/opt/minifi/minifi-current/minifi-python/nifi_python_processors
+                """.format(base_image='apacheminificpp:' + MinifiContainer.MINIFI_VERSION, parse_document_url=parse_document_url, chunk_document_url=chunk_document_url))
 
         return self.__build_image(dockerfile)
 

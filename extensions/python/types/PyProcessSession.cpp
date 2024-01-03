@@ -153,6 +153,7 @@ static PyMethodDef PyProcessSessionObject_methods[] = {
     {"write", (PyCFunction) PyProcessSessionObject::write, METH_VARARGS, nullptr},
     {"transfer", (PyCFunction) PyProcessSessionObject::transfer, METH_VARARGS, nullptr},
     {"remove", (PyCFunction) PyProcessSessionObject::remove, METH_VARARGS, nullptr},
+    {"getContentsAsBytes", (PyCFunction) PyProcessSessionObject::getContentsAsBytes, METH_VARARGS, nullptr},
     {}  /* Sentinel */
 };
 

@@ -328,8 +328,8 @@ class ContainerStore:
     def enable_sql_in_minifi(self):
         self.minifi_options.enable_sql = True
 
-    def enable_python_in_minifi(self):
-        self.minifi_options.enable_python = True
+    def add_nifi_python_processors_to_minifi(self):
+        self.minifi_options.nifi_python_processors_present = True
 
     def set_yaml_in_minifi(self):
         self.minifi_options.config_format = "yaml"
