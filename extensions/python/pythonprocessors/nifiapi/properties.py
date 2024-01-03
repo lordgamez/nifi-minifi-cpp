@@ -181,6 +181,15 @@ class FlowFileProxy:
     def getContentsAsBytes(self):
         return self.session.getContentsAsBytes(self.flow_file)
 
+    def getAttribute(self, name: str):
+        return self.flow_file.getAttribute(name)
+
+    def getSize(self):
+        return self.flow_file.getSize()
+
+    def getAttributes(self):
+        return self.flow_file.getAttributes()
+
 
 class PythonPropertyValue:
     def __init__(self, cpp_context: ProcessContext, cpp_data_converter: DataConverter, name: str, string_value: str, el_supported: bool):
