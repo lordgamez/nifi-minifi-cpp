@@ -49,7 +49,7 @@ if (WIN32)
     add_custom_command(
         TARGET minifi-python-script-extension
         POST_BUILD
-        COMMAND mklink "minifi-python-script-extension.lib" "${CMAKE_BINARY_DIR}/bin/minifi_native$<TARGET_FILE_SUFFIX:minifi-python-script-extension>"
+        COMMAND mklink "${CMAKE_BINARY_DIR}/bin/minifi_native$<TARGET_FILE_SUFFIX:minifi-python-script-extension>" "minifi-python-script-extension.lib"
         COMMENT "Creating symlink for minifi-python-script-extension"
     )
 else()
