@@ -410,8 +410,8 @@ class MiNiFi_integration_test:
     def enable_sql_in_minifi(self):
         self.cluster.enable_sql_in_minifi()
 
-    def enable_python_in_minifi(self):
-        self.cluster.enable_python_in_minifi()
+    def add_nifi_python_processors_to_minifi(self):
+        self.cluster.add_nifi_python_processors_to_minifi()
 
     def set_yaml_in_minifi(self):
         self.cluster.set_yaml_in_minifi()
