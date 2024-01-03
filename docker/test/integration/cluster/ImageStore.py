@@ -93,7 +93,7 @@ class ImageStore:
         return self.__build_image(dockerfile)
 
     def __build_minifi_cpp_image_with_nifi_python_processors(self):
-        nifi_version = "2.0.0-M1"  # TODO: replace with NifiContainer.NIFI_VERSION
+        nifi_version = "2.0.0-M1"  # TODO(lordgamez): replace with NifiContainer.NIFI_VERSION after tests are updated in https://issues.apache.org/jira/browse/MINIFICPP-2244
         parse_document_url = "https://raw.githubusercontent.com/apache/nifi/rel/nifi-" + nifi_version + "/nifi-python-extensions/nifi-text-embeddings-module/src/main/python/ParseDocument.py"
         chunk_document_url = "https://raw.githubusercontent.com/apache/nifi/rel/nifi-" + nifi_version + "/nifi-python-extensions/nifi-text-embeddings-module/src/main/python/ChunkDocument.py"
         dockerfile = dedent("""\
