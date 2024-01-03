@@ -23,6 +23,8 @@ namespace org::apache::nifi::minifi::extensions::python {
 struct PyDataConverter {
   PyDataConverter() {}
 
+  PyObject_HEAD
+
   static int init(PyDataConverter* self, PyObject* args, PyObject* kwds);
 
   static PyObject* timePeriodStringToMilliseconds(PyDataConverter* self, PyObject* args);
