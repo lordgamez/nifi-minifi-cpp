@@ -17,43 +17,13 @@
  */
 
 #include "PyDataConverter.h"
-#include <vector>
 
 #include "PyException.h"
-#include "Types.h"
-#include "utils/gsl.h"
 #include "core/TypedValues.h"
 
-extern "C" {
 namespace org::apache::nifi::minifi::extensions::python {
 
-static PyMethodDef PyDataConverter_methods[] = {
-    {"timePeriodStringToMilliseconds", (PyCFunction) PyDataConverter::timePeriodStringToMilliseconds, METH_VARARGS, nullptr},
-    {"dataSizeStringToBytes", (PyCFunction) PyDataConverter::dataSizeStringToBytes, METH_VARARGS, nullptr},
-    {}  /* Sentinel */
-};
-
-static PyType_Slot PyDataConverterTypeSpecSlots[] = {
-    {Py_tp_dealloc, reinterpret_cast<void*>(pythonAllocatedInstanceDealloc<PyDataConverter>)},
-    {Py_tp_init, reinterpret_cast<void*>(PyDataConverter::init)},
-    {Py_tp_methods, reinterpret_cast<void*>(PyDataConverter_methods)},
-    {Py_tp_new, reinterpret_cast<void*>(newPythonAllocatedInstance<PyDataConverter>)},
-    {}  /* Sentinel */
-};
-
-static PyType_Spec PyDataConverterTypeSpec{
-    .name = "minifi_native.DataConverter",
-    .basicsize = sizeof(PyDataConverter),
-    .itemsize = 0,
-    .flags = Py_TPFLAGS_DEFAULT,
-    .slots = PyDataConverterTypeSpecSlots
-};
-
-int PyDataConverter::init(PyDataConverter*, PyObject*, PyObject*) {
-  return 0;
-}
-
-PyObject* PyDataConverter::timePeriodStringToMilliseconds(PyDataConverter*, PyObject* args) {
+PyObject* timePeriodStringToMilliseconds(PyObject* /*self*/, PyObject* args) {
   const char* time_period_str = nullptr;
   if (!PyArg_ParseTuple(args, "s", &time_period_str)) {
     throw PyException();
@@ -64,7 +34,7 @@ PyObject* PyDataConverter::timePeriodStringToMilliseconds(PyDataConverter*, PyOb
   return object::returnReference(milliseconds);
 }
 
-PyObject* PyDataConverter::dataSizeStringToBytes(PyDataConverter*, PyObject* args) {
+PyObject* dataSizeStringToBytes(PyObject* /*self*/, PyObject* args) {
   const char* data_size_str = nullptr;
   if (!PyArg_ParseTuple(args, "s", &data_size_str)) {
     throw PyException();
@@ -75,10 +45,4 @@ PyObject* PyDataConverter::dataSizeStringToBytes(PyDataConverter*, PyObject* arg
   return object::returnReference(bytes);
 }
 
-PyTypeObject* PyDataConverter::typeObject() {
-  static OwnedObject PyDataConverterType{PyType_FromSpec(&PyDataConverterTypeSpec)};
-  return reinterpret_cast<PyTypeObject*>(PyDataConverterType.get());
-}
-
 }  // namespace org::apache::nifi::minifi::extensions::python
-}  // extern "C"
