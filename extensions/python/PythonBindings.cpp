@@ -31,7 +31,7 @@
 namespace org::apache::nifi::minifi::extensions::python {
 extern "C" {
 
-static PyMethodDef minifi_native_methods[] = {
+static PyMethodDef minifi_native_methods[] = {  // NOLINT(cppcoreguidelines-avoid-c-arrays)
     {"timePeriodStringToMilliseconds", (PyCFunction) timePeriodStringToMilliseconds, METH_VARARGS, nullptr},
     {"dataSizeStringToBytes", (PyCFunction) dataSizeStringToBytes, METH_VARARGS, nullptr},
     {}  /* Sentinel */

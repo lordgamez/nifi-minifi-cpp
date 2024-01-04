@@ -125,7 +125,7 @@ class PythonScriptEngine {
   void callProcessorObjectMethod(const std::string& fn_name, Args&& ...args) {
     GlobalInterpreterLock gil_lock;
     if (processor_instance_.get() == nullptr) {
-      throw std::runtime_error("No python process instance is set!");
+      throw std::runtime_error("No python processor instance is set!");
     }
 
     try {
@@ -147,7 +147,7 @@ class PythonScriptEngine {
   void callRequiredProcessorObjectMethod(const std::string& fn_name, Args&& ...args) {
     GlobalInterpreterLock gil_lock;
     if (processor_instance_.get() == nullptr) {
-      throw std::runtime_error("No python process instance is set!");
+      throw std::runtime_error("No python processor instance is set!");
     }
 
     auto callable_method = OwnedCallable(PyObject_GetAttrString(processor_instance_.get(), fn_name.c_str()));
