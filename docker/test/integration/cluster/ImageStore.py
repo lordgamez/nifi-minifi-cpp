@@ -88,7 +88,7 @@ class ImageStore:
                     echo "Password = password" >> /etc/odbc.ini && \
                     echo "Database = postgres" >> /etc/odbc.ini
                 USER minificpp
-                """.format(base_image='apacheminificpp:' + MinifiContainer.MINIFI_VERSION))
+                """.format(base_image='apacheminificpp:' + MinifiContainer.MINIFI_TAG_PREFIX + MinifiContainer.MINIFI_VERSION))
 
         return self.__build_image(dockerfile)
 
@@ -104,7 +104,9 @@ class ImageStore:
                 RUN pip3 install langchain==0.0.353 && \\
                     wget {parse_document_url} --directory-prefix=/opt/minifi/minifi-current/minifi-python/nifi_python_processors && \\
                     wget {chunk_document_url} --directory-prefix=/opt/minifi/minifi-current/minifi-python/nifi_python_processors
-                """.format(base_image='apacheminificpp:' + MinifiContainer.MINIFI_VERSION, parse_document_url=parse_document_url, chunk_document_url=chunk_document_url))
+                """.format(base_image='apacheminificpp:' + MinifiContainer.MINIFI_TAG_PREFIX + MinifiContainer.MINIFI_VERSION,
+                           parse_document_url=parse_document_url,
+                           chunk_document_url=chunk_document_url))
 
         return self.__build_image(dockerfile)
 
