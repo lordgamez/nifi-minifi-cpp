@@ -31,12 +31,18 @@
 namespace org::apache::nifi::minifi::extensions::python {
 extern "C" {
 
+static PyMethodDef minifi_native_methods[] = {
+    {"timePeriodStringToMilliseconds", (PyCFunction) timePeriodStringToMilliseconds, METH_VARARGS, nullptr},
+    {"dataSizeStringToBytes", (PyCFunction) dataSizeStringToBytes, METH_VARARGS, nullptr},
+    {}  /* Sentinel */
+};
+
 struct PyModuleDef minifi_module = {
   .m_base = PyModuleDef_HEAD_INIT,
   .m_name = "minifi_native",    // name of module
   .m_doc = nullptr,             // module documentation, may be NULL
   .m_size = -1,                 // size of per-interpreter state of the module, or -1 if the module keeps state in global variables.
-  .m_methods = nullptr,
+  .m_methods = minifi_native_methods,
   .m_slots = nullptr,
   .m_traverse = nullptr,
   .m_clear = nullptr,
@@ -54,8 +60,7 @@ PyInit_minifi_native(void) {
       std::make_pair(PyRelationship::typeObject(), "Relationship"),
       std::make_pair(PyInputStream::typeObject(), "InputStream"),
       std::make_pair(PyOutputStream::typeObject(), "OutputStream"),
-      std::make_pair(PyStateManager::typeObject(), "StateManager"),
-      std::make_pair(PyDataConverter::typeObject(), "DataConverter"),
+      std::make_pair(PyStateManager::typeObject(), "StateManager")
   });
 
   for (const auto& type : types) {

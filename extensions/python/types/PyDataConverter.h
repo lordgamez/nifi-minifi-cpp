@@ -18,20 +18,11 @@
 
 #include "../PythonBindings.h"
 
+extern "C" {
 namespace org::apache::nifi::minifi::extensions::python {
 
-struct PyDataConverter {
-  PyDataConverter() {}
-
-  PyObject_HEAD
-
-  static int init(PyDataConverter* self, PyObject* args, PyObject* kwds);
-
-  static PyObject* timePeriodStringToMilliseconds(PyDataConverter* self, PyObject* args);
-  static PyObject* dataSizeStringToBytes(PyDataConverter* self, PyObject* args);
-
-
-  static PyTypeObject* typeObject();
-};
+PyObject* timePeriodStringToMilliseconds(PyObject* self, PyObject* args);
+PyObject* dataSizeStringToBytes(PyObject* self, PyObject* args);
 
 }  // namespace org::apache::nifi::minifi::extensions::python
+}  // extern "C"
