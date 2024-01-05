@@ -48,6 +48,15 @@ e.g. This will change the dependency from the generic libpython3.so to the speci
 patchelf extensions/libminifi-python-script-extension.so --replace-needed libpython3.so libpython3.9.so
 ```
 
+### Windows system python
+When installing python on Windows, make sure to select the option to install python for all users. This prevents issues when running MiNiFi as a Windows service, as it makes sure
+that the python libraries are available not just for the currently logged on user but for the user running the service too.
+
+If the python libraries are not available for the user running the service, MiNiFi starts with an error message similar to this:
+```
+Failed to load extension 'minifi-python-script-extension' at 'C:\Program Files\ApacheNiFiMiNiFi\nifi-minifi-cpp\bin\..\extensions\minifi-python-script-extension.dll': The specified module could not be found.
+```
+
 ### Anaconda
 Just make sure minifi finds the anaconda libraries. e.g.:
 ```shell
