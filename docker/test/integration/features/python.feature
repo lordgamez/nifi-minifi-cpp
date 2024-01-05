@@ -64,7 +64,7 @@ Feature: MiNiFi can use python processors in its flows
     When all instances start up
     Then flowfiles with these contents are placed in the monitored directory in less than 5 seconds: "0,1,2,3,4,5"
 
-  @ADD_NIFI_PYTHON_PROCESSORS
+  @USE_NIFI_PYTHON_PROCESSORS
   Scenario: MiNiFi C++ can use NiFi native python processors
     Given a GetFile processor with the "Input Directory" property set to "/tmp/input"
     And a file with filename "test_file.log" and content "test_data" is present in "/tmp/input"
