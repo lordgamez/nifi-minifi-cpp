@@ -96,15 +96,19 @@ class ImageStore:
         nifi_version = "2.0.0-M1"  # TODO(lordgamez): replace with NifiContainer.NIFI_VERSION after tests are updated in https://issues.apache.org/jira/browse/MINIFICPP-2244
         parse_document_url = "https://raw.githubusercontent.com/apache/nifi/rel/nifi-" + nifi_version + "/nifi-python-extensions/nifi-text-embeddings-module/src/main/python/ParseDocument.py"
         chunk_document_url = "https://raw.githubusercontent.com/apache/nifi/rel/nifi-" + nifi_version + "/nifi-python-extensions/nifi-text-embeddings-module/src/main/python/ChunkDocument.py"
+        pip3_install_command = ""
+        if not MinifiContainer.MINIFI_TAG_PREFIX:
+            pip3_install_command = "RUN apk --update --no-cache add py3-pip"
         dockerfile = dedent("""\
                 FROM {base_image}
                 USER root
-                RUN apk --update --no-cache add py3-pip
+                {pip3_install_command}
                 USER minificpp
                 RUN pip3 install langchain==0.0.353 && \\
                     wget {parse_document_url} --directory-prefix=/opt/minifi/minifi-current/minifi-python/nifi_python_processors && \\
                     wget {chunk_document_url} --directory-prefix=/opt/minifi/minifi-current/minifi-python/nifi_python_processors
                 """.format(base_image='apacheminificpp:' + MinifiContainer.MINIFI_TAG_PREFIX + MinifiContainer.MINIFI_VERSION,
+                           pip3_install_command=pip3_install_command,
                            parse_document_url=parse_document_url,
                            chunk_document_url=chunk_document_url))
 
