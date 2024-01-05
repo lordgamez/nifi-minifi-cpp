@@ -103,9 +103,9 @@ class ImageStore:
                 FROM {base_image}
                 USER root
                 {pip3_install_command}
+                RUN pip3 install langchain
                 USER minificpp
-                RUN pip3 install langchain==0.0.353 && \\
-                    wget {parse_document_url} --directory-prefix=/opt/minifi/minifi-current/minifi-python/nifi_python_processors && \\
+                RUN wget {parse_document_url} --directory-prefix=/opt/minifi/minifi-current/minifi-python/nifi_python_processors && \\
                     wget {chunk_document_url} --directory-prefix=/opt/minifi/minifi-current/minifi-python/nifi_python_processors
                 """.format(base_image='apacheminificpp:' + MinifiContainer.MINIFI_TAG_PREFIX + MinifiContainer.MINIFI_VERSION,
                            pip3_install_command=pip3_install_command,
@@ -205,3 +205,26 @@ class ImageStore:
         except Exception as e:
             logging.info(e)
             raise
+
+    def get_minifi_image_python_version(self):
+        result = self.client.containers.run(
+            image='apacheminificpp:' + MinifiContainer.MINIFI_TAG_PREFIX + MinifiContainer.MINIFI_VERSION,
+            command=['python3', '-c', 'import platform; print(platform.python_version())'],
+            remove=True
+        )
+
+        python_ver_str = result.decode('utf-8')
+        logging.info('MiNiFi python version: %s', python_ver_str)
+        return tuple(map(int, python_ver_str.split('.')))
+
+    def is_conda_available_in_minifi_image(self):
+        try:
+            result = self.client.containers.run(
+                image='apacheminificpp:' + MinifiContainer.MINIFI_TAG_PREFIX + MinifiContainer.MINIFI_VERSION,
+                command=['conda', '--version'],
+                remove=True
+            )
+        except docker.errors.APIError:
+            return False
+
+        return result.decode('utf-8').startswith('conda ')
