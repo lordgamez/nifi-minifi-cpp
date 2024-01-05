@@ -50,7 +50,7 @@ if (WIN32)
     add_custom_command(
         TARGET minifi-python-script-extension
         POST_BUILD
-        COMMAND mklink /H "${CMAKE_BINARY_DIR_WIN}\\bin\\minifi_native$<TARGET_FILE_SUFFIX:minifi-python-script-extension>" "${CMAKE_BINARY_DIR_WIN}\\bin\\minifi-python-script-extension$<TARGET_FILE_SUFFIX:minifi-python-script-extension>"
+        COMMAND del "${CMAKE_BINARY_DIR_WIN}\\bin\\minifi_native$<TARGET_FILE_SUFFIX:minifi-python-script-extension>" 2>NUL && mklink /H "${CMAKE_BINARY_DIR_WIN}\\bin\\minifi_native$<TARGET_FILE_SUFFIX:minifi-python-script-extension>" "${CMAKE_BINARY_DIR_WIN}\\bin\\minifi-python-script-extension$<TARGET_FILE_SUFFIX:minifi-python-script-extension>"
         COMMENT "Creating hardlink for minifi-python-script-extension"  # symlink requires additonal permissions on windows, using hardlink instead
     )
 else()
