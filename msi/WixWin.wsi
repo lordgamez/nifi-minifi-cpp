@@ -279,6 +279,18 @@ Licensed to the Apache Software Foundation (ASF) under one or more
     <SetProperty Id="ENABLEC2" After="AppSearch" Value="0" Sequence="first" >
       <![CDATA[ENABLEC2 = 0]]>
     </SetProperty>
+
+
+    <CustomAction Id="MakeSymbolicLink" Directory="RootInstallDir" ExeCommand="cmd /c mklink extensions\minifi_native.pyd minifi-python-script-extension.dll" Execute="deferred" Impersonate="no" />
+    <CustomAction Id="RemoveSymbolicLink" Directory="RootInstallDir"  ExeCommand="cmd /c DEL extensions\minifi_native.pyd" Execute="deferred" Impersonate="no"/>
+
+    <InstallExecuteSequence>
+      <Custom Action="MakeSymbolicLink" After="InstallFiles">NOT Installed</Custom>
+    </InstallExecuteSequence>
+
+    <InstallExecuteSequence>
+      <Custom Action="RemoveSymbolicLink" After="InstallInitialize">Installed AND NOT REINSTALL</Custom>
+    </InstallExecuteSequence>
   </Product>
 
   <Fragment>

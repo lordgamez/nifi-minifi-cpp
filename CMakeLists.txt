@@ -614,7 +614,7 @@ foreach(extension ${selected_extensions})
     endif()
     cpack_add_component(${component-name} DISPLAY_NAME ${extension} ${maybe_disabled} GROUP extensions DEPENDS bin)
 endforeach()
-if ("python_script_extension" IN_LIST CPACK_COMPONENTS_ALL)
+if (NOT WIN32 AND "python_script_extension" IN_LIST CPACK_COMPONENTS_ALL)
     list(APPEND CPACK_COMPONENTS_ALL minifi_python_native_module)
     cpack_add_component(minifi_python_native_module
             DISPLAY_NAME "MiNiFi Python native module"

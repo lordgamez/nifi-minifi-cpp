@@ -45,15 +45,7 @@ target_include_directories(minifi-python-script-extension PUBLIC ${Python_INCLUD
 
 get_target_property(TARGET_EXT minifi-python-script-extension SUFFIX)
 
-if (WIN32)
-    string(REPLACE "/" "\\" CMAKE_BINARY_DIR_WIN "${CMAKE_BINARY_DIR}")
-    add_custom_command(
-        TARGET minifi-python-script-extension
-        POST_BUILD
-        COMMAND del "${CMAKE_BINARY_DIR_WIN}\\bin\\minifi_native$<TARGET_FILE_SUFFIX:minifi-python-script-extension>" 2>NUL && mklink /H "${CMAKE_BINARY_DIR_WIN}\\bin\\minifi_native$<TARGET_FILE_SUFFIX:minifi-python-script-extension>" "${CMAKE_BINARY_DIR_WIN}\\bin\\minifi-python-script-extension$<TARGET_FILE_SUFFIX:minifi-python-script-extension>"
-        COMMENT "Creating hardlink for minifi-python-script-extension"  # symlink requires additonal permissions on windows, using hardlink instead
-    )
-else()
+if (NOT WIN32)
     add_custom_command(
         TARGET minifi-python-script-extension
         POST_BUILD
@@ -62,13 +54,13 @@ else()
             "${CMAKE_BINARY_DIR}/bin/minifi_native$<TARGET_FILE_SUFFIX:minifi-python-script-extension>"
         COMMENT "Creating symlink for minifi-python-script-extension"
     )
-endif()
 
-install(
-    FILES "${CMAKE_BINARY_DIR}/bin/minifi_native$<TARGET_FILE_SUFFIX:minifi-python-script-extension>"
-    DESTINATION extensions
-    COMPONENT minifi_python_native_module
-)
+    install(
+        FILES "${CMAKE_BINARY_DIR}/bin/minifi_native$<TARGET_FILE_SUFFIX:minifi-python-script-extension>"
+        DESTINATION extensions
+        COMPONENT minifi_python_native_module
+    )
+endif()
 
 register_extension(minifi-python-script-extension "PYTHON SCRIPTING ENGINE" PYTHON-SCRIPTING-EXTENSIONS "This enables python script engine" "extensions/python/tests")
 register_extension_linter(minifi-python-script-extension-linter)
