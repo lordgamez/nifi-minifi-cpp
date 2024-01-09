@@ -148,7 +148,7 @@ class ExecutePythonProcessor : public core::Processor {
     PORT_TYPE = 6
   };
 
-  const core::PropertyType& translateCodeToPropertyType(const PropertyTypeCode& code) const;
+  static const core::PropertyType& translateCodeToPropertyType(const PropertyTypeCode& code);
 
   std::vector<core::Property> python_properties_;
 

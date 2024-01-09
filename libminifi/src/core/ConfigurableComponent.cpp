@@ -281,7 +281,7 @@ std::vector<std::string> ConfigurableComponent::getDynamicPropertyKeys() const {
   std::lock_guard<std::mutex> lock(configuration_mutex_);
 
   std::vector<std::string> result;
-
+  result.reserve(dynamic_properties_.size());
   for (const auto &pair : dynamic_properties_) {
     result.emplace_back(pair.first);
   }

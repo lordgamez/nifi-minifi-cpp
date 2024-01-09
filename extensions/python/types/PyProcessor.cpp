@@ -24,14 +24,14 @@
 extern "C" {
 namespace org::apache::nifi::minifi::extensions::python {
 
-static PyMethodDef PyProcessor_methods[] = {
+static PyMethodDef PyProcessor_methods[] = {  // NOLINT(cppcoreguidelines-avoid-c-arrays)
     {"setSupportsDynamicProperties", (PyCFunction) PyProcessor::setSupportsDynamicProperties, METH_VARARGS, nullptr},
     {"setDescription", (PyCFunction) PyProcessor::setDescription, METH_VARARGS, nullptr},
     {"addProperty", (PyCFunction) PyProcessor::addProperty, METH_VARARGS, nullptr},
     {}  /* Sentinel */
 };
 
-static PyType_Slot PyProcessorTypeSpecSlots[] = {
+static PyType_Slot PyProcessorTypeSpecSlots[] = {  // NOLINT(cppcoreguidelines-avoid-c-arrays)
     {Py_tp_dealloc, reinterpret_cast<void*>(pythonAllocatedInstanceDealloc<PyProcessor>)},
     {Py_tp_init, reinterpret_cast<void*>(PyProcessor::init)},
     {Py_tp_methods, reinterpret_cast<void*>(PyProcessor_methods)},
@@ -78,7 +78,7 @@ PyObject* PyProcessor::setDescription(PyProcessor* self, PyObject* args) {
     Py_RETURN_NONE;
   }
 
-  const char* description;
+  const char* description = nullptr;
   if (!PyArg_ParseTuple(args, "s", &description)) {
     throw PyException();
   }

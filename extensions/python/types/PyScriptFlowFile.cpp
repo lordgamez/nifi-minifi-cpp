@@ -22,7 +22,7 @@
 extern "C" {
 namespace org::apache::nifi::minifi::extensions::python {
 
-static PyMethodDef PyScriptFlowFile_methods[] = {
+static PyMethodDef PyScriptFlowFile_methods[] = {  // NOLINT(cppcoreguidelines-avoid-c-arrays)
     {"getAttribute", (PyCFunction) PyScriptFlowFile::getAttribute, METH_VARARGS, nullptr},
     {"addAttribute", (PyCFunction) PyScriptFlowFile::addAttribute, METH_VARARGS, nullptr},
     {"updateAttribute", (PyCFunction) PyScriptFlowFile::updateAttribute, METH_VARARGS, nullptr},
@@ -33,7 +33,7 @@ static PyMethodDef PyScriptFlowFile_methods[] = {
     {}  /* Sentinel */
 };
 
-static PyType_Slot PyScriptFlowFileTypeSpecSlots[] = {
+static PyType_Slot PyScriptFlowFileTypeSpecSlots[] = {  // NOLINT(cppcoreguidelines-avoid-c-arrays)
     {Py_tp_dealloc, reinterpret_cast<void*>(pythonAllocatedInstanceDealloc<PyScriptFlowFile>)},
     {Py_tp_init, reinterpret_cast<void*>(PyScriptFlowFile::init)},
     {Py_tp_methods, reinterpret_cast<void*>(PyScriptFlowFile_methods)},
@@ -70,7 +70,7 @@ PyObject* PyScriptFlowFile::getAttribute(PyScriptFlowFile* self, PyObject* args)
     return nullptr;
   }
 
-  const char* attribute;
+  const char* attribute = nullptr;
   if (!PyArg_ParseTuple(args, "s", &attribute)) {
     throw PyException();
   }
@@ -84,8 +84,8 @@ PyObject* PyScriptFlowFile::addAttribute(PyScriptFlowFile* self, PyObject* args)
     return nullptr;
   }
 
-  const char* key;
-  const char* value;
+  const char* key = nullptr;
+  const char* value = nullptr;
   if (!PyArg_ParseTuple(args, "ss", &key, &value)) {
     throw PyException();
   }
@@ -100,8 +100,8 @@ PyObject* PyScriptFlowFile::updateAttribute(PyScriptFlowFile* self, PyObject* ar
     return nullptr;
   }
 
-  const char* key;
-  const char* value;
+  const char* key = nullptr;
+  const char* value = nullptr;
   if (!PyArg_ParseTuple(args, "ss", &key, &value)) {
     throw PyException();
   }
@@ -116,7 +116,7 @@ PyObject* PyScriptFlowFile::removeAttribute(PyScriptFlowFile* self, PyObject* ar
     return nullptr;
   }
 
-  const char* attribute;
+  const char* attribute = nullptr;
   if (!PyArg_ParseTuple(args, "s", &attribute)) {
     throw PyException();
   }
@@ -130,8 +130,8 @@ PyObject* PyScriptFlowFile::setAttribute(PyScriptFlowFile* self, PyObject* args)
     return nullptr;
   }
 
-  const char* key;
-  const char* value;
+  const char* key = nullptr;
+  const char* value = nullptr;
   if (!PyArg_ParseTuple(args, "ss", &key, &value)) {
     throw PyException();
   }

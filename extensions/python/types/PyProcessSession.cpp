@@ -24,6 +24,7 @@
 #include "types/PyOutputStream.h"
 #include "types/PyInputStream.h"
 #include "range/v3/algorithm/remove_if.hpp"
+#include "utils/gsl.h"
 
 namespace org::apache::nifi::minifi::extensions::python {
 
@@ -138,14 +139,14 @@ std::string PyProcessSession::getContentsAsString(const std::shared_ptr<core::Fl
   std::string content;
   session_->read(flow_file, [&content](const std::shared_ptr<io::InputStream>& input_stream) -> int64_t {
     content.resize(input_stream->size());
-    return input_stream->read(as_writable_bytes(std::span(content)));
+    return gsl::narrow<int64_t>(input_stream->read(as_writable_bytes(std::span(content))));
   });
   return content;
 }
 
 extern "C" {
 
-static PyMethodDef PyProcessSessionObject_methods[] = {
+static PyMethodDef PyProcessSessionObject_methods[] = {  // NOLINT(cppcoreguidelines-avoid-c-arrays)
     {"get", (PyCFunction) PyProcessSessionObject::get, METH_NOARGS, nullptr},
     {"create", (PyCFunction) PyProcessSessionObject::create, METH_VARARGS, nullptr},
     {"clone", (PyCFunction) PyProcessSessionObject::clone, METH_VARARGS, nullptr},
@@ -157,7 +158,7 @@ static PyMethodDef PyProcessSessionObject_methods[] = {
     {}  /* Sentinel */
 };
 
-static PyType_Slot PyProcessTypeSpecSlots[] = {
+static PyType_Slot PyProcessTypeSpecSlots[] = {  // NOLINT(cppcoreguidelines-avoid-c-arrays)
     {Py_tp_dealloc, reinterpret_cast<void*>(pythonAllocatedInstanceDealloc<PyProcessSessionObject>)},
     {Py_tp_init, reinterpret_cast<void*>(PyProcessSessionObject::init)},
     {Py_tp_methods, reinterpret_cast<void*>(PyProcessSessionObject_methods)},
@@ -215,7 +216,7 @@ PyObject* PyProcessSessionObject::clone(PyProcessSessionObject* self, PyObject* 
     PyErr_SetString(PyExc_AttributeError, "tried reading process session outside 'on_trigger'");
     return nullptr;
   }
-  PyObject* script_flow_file;
+  PyObject* script_flow_file = nullptr;
   if (!PyArg_ParseTuple(args, "O!", PyScriptFlowFile::typeObject(), &script_flow_file)) {
     throw PyException();
   }
@@ -232,7 +233,7 @@ PyObject* PyProcessSessionObject::remove(PyProcessSessionObject* self, PyObject*
     PyErr_SetString(PyExc_AttributeError, "tried reading process session outside 'on_trigger'");
     return nullptr;
   }
-  PyObject* script_flow_file;
+  PyObject* script_flow_file = nullptr;
   if (!PyArg_ParseTuple(args, "O!", PyScriptFlowFile::typeObject(), &script_flow_file)) {
     throw PyException();
   }
@@ -248,8 +249,8 @@ PyObject* PyProcessSessionObject::read(PyProcessSessionObject* self, PyObject* a
     Py_RETURN_NONE;
   }
 
-  PyObject* script_flow_file;
-  PyObject* callback;
+  PyObject* script_flow_file = nullptr;
+  PyObject* callback = nullptr;
   if (!PyArg_ParseTuple(args, "O!O", PyScriptFlowFile::typeObject(), &script_flow_file, &callback)) {
     throw PyException();
   }
@@ -270,8 +271,8 @@ PyObject* PyProcessSessionObject::write(PyProcessSessionObject* self, PyObject* 
     Py_RETURN_NONE;
   }
 
-  PyObject* script_flow_file;
-  PyObject* callback;
+  PyObject* script_flow_file = nullptr;
+  PyObject* callback = nullptr;
   if (!PyArg_ParseTuple(args, "O!O", PyScriptFlowFile::typeObject(), &script_flow_file, &callback)) {
     throw PyException();
   }
@@ -292,8 +293,8 @@ PyObject* PyProcessSessionObject::transfer(PyProcessSessionObject* self, PyObjec
     Py_RETURN_NONE;
   }
 
-  PyObject* script_flow_file;
-  PyObject* relationship;
+  PyObject* script_flow_file = nullptr;
+  PyObject* relationship = nullptr;
   if (!PyArg_ParseTuple(args, "O!O!", PyScriptFlowFile::typeObject(), &script_flow_file, PyRelationship::typeObject(), &relationship)) {
     throw PyException();
   }
@@ -313,14 +314,14 @@ PyObject* PyProcessSessionObject::getContentsAsBytes(PyProcessSessionObject* sel
     PyErr_SetString(PyExc_AttributeError, "tried reading process session outside 'on_trigger'");
     return nullptr;
   }
-  PyObject* script_flow_file;
+  PyObject* script_flow_file = nullptr;
   if (!PyArg_ParseTuple(args, "O!", PyScriptFlowFile::typeObject(), &script_flow_file)) {
     throw PyException();
   }
   const auto flow_file = reinterpret_cast<PyScriptFlowFile*>(script_flow_file)->script_flow_file_.lock();
   auto content = session->getContentsAsString(flow_file);
 
-  return PyBytes_FromStringAndSize(content.c_str(), content.size());
+  return PyBytes_FromStringAndSize(content.c_str(), gsl::narrow<Py_ssize_t>(content.size()));
 }
 
 PyTypeObject* PyProcessSessionObject::typeObject() {

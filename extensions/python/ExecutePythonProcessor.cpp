@@ -171,7 +171,7 @@ core::Property* ExecutePythonProcessor::findProperty(const std::string& name) co
   return nullptr;
 }
 
-const core::PropertyType& ExecutePythonProcessor::translateCodeToPropertyType(const PropertyTypeCode& code) const {
+const core::PropertyType& ExecutePythonProcessor::translateCodeToPropertyType(const PropertyTypeCode& code) {
   switch (code) {
     case PropertyTypeCode::INTEGER_TYPE:
       return core::StandardPropertyTypes::INTEGER_TYPE;

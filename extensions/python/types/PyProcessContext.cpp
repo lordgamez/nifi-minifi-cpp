@@ -24,13 +24,13 @@ a * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 extern "C" {
 namespace org::apache::nifi::minifi::extensions::python {
 
-static PyMethodDef PyProcessContext_methods[] = {
+static PyMethodDef PyProcessContext_methods[] = {  // NOLINT(cppcoreguidelines-avoid-c-arrays)
     {"getProperty", (PyCFunction) PyProcessContext::getProperty, METH_VARARGS, nullptr},
     {"getStateManager", (PyCFunction) PyProcessContext::getStateManager, METH_VARARGS, nullptr},
     {}  /* Sentinel */
 };
 
-static PyType_Slot PyProcessContextTypeSpecSlots[] = {
+static PyType_Slot PyProcessContextTypeSpecSlots[] = {  // NOLINT(cppcoreguidelines-avoid-c-arrays)
     {Py_tp_dealloc, reinterpret_cast<void*>(pythonAllocatedInstanceDealloc<PyProcessContext>)},
     {Py_tp_init, reinterpret_cast<void*>(PyProcessContext::init)},
     {Py_tp_methods, reinterpret_cast<void*>(PyProcessContext_methods)},
@@ -66,7 +66,7 @@ PyObject* PyProcessContext::getProperty(PyProcessContext* self, PyObject* args) 
     return nullptr;
   }
 
-  const char* property;
+  const char* property = nullptr;
   PyObject* script_flow_file = nullptr;
   if (!PyArg_ParseTuple(args, "s|O", &property, &script_flow_file)) {
     throw PyException();
