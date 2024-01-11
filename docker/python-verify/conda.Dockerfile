@@ -31,9 +31,7 @@ USER root
 RUN wget https://repo.anaconda.com/archive/Anaconda3-2023.09-0-Linux-x86_64.sh -P /tmp \
     && echo "6c8a4abb36fbb711dc055b7049a23bbfd61d356de9468b41c5140f8a11abd851 /tmp/Anaconda3-2023.09-0-Linux-x86_64.sh" | sha256sum -c \
     && bash /tmp/Anaconda3-2023.09-0-Linux-x86_64.sh -b -p /opt/conda  \
-    && chown -R ${USER}:${USER} /opt/conda \
-    && mkdir /home/${USER}  \
-    && chown -R ${USER}:${USER} /home/${USER}
+    && chown -R ${USER}:${USER} /opt/conda
 
 USER ${USER}
 

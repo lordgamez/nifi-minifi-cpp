@@ -44,6 +44,8 @@ class ImageStore:
             image = self.__build_minifi_cpp_sql_image()
         elif container_engine == "minifi-cpp-nifi-python":
             image = self.__build_minifi_cpp_image_with_nifi_python_processors()
+        elif container_engine == "minifi-cpp-nifi-python-system-python-packages":
+            image = self.__build_minifi_cpp_image_with_nifi_python_processors("RUN pip3 install langchain")
         elif container_engine == "http-proxy":
             image = self.__build_http_proxy_image()
         elif container_engine == "postgresql-server":
@@ -95,7 +97,7 @@ class ImageStore:
 
         return self.__build_image(dockerfile)
 
-    def __build_minifi_cpp_image_with_nifi_python_processors(self):
+    def __build_minifi_cpp_image_with_nifi_python_processors(self, additional_cmd=""):
         parse_document_url = "https://raw.githubusercontent.com/apache/nifi/rel/nifi-" + NifiContainer.NIFI_VERSION + "/nifi-python-extensions/nifi-text-embeddings-module/src/main/python/ParseDocument.py"
         chunk_document_url = "https://raw.githubusercontent.com/apache/nifi/rel/nifi-" + NifiContainer.NIFI_VERSION + "/nifi-python-extensions/nifi-text-embeddings-module/src/main/python/ChunkDocument.py"
         pip3_install_command = ""
@@ -105,14 +107,20 @@ class ImageStore:
                 FROM {base_image}
                 USER root
                 {pip3_install_command}
-                RUN pip3 install langchain
+                {additional_cmd}
                 USER minificpp
                 RUN wget {parse_document_url} --directory-prefix=/opt/minifi/minifi-current/minifi-python/nifi_python_processors && \\
-                    wget {chunk_document_url} --directory-prefix=/opt/minifi/minifi-current/minifi-python/nifi_python_processors
+                    wget {chunk_document_url} --directory-prefix=/opt/minifi/minifi-current/minifi-python/nifi_python_processors && \\
+                    echo langchain > /opt/minifi/minifi-current/minifi-python/nifi_python_processors/requirements.txt && \\
+                    python3 -m venv /opt/minifi/minifi-current/venv && \\
+                    python3 -m venv /opt/minifi/minifi-current/venv-with-langchain && \\
+                    . /opt/minifi/minifi-current/venv-with-langchain/bin/activate && python3 -m pip install --no-cache-dir langchain && \\
+                    deactivate
                 """.format(base_image='apacheminificpp:' + MinifiContainer.MINIFI_TAG_PREFIX + MinifiContainer.MINIFI_VERSION,
                            pip3_install_command=pip3_install_command,
                            parse_document_url=parse_document_url,
-                           chunk_document_url=chunk_document_url))
+                           chunk_document_url=chunk_document_url,
+                           additional_cmd=additional_cmd))
 
         return self.__build_image(dockerfile)
 
@@ -228,10 +236,11 @@ class ImageStore:
             command=['conda', '--version'],
         )
         try:
-            result = container.start()
+            container.start()
+            result = container.logs()
+            container.remove(force=True)
         except docker.errors.APIError:
-            container.remove()
+            container.remove(force=True)
             return False
 
-        container.remove()
         return result.decode('utf-8').startswith('conda ')
