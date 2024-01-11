@@ -14,25 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #pragma once
 
-#include "PythonBindings.h"
-#include "PyException.h"
-
+#include <cstdlib>
 #include <mutex>
 #include <memory>
 #include <utility>
 #include <exception>
 #include <string>
 #include <vector>
+#include <filesystem>
 
 #include "core/ProcessSession.h"
 #include "core/Processor.h"
 
+#include "PythonBindings.h"
+#include "PyException.h"
 #include "PythonProcessor.h"
 #include "types/PyProcessSession.h"
 #include "PythonScriptException.h"
+#include "properties/Configuration.h"
 
 #if defined(__GNUC__) || defined(__GNUG__)
 #pragma GCC visibility push(hidden)
@@ -84,7 +85,7 @@ class PythonScriptEngine {
   PythonScriptEngine& operator=(const PythonScriptEngine& other) = delete;
   PythonScriptEngine& operator=(PythonScriptEngine&& other) = delete;
 
-  static void initialize() {}
+  static void initialize(const std::shared_ptr<Configure> &configuration);
 
   void eval(const std::string& script);
   void evalFile(const std::filesystem::path& file_name);
@@ -173,10 +174,20 @@ class PythonScriptEngine {
   void onTrigger(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSession>& session);
   void initialize(const core::Relationship& success, const core::Relationship& failure, const core::Relationship& original, const std::shared_ptr<core::logging::Logger>& logger);
   void initializeProcessorObject(const std::string& python_class_name);
+
+  static std::filesystem::path virtualenv_path_;
+  static std::string python_binary_;
+  static bool install_python_packages_automatically_;
+
  private:
   void evalInternal(std::string_view script);
 
   void evaluateModuleImports();
+  static std::vector<std::filesystem::path> getRequirementsFilePaths(const std::shared_ptr<Configure> &configuration);
+  static std::string getPythonBinary(const std::shared_ptr<Configure> &configuration);
+  static void createVirtualEnvIfSpecified(const std::shared_ptr<Configure> &configuration);
+  static void installPythonPackagesIfRequested(const std::shared_ptr<Configure> &configuration, const std::string& python_binary);
+
   OwnedDict bindings_;
   OwnedObject processor_instance_;
   std::optional<std::string> processor_class_name_;
