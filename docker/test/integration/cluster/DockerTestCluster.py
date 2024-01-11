@@ -98,8 +98,17 @@ class DockerTestCluster:
     def enable_sql_in_minifi(self):
         self.container_store.enable_sql_in_minifi()
 
-    def use_nifi_python_processors_in_minifi(self):
-        self.container_store.use_nifi_python_processors_in_minifi()
+    def use_nifi_python_processors_with_system_python_in_minifi(self):
+        self.container_store.use_nifi_python_processors_with_system_python_in_minifi()
+
+    def use_nifi_python_processors_with_system_python_packages_installed_in_minifi(self):
+        self.container_store.use_nifi_python_processors_with_system_python_packages_installed_in_minifi()
+
+    def use_nifi_python_processors_with_virtualenv_in_minifi(self):
+        self.container_store.use_nifi_python_processors_with_virtualenv_in_minifi()
+
+    def use_nifi_python_processors_with_virtualenv_packages_installed_in_minifi(self):
+        self.container_store.use_nifi_python_processors_with_virtualenv_packages_installed_in_minifi()
 
     def set_yaml_in_minifi(self):
         self.container_store.set_yaml_in_minifi()

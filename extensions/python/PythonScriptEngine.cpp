@@ -14,9 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #include <string>
-#include <filesystem>
 
 #include "PythonScriptEngine.h"
 #include "PythonBindings.h"
@@ -27,6 +25,8 @@
 #include "types/PyRelationship.h"
 
 namespace org::apache::nifi::minifi::extensions::python {
+
+std::filesystem::path PythonScriptEngine::virtualenv_path_;
 
 Interpreter* Interpreter::getInterpreter() {
   static Interpreter interpreter;
@@ -102,6 +102,46 @@ void PythonScriptEngine::eval(const std::string& script) {
     evalInternal(script);
   } catch (const std::exception& e) {
     throw PythonScriptException(e.what());
+  }
+}
+
+std::vector<std::filesystem::path> PythonScriptEngine::getRequirementsFilePaths(const std::shared_ptr<Configure> &configuration) {
+  std::vector<std::filesystem::path> paths;
+  if (auto python_processor_path = configuration->get(minifi::Configuration::nifi_python_processor_dir)) {
+    auto nifi_python_processor_path = std::filesystem::path{*python_processor_path} / "nifi_python_processors";
+    for (const auto& entry : std::filesystem::recursive_directory_iterator(nifi_python_processor_path)) {
+      if (std::filesystem::is_regular_file(entry.path()) && entry.path().filename() == "requirements.txt") {
+        paths.push_back(entry.path());
+      }
+    }
+  }
+  return paths;
+}
+
+void PythonScriptEngine::initialize(const std::shared_ptr<Configure> &configuration) {
+  std::string python_command = "python3";
+  if (auto command = configuration->get(minifi::Configuration::nifi_python_command)) {
+    python_command = *command;
+  }
+
+  if (auto path = configuration->get(minifi::Configuration::nifi_python_virtualenv_directory)) {
+    PythonScriptEngine::virtualenv_path_ = *path;
+    if (!std::filesystem::exists(virtualenv_path_) || !std::filesystem::is_empty(virtualenv_path_)) {
+      auto venv_command = python_command + " -m venv " + virtualenv_path_.string();
+      std::system(venv_command.c_str());
+    }
+  }
+
+  std::string automatic_install_str;
+  if (configuration->get(Configuration::nifi_python_install_packages_automatically, automatic_install_str) && utils::string::toBool(automatic_install_str).value_or(false)) {
+    auto requirement_file_paths = getRequirementsFilePaths(configuration);
+    for (const auto& path : requirement_file_paths) {
+      auto pip_command = python_command + " -m pip install --no-cache-dir -r " + path.string();
+      if (!virtualenv_path_.empty()) {
+        pip_command = ". " + (virtualenv_path_ / "bin" / "activate").string() + " && " + pip_command;
+      }
+      std::system(pip_command.c_str());
+    }
   }
 }
 
@@ -185,6 +225,20 @@ void PythonScriptEngine::evalInternal(std::string_view script) {
 void PythonScriptEngine::evaluateModuleImports() {
   bindings_.put("__builtins__", OwnedObject(PyImport_ImportModule("builtins")));
   evalInternal("import sys");
+  if (!virtualenv_path_.empty()) {
+    std::string python_dir_name;
+    auto lib_path = virtualenv_path_ / "lib";
+    for (auto const& dir_entry : std::filesystem::directory_iterator{lib_path}) {
+      if (minifi::utils::string::startsWith(dir_entry.path().filename().string(), "python")) {
+        python_dir_name = dir_entry.path().filename().string();
+        break;
+      }
+    }
+    if (python_dir_name.empty()) {
+      throw PythonScriptException("Could not find python directory in virtualenv path: " + virtualenv_path_.string());
+    }
+    evalInternal("sys.path.append(r'" + (virtualenv_path_ / "lib" / python_dir_name / "site-packages").string() + "')");
+  }
   if (module_paths_.empty()) {
     return;
   }
