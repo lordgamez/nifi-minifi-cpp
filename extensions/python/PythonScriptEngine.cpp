@@ -14,9 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #include <string>
-#include <filesystem>
 
 #include "PythonScriptEngine.h"
 #include "PythonBindings.h"
@@ -27,6 +25,10 @@
 #include "types/PyRelationship.h"
 
 namespace org::apache::nifi::minifi::extensions::python {
+
+std::filesystem::path PythonScriptEngine::virtualenv_path_;
+std::string PythonScriptEngine::python_binary_;
+bool PythonScriptEngine::install_python_packages_automatically_ = false;
 
 Interpreter* Interpreter::getInterpreter() {
   static Interpreter interpreter;
@@ -103,6 +105,51 @@ void PythonScriptEngine::eval(const std::string& script) {
   } catch (const std::exception& e) {
     throw PythonScriptException(e.what());
   }
+}
+
+std::vector<std::filesystem::path> PythonScriptEngine::getRequirementsFilePaths(const std::shared_ptr<Configure> &configuration) {
+  std::vector<std::filesystem::path> paths;
+  if (auto python_processor_path = configuration->get(minifi::Configuration::nifi_python_processor_dir)) {
+    for (const auto& entry : std::filesystem::recursive_directory_iterator(std::filesystem::path{*python_processor_path})) {
+      if (std::filesystem::is_regular_file(entry.path()) && entry.path().filename() == "requirements.txt") {
+        paths.push_back(entry.path());
+      }
+    }
+  }
+  return paths;
+}
+
+std::string PythonScriptEngine::getPythonBinary(const std::shared_ptr<Configure> &configuration) {
+#if WIN32
+  std::string python_binary = "python";
+#else
+  std::string python_binary = "python3";
+#endif
+  if (auto binary = configuration->get(minifi::Configuration::nifi_python_env_setup_binary)) {
+    python_binary = *binary;
+  }
+  return python_binary;
+}
+
+void PythonScriptEngine::createVirtualEnvIfSpecified(const std::shared_ptr<Configure> &configuration) {
+  if (auto path = configuration->get(minifi::Configuration::nifi_python_virtualenv_directory)) {
+    PythonScriptEngine::virtualenv_path_ = *path;
+    if (!std::filesystem::exists(virtualenv_path_) || !std::filesystem::is_empty(virtualenv_path_)) {
+      auto venv_command = python_binary_ + " -m venv " + virtualenv_path_.string();
+      auto return_value = std::system(venv_command.c_str());
+      if (return_value != 0) {
+        throw PythonScriptException(fmt::format("The following command creating python virtual env failed: '{}'", venv_command));
+      }
+    }
+  }
+}
+
+void PythonScriptEngine::initialize(const std::shared_ptr<Configure> &configuration) {
+  python_binary_ = getPythonBinary(configuration);
+  std::string automatic_install_str;
+  install_python_packages_automatically_ =
+    configuration->get(Configuration::nifi_python_install_packages_automatically, automatic_install_str) && utils::string::toBool(automatic_install_str).value_or(false);
+  createVirtualEnvIfSpecified(configuration);
 }
 
 void PythonScriptEngine::evalFile(const std::filesystem::path& file_name) {
@@ -185,6 +232,28 @@ void PythonScriptEngine::evalInternal(std::string_view script) {
 void PythonScriptEngine::evaluateModuleImports() {
   bindings_.put("__builtins__", OwnedObject(PyImport_ImportModule("builtins")));
   evalInternal("import sys");
+  if (!virtualenv_path_.empty()) {
+#if WIN32
+    std::filesystem::path site_package_path = virtualenv_path_ / "Lib" / "site-packages";
+#else
+    std::string python_dir_name;
+    auto lib_path = virtualenv_path_ / "lib";
+    for (auto const& dir_entry : std::filesystem::directory_iterator{lib_path}) {
+      if (minifi::utils::string::startsWith(dir_entry.path().filename().string(), "python")) {
+        python_dir_name = dir_entry.path().filename().string();
+        break;
+      }
+    }
+    if (python_dir_name.empty()) {
+      throw PythonScriptException("Could not find python directory under virtualenv lib dir: " + lib_path.string());
+    }
+    std::filesystem::path site_package_path = virtualenv_path_ / "lib" / python_dir_name / "site-packages";
+#endif
+    if (!std::filesystem::exists(site_package_path)) {
+      throw PythonScriptException("Could not find python site package path: " + site_package_path.string());
+    }
+    evalInternal("sys.path.append(r'" + site_package_path.string() + "')");
+  }
   if (module_paths_.empty()) {
     return;
   }

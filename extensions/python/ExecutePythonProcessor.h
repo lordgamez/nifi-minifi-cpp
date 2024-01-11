@@ -141,6 +141,8 @@ class ExecutePythonProcessor : public core::Processor {
   core::Property* findProperty(const std::string& name) const override;
 
  private:
+  static void installPythonRequirementsFromFile(const std::filesystem::path& requirements_file_path);
+
   std::vector<core::Property> python_properties_;
 
   std::string description_;
