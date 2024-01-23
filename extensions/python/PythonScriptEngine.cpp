@@ -136,9 +136,13 @@ void PythonScriptEngine::initialize(const std::shared_ptr<Configure> &configurat
   if (configuration->get(Configuration::nifi_python_install_packages_automatically, automatic_install_str) && utils::string::toBool(automatic_install_str).value_or(false)) {
     auto requirement_file_paths = getRequirementsFilePaths(configuration);
     for (const auto& path : requirement_file_paths) {
-      auto pip_command = python_command + " -m pip install --no-cache-dir -r " + path.string();
+      auto pip_command = python_command + " -m pip install --no-cache-dir -r \"" + path.string() + "\"";
       if (!virtualenv_path_.empty()) {
+#if WIN32
+        pip_command = (virtualenv_path_ / "Scripts" / "activate.bat").string() + " && " + pip_command;
+#else
         pip_command = ". " + (virtualenv_path_ / "bin" / "activate").string() + " && " + pip_command;
+#endif
       }
       std::system(pip_command.c_str());
     }
@@ -226,6 +230,9 @@ void PythonScriptEngine::evaluateModuleImports() {
   bindings_.put("__builtins__", OwnedObject(PyImport_ImportModule("builtins")));
   evalInternal("import sys");
   if (!virtualenv_path_.empty()) {
+#if WIN32
+    std::filesystem::path site_package_path = virtualenv_path_ / "Lib" / "site-packages";
+#else
     std::string python_dir_name;
     auto lib_path = virtualenv_path_ / "lib";
     for (auto const& dir_entry : std::filesystem::directory_iterator{lib_path}) {
@@ -237,7 +244,12 @@ void PythonScriptEngine::evaluateModuleImports() {
     if (python_dir_name.empty()) {
       throw PythonScriptException("Could not find python directory in virtualenv path: " + virtualenv_path_.string());
     }
-    evalInternal("sys.path.append(r'" + (virtualenv_path_ / "lib" / python_dir_name / "site-packages").string() + "')");
+    std::filesystem::path site_package_path = virtualenv_path_ / "lib" / python_dir_name / "site-packages";
+#endif
+    if (!std::filesystem::exists(site_package_path)) {
+      throw PythonScriptException("Could not find python site package path: " + site_package_path.string());
+    }
+    evalInternal("sys.path.append(r'" + site_package_path.string() + "')");
   }
   if (module_paths_.empty()) {
     return;
