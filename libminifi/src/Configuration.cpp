@@ -154,7 +154,7 @@ const std::unordered_map<std::string_view, gsl::not_null<const core::PropertyVal
   {Configuration::controller_socket_port, gsl::make_not_null(&core::StandardPropertyTypes::PORT_TYPE)},
   {Configuration::controller_ssl_context_service, gsl::make_not_null(&core::StandardPropertyTypes::VALID_TYPE)},
   {Configuration::nifi_python_virtualenv_directory, gsl::make_not_null(&core::StandardPropertyTypes::VALID_TYPE)},
-  {Configuration::nifi_python_command, gsl::make_not_null(&core::StandardPropertyTypes::VALID_TYPE)},
+  {Configuration::nifi_python_env_setup_binary, gsl::make_not_null(&core::StandardPropertyTypes::VALID_TYPE)},
   {Configuration::nifi_python_install_packages_automatically, gsl::make_not_null(&core::StandardPropertyTypes::BOOLEAN_TYPE)}
 };
 

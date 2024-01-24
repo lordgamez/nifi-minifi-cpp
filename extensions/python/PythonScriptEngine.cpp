@@ -108,8 +108,7 @@ void PythonScriptEngine::eval(const std::string& script) {
 std::vector<std::filesystem::path> PythonScriptEngine::getRequirementsFilePaths(const std::shared_ptr<Configure> &configuration) {
   std::vector<std::filesystem::path> paths;
   if (auto python_processor_path = configuration->get(minifi::Configuration::nifi_python_processor_dir)) {
-    auto nifi_python_processor_path = std::filesystem::path{*python_processor_path} / "nifi_python_processors";
-    for (const auto& entry : std::filesystem::recursive_directory_iterator(nifi_python_processor_path)) {
+    for (const auto& entry : std::filesystem::recursive_directory_iterator(std::filesystem::path{*python_processor_path})) {
       if (std::filesystem::is_regular_file(entry.path()) && entry.path().filename() == "requirements.txt") {
         paths.push_back(entry.path());
       }
@@ -119,8 +118,12 @@ std::vector<std::filesystem::path> PythonScriptEngine::getRequirementsFilePaths(
 }
 
 void PythonScriptEngine::initialize(const std::shared_ptr<Configure> &configuration) {
+#if WIN32
+  std::string python_command = "python";
+#else
   std::string python_command = "python3";
-  if (auto command = configuration->get(minifi::Configuration::nifi_python_command)) {
+#endif
+  if (auto command = configuration->get(minifi::Configuration::nifi_python_env_setup_binary)) {
     python_command = *command;
   }
 

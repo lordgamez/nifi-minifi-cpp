@@ -560,3 +560,6 @@ To notify the agent which extensions it should load see [Loading extensions](Ext
 
 ### JNI Functionality
 Please see the [JNI Configuration Guide](JNI.md).
+
+### Python processors
+Please see the [Python Processors Readme](extensions/python/README.md).
