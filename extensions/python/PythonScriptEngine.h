@@ -179,6 +179,9 @@ class PythonScriptEngine {
 
   void evaluateModuleImports();
   static std::vector<std::filesystem::path> getRequirementsFilePaths(const std::shared_ptr<Configure> &configuration);
+  static std::string getPythonBinary(const std::shared_ptr<Configure> &configuration);
+  static void createVirtualEnvIfSpecified(const std::shared_ptr<Configure> &configuration, const std::string& python_binary);
+  static void installPythonPackages(const std::shared_ptr<Configure> &configuration, const std::string& python_binary);
 
   static std::filesystem::path virtualenv_path_;
   OwnedDict bindings_;

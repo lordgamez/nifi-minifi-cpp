@@ -117,29 +117,34 @@ std::vector<std::filesystem::path> PythonScriptEngine::getRequirementsFilePaths(
   return paths;
 }
 
-void PythonScriptEngine::initialize(const std::shared_ptr<Configure> &configuration) {
+std::string PythonScriptEngine::getPythonBinary(const std::shared_ptr<Configure> &configuration) {
 #if WIN32
-  std::string python_command = "python";
+  std::string python_binary = "python";
 #else
-  std::string python_command = "python3";
+  std::string python_binary = "python3";
 #endif
-  if (auto command = configuration->get(minifi::Configuration::nifi_python_env_setup_binary)) {
-    python_command = *command;
+  if (auto binary = configuration->get(minifi::Configuration::nifi_python_env_setup_binary)) {
+    python_binary = *binary;
   }
+  return python_binary;
+}
 
+void PythonScriptEngine::createVirtualEnvIfSpecified(const std::shared_ptr<Configure> &configuration, const std::string& python_binary) {
   if (auto path = configuration->get(minifi::Configuration::nifi_python_virtualenv_directory)) {
     PythonScriptEngine::virtualenv_path_ = *path;
     if (!std::filesystem::exists(virtualenv_path_) || !std::filesystem::is_empty(virtualenv_path_)) {
-      auto venv_command = python_command + " -m venv " + virtualenv_path_.string();
+      auto venv_command = python_binary + " -m venv " + virtualenv_path_.string();
       std::system(venv_command.c_str());
     }
   }
+}
 
+void PythonScriptEngine::installPythonPackages(const std::shared_ptr<Configure> &configuration, const std::string& python_binary) {
   std::string automatic_install_str;
   if (configuration->get(Configuration::nifi_python_install_packages_automatically, automatic_install_str) && utils::string::toBool(automatic_install_str).value_or(false)) {
     auto requirement_file_paths = getRequirementsFilePaths(configuration);
     for (const auto& path : requirement_file_paths) {
-      auto pip_command = python_command + " -m pip install --no-cache-dir -r \"" + path.string() + "\"";
+      auto pip_command = python_binary + " -m pip install --no-cache-dir -r \"" + path.string() + "\"";
       if (!virtualenv_path_.empty()) {
 #if WIN32
         pip_command = (virtualenv_path_ / "Scripts" / "activate.bat").string() + " && " + pip_command;
@@ -150,6 +155,12 @@ void PythonScriptEngine::initialize(const std::shared_ptr<Configure> &configurat
       std::system(pip_command.c_str());
     }
   }
+}
+
+void PythonScriptEngine::initialize(const std::shared_ptr<Configure> &configuration) {
+  auto python_binary = getPythonBinary(configuration);
+  createVirtualEnvIfSpecified(configuration, python_binary);
+  installPythonPackages(configuration, python_binary);
 }
 
 void PythonScriptEngine::evalFile(const std::filesystem::path& file_name) {
