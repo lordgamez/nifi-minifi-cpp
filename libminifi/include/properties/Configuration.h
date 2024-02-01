@@ -197,6 +197,7 @@ class Configuration : public Properties {
   static constexpr const char *nifi_python_virtualenv_directory = "nifi.python.virtualenv.directory";
   static constexpr const char *nifi_python_env_setup_binary = "nifi.python.env.setup.binary";
   static constexpr const char *nifi_python_install_packages_automatically = "nifi.python.install.packages.automatically";
+  static constexpr const char *nifi_python_system_site_package_path = "nifi.python.system.site.package.path";
 
   MINIFIAPI static const std::unordered_map<std::string_view, gsl::not_null<const core::PropertyValidator*>> CONFIGURATION_PROPERTIES;
   MINIFIAPI static const std::array<const char*, 2> DEFAULT_SENSITIVE_PROPERTIES;
