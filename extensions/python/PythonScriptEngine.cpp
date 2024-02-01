@@ -29,6 +29,7 @@ namespace org::apache::nifi::minifi::extensions::python {
 std::filesystem::path PythonScriptEngine::virtualenv_path_;
 std::string PythonScriptEngine::python_binary_;
 bool PythonScriptEngine::install_python_packages_automatically_ = false;
+std::filesystem::path PythonScriptEngine::system_site_package_path_;
 
 Interpreter* Interpreter::getInterpreter() {
   static Interpreter interpreter;
@@ -145,6 +146,9 @@ void PythonScriptEngine::createVirtualEnvIfSpecified(const std::shared_ptr<Confi
 }
 
 void PythonScriptEngine::initialize(const std::shared_ptr<Configure> &configuration) {
+  if (auto path = configuration->get(minifi::Configuration::nifi_python_system_site_package_path)) {
+    PythonScriptEngine::system_site_package_path_ = *path;
+  }
   python_binary_ = getPythonBinary(configuration);
   std::string automatic_install_str;
   install_python_packages_automatically_ =
@@ -254,6 +258,10 @@ void PythonScriptEngine::evaluateModuleImports() {
     }
     evalInternal("sys.path.append(r'" + site_package_path.string() + "')");
   }
+  if (!system_site_package_path_.empty()) {
+    evalInternal("sys.path.append(r'" + system_site_package_path_.string() + "')");
+  }
+
   if (module_paths_.empty()) {
     return;
   }

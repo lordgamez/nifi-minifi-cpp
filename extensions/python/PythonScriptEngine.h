@@ -178,6 +178,7 @@ class PythonScriptEngine {
   static std::filesystem::path virtualenv_path_;
   static std::string python_binary_;
   static bool install_python_packages_automatically_;
+  static std::filesystem::path system_site_package_path_;
 
  private:
   void evalInternal(std::string_view script);

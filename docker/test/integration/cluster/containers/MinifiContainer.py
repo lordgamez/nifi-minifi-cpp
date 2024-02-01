@@ -161,6 +161,10 @@ class MinifiContainer(FlowContainer):
             if self.options.use_nifi_python_processors_with_system_python or self.options.use_nifi_python_processors_with_virtualenv:
                 f.write("nifi.python.install.packages.automatically=true\n")
 
+            if self.options.use_nifi_python_processors_with_system_python:
+                python_version = self.image_store.get_minifi_image_python_version()
+                f.write("nifi.python.system.site.package.path=/home/minificpp/.local/lib/python" + str(python_version[0]) + "." + str(python_version[1]) + "/site-packages/\n")
+
     def _setup_config(self):
         self._create_properties()
         if not self.options.use_flow_config_from_url:
