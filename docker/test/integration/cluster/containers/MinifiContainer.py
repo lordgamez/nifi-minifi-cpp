@@ -33,7 +33,6 @@ class MinifiOptions:
         self.enable_prometheus = False
         self.enable_prometheus_with_ssl = False
         self.enable_sql = False
-        self.use_nifi_python_processors_with_system_python = False
         self.use_nifi_python_processors_with_system_python_packages_installed = False
         self.use_nifi_python_processors_with_virtualenv = False
         self.use_nifi_python_processors_with_virtualenv_packages_installed = False
@@ -158,7 +157,7 @@ class MinifiContainer(FlowContainer):
             elif self.options.use_nifi_python_processors_with_virtualenv_packages_installed:
                 f.write("nifi.python.virtualenv.directory=/opt/minifi/minifi-current/venv-with-langchain\n")
 
-            if self.options.use_nifi_python_processors_with_system_python or self.options.use_nifi_python_processors_with_virtualenv:
+            if self.options.use_nifi_python_processors_with_virtualenv:
                 f.write("nifi.python.install.packages.automatically=true\n")
 
     def _setup_config(self):
@@ -181,8 +180,7 @@ class MinifiContainer(FlowContainer):
             image = self.image_store.get_image('minifi-cpp-sql')
         elif self.options.use_nifi_python_processors_with_system_python_packages_installed:
             image = self.image_store.get_image('minifi-cpp-nifi-python-system-python-packages')
-        elif self.options.use_nifi_python_processors_with_system_python or self.options.use_nifi_python_processors_with_virtualenv or \
-                self.options.use_nifi_python_processors_with_virtualenv_packages_installed:
+        elif self.options.use_nifi_python_processors_with_virtualenv or self.options.use_nifi_python_processors_with_virtualenv_packages_installed:
             image = self.image_store.get_image('minifi-cpp-nifi-python')
         else:
             image = 'apacheminificpp:' + MinifiContainer.MINIFI_TAG_PREFIX + MinifiContainer.MINIFI_VERSION

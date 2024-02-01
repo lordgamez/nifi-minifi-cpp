@@ -86,7 +86,6 @@ Feature: MiNiFi can use python processors in its flows
 
     Examples: Different python installation modes
       | python_install_mode                                                   |
-      | without required python packages                                      |
       | with required python packages                                         |
       | with a pre-created virtualenv                                         |
       | with a pre-created virtualenv containing the required python packages |

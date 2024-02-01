@@ -417,9 +417,6 @@ class MiNiFi_integration_test:
     def enable_multi_tenancy_in_grafana_loki(self):
         self.cluster.enable_multi_tenancy_in_grafana_loki()
 
-    def use_nifi_python_processors_with_system_python_in_minifi(self):
-        self.cluster.use_nifi_python_processors_with_system_python_in_minifi()
-
     def use_nifi_python_processors_with_system_python_packages_installed_in_minifi(self):
         self.cluster.use_nifi_python_processors_with_system_python_packages_installed_in_minifi()
 

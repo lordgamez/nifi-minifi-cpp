@@ -58,7 +58,7 @@ void ExecutePythonProcessor::initialize() {
 void ExecutePythonProcessor::initalizeThroughScriptEngine() {
   appendPathForImportModules();
   python_script_engine_->appendModulePaths(python_paths_);
-  if (!script_file_path_.empty() && PythonScriptEngine::install_python_packages_automatically_) {
+  if (!script_file_path_.empty() && !PythonScriptEngine::virtualenv_path_.empty() && PythonScriptEngine::install_python_packages_automatically_) {
     auto requirements_file_path = std::filesystem::path(script_file_path_).parent_path() / "requirements.txt";
     if (std::filesystem::exists(requirements_file_path)) {
       installPythonRequirementsFromFile(requirements_file_path);
@@ -190,14 +190,15 @@ std::map<std::string, core::Property> ExecutePythonProcessor::getProperties() co
 }
 
 void ExecutePythonProcessor::installPythonRequirementsFromFile(const std::filesystem::path& requirements_file_path) {
+  if (PythonScriptEngine::virtualenv_path_.empty() || !PythonScriptEngine::install_python_packages_automatically_) {
+    return;
+  }
   std::string pip_command;
-  if (!PythonScriptEngine::virtualenv_path_.empty()) {
 #if WIN32
     pip_command.append((PythonScriptEngine::virtualenv_path_ / "Scripts" / "activate.bat").string()).append(" && ");
 #else
     pip_command.append(". ").append((PythonScriptEngine::virtualenv_path_ / "bin" / "activate").string()).append(" && ");
 #endif
-  }
   pip_command.append(PythonScriptEngine::python_binary_).append(" -m pip install --no-cache-dir -r \"").append(requirements_file_path.string()).append("\"");
   auto return_value = std::system(pip_command.c_str());
   if (return_value != 0) {

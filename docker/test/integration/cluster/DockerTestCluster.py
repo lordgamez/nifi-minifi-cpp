@@ -107,9 +107,6 @@ class DockerTestCluster:
     def enable_multi_tenancy_in_grafana_loki(self):
         self.container_store.enable_multi_tenancy_in_grafana_loki()
 
-    def use_nifi_python_processors_with_system_python_in_minifi(self):
-        self.container_store.use_nifi_python_processors_with_system_python_in_minifi()
-
     def use_nifi_python_processors_with_system_python_packages_installed_in_minifi(self):
         self.container_store.use_nifi_python_processors_with_system_python_packages_installed_in_minifi()
 

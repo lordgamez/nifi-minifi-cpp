@@ -349,9 +349,6 @@ class ContainerStore:
     def enable_sql_in_minifi(self):
         self.minifi_options.enable_sql = True
 
-    def use_nifi_python_processors_with_system_python_in_minifi(self):
-        self.minifi_options.use_nifi_python_processors_with_system_python = True
-
     def use_nifi_python_processors_with_system_python_packages_installed_in_minifi(self):
         self.minifi_options.use_nifi_python_processors_with_system_python_packages_installed = True
 
