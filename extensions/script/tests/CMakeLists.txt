@@ -23,6 +23,7 @@ SET(EXECUTE_SCRIPT_TEST_COUNT 0)
 FOREACH(testfile ${EXECUTE_SCRIPT_TESTS})
     get_filename_component(testfilename "${testfile}" NAME_WE)
     add_executable("${testfilename}" "${testfile}")
+    target_compile_options(${testfilename} PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_OPTIONS})
     target_include_directories(${testfilename} PRIVATE BEFORE "${CMAKE_SOURCE_DIR}/extensions/script")
     target_include_directories(${testfilename} PRIVATE BEFORE "${CMAKE_SOURCE_DIR}/libminifi/test/")
 

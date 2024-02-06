@@ -31,6 +31,7 @@ file(GLOB SOURCES "*.cpp" "s3/*.cpp" "controllerservices/*.cpp" "processors/*.cp
 
 add_library(minifi-aws SHARED ${SOURCES})
 
+target_compile_options(minifi-aws PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_OPTIONS})
 target_link_libraries(minifi-aws PUBLIC ${LIBMINIFI} Threads::Threads)
 
 target_wholearchive_library_private(minifi-aws AWS::aws-cpp-sdk-s3)

@@ -28,6 +28,8 @@ file(GLOB SOURCES "processors/*.cpp")
 
 add_library(minifi-mqtt-extensions SHARED ${SOURCES})
 
+target_compile_options(minifi-mqtt-extension PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_OPTIONS})
+
 target_link_libraries(minifi-mqtt-extensions ${LIBMINIFI})
 
 include(PahoMqttC)

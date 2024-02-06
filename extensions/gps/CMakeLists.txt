@@ -31,6 +31,8 @@ file(GLOB SOURCES  "*.cpp")
 
 add_library(minifi-gps SHARED ${SOURCES})
 
+target_compile_options(minifi-gps PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_OPTIONS})
+
 # Include UUID
 target_link_libraries(minifi-gps ${LIBMINIFI} )
 target_link_libraries(minifi-gps ${LIBGPS_LIBRARIES})

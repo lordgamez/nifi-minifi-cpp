@@ -49,6 +49,7 @@ else()
 endif()
 
 add_library(minifi-grafana-loki SHARED ${SOURCES})
+target_compile_options(minifi-grafana-loki PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_OPTIONS})
 target_include_directories(minifi-grafana-loki PRIVATE BEFORE "${CMAKE_SOURCE_DIR}/extensions/http-curl")
 target_link_libraries(minifi-grafana-loki ${LIBMINIFI} minifi-http-curl)
 add_dependencies(minifi-grafana-loki minifi-http-curl)

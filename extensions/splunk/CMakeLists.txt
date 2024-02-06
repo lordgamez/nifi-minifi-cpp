@@ -27,6 +27,8 @@ file(GLOB SOURCES  "*.cpp")
 
 add_library(minifi-splunk SHARED ${SOURCES})
 
+target_compile_options(minifi-splunk PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_OPTIONS})
+
 target_include_directories(minifi-splunk PRIVATE BEFORE "${CMAKE_SOURCE_DIR}/extensions/http-curl")
 target_link_libraries(minifi-splunk ${LIBMINIFI})
 target_link_libraries(minifi-splunk minifi-http-curl)

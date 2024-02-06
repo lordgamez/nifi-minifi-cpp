@@ -58,6 +58,8 @@ file(GLOB SOURCES  "*.cpp")
 
 add_library(minifi-usb-camera-extensions SHARED ${SOURCES})
 
+target_compile_options(minifi-usb-camera-extensions PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_OPTIONS})
+
 target_link_libraries(minifi-usb-camera-extensions ${LIBMINIFI} Threads::Threads)
 target_link_libraries(minifi-usb-camera-extensions LibUVC::UVC PNG::PNG)
 

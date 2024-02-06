@@ -27,6 +27,8 @@ file(GLOB SOURCES  "*.cpp")
 
 add_library(minifi-test-processors SHARED ${SOURCES})
 
+target_compile_options(minifi-test-processors PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_OPTIONS})
+
 target_link_libraries(minifi-test-processors ${LIBMINIFI})
 
 register_extension(minifi-test-processors "TEST-PROCESSORS EXTENSION" TEST-PROCESSORS-EXTENSION "This enables processors purely for testing purposes" "" "CI_ONLY_INSTALL")

@@ -21,6 +21,8 @@ file(GLOB SOURCES  "*.cpp")
 
 add_library(sftp-test-tools STATIC ${SOURCES})
 
+target_compile_options(sftp-test-tools PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_OPTIONS})
+
 target_include_directories(sftp-test-tools BEFORE PRIVATE "${CMAKE_SOURCE_DIR}/libminifi/include")
 target_include_directories(sftp-test-tools BEFORE PRIVATE "${CMAKE_SOURCE_DIR}/include")
 target_include_directories(sftp-test-tools BEFORE PRIVATE "${CMAKE_SOURCE_DIR}/libminifi/include/")

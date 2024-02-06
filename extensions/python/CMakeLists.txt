@@ -27,6 +27,8 @@ file(GLOB SOURCES "*.cpp" "types/*.cpp" "pythonloader/PyProcLoader.cpp")
 
 add_library(minifi-python-script-extension SHARED ${SOURCES})
 
+target_compile_options(minifi-python-script-extension PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_OPTIONS})
+
 target_link_libraries(minifi-python-script-extension PRIVATE ${LIBMINIFI} Threads::Threads)
 
 include(GenericPython)

@@ -34,6 +34,8 @@ file(GLOB SOURCES  "jvm/*.cpp" "*.cpp")
 
 add_library(minifi-jni SHARED ${SOURCES})
 
+target_compile_options(minifi-jni PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_OPTIONS})
+
 set(JNI_FRAMEWORK_JAR_SOURCE "${CMAKE_SOURCE_DIR}/extensions/jni/nifi-framework-jni")
 set(JNI_FRAMEWORK_JAR_BIN "${CMAKE_CURRENT_BINARY_DIR}/" )
 

@@ -27,6 +27,8 @@ file(GLOB SOURCES  "*.cpp")
 
 add_library(minifi-pdh SHARED ${SOURCES})
 
+target_compile_options(minifi-pdh PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_OPTIONS})
+
 target_link_libraries(minifi-pdh ${LIBMINIFI} pdh)
 
 register_extension(minifi-pdh "PDH EXTENSIONS" PDH-EXTENSIONS "This enables PDH support" "extensions/pdh/tests")

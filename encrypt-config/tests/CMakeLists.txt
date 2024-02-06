@@ -26,6 +26,8 @@ foreach(testfile ${ENCRYPT_CONFIG_TESTS})
     get_filename_component(testfilename "${testfile}" NAME_WE)
     add_executable(${testfilename} "${testfile}" ${ENCRYPT_CONFIG_SOURCES})
 
+    target_compile_options(${testfilename} PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_OPTIONS})
+
     target_include_directories(${testfilename} BEFORE PRIVATE "${CMAKE_SOURCE_DIR}/encrypt-config")
     target_include_directories(${testfilename} BEFORE PRIVATE "${CMAKE_SOURCE_DIR}/libminifi/include")
     target_include_directories(${testfilename} BEFORE PRIVATE "${CMAKE_SOURCE_DIR}/libminifi/test")

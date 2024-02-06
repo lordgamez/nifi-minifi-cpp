@@ -32,6 +32,8 @@ file(GLOB SOURCES  "*.cpp" "client/*.cpp" "processors/*.cpp")
 
 add_library(minifi-sftp SHARED ${SOURCES})
 
+target_compile_options(minifi-sftp PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_OPTIONS})
+
 target_link_libraries(minifi-sftp ${LIBMINIFI} Threads::Threads)
 target_link_libraries(minifi-sftp CURL::libcurl libssh2 RapidJSON)
 

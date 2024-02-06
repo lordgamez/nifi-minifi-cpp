@@ -27,6 +27,8 @@ file(GLOB SOURCES "*.cpp" "controllerservices/*.cpp" "processors/*.cpp")
 
 add_library(minifi-gcp SHARED ${SOURCES})
 
+target_compile_options(minifi-gcp PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_OPTIONS})
+
 target_link_libraries(minifi-gcp ${LIBMINIFI} google-cloud-cpp::storage)
 target_include_directories(minifi-gcp SYSTEM PUBLIC ${google-cloud-cpp_INCLUDE_DIRS})
 

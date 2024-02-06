@@ -26,6 +26,7 @@ include(${CMAKE_SOURCE_DIR}/extensions/ExtensionHeader.txt)
 file(GLOB SOURCES  "*.cpp")
 
 add_library(minifi-smb SHARED ${SOURCES})
+target_compile_options(minifi-smb PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_OPTIONS})
 target_link_libraries(minifi-smb ${LIBMINIFI} Mpr)
 target_include_directories(minifi-smb PRIVATE BEFORE "${CMAKE_SOURCE_DIR}/extensions/standard-processors")
 

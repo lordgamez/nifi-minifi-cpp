@@ -31,6 +31,8 @@ foreach(testfile ${CONTROLLER_TESTS})
     get_filename_component(testfilename "${testfile}" NAME_WE)
     add_executable(${testfilename} "${testfile}" ${CONTROLLER_SOURCES})
 
+    target_compile_options(${testfilename} PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_OPTIONS})
+
     target_include_directories(${testfilename} BEFORE PRIVATE "${CMAKE_SOURCE_DIR}/controller")
     target_include_directories(${testfilename} BEFORE PRIVATE "${CMAKE_SOURCE_DIR}/libminifi/include")
     target_include_directories(${testfilename} BEFORE PRIVATE "${CMAKE_SOURCE_DIR}/libminifi/test")

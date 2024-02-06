@@ -29,6 +29,8 @@ file(GLOB SOURCES "*.cpp")
 
 add_library(minifi-bustache-extensions SHARED ${SOURCES})
 
+target_compile_options(minifi-bustache-extensions PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_OPTIONS})
+
 target_link_libraries(minifi-bustache-extensions ${LIBMINIFI})
 target_link_libraries(minifi-bustache-extensions bustache)
 

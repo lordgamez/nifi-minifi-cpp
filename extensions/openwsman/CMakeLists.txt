@@ -30,6 +30,8 @@ file(GLOB SOURCES "processors/*.cpp")
 
 add_library(minifi-openwsman SHARED ${SOURCES})
 
+target_compile_options(minifi-openwsman PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_OPTIONS})
+
 target_link_libraries(minifi-openwsman ${LIBMINIFI} Threads::Threads)
 target_link_libraries(minifi-openwsman OpenWSMAN::libwsman civetweb::civetweb-cpp civetweb::c-library LibXml2::LibXml2)
 

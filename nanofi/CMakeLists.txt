@@ -42,6 +42,8 @@ set_cpp_version()
 
 add_library(nanofi STATIC ${NANOFI_SOURCES})
 
+target_compile_options(nanofi PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_OPTIONS})
+
 target_link_libraries(nanofi spdlog ut core-minifi minifi-standard-processors)
 
 if (NOT DISABLE_CURL)

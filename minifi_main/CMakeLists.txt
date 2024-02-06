@@ -44,6 +44,7 @@ if(WIN32)
     list(APPEND MINIFIEXE_SOURCES "${CMAKE_CURRENT_BINARY_DIR}/versioninfo.rc")
 endif()
 add_executable(minifiexe ${MINIFIEXE_SOURCES})
+target_compile_options(minifiexe PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_OPTIONS})
 
 if (NOT USE_SHARED_LIBS)
     if (LIBC_STATIC)

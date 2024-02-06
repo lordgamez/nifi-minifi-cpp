@@ -30,6 +30,8 @@ file(GLOB SOURCES  "*.cpp" "wel/*.cpp")
 
 add_library(minifi-wel SHARED ${SOURCES})
 
+target_compile_options(minifi-wel PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_OPTIONS})
+
 target_link_libraries(minifi-wel ${LIBMINIFI} Threads::Threads)
 target_link_libraries(minifi-wel PUGI::libpugixml ZLIB::ZLIB Wevtapi.lib)
 
