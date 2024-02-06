@@ -27,6 +27,7 @@ file(GLOB SOURCES  "processors/*.cpp" "protocols/*.cpp")
 
 add_library(minifi-civet-extensions SHARED ${SOURCES})
 target_compile_options(minifi-civet-extensions PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_OPTIONS})
+target_compile_definitions(minifi-civet-extensions PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_DEFINITIONS})
 target_include_directories(minifi-civet-extensions BEFORE PUBLIC
                            ${CMAKE_SOURCE_DIR}/libminifi/include
                            ${CMAKE_SOURCE_DIR}/libminifi/include/core

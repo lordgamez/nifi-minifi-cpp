@@ -28,6 +28,7 @@ file(GLOB SOURCES  "*.cpp")
 add_library(minifi-test-processors SHARED ${SOURCES})
 
 target_compile_options(minifi-test-processors PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_OPTIONS})
+target_compile_definitions(minifi-test-processors PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_DEFINITIONS})
 
 target_link_libraries(minifi-test-processors ${LIBMINIFI})
 

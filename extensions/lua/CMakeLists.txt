@@ -30,6 +30,7 @@ file(GLOB SOURCES  "*.cpp")
 add_library(minifi-lua-script-extension SHARED ${SOURCES})
 
 target_compile_options(minifi-lua-script-extension PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_OPTIONS})
+target_compile_definitions(minifi-lua-script-extension PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_DEFINITIONS})
 
 target_link_libraries(minifi-lua-script-extension PRIVATE ${LIBMINIFI} Threads::Threads)
 

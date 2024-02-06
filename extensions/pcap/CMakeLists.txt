@@ -62,6 +62,7 @@ file(GLOB SOURCES  "*.cpp")
 
 add_library(minifi-pcap SHARED ${SOURCES})
 target_compile_options(minifi-pcap PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_OPTIONS})
+target_compile_definitions(minifi-pcap PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_DEFINITIONS})
 target_include_directories(minifi-pcap PRIVATE ${PCAPPLUSPLUS_HEADER_DIR})
 
 add_dependencies(minifi-pcap pcappp)

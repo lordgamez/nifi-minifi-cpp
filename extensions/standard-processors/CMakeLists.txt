@@ -24,6 +24,7 @@ file(GLOB SOURCES "processors/*.cpp" "controllers/*.cpp" "utils/*.cpp")
 
 add_library(minifi-standard-processors SHARED ${SOURCES})
 target_compile_options(minifi-standard-processors PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_OPTIONS})
+target_compile_definitions(minifi-standard-processors PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_DEFINITIONS})
 target_include_directories(minifi-standard-processors PUBLIC "${CMAKE_SOURCE_DIR}/extensions/standard-processors")
 
 include(RangeV3)

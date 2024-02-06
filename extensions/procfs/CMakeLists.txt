@@ -27,6 +27,7 @@ file(GLOB SOURCES "*.cpp" "processors/*.cpp" "utils/*.cpp")
 
 add_library(minifi-procfs SHARED ${SOURCES})
 target_compile_options(minifi-procfs PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_OPTIONS})
+target_compile_definitions(minifi-procfs PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_DEFINITIONS})
 target_link_libraries(minifi-procfs ${LIBMINIFI})
 
 register_extension(minifi-procfs "PROCFS EXTENSIONS" PROCFS-EXTENSIONS "Enabled metrics collection from procfs" "extensions/procfs/tests")

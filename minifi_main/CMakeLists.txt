@@ -45,6 +45,7 @@ if(WIN32)
 endif()
 add_executable(minifiexe ${MINIFIEXE_SOURCES})
 target_compile_options(minifiexe PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_OPTIONS})
+target_compile_definitions(minifiexe PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_DEFINITIONS})
 
 if (NOT USE_SHARED_LIBS)
     if (LIBC_STATIC)

@@ -31,6 +31,7 @@ file(GLOB SOURCES  "*.cpp")
 add_library(minifi-opencv SHARED ${SOURCES})
 
 target_compile_options(minifi-opencv PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_OPTIONS})
+target_compile_definitions(minifi-opencv PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_DEFINITIONS})
 
 target_link_libraries(minifi-opencv ${LIBMINIFI})
 target_link_libraries(minifi-opencv OPENCV::libopencv)

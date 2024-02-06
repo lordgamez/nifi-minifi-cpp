@@ -25,9 +25,11 @@ set_cpp_version()
 if (NOT WIN32)
     add_executable(generate_flow generate_flow.c)
     target_compile_options(generate_flow PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_OPTIONS})
+    target_compile_definitions(generate_flow PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_DEFINITIONS})
 
     add_executable(terminate_handler terminate_handler.c)
     target_compile_options(terminate_handler PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_OPTIONS})
+    target_compile_definitions(terminate_handler PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_DEFINITIONS})
 
     target_link_libraries(generate_flow minifi-http-curl)
     target_link_libraries(generate_flow nanofi Threads::Threads)
@@ -40,18 +42,21 @@ if (NOT WIN32)
 
     add_executable(transmit_flow transmit_flow.c)
     target_compile_options(transmit_flow PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_OPTIONS})
+    target_compile_definitions(transmit_flow PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_DEFINITIONS})
 
     target_link_libraries(transmit_flow minifi-http-curl)
     target_link_libraries(transmit_flow nanofi Threads::Threads)
 
     add_executable(transmit_payload transmit_payload.c)
     target_compile_options(transmit_payload PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_OPTIONS})
+    target_compile_definitions(transmit_payload PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_DEFINITIONS})
 
     target_link_libraries(transmit_payload minifi-http-curl)
     target_link_libraries(transmit_payload nanofi Threads::Threads)
 
     add_executable(monitor_directory monitor_directory.c)
     target_compile_options(monitor_directory PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_OPTIONS})
+    target_compile_definitions(monitor_directory PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_DEFINITIONS})
 
     target_link_libraries(monitor_directory minifi-http-curl)
     target_link_libraries(monitor_directory nanofi Threads::Threads)

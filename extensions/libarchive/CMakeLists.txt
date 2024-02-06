@@ -37,6 +37,7 @@ file(GLOB SOURCES  "*.cpp")
 add_library(minifi-archive-extensions SHARED ${SOURCES})
 
 target_compile_options(minifi-archive-extensions PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_OPTIONS})
+target_compile_definitions(minifi-archive-extensions PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_DEFINITIONS})
 
 target_link_libraries(minifi-archive-extensions ${LIBMINIFI} Threads::Threads)
 target_link_libraries(minifi-archive-extensions LibArchive::LibArchive)
