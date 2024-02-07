@@ -409,8 +409,7 @@ if (WIN32)
         ${CMAKE_CURRENT_BINARY_DIR}/libminifi
         "${CMAKE_CXX_COMPILER}"
         "${CMAKE_CXX_COMPILER_VERSION}"
-        "${CMAKE_CXX_FLAGS}"
-        "${MINIFI_CPP_COMPILE_OPTIONS}"
+        "${CMAKE_CXX_FLAGS};${MINIFI_CPP_COMPILE_OPTIONS};${MINIFI_CPP_COMPILE_DEFINITIONS}"
         \"${selected_extensions}\"
         "${BUILD_IDENTIFIER}"
         "${BUILD_REV}")
@@ -422,8 +421,7 @@ else()
         ${CMAKE_CURRENT_BINARY_DIR}/libminifi
         "${CMAKE_CXX_COMPILER}"
         "${CMAKE_CXX_COMPILER_VERSION}"
-        "${CMAKE_CXX_FLAGS}"
-        "${MINIFI_CPP_COMPILE_OPTIONS}"
+        "${CMAKE_CXX_FLAGS};${MINIFI_CPP_COMPILE_OPTIONS};${MINIFI_CPP_COMPILE_DEFINITIONS}"
         "${selected_extensions}"
         "${BUILD_IDENTIFIER}")
 endif()
