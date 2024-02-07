@@ -29,10 +29,7 @@ list(REMOVE_ITEM CONTROLLER_SOURCES "${CMAKE_SOURCE_DIR}/controller/MiNiFiContro
 set(CONTROLLER_TEST_COUNT 0)
 foreach(testfile ${CONTROLLER_TESTS})
     get_filename_component(testfilename "${testfile}" NAME_WE)
-    add_executable(${testfilename} "${testfile}" ${CONTROLLER_SOURCES})
-
-    target_compile_options(${testfilename} PRIVATE ${MINIFI_CPP_COMPILE_OPTIONS})
-    target_compile_definitions(${testfilename} PRIVATE ${MINIFI_CPP_COMPILE_DEFINITIONS})
+    add_minifi_executable(${testfilename} "${testfile};${CONTROLLER_SOURCES}")
 
     target_include_directories(${testfilename} BEFORE PRIVATE "${CMAKE_SOURCE_DIR}/controller")
     target_include_directories(${testfilename} BEFORE PRIVATE "${CMAKE_SOURCE_DIR}/libminifi/include")

@@ -28,10 +28,7 @@ include(${CMAKE_SOURCE_DIR}/extensions/ExtensionHeader.txt)
 
 file(GLOB SOURCES  "*.cpp")
 
-add_library(minifi-opencv SHARED ${SOURCES})
-
-target_compile_options(minifi-opencv PRIVATE ${MINIFI_CPP_COMPILE_OPTIONS})
-target_compile_definitions(minifi-opencv PRIVATE ${MINIFI_CPP_COMPILE_DEFINITIONS})
+add_minifi_library(minifi-opencv SHARED "${SOURCES}")
 
 target_link_libraries(minifi-opencv ${LIBMINIFI})
 target_link_libraries(minifi-opencv OPENCV::libopencv)

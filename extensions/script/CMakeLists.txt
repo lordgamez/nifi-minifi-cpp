@@ -25,10 +25,7 @@ include(${CMAKE_SOURCE_DIR}/extensions/ExtensionHeader.txt)
 
 file(GLOB SOURCES "*.cpp")
 
-add_library(minifi-script-extension SHARED ${SOURCES})
-
-target_compile_options(minifi-script-extension PRIVATE ${MINIFI_CPP_COMPILE_OPTIONS})
-target_compile_definitions(minifi-script-extension PRIVATE ${MINIFI_CPP_COMPILE_DEFINITIONS})
+add_minifi_library(minifi-script-extension SHARED "${SOURCES}")
 
 target_link_libraries(minifi-script-extension PRIVATE ${LIBMINIFI} Threads::Threads)
 target_include_directories(minifi-script-extension PRIVATE BEFORE "${CMAKE_SOURCE_DIR}/extensions/python")

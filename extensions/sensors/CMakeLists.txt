@@ -28,10 +28,7 @@ include(${CMAKE_SOURCE_DIR}/extensions/ExtensionHeader.txt)
 
 file(GLOB SOURCES  "*.cpp")
 
-add_library(minifi-sensors SHARED ${SOURCES})
-
-target_compile_options(minifi-sensors PRIVATE ${MINIFI_CPP_COMPILE_OPTIONS})
-target_compile_definitions(minifi-sensors PRIVATE ${MINIFI_CPP_COMPILE_DEFINITIONS})
+add_minifi_library(minifi-sensors SHARED "${SOURCES}")
 
 target_link_libraries(minifi-sensors ${LIBMINIFI} Threads::Threads)
 

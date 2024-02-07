@@ -27,10 +27,7 @@ include(${CMAKE_SOURCE_DIR}/extensions/ExtensionHeader.txt)
 
 file(GLOB SOURCES "*.cpp")
 
-add_library(minifi-bustache-extensions SHARED ${SOURCES})
-
-target_compile_options(minifi-bustache-extensions PRIVATE ${MINIFI_CPP_COMPILE_OPTIONS})
-target_compile_definitions(minifi-bustache-extensions PRIVATE ${MINIFI_CPP_COMPILE_DEFINITIONS})
+add_minifi_library(minifi-bustache-extensions SHARED "${SOURCES}")
 
 target_link_libraries(minifi-bustache-extensions ${LIBMINIFI})
 target_link_libraries(minifi-bustache-extensions bustache)

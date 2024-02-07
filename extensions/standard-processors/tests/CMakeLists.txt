@@ -32,9 +32,7 @@ SET(PROCESSOR_INT_TEST_COUNT 0)
 
 FOREACH(testfile ${PROCESSOR_UNIT_TESTS})
     get_filename_component(testfilename "${testfile}" NAME_WE)
-    add_executable("${testfilename}" "${testfile}")
-    target_compile_options(${testfilename} PRIVATE ${MINIFI_CPP_COMPILE_OPTIONS})
-    target_compile_definitions(${testfilename} PRIVATE ${MINIFI_CPP_COMPILE_DEFINITIONS})
+    add_minifi_executable("${testfilename}" "${testfile}")
     target_include_directories(${testfilename} BEFORE PRIVATE ${PROCESSOR_INCLUDE_DIRS})
     target_include_directories(${testfilename} BEFORE PRIVATE "${CMAKE_SOURCE_DIR}/libminifi/test/")
     target_include_directories(${testfilename} BEFORE PRIVATE "../")
@@ -60,9 +58,7 @@ message("-- Finished building ${PROCESSOR_INT_TEST_COUNT} processor unit test fi
 SET(INT_TEST_COUNT 0)
 FOREACH(testfile ${PROCESSOR_INTEGRATION_TESTS})
     get_filename_component(testfilename "${testfile}" NAME_WE)
-    add_executable("${testfilename}" "${testfile}")
-    target_compile_options(${testfilename} PRIVATE ${MINIFI_CPP_COMPILE_OPTIONS})
-    target_compile_definitions(${testfilename} PRIVATE ${MINIFI_CPP_COMPILE_DEFINITIONS})
+    add_minifi_executable("${testfilename}" "${testfile}")
     target_include_directories(${testfilename} BEFORE PRIVATE ${PROCESSOR_INCLUDE_DIRS})
     target_include_directories(${testfilename} BEFORE PRIVATE "${CMAKE_SOURCE_DIR}/libminifi/test/")
     target_include_directories(${testfilename} BEFORE PRIVATE "../")
@@ -87,9 +83,7 @@ add_test(NAME ProcessGroupTest COMMAND ProcessGroupTest "${TEST_RESOURCES}/TestP
 
 FOREACH(resourcefile ${RESOURCE_APPS})
     get_filename_component(resourcefilename "${resourcefile}" NAME_WE)
-    add_executable("${resourcefilename}" "${resourcefile}")
-    # target_compile_options(${resourcefilename} PRIVATE ${MINIFI_CPP_COMPILE_OPTIONS}) # TODO - fix this
-    # target_compile_definitions(${resourcefilename} PRIVATE ${MINIFI_CPP_COMPILE_DEFINITIONS})
+    add_minifi_executable("${resourcefilename}" "${resourcefile}")
     set_target_properties(${resourcefilename} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 ENDFOREACH()
 

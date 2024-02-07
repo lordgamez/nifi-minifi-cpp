@@ -40,10 +40,7 @@ file(GLOB NANOFI_ECU_SOURCES "ecu/*.c")
 include(CppVersion)
 set_cpp_version()
 
-add_library(nanofi STATIC ${NANOFI_SOURCES})
-
-target_compile_options(nanofi PRIVATE ${MINIFI_CPP_COMPILE_OPTIONS})
-target_compile_definitions(nanofi PRIVATE ${MINIFI_CPP_COMPILE_DEFINITIONS})
+add_minifi_library(nanofi STATIC "${NANOFI_SOURCES}")
 
 target_link_libraries(nanofi spdlog ut core-minifi minifi-standard-processors)
 

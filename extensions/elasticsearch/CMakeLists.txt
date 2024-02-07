@@ -25,10 +25,7 @@ include(${CMAKE_SOURCE_DIR}/extensions/ExtensionHeader.txt)
 
 file(GLOB SOURCES  "*.cpp")
 
-add_library(minifi-elasticsearch SHARED ${SOURCES})
-
-target_compile_options(minifi-elasticsearch PRIVATE ${MINIFI_CPP_COMPILE_OPTIONS})
-target_compile_definitions(minifi-elasticsearch PRIVATE ${MINIFI_CPP_COMPILE_DEFINITIONS})
+add_minifi_library(minifi-elasticsearch SHARED "${SOURCES}")
 
 target_include_directories(minifi-elasticsearch PRIVATE BEFORE "${CMAKE_SOURCE_DIR}/extensions/http-curl")
 target_link_libraries(minifi-elasticsearch ${LIBMINIFI})

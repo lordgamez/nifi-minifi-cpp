@@ -340,6 +340,18 @@ else()
     endif()
 endif()
 
+function(add_minifi_library LIBRARY_NAME LINK_TYPE SOURCES)
+    add_library(${LIBRARY_NAME} ${LINK_TYPE} ${SOURCES})
+    target_compile_options(${LIBRARY_NAME} PRIVATE ${MINIFI_CPP_COMPILE_OPTIONS})
+    target_compile_definitions(${LIBRARY_NAME} PRIVATE ${MINIFI_CPP_COMPILE_DEFINITIONS})
+endfunction()
+
+function(add_minifi_executable EXECUTABLE_NAME SOURCES)
+    add_executable(${EXECUTABLE_NAME} ${SOURCES})
+    target_compile_options(${EXECUTABLE_NAME} PRIVATE ${MINIFI_CPP_COMPILE_OPTIONS})
+    target_compile_definitions(${EXECUTABLE_NAME} PRIVATE ${MINIFI_CPP_COMPILE_DEFINITIONS})
+endfunction()
+
 #### Extensions ####
 SET(TEST_DIR ${CMAKE_SOURCE_DIR}/libminifi/test)
 include(Extensions)

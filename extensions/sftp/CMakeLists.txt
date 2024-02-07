@@ -30,10 +30,7 @@ include_directories(client processors)
 
 file(GLOB SOURCES  "*.cpp" "client/*.cpp" "processors/*.cpp")
 
-add_library(minifi-sftp SHARED ${SOURCES})
-
-target_compile_options(minifi-sftp PRIVATE ${MINIFI_CPP_COMPILE_OPTIONS})
-target_compile_definitions(minifi-sftp PRIVATE ${MINIFI_CPP_COMPILE_DEFINITIONS})
+add_minifi_library(minifi-sftp SHARED "${SOURCES}")
 
 target_link_libraries(minifi-sftp ${LIBMINIFI} Threads::Threads)
 target_link_libraries(minifi-sftp CURL::libcurl libssh2 RapidJSON)
