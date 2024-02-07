@@ -35,8 +35,8 @@ file(GLOB SOURCES  "*.cpp" "controllers/*.cpp" "database/*.cpp" "encryption/*.cp
 
 add_library(minifi-rocksdb-repos SHARED ${SOURCES})
 
-target_compile_options(minifi-rocksdb-repos PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_OPTIONS})
-target_compile_definitions(minifi-rocksdb-repos PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_DEFINITIONS})
+target_compile_options(minifi-rocksdb-repos PRIVATE ${MINIFI_CPP_COMPILE_OPTIONS})
+target_compile_definitions(minifi-rocksdb-repos PRIVATE ${MINIFI_CPP_COMPILE_DEFINITIONS})
 
 target_link_libraries(minifi-rocksdb-repos ${LIBMINIFI} Threads::Threads)
 target_link_libraries(minifi-rocksdb-repos RocksDB::RocksDB)

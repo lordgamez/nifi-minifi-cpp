@@ -40,7 +40,8 @@ if (WIN32)
 endif()
 
 add_executable(minificontroller ${MINIFI_CONTROLLER_SOURCES})
-target_compile_options(minificontroller PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_OPTIONS})
+target_compile_options(minificontroller PRIVATE ${MINIFI_CPP_COMPILE_OPTIONS})
+target_compile_definitions(minificontroller PRIVATE ${MINIFI_CPP_COMPILE_DEFINITIONS})
 include(ArgParse)
 target_link_libraries(minificontroller ${LIBMINIFI} argparse Threads::Threads)
 

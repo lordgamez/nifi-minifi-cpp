@@ -105,8 +105,8 @@ endif()
 
 add_library(minifi-expression-language-extensions SHARED ${SOURCES} ${BISON_el-parser_OUTPUTS} ${FLEX_el-scanner_OUTPUTS})
 
-target_compile_options(minifi-expression-language-extensions PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_OPTIONS})
-target_compile_definitions(minifi-expression-language-extensions PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_DEFINITIONS})
+target_compile_options(minifi-expression-language-extensions PRIVATE ${MINIFI_CPP_COMPILE_OPTIONS})
+target_compile_definitions(minifi-expression-language-extensions PRIVATE ${MINIFI_CPP_COMPILE_DEFINITIONS})
 
 target_link_libraries(minifi-expression-language-extensions ${LIBMINIFI})
 target_link_libraries(minifi-expression-language-extensions RapidJSON CURL::libcurl)

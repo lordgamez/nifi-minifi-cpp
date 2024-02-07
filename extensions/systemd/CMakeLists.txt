@@ -25,8 +25,8 @@ include(${CMAKE_SOURCE_DIR}/extensions/ExtensionHeader.txt)
 
 add_library(minifi-systemd SHARED ConsumeJournald.cpp libwrapper/LibWrapper.cpp libwrapper/DlopenWrapper.cpp)
 
-target_compile_options(minifi-systemd PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_OPTIONS})
-target_compile_definitions(minifi-systemd PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_DEFINITIONS})
+target_compile_options(minifi-systemd PRIVATE ${MINIFI_CPP_COMPILE_OPTIONS})
+target_compile_definitions(minifi-systemd PRIVATE ${MINIFI_CPP_COMPILE_DEFINITIONS})
 
 target_link_libraries(minifi-systemd ${LIBMINIFI} Threads::Threads date::date)
 

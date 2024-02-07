@@ -28,8 +28,8 @@ file(GLOB SOURCES "*.cpp")
 
 add_library(minifi-prometheus SHARED ${SOURCES})
 
-target_compile_options(minifi-prometheus PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_OPTIONS})
-target_compile_definitions(minifi-prometheus PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_DEFINITIONS})
+target_compile_options(minifi-prometheus PRIVATE ${MINIFI_CPP_COMPILE_OPTIONS})
+target_compile_definitions(minifi-prometheus PRIVATE ${MINIFI_CPP_COMPILE_DEFINITIONS})
 
 target_link_libraries(minifi-prometheus ${LIBMINIFI} prometheus-cpp::core  prometheus-cpp::pull)
 target_include_directories(minifi-prometheus PUBLIC ${prometheus-cpp_INCLUDE_DIRS})

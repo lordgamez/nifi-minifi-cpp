@@ -30,8 +30,8 @@ file(GLOB SOURCES  "*.cpp" "services/*.cpp" "processors/*.cpp"  "data/*.cpp")
 
 add_library(minifi-sql SHARED ${SOURCES})
 
-target_compile_options(minifi-sql PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_OPTIONS})
-target_compile_definitions(minifi-sql PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_DEFINITIONS})
+target_compile_options(minifi-sql PRIVATE ${MINIFI_CPP_COMPILE_OPTIONS})
+target_compile_definitions(minifi-sql PRIVATE ${MINIFI_CPP_COMPILE_DEFINITIONS})
 
 if(WIN32)
     find_package(ODBC REQUIRED)

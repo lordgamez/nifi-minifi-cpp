@@ -34,10 +34,10 @@ file(GLOB SOURCES "*.cpp" "protocols/*.cpp" "processors/*.cpp" "controllerservic
 add_library(nanofi-coap-c STATIC ${CSOURCES})
 add_library(minifi-coap SHARED ${SOURCES})
 
-target_compile_options(minifi-coap-c PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_OPTIONS})
-target_compile_definitions(minifi-coap-c PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_DEFINITIONS})
-target_compile_options(minifi-coap PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_OPTIONS})
-target_compile_definitions(minifi-coap PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_DEFINITIONS})
+target_compile_options(nanofi-coap-c PRIVATE ${MINIFI_CPP_COMPILE_OPTIONS})
+target_compile_definitions(nanofi-coap-c PRIVATE ${MINIFI_CPP_COMPILE_DEFINITIONS})
+target_compile_options(minifi-coap PRIVATE ${MINIFI_CPP_COMPILE_OPTIONS})
+target_compile_definitions(minifi-coap PRIVATE ${MINIFI_CPP_COMPILE_DEFINITIONS})
 
 target_link_libraries(nanofi-coap-c COAP::libcoap Threads::Threads)
 target_link_libraries(minifi-coap ${LIBMINIFI})

@@ -31,7 +31,8 @@ file(GLOB SOURCES "*.cpp" "storage/*.cpp" "controllerservices/*.cpp" "processors
 add_library(minifi-azure SHARED ${SOURCES})
 
 target_compile_features(minifi-azure PUBLIC cxx_std_14)
-target_compile_options(minifi-azure PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_OPTIONS})
+target_compile_options(minifi-azure PRIVATE ${MINIFI_CPP_COMPILE_OPTIONS})
+target_compile_definitions(minifi-azure PRIVATE ${MINIFI_CPP_COMPILE_DEFINITIONS})
 
 target_include_directories(minifi-azure BEFORE PRIVATE controllerservices)
 target_include_directories(minifi-azure BEFORE PRIVATE processors)

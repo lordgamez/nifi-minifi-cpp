@@ -70,8 +70,8 @@ file(GLOB PROCESSOR_SOURCES  "src/processors/*.cpp" )
 
 
 add_library(core-minifi SHARED ${SOURCES})
-target_compile_options(core-minifi PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_OPTIONS})
-target_compile_definitions(core-minifi PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_DEFINITIONS})
+target_compile_options(core-minifi PRIVATE ${MINIFI_CPP_COMPILE_OPTIONS})
+target_compile_definitions(core-minifi PRIVATE ${MINIFI_CPP_COMPILE_DEFINITIONS})
 target_compile_definitions(core-minifi PRIVATE "LIBMINIFI=1")
 if(WIN32)
     set_target_properties(core-minifi PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS TRUE)

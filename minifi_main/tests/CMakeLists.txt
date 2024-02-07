@@ -22,8 +22,8 @@ SET(MINIFI_MAIN_UNIT_TEST_COUNT 0)
 FOREACH(TEST_FILE ${MINIFI_MAIN_UNIT_TESTS})
     get_filename_component(TEST_TARGET "${TEST_FILE}" NAME_WE)
     add_executable("${TEST_TARGET}" "${TEST_FILE}" ../TableFormatter.cpp)
-    target_compile_options(${TEST_TARGET} PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_OPTIONS})
-    target_compile_definitions(${TEST_TARGET} PRIVATE ${ADDITIONAL_MINIFI_CPP_COMPILE_DEFINITIONS})
+    target_compile_options(${TEST_TARGET} PRIVATE ${MINIFI_CPP_COMPILE_OPTIONS})
+    target_compile_definitions(${TEST_TARGET} PRIVATE ${MINIFI_CPP_COMPILE_DEFINITIONS})
     target_include_directories(${TEST_TARGET} PRIVATE BEFORE
             "${CMAKE_SOURCE_DIR}/libminifi/test"
             "${CMAKE_SOURCE_DIR}/minifi_main")
