@@ -28,6 +28,7 @@
 #include "core/logging/LoggerConfiguration.h"
 #include "core/Resource.h"
 #include "ExecutePythonProcessor.h"
+#include "PythonConfigState.h"
 #include "PythonObjectFactory.h"
 #include "agent/agent_version.h"
 #include "agent/build_description.h"
@@ -37,6 +38,7 @@
 #include "properties/Configuration.h"
 #include "utils/file/FilePattern.h"
 #include "range/v3/view/filter.hpp"
+#include "utils/file/PathUtils.h"
 
 namespace org::apache::nifi::minifi::extensions::python {
 
@@ -77,6 +79,10 @@ class PythonCreator : public minifi::core::CoreComponent {
         class_name = full_name;
       }
       if (path.string().find("nifi_python_processors") != std::string::npos) {
+        auto utils_path = std::string("nifi_python_processors").append(1, utils::file::getSeparator()).append("utils");
+        if (path.string().find(utils_path) != std::string::npos) {
+          continue;
+        }
         logger_->log_info("Registering NiFi python processor: {}", class_name);
         core::getClassLoader().registerClass(class_name, std::make_unique<PythonObjectFactory>(path.string(), script_name.string(),
           PythonProcessorType::NIFI_TYPE, std::vector<std::filesystem::path>{python_lib_path, std::filesystem::path{pathListings.value()}, path.parent_path()}));
@@ -92,6 +98,8 @@ class PythonCreator : public minifi::core::CoreComponent {
         logger_->log_error("Cannot load {}: {}", script_name, err.what());
       }
     }
+
+    PythonConfigState::getInstance().python_dependencies_installed = true;
   }
 
  private:

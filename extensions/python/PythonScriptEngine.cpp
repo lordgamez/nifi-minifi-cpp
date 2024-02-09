@@ -173,6 +173,9 @@ void PythonScriptEngine::eval(const std::string& script) {
 
 void PythonScriptEngine::initialize(const std::shared_ptr<Configure> &configuration, const std::shared_ptr<core::logging::Logger>& logger) {
   PythonConfigState::getInstance().python_binary = getPythonBinary(configuration);
+  if (auto python_processor_dir = configuration->get(minifi::Configuration::nifi_python_processor_dir)) {
+    PythonConfigState::getInstance().python_processor_dir = *python_processor_dir;
+  }
   std::string automatic_install_str;
   PythonConfigState::getInstance().install_python_packages_automatically =
     configuration->get(Configuration::nifi_python_install_packages_automatically, automatic_install_str) && utils::string::toBool(automatic_install_str).value_or(false);

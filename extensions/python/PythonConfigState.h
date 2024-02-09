@@ -48,7 +48,7 @@ struct PythonConfigState {
   PythonConfigState& operator=(const PythonConfigState&) = delete;
 
   bool isPackageInstallationNeeded() const {
-    return install_python_packages_automatically && !virtualenv_path.empty();
+    return !python_dependencies_installed && install_python_packages_automatically && !virtualenv_path.empty();
   }
 
   static PythonConfigState& getInstance() {
@@ -57,8 +57,10 @@ struct PythonConfigState {
   }
 
   std::filesystem::path virtualenv_path;
+  std::filesystem::path python_processor_dir;
   std::string python_binary;
   bool install_python_packages_automatically = false;
+  bool python_dependencies_installed = false;
 
  private:
   PythonConfigState() = default;
