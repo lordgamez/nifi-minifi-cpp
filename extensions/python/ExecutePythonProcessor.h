@@ -164,6 +164,8 @@ class ExecutePythonProcessor : public core::Processor {
   void loadScript();
   void reloadScriptIfUsingScriptFileProperty();
   void initalizeThroughScriptEngine();
+  void installPythonRequirementsFromFile(const std::filesystem::path& requirements_file_path) const;
+  void installInlinePythonDependencies() const;
 
   std::unique_ptr<PythonScriptEngine> createScriptEngine();
 };

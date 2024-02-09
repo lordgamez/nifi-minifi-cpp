@@ -20,6 +20,7 @@
 #include <utility>
 
 #include "ExecutePythonProcessor.h"
+#include "PythonConfigState.h"
 #include "types/PyRelationship.h"
 #include "types/PyLogger.h"
 
@@ -58,6 +59,9 @@ void ExecutePythonProcessor::initialize() {
 void ExecutePythonProcessor::initalizeThroughScriptEngine() {
   appendPathForImportModules();
   python_script_engine_->appendModulePaths(python_paths_);
+  if (!script_file_path_.empty() && PythonConfigState::getInstance().isPackageInstallationNeeded()) {
+    installInlinePythonDependencies();
+  }
   python_script_engine_->eval(script_to_exec_);
   if (python_class_name_) {
     python_script_engine_->initializeProcessorObject(*python_class_name_);
@@ -181,6 +185,31 @@ std::map<std::string, core::Property> ExecutePythonProcessor::getProperties() co
   }
 
   return result;
+}
+
+void ExecutePythonProcessor::installInlinePythonDependencies() const {
+  auto dependency_installer_path = PythonConfigState::getInstance().python_processor_dir / "nifi_python_processors" / "utils" / "inline_dependency_installer.py";
+  if (!python_class_name_ || PythonConfigState::getInstance().python_processor_dir.empty() || !std::filesystem::exists(dependency_installer_path)) {
+    return;
+  }
+
+  logger_->log_info("Checking and installing inline defined Python dependencies of {}", script_file_path_);
+  std::string python_command;
+#if WIN32
+  python_command.append("\"").append((PythonConfigState::getInstance().virtualenv_path / "Scripts" / "activate.bat").string()).append("\" && ");
+#else
+  python_command.append(". \"").append((PythonConfigState::getInstance().virtualenv_path / "bin" / "activate").string()).append("\" && ");
+#endif
+  python_command.append("\"").append(PythonConfigState::getInstance().python_binary).append("\" \"").append(dependency_installer_path.string()).append("\" \"").append(script_file_path_).append("\"");
+#if WIN32
+  std::string win_command = "\"" + python_command + "\"";
+  auto return_value = std::system(win_command.c_str());
+#else
+  auto return_value = std::system(python_command.c_str());
+#endif
+  if (return_value != 0) {
+    throw PythonScriptException(fmt::format("Failed to install inline Python dependencies from file: '{}'", script_file_path_));
+  }
 }
 
 REGISTER_RESOURCE(ExecutePythonProcessor, Processor);
