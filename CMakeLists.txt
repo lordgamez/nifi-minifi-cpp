@@ -330,7 +330,7 @@ set(MINIFI_CPP_COMPILE_OPTIONS ${MINIFI_CPP_COMPILE_OPTIONS} /W3)
         set(MINIFI_CPP_COMPILE_OPTIONS ${MINIFI_CPP_COMPILE_OPTIONS} /WX)
     endif()
 else()
-    set(MINIFI_CPP_COMPILE_OPTIONS ${MINIFI_CPP_COMPILE_OPTIONS} -Wall -Wextra -Wno-reorder)
+    set(MINIFI_CPP_COMPILE_OPTIONS ${MINIFI_CPP_COMPILE_OPTIONS} -Wall -Wextra)
     if(FAIL_ON_WARNINGS)
         set(MINIFI_CPP_COMPILE_OPTIONS ${MINIFI_CPP_COMPILE_OPTIONS} -Werror)
         # -Wrestrict may cause build failure in GCC 12  https://gcc.gnu.org/bugzilla/show_bug.cgi?id=104336
