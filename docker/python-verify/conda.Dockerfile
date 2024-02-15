@@ -36,7 +36,7 @@ RUN wget https://repo.anaconda.com/archive/Anaconda3-2023.09-0-Linux-x86_64.sh -
 USER ${USER}
 
 RUN ${CONDA_HOME}/bin/conda init bash
-RUN ${CONDA_HOME}/bin/conda install langchain -c conda-forge
+RUN ${CONDA_HOME}/bin/conda install langchain==0.17.0 -c conda-forge
 
 WORKDIR ${MINIFI_HOME}
 
