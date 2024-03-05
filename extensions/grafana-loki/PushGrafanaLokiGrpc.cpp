@@ -110,13 +110,17 @@ void PushGrafanaLokiGrpc::onSchedule(core::ProcessContext& context, core::Proces
 nonstd::expected<void, std::string> PushGrafanaLokiGrpc::submitRequest(const std::vector<std::shared_ptr<core::FlowFile>>& batched_flow_files, core::ProcessSession& session) {
   logproto::PushRequest current_batch;
 
-  current_batch = logproto::PushRequest{};
-  current_batch.add_streams();
-  logproto::StreamAdapter *stream = current_batch.mutable_streams(0);
+  logproto::StreamAdapter* stream = current_batch.add_streams();
+  if (!stream) {
+    return nonstd::make_unexpected("Error creating Loki push request stream");
+  }
   stream->set_labels(stream_labels_);
 
   for (const auto& flow_file : batched_flow_files) {
     logproto::EntryAdapter *entry = stream->add_entries();
+    if (!entry) {
+      return nonstd::make_unexpected("Error creating Loki push request entry");
+    }
     auto timestamp_str = std::to_string(flow_file->getlineageStartDate().time_since_epoch() / std::chrono::nanoseconds(1));
     auto timestamp_nanos = std::stoll(timestamp_str);
     *entry->mutable_timestamp() = google::protobuf::util::TimeUtil::NanosecondsToTimestamp(timestamp_nanos);
@@ -130,6 +134,9 @@ nonstd::expected<void, std::string> PushGrafanaLokiGrpc::submitRequest(const std
         continue;
       }
       logproto::LabelPairAdapter* label = entry->add_nonindexedlabels();
+      if (!label) {
+        return nonstd::make_unexpected("Error creating Loki push request label pair");
+      }
       label->set_name(label_attribute);
       label->set_value(*label_value);
     }

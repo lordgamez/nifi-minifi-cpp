@@ -23,6 +23,8 @@
 #include "grpcpp/grpcpp.h"
 #include "grafana-loki-push.grpc.pb.h"
 #include "google/protobuf/util/time_util.h"
+#include "core/logging/Logger.h"
+#include "core/logging/LoggerConfiguration.h"
 
 namespace org::apache::nifi::minifi::extensions::grafana::loki::test {
 
@@ -44,7 +46,7 @@ struct GrafanaLokiGrpcRequest {
 
 class GrafanaLokiGrpcService final : public ::logproto::Pusher::Service {
  public:
-  ::grpc::Status Push(::grpc::ServerContext* ctx, const ::logproto::PushRequest* request, ::logproto::PushResponse*) override {
+  ::grpc::Status Push(::grpc::ServerContext* ctx, const ::logproto::PushRequest* request, ::logproto::PushResponse* response) override {
     tenant_id_.clear();
     auto metadata = ctx->client_metadata();
     auto org_id = metadata.find("x-scope-orgid");
@@ -84,20 +86,13 @@ class GrafanaLokiGrpcService final : public ::logproto::Pusher::Service {
 class MockGrafanaLokiGrpc {
  public:
   explicit MockGrafanaLokiGrpc(std::string port) {
+    logger_->log_error("Starting gRPC server on port {}", port);
     std::string server_address("0.0.0.0:" + port);
-    ::grpc::ServerBuilder builder;
-    builder.AddListeningPort(server_address, ::grpc::InsecureServerCredentials());
-    builder.RegisterService(&loki_grpc_service_);
+    ::grpc::ServerBuilder server_builder_;
+    server_builder_.AddListeningPort(server_address, ::grpc::InsecureServerCredentials());
+    server_builder_.RegisterService(&loki_grpc_service_);
 
-    grpc_server_ = builder.BuildAndStart();
-    server_thread_ = std::thread([this] { grpc_server_->Wait(); });
-  }
-
-  ~MockGrafanaLokiGrpc() {
-    grpc_server_->Shutdown();
-    if (server_thread_.joinable()) {
-      server_thread_.join();
-    }
+    grpc_server_ = server_builder_.BuildAndStart();
   }
 
   GrafanaLokiGrpcRequest getLastRequest() const {
@@ -109,7 +104,7 @@ class MockGrafanaLokiGrpc {
   }
 
  private:
-  std::thread server_thread_;
+  std::shared_ptr<org::apache::nifi::minifi::core::logging::Logger> logger_ = org::apache::nifi::minifi::core::logging::LoggerFactory<MockGrafanaLokiGrpc>::getLogger();
   GrafanaLokiGrpcService loki_grpc_service_;
   std::unique_ptr<::grpc::Server> grpc_server_;
 };
