@@ -160,6 +160,7 @@ void PushGrafanaLoki::processBatch(const std::vector<std::shared_ptr<core::FlowF
   }
 
   auto result = submitRequest(batched_flow_files, session);
+  logger_->log_warn("RESULT");
   if (!result) {
     logger_->log_error("Failed to send log batch to Loki: {}", result.error());
     for (const auto& flow_file : batched_flow_files) {

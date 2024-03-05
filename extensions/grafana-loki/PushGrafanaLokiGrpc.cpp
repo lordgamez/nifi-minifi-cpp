@@ -112,43 +112,62 @@ nonstd::expected<void, std::string> PushGrafanaLokiGrpc::submitRequest(const std
 
   current_batch = logproto::PushRequest{};
   current_batch.add_streams();
+  logger_->log_warn("A");
   logproto::StreamAdapter *stream = current_batch.mutable_streams(0);
+  logger_->log_warn("B");
   stream->set_labels(stream_labels_);
+  logger_->log_warn("C");
 
   for (const auto& flow_file : batched_flow_files) {
     logproto::EntryAdapter *entry = stream->add_entries();
+    logger_->log_warn("D");
     auto timestamp_str = std::to_string(flow_file->getlineageStartDate().time_since_epoch() / std::chrono::nanoseconds(1));
+    logger_->log_warn("E");
     auto timestamp_nanos = std::stoll(timestamp_str);
+    logger_->log_warn("F");
     *entry->mutable_timestamp() = google::protobuf::util::TimeUtil::NanosecondsToTimestamp(timestamp_nanos);
 
+    logger_->log_warn("G");
     entry->set_line(to_string(session.readBuffer(flow_file)));
 
+    logger_->log_warn("H");
     for (const auto& label_attribute : log_line_metadata_attributes_) {
+      logger_->log_warn("I");
       auto label_value = flow_file->getAttribute(label_attribute);
+      logger_->log_warn("J");
       if (!label_value) {
         logger_->log_warn("Missing log line attribute in flow_file: {}", label_attribute);
         continue;
       }
+      logger_->log_warn("K");
       logproto::LabelPairAdapter* label = entry->add_nonindexedlabels();
+      logger_->log_warn("L");
       label->set_name(label_attribute);
+      logger_->log_warn("M");
       label->set_value(*label_value);
     }
   }
 
+  logger_->log_warn("N");
   if (!push_channel_->WaitForConnected(std::chrono::system_clock::now() + connection_timeout_ms_)) {
     return nonstd::make_unexpected("Timeout waiting for connection to Grafana Loki gRPC server");
   }
 
   logproto::PushResponse response{};
 
+  logger_->log_warn("O");
   ::grpc::ClientContext ctx;
   if (tenant_id_) {
     ctx.AddMetadata("x-scope-orgid", *tenant_id_);
   }
+  logger_->log_warn("P");
   ::grpc::Status status = push_stub_->Push(&ctx, current_batch, &response);
+  logger_->log_warn("PP");
   if (status.ok()) {
+    logger_->log_warn("R");
     return {};
   } else {
+    logger_->log_warn("Q");
     return nonstd::make_unexpected(status.error_message());
   }
 }
