@@ -22,6 +22,8 @@
 #include "grafana-loki-push.pb.h"
 #include "grafana-loki-push.grpc.pb.h"
 #include "grpc/grpc.h"
+#include "grpcpp/create_channel.h"
+#include "grpcpp/security/credentials.h"
 
 namespace org::apache::nifi::minifi::extensions::grafana::loki {
 
@@ -64,9 +66,12 @@ class PushGrafanaLokiGrpc : public PushGrafanaLoki {
   void setUpGrpcChannel(const std::string& url, core::ProcessContext& context);
 
   std::string stream_labels_;
+  std::string url_;
+  std::shared_ptr<::grpc::ChannelCredentials> creds_;
+  ::grpc::ChannelArguments args_;
   std::chrono::milliseconds connection_timeout_ms_;
   std::optional<std::string> tenant_id_;
-  std::shared_ptr<::grpc::Channel> push_channel_;
+  // std::shared_ptr<::grpc::Channel> push_channel_;
   std::unique_ptr<logproto::Pusher::Stub> push_stub_;
 };
 

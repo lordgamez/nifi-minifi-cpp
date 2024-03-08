@@ -21,8 +21,6 @@
 #include "utils/ProcessorConfigUtils.h"
 #include "core/Resource.h"
 #include "core/ProcessSession.h"
-#include "grpcpp/create_channel.h"
-#include "grpcpp/security/credentials.h"
 #include "google/protobuf/util/time_util.h"
 #include "utils/file/FileUtils.h"
 
@@ -54,48 +52,37 @@ void PushGrafanaLokiGrpc::setUpStreamLabels(core::ProcessContext& context) {
 }
 
 void PushGrafanaLokiGrpc::setUpGrpcChannel(const std::string& url, core::ProcessContext& context) {
-  ::grpc::ChannelArguments args{};
-
   if (auto keep_alive_time = context.getProperty<core::TimePeriodValue>(PushGrafanaLokiGrpc::KeepAliveTime)) {
     logger_->log_debug("PushGrafanaLokiGrpc Keep Alive Time is set to {} ms", keep_alive_time->getMilliseconds().count());
-    args.SetInt(GRPC_ARG_KEEPALIVE_TIME_MS, gsl::narrow<int>(keep_alive_time->getMilliseconds().count()));
+    args_.SetInt(GRPC_ARG_KEEPALIVE_TIME_MS, gsl::narrow<int>(keep_alive_time->getMilliseconds().count()));
   }
 
   if (auto keep_alive_timeout = context.getProperty<core::TimePeriodValue>(PushGrafanaLokiGrpc::KeepAliveTimeout)) {
     logger_->log_debug("PushGrafanaLokiGrpc Keep Alive Timeout is set to {} ms", keep_alive_timeout->getMilliseconds().count());
-    args.SetInt(GRPC_ARG_KEEPALIVE_TIMEOUT_MS, gsl::narrow<int>(keep_alive_timeout->getMilliseconds().count()));
+    args_.SetInt(GRPC_ARG_KEEPALIVE_TIMEOUT_MS, gsl::narrow<int>(keep_alive_timeout->getMilliseconds().count()));
   }
 
   if (auto max_pings_without_data = context.getProperty<uint64_t>(PushGrafanaLokiGrpc::MaxPingsWithoutData)) {
     logger_->log_debug("PushGrafanaLokiGrpc Max Pings Without Data is set to {}", *max_pings_without_data);
-    args.SetInt(GRPC_ARG_HTTP2_MAX_PINGS_WITHOUT_DATA, gsl::narrow<int>(*max_pings_without_data));
+    args_.SetInt(GRPC_ARG_HTTP2_MAX_PINGS_WITHOUT_DATA, gsl::narrow<int>(*max_pings_without_data));
   }
 
-  args.SetInt(GRPC_ARG_KEEPALIVE_PERMIT_WITHOUT_CALLS, 1);
-
-  std::shared_ptr<::grpc::ChannelCredentials> creds;
+  args_.SetInt(GRPC_ARG_KEEPALIVE_PERMIT_WITHOUT_CALLS, 1);
   if (auto ssl_context_service = getSSLContextService(context)) {
     ::grpc::SslCredentialsOptions ssl_credentials_options;
     ssl_credentials_options.pem_cert_chain = utils::file::FileUtils::get_content(ssl_context_service->getCertificateFile());
     ssl_credentials_options.pem_private_key = utils::file::FileUtils::get_content(ssl_context_service->getPrivateKeyFile());
     ssl_credentials_options.pem_root_certs = utils::file::FileUtils::get_content(ssl_context_service->getCACertificate());
-    creds = ::grpc::SslCredentials(ssl_credentials_options);
+    creds_ = ::grpc::SslCredentials(ssl_credentials_options);
   } else {
-    creds = ::grpc::InsecureChannelCredentials();
+    creds_ = ::grpc::InsecureChannelCredentials();
   }
-
-  push_channel_ = ::grpc::CreateCustomChannel(url, creds, args);
-  if (!push_channel_) {
-    throw Exception(PROCESS_SCHEDULE_EXCEPTION, "Error creating Loki gRPC channel");
-  }
-
-  push_stub_ = logproto::Pusher().NewStub(push_channel_);
 }
 
 void PushGrafanaLokiGrpc::onSchedule(core::ProcessContext& context, core::ProcessSessionFactory& session_factory) {
   PushGrafanaLoki::onSchedule(context, session_factory);
-  auto url = utils::getRequiredPropertyOrThrow<std::string>(context, Url.name);
-  if (url.empty()) {
+  url_ = utils::getRequiredPropertyOrThrow<std::string>(context, Url.name);
+  if (url_.empty()) {
     throw Exception(PROCESS_SCHEDULE_EXCEPTION, "Url property cannot be empty!");
   }
   tenant_id_ = context.getProperty(TenantID);
@@ -104,59 +91,68 @@ void PushGrafanaLokiGrpc::onSchedule(core::ProcessContext& context, core::Proces
   } else {
     throw Exception(PROCESS_SCHEDULE_EXCEPTION, "Invalid connection timeout is set.");
   }
-  setUpGrpcChannel(url, context);
+  setUpGrpcChannel(url_, context);
 }
 
 nonstd::expected<void, std::string> PushGrafanaLokiGrpc::submitRequest(const std::vector<std::shared_ptr<core::FlowFile>>& batched_flow_files, core::ProcessSession& session) {
-  logproto::PushRequest current_batch;
+  // auto push_channel = ::grpc::CreateCustomChannel(url_, creds_, args_);
+  using grpc::Channel;
+  using grpc::ClientContext;
+  using grpc::Status;
+  using logproto::Pusher;
+  using logproto::PushResponse;
+  using logproto::PushRequest;
 
-  logproto::StreamAdapter* stream = current_batch.add_streams();
-  if (!stream) {
-    return nonstd::make_unexpected("Error creating Loki push request stream");
+  std::unique_ptr<Pusher::Stub> stub_(Pusher::NewStub(grpc::CreateChannel(url_, grpc::InsecureChannelCredentials())));
+  PushRequest request;
+
+  std::string stream_labels_ = "id=a,job=minifi";
+  logproto::StreamAdapter *stream = request.add_streams();
+  if (stream == nullptr) {
+    return nonstd::make_unexpected("failed to add stream");
   }
   stream->set_labels(stream_labels_);
 
-  for (const auto& flow_file : batched_flow_files) {
-    logproto::EntryAdapter *entry = stream->add_entries();
-    if (!entry) {
-      return nonstd::make_unexpected("Error creating Loki push request entry");
-    }
-    auto timestamp_str = std::to_string(flow_file->getlineageStartDate().time_since_epoch() / std::chrono::nanoseconds(1));
-    auto timestamp_nanos = std::stoll(timestamp_str);
-    *entry->mutable_timestamp() = google::protobuf::util::TimeUtil::NanosecondsToTimestamp(timestamp_nanos);
+  std::vector<std::string> flow_files {
+    "test1", "test2", "test3"
+  };
 
-    entry->set_line(to_string(session.readBuffer(flow_file)));
+  std::map<std::string, std::string> log_line_metadata_attributes_ {
+    {"asd", "val1"}, {"asd2", "val2"}
+  };
 
-    for (const auto& label_attribute : log_line_metadata_attributes_) {
-      auto label_value = flow_file->getAttribute(label_attribute);
-      if (!label_value) {
-        logger_->log_warn("Missing log line attribute in flow_file: {}", label_attribute);
-        continue;
+  for (const auto& flow_file : flow_files) {
+      logproto::EntryAdapter *entry = stream->add_entries();
+      // auto timestamp_str = std::to_string(flow_file->getlineageStartDate().time_since_epoch() / std::chrono::nanoseconds(1));
+      auto timestamp_nanos = 123456;
+      *entry->mutable_timestamp() = google::protobuf::util::TimeUtil::NanosecondsToTimestamp(timestamp_nanos);
+
+      entry->set_line(flow_file);
+
+      for (const auto& [key, value] : log_line_metadata_attributes_) {
+          logproto::LabelPairAdapter* label = entry->add_nonindexedlabels();
+          label->set_name(key);
+          label->set_value(value);
       }
-      logproto::LabelPairAdapter* label = entry->add_nonindexedlabels();
-      if (!label) {
-        return nonstd::make_unexpected("Error creating Loki push request label pair");
-      }
-      label->set_name(label_attribute);
-      label->set_value(*label_value);
-    }
   }
 
-  if (!push_channel_->WaitForConnected(std::chrono::system_clock::now() + connection_timeout_ms_)) {
-    return nonstd::make_unexpected("Timeout waiting for connection to Grafana Loki gRPC server");
-  }
+  // Container for the data we expect from the server.
+  PushResponse reply;
 
-  logproto::PushResponse response{};
+  // Context for the client. It could be used to convey extra information to
+  // the server and/or tweak certain RPC behaviors.
+  ClientContext context;
 
-  ::grpc::ClientContext ctx;
-  if (tenant_id_) {
-    ctx.AddMetadata("x-scope-orgid", *tenant_id_);
-  }
-  ::grpc::Status status = push_stub_->Push(&ctx, current_batch, &response);
+  // The actual RPC.
+  Status status = stub_->Push(&context, request, &reply);
+
+  // Act upon its status.
   if (status.ok()) {
-    return {};
+    return {}; // nonstd::make_unexpected("RPC OK");
   } else {
-    return nonstd::make_unexpected(status.error_message());
+    std::cout << status.error_code() << ": " << status.error_message()
+              << std::endl;
+    return nonstd::make_unexpected("RPC failed");
   }
 }
 
