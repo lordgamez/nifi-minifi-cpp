@@ -68,74 +68,6 @@ void initThreads() {
 #endif
 }
 
-// On Windows when calling a system command using std::system, the whole command needs to be encapsulated in additional quotes,
-// due to the std::system passing the command to 'cmd.exe /C' which needs the additional quotes to handle the command as a single argument
-std::string encapsulateCommandInQuotesIfNeeded(const std::string& command) {
-#if WIN32
-    return "\"" + command + "\"";
-#else
-    return command;
-#endif
-}
-
-std::vector<std::filesystem::path> getRequirementsFilePaths(const std::shared_ptr<Configure> &configuration) {
-  std::vector<std::filesystem::path> paths;
-  if (auto python_processor_path = configuration->get(minifi::Configuration::nifi_python_processor_dir)) {
-    for (const auto& entry : std::filesystem::recursive_directory_iterator(std::filesystem::path{*python_processor_path})) {
-      if (std::filesystem::is_regular_file(entry.path()) && entry.path().filename() == "requirements.txt") {
-        paths.push_back(entry.path());
-      }
-    }
-  }
-  return paths;
-}
-
-std::string getPythonBinary(const std::shared_ptr<Configure> &configuration) {
-#if WIN32
-  std::string python_binary = "python";
-#else
-  std::string python_binary = "python3";
-#endif
-  if (auto binary = configuration->get(minifi::Configuration::nifi_python_env_setup_binary)) {
-    python_binary = *binary;
-  }
-  return python_binary;
-}
-
-void createVirtualEnvIfSpecified(const std::shared_ptr<Configure> &configuration) {
-  if (auto path = configuration->get(minifi::Configuration::nifi_python_virtualenv_directory)) {
-    PythonConfigState::getInstance().virtualenv_path = *path;
-    if (!std::filesystem::exists(PythonConfigState::getInstance().virtualenv_path) || std::filesystem::is_empty(PythonConfigState::getInstance().virtualenv_path)) {
-      auto venv_command = "\"" + PythonConfigState::getInstance().python_binary + "\" -m venv \"" + PythonConfigState::getInstance().virtualenv_path.string() + "\"";
-      auto return_value = std::system(encapsulateCommandInQuotesIfNeeded(venv_command).c_str());
-      if (return_value != 0) {
-        throw PythonScriptException(fmt::format("The following command creating python virtual env failed: '{}'", venv_command));
-      }
-    }
-  }
-}
-
-void installPythonPackagesIfRequested(const std::shared_ptr<Configure> &configuration, const std::shared_ptr<core::logging::Logger>& logger) {
-  std::string automatic_install_str;
-  if (!PythonConfigState::getInstance().isPackageInstallationNeeded()) {
-    return;
-  }
-  auto requirement_file_paths = getRequirementsFilePaths(configuration);
-  for (const auto& requirements_file_path : requirement_file_paths) {
-    logger->log_info("Installing python packages from the following requirements.txt file: {}", requirements_file_path.string());
-    std::string pip_command;
-#if WIN32
-    pip_command.append("\"").append((PythonConfigState::getInstance().virtualenv_path / "Scripts" / "activate.bat").string()).append("\" && ");
-#else
-    pip_command.append(". \"").append((PythonConfigState::getInstance().virtualenv_path / "bin" / "activate").string()).append("\" && ");
-#endif
-    pip_command.append("\"").append(PythonConfigState::getInstance().python_binary).append("\" -m pip install --no-cache-dir -r \"").append(requirements_file_path.string()).append("\"");
-    auto return_value = std::system(encapsulateCommandInQuotesIfNeeded(pip_command).c_str());
-    if (return_value != 0) {
-      throw PythonScriptException(fmt::format("The following command to install python packages failed: '{}'", pip_command));
-    }
-  }
-}
 }  // namespace
 
 Interpreter::Interpreter() {
@@ -171,15 +103,6 @@ void PythonScriptEngine::eval(const std::string& script) {
   } catch (const std::exception& e) {
     throw PythonScriptException(e.what());
   }
-}
-
-void PythonScriptEngine::initialize(const std::shared_ptr<Configure> &configuration, const std::shared_ptr<core::logging::Logger>& logger) {
-  PythonConfigState::getInstance().python_binary = getPythonBinary(configuration);
-  std::string automatic_install_str;
-  PythonConfigState::getInstance().install_python_packages_automatically =
-    configuration->get(Configuration::nifi_python_install_packages_automatically, automatic_install_str) && utils::string::toBool(automatic_install_str).value_or(false);
-  createVirtualEnvIfSpecified(configuration);
-  installPythonPackagesIfRequested(configuration, logger);
 }
 
 void PythonScriptEngine::evalFile(const std::filesystem::path& file_name) {
