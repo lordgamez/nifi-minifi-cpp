@@ -18,6 +18,7 @@
 #include "PythonDependencyInstaller.h"
 
 #include "PythonScriptException.h"
+#include "PythonScriptEngine.h"
 
 namespace org::apache::nifi::minifi::extensions::python {
 
@@ -54,14 +55,23 @@ PythonDependencyInstaller::PythonDependencyInstaller(const std::shared_ptr<Confi
     configuration->get(Configuration::nifi_python_install_packages_automatically, automatic_install_str) && utils::string::toBool(automatic_install_str).value_or(false);
   if (auto path = configuration->get(minifi::Configuration::nifi_python_virtualenv_directory)) {
     config_state_.virtualenv_path = *path;
+    logger_->log_debug("Python virtualenv path was specified at: {}", config_state_.virtualenv_path.string());
+  } else {
+    logger_->log_debug("No valid python virtualenv path was specified");
   }
   if (auto python_processor_dir = configuration->get(minifi::Configuration::nifi_python_processor_dir)) {
     config_state_.python_processor_dir = *python_processor_dir;
+    logger_->log_debug("Python processor dir was specified at: {}", config_state_.python_processor_dir.string());
+  } else {
+    logger_->log_debug("No valid python processor dir was not specified in properties");
   }
 }
 
 void PythonDependencyInstaller::installDependenciesFromRequirementsFiles() const {
   createVirtualEnvIfSpecified();
+  if (std::filesystem::exists(config_state_.virtualenv_path)) {
+    PythonScriptEngine::addVirtualenvToPath(config_state_.virtualenv_path);
+  }
   installPythonPackagesIfRequested();
 }
 
@@ -83,6 +93,7 @@ void PythonDependencyInstaller::createVirtualEnvIfSpecified() const {
     return;
   }
   if (!std::filesystem::exists(config_state_.virtualenv_path) || std::filesystem::is_empty(config_state_.virtualenv_path)) {
+    logger_->log_info("Creating python virtual env at: {}", config_state_.virtualenv_path.string());
     auto venv_command = "\"" + config_state_.python_binary + "\" -m venv \"" + config_state_.virtualenv_path.string() + "\"";
     auto return_value = std::system(encapsulateCommandInQuotesIfNeeded(venv_command).c_str());
     if (return_value != 0) {

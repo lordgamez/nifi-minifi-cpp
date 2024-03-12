@@ -28,11 +28,6 @@ struct PythonConfigState {
     return install_python_packages_automatically && !virtualenv_path.empty();
   }
 
-  static PythonConfigState& getInstance() {
-    static PythonConfigState config;
-    return config;
-  }
-
   std::filesystem::path virtualenv_path;
   std::filesystem::path python_processor_dir;
   std::string python_binary;

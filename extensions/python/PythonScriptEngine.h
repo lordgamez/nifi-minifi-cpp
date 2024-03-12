@@ -174,9 +174,11 @@ class PythonScriptEngine {
   void onTrigger(const std::shared_ptr<core::ProcessContext>& context, const std::shared_ptr<core::ProcessSession>& session);
   void initialize(const core::Relationship& success, const core::Relationship& failure, const core::Relationship& original, const std::shared_ptr<core::logging::Logger>& logger);
   void initializeProcessorObject(const std::string& python_class_name);
+  static void addVirtualenvToPath(const std::filesystem::path& virtualenv_path);
 
  private:
   void evalInternal(std::string_view script);
+  static void evalInternalWithoutStoredBindings(std::string_view script);
   void evaluateModuleImports();
 
   OwnedDict bindings_;
