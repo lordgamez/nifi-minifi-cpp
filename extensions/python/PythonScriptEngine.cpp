@@ -182,48 +182,6 @@ void PythonScriptEngine::evalInternal(std::string_view script) {
   }
 }
 
-void PythonScriptEngine::evalInternalWithoutStoredBindings(std::string_view script) {
-  GlobalInterpreterLock gil;
-  const auto script_file = "# -*- coding: utf-8 -*-\n" + std::string(script);
-  auto compiled_string = OwnedObject(Py_CompileString(script_file.c_str(), "<string>", Py_file_input));
-  if (!compiled_string.get()) {
-    throw PyException();
-  }
-
-  OwnedDict bindings = OwnedDict::create();
-  const auto result = OwnedObject(PyEval_EvalCode(compiled_string.get(), bindings.get(), bindings.get()));
-  if (!result.get()) {
-    throw PyException();
-  }
-}
-
-void PythonScriptEngine::addVirtualenvToPath(const std::filesystem::path& virtualenv_path) {
-  Interpreter::getInterpreter();
-  // evalInternalWithoutStoredBindings("import sys");
-  if (!virtualenv_path.empty()) {
-#if WIN32
-    std::filesystem::path site_package_path = virtualenv_path / "Lib" / "site-packages";
-#else
-    std::string python_dir_name;
-    auto lib_path = virtualenv_path / "lib";
-    for (auto const& dir_entry : std::filesystem::directory_iterator{lib_path}) {
-      if (minifi::utils::string::startsWith(dir_entry.path().filename().string(), "python")) {
-        python_dir_name = dir_entry.path().filename().string();
-        break;
-      }
-    }
-    if (python_dir_name.empty()) {
-      throw PythonScriptException("Could not find python directory under virtualenv lib dir: " + lib_path.string());
-    }
-    std::filesystem::path site_package_path = virtualenv_path / "lib" / python_dir_name / "site-packages";
-#endif
-    if (!std::filesystem::exists(site_package_path)) {
-      throw PythonScriptException("Could not find python site package path: " + site_package_path.string());
-    }
-    evalInternalWithoutStoredBindings("import sys\nsys.path.append(r'" + site_package_path.string() + "')");
-  }
-}
-
 void PythonScriptEngine::evaluateModuleImports() {
   bindings_.put("__builtins__", OwnedObject(PyImport_ImportModule("builtins")));
   evalInternal("import sys");

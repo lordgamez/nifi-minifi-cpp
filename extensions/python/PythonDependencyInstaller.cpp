@@ -18,7 +18,9 @@
 #include "PythonDependencyInstaller.h"
 
 #include "PythonScriptException.h"
-#include "PythonScriptEngine.h"
+#include "PythonInterpreter.h"
+#include "PyException.h"
+#include "types/Types.h"
 
 namespace org::apache::nifi::minifi::extensions::python {
 
@@ -65,14 +67,8 @@ PythonDependencyInstaller::PythonDependencyInstaller(const std::shared_ptr<Confi
   } else {
     logger_->log_debug("No valid python processor dir was not specified in properties");
   }
-}
-
-void PythonDependencyInstaller::installDependenciesFromRequirementsFiles() const {
   createVirtualEnvIfSpecified();
-  if (std::filesystem::exists(config_state_.virtualenv_path)) {
-    PythonScriptEngine::addVirtualenvToPath(config_state_.virtualenv_path);
-  }
-  installPythonPackagesIfRequested();
+  addVirtualenvToPath();
 }
 
 std::vector<std::filesystem::path> PythonDependencyInstaller::getRequirementsFilePaths() const {
@@ -102,7 +98,7 @@ void PythonDependencyInstaller::createVirtualEnvIfSpecified() const {
   }
 }
 
-void PythonDependencyInstaller::installPythonPackagesIfRequested() const {
+void PythonDependencyInstaller::installDependenciesFromRequirementsFiles() const {
   std::string automatic_install_str;
   if (!config_state_.isPackageInstallationNeeded()) {
     return;
@@ -121,6 +117,50 @@ void PythonDependencyInstaller::installPythonPackagesIfRequested() const {
     if (return_value != 0) {
       throw PythonScriptException(fmt::format("The following command to install python packages failed: '{}'", pip_command));
     }
+  }
+}
+
+void PythonDependencyInstaller::evalScript(std::string_view script) {
+  GlobalInterpreterLock gil;
+  const auto script_file = "# -*- coding: utf-8 -*-\n" + std::string(script);
+  auto compiled_string = OwnedObject(Py_CompileString(script_file.c_str(), "<string>", Py_file_input));
+  if (!compiled_string.get()) {
+    throw PyException();
+  }
+
+  OwnedDict bindings = OwnedDict::create();
+  const auto result = OwnedObject(PyEval_EvalCode(compiled_string.get(), bindings.get(), bindings.get()));
+  if (!result.get()) {
+    throw PyException();
+  }
+}
+
+void PythonDependencyInstaller::addVirtualenvToPath() const {
+  if (config_state_.virtualenv_path.empty()) {
+    return;
+  }
+  Interpreter::getInterpreter();
+  if (!config_state_.virtualenv_path.empty()) {
+#if WIN32
+    std::filesystem::path site_package_path = config_state_.virtualenv_path / "Lib" / "site-packages";
+#else
+    std::string python_dir_name;
+    auto lib_path = config_state_.virtualenv_path / "lib";
+    for (auto const& dir_entry : std::filesystem::directory_iterator{lib_path}) {
+      if (minifi::utils::string::startsWith(dir_entry.path().filename().string(), "python")) {
+        python_dir_name = dir_entry.path().filename().string();
+        break;
+      }
+    }
+    if (python_dir_name.empty()) {
+      throw PythonScriptException("Could not find python directory under virtualenv lib dir: " + lib_path.string());
+    }
+    std::filesystem::path site_package_path = config_state_.virtualenv_path / "lib" / python_dir_name / "site-packages";
+#endif
+    if (!std::filesystem::exists(site_package_path)) {
+      throw PythonScriptException("Could not find python site package path: " + site_package_path.string());
+    }
+    evalScript("import sys\nsys.path.append(r'" + site_package_path.string() + "')");
   }
 }
 
