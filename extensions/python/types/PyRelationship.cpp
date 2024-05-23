@@ -50,7 +50,7 @@ int PyRelationship::init(PyRelationship* self, PyObject* args, PyObject*) {
 
   auto relationship = PyCapsule_GetPointer(capsule, HeldTypeName);
   if (!relationship)
-    throw PyException();
+    return -1;
   self->relationship_ = *static_cast<HeldType*>(relationship);
   return 0;
 }

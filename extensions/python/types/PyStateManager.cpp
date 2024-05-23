@@ -16,8 +16,6 @@ a * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
 #include "PyStateManager.h"
-#include <string>
-#include "PyException.h"
 
 extern "C" {
 namespace org::apache::nifi::minifi::extensions::python {
@@ -52,7 +50,7 @@ int PyStateManager::init(PyStateManager* self, PyObject* args, PyObject*) {
 
   auto state_manager = PyCapsule_GetPointer(weak_ptr_capsule, HeldTypeName);
   if (!state_manager)
-    throw PyException();
+    return -1;
   self->state_manager_ = *static_cast<HeldType*>(state_manager);
   return 0;
 }

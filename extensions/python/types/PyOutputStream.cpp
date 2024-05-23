@@ -18,10 +18,6 @@
 
 #include "PyOutputStream.h"
 
-#include <string>
-
-#include "PyException.h"
-
 extern "C" {
 namespace org::apache::nifi::minifi::extensions::python {
 
@@ -54,7 +50,7 @@ int PyOutputStream::init(PyOutputStream* self, PyObject* args, PyObject*) {
 
   auto output_stream = PyCapsule_GetPointer(weak_ptr_capsule, HeldTypeName);
   if (!output_stream)
-    throw PyException();
+    return -1;
   self->output_stream_ = *static_cast<HeldType*>(output_stream);
   return 0;
 }
@@ -68,13 +64,13 @@ PyObject* PyOutputStream::write(PyOutputStream* self, PyObject* args) {
 
   PyObject* bytes;
   if (!PyArg_ParseTuple(args, "S", &bytes)) {
-    throw PyException();
+    return nullptr;
   }
 
   char* buffer = nullptr;
   Py_ssize_t length = 0;
   if (PyBytes_AsStringAndSize(bytes, &buffer, &length) == -1) {
-    throw PyException();
+    return nullptr;
   }
   return object::returnReference(output_stream->write(gsl::make_span(buffer, length).as_span<const std::byte>()));
 }

@@ -19,7 +19,6 @@
 #include "PyInputStream.h"
 #include <vector>
 
-#include "PyException.h"
 #include "Types.h"
 #include "utils/gsl.h"
 
@@ -55,7 +54,7 @@ int PyInputStream::init(PyInputStream* self, PyObject* args, PyObject*) {
 
   auto input_stream = PyCapsule_GetPointer(weak_ptr_capsule, HeldTypeName);
   if (!input_stream)
-    throw PyException();
+    return -1;
   self->input_stream_ = *static_cast<HeldType*>(input_stream);
   return 0;
 }
@@ -69,7 +68,7 @@ PyObject* PyInputStream::read(PyInputStream* self, PyObject* args) {
 
   size_t len = input_stream->size();
   if (!PyArg_ParseTuple(args, "|K")) {
-    throw PyException();
+    return nullptr;
   }
 
   if (len == 0) {
