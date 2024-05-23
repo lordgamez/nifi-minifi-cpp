@@ -26,7 +26,7 @@
 
 namespace org::apache::nifi::minifi::coap::c2 {
 
-uint8_t CoapProtocol::REGISTRATION_MSG[8] = { 0x72, 0x65, 0x67, 0x69, 0x73, 0x74, 0x65, 0x72 };
+std::array<uint8_t, 8> CoapProtocol::REGISTRATION_MSG = { 0x72, 0x65, 0x67, 0x69, 0x73, 0x74, 0x65, 0x72 };
 
 CoapProtocol::CoapProtocol(std::string_view name, const utils::Identifier &uuid)
     : RESTSender(name, uuid),
@@ -80,7 +80,7 @@ int CoapProtocol::writeAcknowledgement(io::OutputStream *stream, const minifi::c
 }
 
 int CoapProtocol::writeHeartbeat(io::OutputStream *stream, const minifi::c2::C2Payload &payload) {
-  bool byte;
+  bool byte = false;
   uint16_t size = 0;
 
   logger_->log_trace("Writing heartbeat");
@@ -106,7 +106,7 @@ int CoapProtocol::writeHeartbeat(io::OutputStream *stream, const minifi::c2::C2P
       auto vfsParser = flowInfoParser.in("versionedFlowSnapshotURI");
       byte = true;
       stream->write(byte);
-      size = componentParser.getSize();
+      size = gsl::narrow<uint16_t>(componentParser.getSize());
       stream->write(size);
 
       componentParser.foreach([this, stream](const minifi::c2::C2Payload &component) {
@@ -116,12 +116,12 @@ int CoapProtocol::writeHeartbeat(io::OutputStream *stream, const minifi::c2::C2P
         try {
           running = myParser.getAs<bool>("running");
         }
-        catch(const minifi::c2::PayloadParseException &e) {
+        catch(const minifi::c2::PayloadParseException&) {
           logger_->log_error("Could not find running in components");
         }
         stream->write(running);
       });
-      size = queueParser.getSize();
+      size = gsl::narrow<uint16_t>(queueParser.getSize());
       stream->write(size);
       queueParser.foreach([this, stream](const minifi::c2::C2Payload &component) {
         auto myParser = minifi::c2::PayloadParser::getInstance(component);
@@ -136,7 +136,7 @@ int CoapProtocol::writeHeartbeat(io::OutputStream *stream, const minifi::c2::C2P
           qsize = myParser.getAs<uint64_t>("size");
           sizemax = myParser.getAs<uint64_t>("sizeMax");
         }
-        catch(const minifi::c2::PayloadParseException &e) {
+        catch(const minifi::c2::PayloadParseException&) {
           logger_->log_error("Could not find queue sizes");
         }
         stream->write(datasize);
@@ -258,7 +258,7 @@ minifi::c2::C2Payload CoapProtocol::serialize(const minifi::c2::C2Payload &paylo
     logger_->log_trace("Received ack. version {}. number of operations {}", version, size);
     minifi::c2::C2Payload new_payload(payload.getOperation(), state::UpdateState::NESTED);
     for (int i = 0; i < size; i++) {
-      uint8_t operationType;
+      uint8_t operationType = 0;
       uint16_t argsize = 0;
       std::string operand;
       std::string id;

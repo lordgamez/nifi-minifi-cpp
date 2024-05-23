@@ -81,7 +81,7 @@ class CoapProtocol : public minifi::c2::RESTSender {
     if (LIKELY(response_data.size() != 8)) {
       return false;
     }
-    return response.getCode() == COAP_RESPONSE_400 && !memcmp(response_data.data(), REGISTRATION_MSG, response_data.size());
+    return response.getCode() == COAP_RESPONSE_400 && !memcmp(response_data.data(), REGISTRATION_MSG.data(), response_data.size());
   }
 
   /**
@@ -118,7 +118,7 @@ class CoapProtocol : public minifi::c2::RESTSender {
   std::string controller_service_name_;
 
  private:
-  static uint8_t REGISTRATION_MSG[8];
+  static std::array<uint8_t, 8> REGISTRATION_MSG;
 
   std::shared_ptr<core::logging::Logger> logger_ = core::logging::LoggerFactory<CoapProtocol>::getLogger();
 };
