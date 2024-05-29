@@ -61,7 +61,7 @@ int create_session(coap_context_t **ctx, coap_session_t **session, const char *n
 
       if (interface_itr->ai_addrlen <= sizeof(addr.addr)) {
         coap_address_init(&addr);
-        addr.size = interface_itr->ai_addrlen;
+        addr.size = (socklen_t)interface_itr->ai_addrlen;
         memcpy(&addr.addr, interface_itr->ai_addr, interface_itr->ai_addrlen);
 
         *ctx = coap_new_context(0x00);
@@ -103,7 +103,7 @@ int create_endpoint_context(coap_context_t **ctx, const char *node, const char *
 
     if (interface_itr->ai_addrlen <= sizeof(addr.addr)) {
       coap_address_init(&addr);
-      addr.size = interface_itr->ai_addrlen;
+      addr.size = (socklen_t)interface_itr->ai_addrlen;
       memcpy(&addr.addr, interface_itr->ai_addr, interface_itr->ai_addrlen);
 
       *ctx = coap_new_context(0x00);
@@ -212,7 +212,7 @@ int resolve_address(const struct coap_str_const_t *server, struct sockaddr *dest
     switch (iterative_obj->ai_family) {
       case AF_INET6:
       case AF_INET:
-        len = iterative_obj->ai_addrlen;
+        len = (int)iterative_obj->ai_addrlen;
         memcpy(destination, iterative_obj->ai_addr, len);
         freeaddrinfo(result);
         return len;

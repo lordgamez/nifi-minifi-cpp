@@ -97,7 +97,7 @@ CoapPDU *create_connection(uint8_t type, const char * const server, const char *
 }
 
 int8_t send_pdu(const CoapPDU * const pdu) {
-  uint64_t wait_ms = 1 * 200;
+  unsigned int wait_ms = 1 * 200;
   // run once will attempt to send the first time
   int runResponse = coap_run_once(pdu->ctx, wait_ms);
   // if no data is received, we will attempt re-transmission

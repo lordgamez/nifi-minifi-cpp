@@ -16,8 +16,8 @@
  * limitations under the License.
  */
 
-#include "core/logging/LoggerConfiguration.h"
 #include "core/extension/Extension.h"
+#include "properties/Configure.h"
 
 #ifdef WIN32
 #include <winsock2.h>
@@ -27,12 +27,7 @@ static bool init(const std::shared_ptr<org::apache::nifi::minifi::Configure> & /
 #ifdef WIN32
   static WSADATA s_wsaData;
   int iWinSockInitResult = WSAStartup(MAKEWORD(2, 2), &s_wsaData);
-  if (iWinSockInitResult != 0) {
-    core::logging::LoggerFactory<COAPObjectFactoryInitializer>::getLogger()->log_error("WSAStartup failed with error {}", iWinSockInitResult);
-    return false;
-  } else {
-    return true;
-  }
+  return iWinSockInitResult == 0;
 #else
   return true;
 #endif
