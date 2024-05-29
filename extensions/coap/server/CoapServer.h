@@ -99,14 +99,14 @@ class CoapResponse {
  */
 class CoapServer : public core::Connectable {
  public:
-  explicit CoapServer(std::string name, const utils::Identifier &uuid);
+  explicit CoapServer(std::string_view name, const utils::Identifier &uuid);
   CoapServer(const std::string &hostname, uint16_t port);
 
   virtual ~CoapServer();
 
   void start();
-  void add_endpoint(const std::string &path, Method method, std::function<CoapResponse(CoapQuery)> functor);
-  void add_endpoint(Method method, std::function<CoapResponse(CoapQuery)> functor);
+  void add_endpoint(const std::string &path, Method method, const std::function<CoapResponse(CoapQuery)>& functor);
+  void add_endpoint(Method method, const std::function<CoapResponse(CoapQuery)>& functor);
 
   /**
    * Determines if we are connected and operating

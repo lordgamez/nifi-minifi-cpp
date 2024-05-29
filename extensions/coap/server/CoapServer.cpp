@@ -24,8 +24,8 @@ namespace org::apache::nifi::minifi::coap {
 
 std::map<coap_resource_t*, std::function<CoapResponse(CoapQuery)>> CoapServer::functions_;
 
-CoapServer::CoapServer(std::string name, const utils::Identifier &uuid)
-    : core::Connectable(std::move(name), uuid),
+CoapServer::CoapServer(std::string_view name, const utils::Identifier &uuid)
+    : core::Connectable(name, uuid),
       server_(nullptr),
       port_(0) {
   // TODO(_): this allows this class to be instantiated via the the class loader
@@ -65,7 +65,7 @@ void CoapServer::start() {
   });
 }
 
-void CoapServer::add_endpoint(const std::string &path, Method method, std::function<CoapResponse(CoapQuery)> functor) {
+void CoapServer::add_endpoint(const std::string &path, Method method, const std::function<CoapResponse(CoapQuery)>& functor) {
   unsigned char mthd = COAP_REQUEST_POST;
   switch (method) {
     case Method::Get:
@@ -91,7 +91,7 @@ void CoapServer::add_endpoint(const std::string &path, Method method, std::funct
   }
 }
 
-void CoapServer::add_endpoint(Method method, std::function<CoapResponse(CoapQuery)> functor) {
+void CoapServer::add_endpoint(Method method, const std::function<CoapResponse(CoapQuery)>& functor) {
   unsigned char mthd = COAP_REQUEST_POST;
   switch (method) {
     case Method::Get:
@@ -107,7 +107,7 @@ void CoapServer::add_endpoint(Method method, std::function<CoapResponse(CoapQuer
       mthd = COAP_REQUEST_DELETE;
       break;
   }
-  CoapEndpoint * const endpoint = create_endpoint(server_, NULL, mthd, handle_response_with_passthrough);
+  CoapEndpoint * const endpoint = create_endpoint(server_, nullptr, mthd, handle_response_with_passthrough);
   functions_.insert(std::make_pair(endpoint->resource, functor));
   endpoints_.insert(std::make_pair("", endpoint));
 }

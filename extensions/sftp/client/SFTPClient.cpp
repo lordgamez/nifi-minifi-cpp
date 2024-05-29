@@ -248,7 +248,7 @@ bool SFTPClient::setConnectionTimeout(std::chrono::milliseconds timeout) {
 }
 
 void SFTPClient::setDataTimeout(std::chrono::milliseconds timeout) {
-  libssh2_session_set_timeout(ssh_session_, gsl::narrow<long>(timeout.count()));  // NOLINT(runtime/int) long due to libssh2 API
+  libssh2_session_set_timeout(ssh_session_, gsl::narrow<long>(timeout.count()));  // NOLINT(runtime/int,google-runtime-int) long due to libssh2 API
 }
 
 void SFTPClient::setSendKeepAlive(bool send_keepalive) {
@@ -776,19 +776,19 @@ bool SFTPClient::setAttributes(const std::string& path, const SFTPAttributes& in
   }
   if (input.flags & SFTP_ATTRIBUTE_UID) {
     attrs.flags |= LIBSSH2_SFTP_ATTR_UIDGID;
-    attrs.uid = gsl::narrow<unsigned long>(input.uid);  // NOLINT(runtime/int) unsigned long comes from libssh2 API
+    attrs.uid = gsl::narrow<unsigned long>(input.uid);  // NOLINT(runtime/int,google-runtime-int) unsigned long comes from libssh2 API
   }
   if (input.flags & SFTP_ATTRIBUTE_GID) {
     attrs.flags |= LIBSSH2_SFTP_ATTR_UIDGID;
-    attrs.gid = gsl::narrow<unsigned long>(input.gid);  // NOLINT(runtime/int) unsigned long comes from libssh2 API
+    attrs.gid = gsl::narrow<unsigned long>(input.gid);  // NOLINT(runtime/int,google-runtime-int) unsigned long comes from libssh2 API
   }
   if (input.flags & SFTP_ATTRIBUTE_MTIME) {
     attrs.flags |= LIBSSH2_SFTP_ATTR_ACMODTIME;
-    attrs.mtime = gsl::narrow<unsigned long>(input.mtime);  // NOLINT(runtime/int) unsigned long comes from libssh2 API
+    attrs.mtime = gsl::narrow<unsigned long>(input.mtime);  // NOLINT(runtime/int,google-runtime-int) unsigned long comes from libssh2 API
   }
   if (input.flags & SFTP_ATTRIBUTE_ATIME) {
     attrs.flags |= LIBSSH2_SFTP_ATTR_ACMODTIME;
-    attrs.atime = gsl::narrow<unsigned long>(input.atime);  // NOLINT(runtime/int) unsigned long comes from libssh2 API
+    attrs.atime = gsl::narrow<unsigned long>(input.atime);  // NOLINT(runtime/int,google-runtime-int) unsigned long comes from libssh2 API
   }
 
   if (libssh2_sftp_stat_ex(sftp_session_,
