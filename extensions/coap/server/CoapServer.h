@@ -99,86 +99,14 @@ class CoapResponse {
  */
 class CoapServer : public core::Connectable {
  public:
-  explicit CoapServer(std::string name, const utils::Identifier &uuid)
-      : core::Connectable(std::move(name), uuid),
-        server_(nullptr),
-        port_(0) {
-    // TODO(_): this allows this class to be instantiated via the the class loader
-    // need to define this capability in the future.
-  }
-  CoapServer(const std::string &hostname, uint16_t port)
-      : core::Connectable(hostname),
-        hostname_(hostname),
-        server_(nullptr),
-        port_(port) {
-    coap_startup();
-    auto port_str = std::to_string(port_);
-    server_ = create_server(hostname_.c_str(), port_str.c_str());
-  }
+  explicit CoapServer(std::string name, const utils::Identifier &uuid);
+  CoapServer(const std::string &hostname, uint16_t port);
 
   virtual ~CoapServer();
 
-  void start() {
-    running_ = true;
-
-    future = std::async(std::launch::async, [&]() -> uint64_t {
-      while (running_) {
-        int res = coap_run_once(server_->ctx, 100);
-        if (res < 0) {
-          break;
-        }
-        coap_check_notify(server_->ctx);
-      }
-      return 0;
-    });
-  }
-
-  void add_endpoint(const std::string &path, Method method, std::function<CoapResponse(CoapQuery)> functor) {
-    unsigned char mthd = COAP_REQUEST_POST;
-    switch (method) {
-      case Method::Get:
-        mthd = COAP_REQUEST_GET;
-        break;
-      case Method::Post:
-        mthd = COAP_REQUEST_POST;
-        break;
-      case Method::Put:
-        mthd = COAP_REQUEST_PUT;
-        break;
-      case Method::Delete:
-        mthd = COAP_REQUEST_DELETE;
-        break;
-    }
-    auto current_endpoint = endpoints_.find(path);
-    if (current_endpoint != endpoints_.end()) {
-      ::add_endpoint(current_endpoint->second, mthd, handle_response_with_passthrough);
-    } else {
-      CoapEndpoint * const endpoint = create_endpoint(server_, path.c_str(), mthd, handle_response_with_passthrough);
-      functions_.insert(std::make_pair(endpoint->resource, functor));
-      endpoints_.insert(std::make_pair(path, endpoint));
-    }
-  }
-
-  void add_endpoint(Method method, std::function<CoapResponse(CoapQuery)> functor) {
-    unsigned char mthd = COAP_REQUEST_POST;
-    switch (method) {
-      case Method::Get:
-        mthd = COAP_REQUEST_GET;
-        break;
-      case Method::Post:
-        mthd = COAP_REQUEST_POST;
-        break;
-      case Method::Put:
-        mthd = COAP_REQUEST_PUT;
-        break;
-      case Method::Delete:
-        mthd = COAP_REQUEST_DELETE;
-        break;
-    }
-    CoapEndpoint * const endpoint = create_endpoint(server_, NULL, mthd, handle_response_with_passthrough);
-    functions_.insert(std::make_pair(endpoint->resource, functor));
-    endpoints_.insert(std::make_pair("", endpoint));
-  }
+  void start();
+  void add_endpoint(const std::string &path, Method method, std::function<CoapResponse(CoapQuery)> functor);
+  void add_endpoint(Method method, std::function<CoapResponse(CoapQuery)> functor);
 
   /**
    * Determines if we are connected and operating
@@ -205,26 +133,13 @@ class CoapServer : public core::Connectable {
   }
 
  protected:
-  static void handle_response_with_passthrough(coap_context_t* /*ctx*/,
+  static void handle_response_with_passthrough(coap_context_t* ctx,
                                                struct coap_resource_t *resource,
                                                coap_session_t *session,
                                                coap_pdu_t *request,
-                                               coap_binary_t* /*token*/,
-                                               coap_string_t* /*query*/,
-                                               coap_pdu_t *response) {
-    auto fx = functions_.find(resource);
-    if (fx != functions_.end()) {
-      auto message = create_coap_message(request);
-      CoapQuery qry("", std::unique_ptr<CoapMessage, decltype(&free_coap_message)>(message, free_coap_message));
-      // call the UDF
-      auto udfResponse = fx->second(std::move(qry));
-      response = coap_pdu_init(COAP_MESSAGE_CON, COAP_RESPONSE_CODE(udfResponse.getCode()), coap_new_message_id(session), udfResponse.getSize() + 1);
-      coap_add_data(response, udfResponse.getSize(), udfResponse.getData());
-      if (coap_send(session, response) == COAP_INVALID_TID) {
-        printf("error while returning response");
-      }
-    }
-  }
+                                               coap_binary_t* token,
+                                               coap_string_t* query,
+                                               coap_pdu_t *response);
 
   std::future<uint64_t> future;
   std::atomic<bool> running_;

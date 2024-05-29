@@ -54,7 +54,7 @@ class VerifyCoAPServer : public CoapIntegrationBase {
  public:
   explicit VerifyCoAPServer(bool isSecure)
       : isSecure(isSecure) {
-    dir = testController.createTempDirectory();
+    dir = testController.createTempDirectory().string();
   }
 
   void testSetup() override {
@@ -73,7 +73,11 @@ class VerifyCoAPServer : public CoapIntegrationBase {
   }
 
   void cleanup() override {
+#if WIN32
+    _unlink(ss.str().c_str());
+#else
     unlink(ss.str().c_str());
+#endif
     CoapIntegrationBase::cleanup();
   }
 
