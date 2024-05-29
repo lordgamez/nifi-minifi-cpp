@@ -133,4 +133,4 @@ void CoapServer::handle_response_with_passthrough(coap_context_t* /*ctx*/,
   }
 }
 
-}  // namespace org::apache::nifi::minifi::coap {
+}  // namespace org::apache::nifi::minifi::coap
