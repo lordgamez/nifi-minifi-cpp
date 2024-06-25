@@ -52,8 +52,6 @@ RUN apk --no-cache add gcc \
   git \
   patch \
   libpcap-dev \
-  libpng-dev \
-  libusb-dev \
   gpsd-dev \
   python3-dev \
   doxygen \
@@ -107,7 +105,6 @@ RUN addgroup -g ${GID} ${USER} && adduser -u ${UID} -D -G ${USER} -g "" ${USER} 
     if echo "$MINIFI_OPTIONS" | grep -q "ENABLE_GPS=ON"; then apk add --no-cache gpsd; fi && \
     if echo "$MINIFI_OPTIONS" | grep -q "ENABLE_JNI=ON"; then apk add --no-cache openjdk8-jre-base; fi && \
     if echo "$MINIFI_OPTIONS" | grep -q "ENABLE_PCAP=ON"; then apk add --no-cache libpcap; fi && \
-    if echo "$MINIFI_OPTIONS" | grep -q "ENABLE_USB_CAMERA=ON"; then apk add --no-cache libpng libusb; fi && \
     if echo "$MINIFI_OPTIONS" | grep -q "ENABLE_PYTHON_SCRIPTING=ON"; then apk add --no-cache python3; fi
 
 # Copy built minifi distribution from builder

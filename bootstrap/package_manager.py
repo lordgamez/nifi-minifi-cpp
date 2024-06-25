@@ -120,8 +120,6 @@ class AptPackageManager(PackageManager):
                              install_cmd="sudo apt install -y",
                              replace_dict={"libarchive": {"liblzma-dev"},
                                            "python": {"libpython3-dev"},
-                                           "libusb": {"libusb-1.0-0-dev", "libusb-dev"},
-                                           "libpng": {"libpng-dev"},
                                            "libpcap": {"libpcap-dev"},
                                            "jni": {"openjdk-8-jdk", "openjdk-8-source", "maven"},
                                            "gpsd": {"libgps-dev"}})
@@ -153,9 +151,7 @@ class DnfPackageManager(PackageManager):
                              replace_dict={"gpsd": {"gpsd-devel"},
                                            "libpcap": {"libpcap-devel"},
                                            "python": {"python3-devel"},
-                                           "jni": {"java-1.8.0-openjdk", "java-1.8.0-openjdk-devel", "maven"},
-                                           "libpng": {"libpng-devel"},
-                                           "libusb": {"libusb-devel"}})
+                                           "jni": {"java-1.8.0-openjdk", "java-1.8.0-openjdk-devel", "maven"}})
 
     def _get_installed_packages(self) -> Set[str]:
         result = subprocess.run(['dnf', 'list', 'installed'], text=True, capture_output=True, check=True)
@@ -250,12 +246,10 @@ class ChocolateyPackageManager(PackageManager):
                                     "flex": set(),
                                     "libarchive": set(),
                                     "libpcap": set(),
-                                    "libpng": set(),
                                     "gpsd": set(),
                                     "automake": set(),
                                     "autoconf": set(),
                                     "libtool": set(),
-                                    "libusb": set(),
                                     "make": set(),
                                     "jni": {"openjdk", "maven"},
                                     "perl": {"strawberryperl", "NASM"}})
