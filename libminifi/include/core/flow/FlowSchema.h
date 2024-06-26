@@ -35,7 +35,7 @@ struct FlowSchema {
   Keys max_concurrent_tasks;
   Keys penalization_period;
   Keys proc_yield_period;
-  Keys runduration_nanos;
+  Keys runduration_millis;
 
   Keys connections;
   Keys max_queue_size;

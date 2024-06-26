@@ -163,7 +163,9 @@ TEST_CASE("Test Scheduling Defaults", "[schedDef]") {
     if ("defaultMaxConcurrentTasks" == child.name) {
       REQUIRE("1" == child.value.to_string());
     } else if ("defaultRunDurationNanos" == child.name) {
-      REQUIRE("0" == child.value.to_string());
+      REQUIRE("-1" == child.value.to_string());
+    } else if ("defaultRunDurationMillis" == child.name) {
+      REQUIRE("-1" == child.value.to_string());
     } else if ("defaultSchedulingPeriodMillis" == child.name) {
       REQUIRE("1000" == child.value.to_string());
     } else if ("defaultSchedulingStrategy" == child.name) {

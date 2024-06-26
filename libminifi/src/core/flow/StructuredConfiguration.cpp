@@ -140,7 +140,7 @@ std::unique_ptr<core::ProcessGroup> StructuredConfiguration::getRootFrom(const N
 }
 
 void StructuredConfiguration::parseProcessorNode(const Node& processors_node, core::ProcessGroup* parentGroup) {
-  int64_t runDurationNanos = -1;
+  int64_t runDurationMillis = -1;
   utils::Identifier uuid;
   std::unique_ptr<core::Processor> processor;
 
@@ -212,9 +212,9 @@ void StructuredConfiguration::parseProcessorNode(const Node& processors_node, co
       logger_->log_debug("parseProcessorNode: yield period => [{}]", procCfg.yieldPeriod);
     }
 
-    if (auto runNode = procNode[schema_.runduration_nanos]) {
-      procCfg.runDurationNanos = runNode.getIntegerAsString().value();
-      logger_->log_debug("parseProcessorNode: run duration nanos => [{}]", procCfg.runDurationNanos);
+    if (auto runNode = procNode[schema_.runduration_millis]) {
+      procCfg.runDurationMillis = runNode.getIntegerAsString().value();
+      logger_->log_debug("parseProcessorNode: run duration millis => [{}]", procCfg.runDurationMillis);
     }
 
     // handle auto-terminated relationships
@@ -274,9 +274,9 @@ void StructuredConfiguration::parseProcessorNode(const Node& processors_node, co
       processor->setMaxConcurrentTasks(maxConcurrentTasks);
     }
 
-    if (core::Property::StringToInt(procCfg.runDurationNanos, runDurationNanos)) {
-      logger_->log_debug("parseProcessorNode: runDurationNanos => [{}]", runDurationNanos);
-      processor->setRunDurationNano(std::chrono::nanoseconds(runDurationNanos));
+    if (core::Property::StringToInt(procCfg.runDurationMillis, runDurationMillis)) {
+      logger_->log_debug("parseProcessorNode: runDurationMillis => [{}]", runDurationMillis);
+      processor->setRunDurationMillis(std::chrono::milliseconds(runDurationMillis));
     }
 
     std::vector<core::Relationship> autoTerminatedRelationships;

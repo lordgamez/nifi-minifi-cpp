@@ -114,11 +114,11 @@ class Processor : public Connectable, public ConfigurableComponent, public state
     return cron_period_;
   }
 
-  void setRunDurationNano(std::chrono::steady_clock::duration period) {
+  void setRunDurationMillis(std::chrono::steady_clock::duration period) {
     run_duration_ = period;
   }
 
-  std::chrono::steady_clock::duration getRunDurationNano() const {
+  std::chrono::steady_clock::duration getRunDurationMillis() const {
     return (run_duration_);
   }
 

@@ -153,7 +153,7 @@ Provenance Reporting:
     REQUIRE(1s == rootFlowConfig->findProcessorByName("TailFile")->getSchedulingPeriod());
     REQUIRE(30s == rootFlowConfig->findProcessorByName("TailFile")->getPenalizationPeriod());
     REQUIRE(1s == rootFlowConfig->findProcessorByName("TailFile")->getYieldPeriod());
-    REQUIRE(0s == rootFlowConfig->findProcessorByName("TailFile")->getRunDurationNano());
+    REQUIRE(std::chrono::milliseconds(-1) == rootFlowConfig->findProcessorByName("TailFile")->getRunDurationMillis());
 
     std::map<std::string, minifi::Connection*> connectionMap;
     rootFlowConfig->getConnections(connectionMap);
@@ -464,7 +464,7 @@ NiFi Properties Overrides: {}
   REQUIRE(1s == rootFlowConfig->findProcessorByName("TailFile")->getSchedulingPeriod());
   REQUIRE(30s == rootFlowConfig->findProcessorByName("TailFile")->getPenalizationPeriod());
   REQUIRE(1s == rootFlowConfig->findProcessorByName("TailFile")->getYieldPeriod());
-  REQUIRE(0s == rootFlowConfig->findProcessorByName("TailFile")->getRunDurationNano());
+  REQUIRE(std::chrono::milliseconds(-1) == rootFlowConfig->findProcessorByName("TailFile")->getRunDurationMillis());
 
   std::map<std::string, minifi::Connection*> connectionMap;
   rootFlowConfig->getConnections(connectionMap);
