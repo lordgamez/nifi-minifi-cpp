@@ -38,6 +38,8 @@
 
 namespace org::apache::nifi::minifi::core::flow {
 
+constexpr auto DEFAULT_TIME_SLICE = std::chrono::milliseconds(500);
+
 class StructuredConfiguration : public FlowConfiguration {
  public:
   StructuredConfiguration(ConfigurationContext ctx, std::shared_ptr<logging::Logger> logger);

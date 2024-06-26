@@ -274,9 +274,21 @@ void StructuredConfiguration::parseProcessorNode(const Node& processors_node, co
       processor->setMaxConcurrentTasks(maxConcurrentTasks);
     }
 
-    if (core::Property::StringToInt(procCfg.runDurationMillis, runDurationMillis)) {
+    if (core::Property::StringToInt(procCfg.runDurationMillis, runDurationMillis) && runDurationMillis >= 0) {
       logger_->log_debug("parseProcessorNode: runDurationMillis => [{}]", runDurationMillis);
       processor->setRunDurationMillis(std::chrono::milliseconds(runDurationMillis));
+    } else {
+      if (processor->getSchedulingStrategy() == core::EVENT_DRIVEN) {
+        auto time_slice = configuration_->get(Configure::nifi_flow_engine_event_driven_time_slice)
+          | utils::andThen(utils::timeutils::StringToDuration<std::chrono::milliseconds>)
+          | utils::valueOrElse([] { return DEFAULT_TIME_SLICE; });
+
+        logger_->log_debug("parseProcessorNode: runDurationMillis => [{}]", time_slice.count());
+        processor->setRunDurationMillis(time_slice);
+      } else {
+        logger_->log_debug("parseProcessorNode: runDurationMillis => [0]");
+        processor->setRunDurationMillis(std::chrono::milliseconds(0));
+      }
     }
 
     std::vector<core::Relationship> autoTerminatedRelationships;

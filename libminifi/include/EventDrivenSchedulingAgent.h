@@ -23,8 +23,6 @@
 #include <string>
 #include <chrono>
 
-constexpr auto DEFAULT_TIME_SLICE = std::chrono::milliseconds(500);
-
 #include "core/logging/Logger.h"
 #include "core/Processor.h"
 #include "core/ProcessContext.h"
@@ -40,23 +38,12 @@ class EventDrivenSchedulingAgent : public ThreadedSchedulingAgent {
                              utils::ThreadPool &thread_pool)
       : ThreadedSchedulingAgent(controller_service_provider, repo, flow_repo, content_repo, configuration, thread_pool) {
     using namespace std::literals::chrono_literals;
-
-    time_slice_ = configuration->get(Configure::nifi_flow_engine_event_driven_time_slice)
-        | utils::andThen(utils::timeutils::StringToDuration<std::chrono::milliseconds>)
-        | utils::valueOrElse([] { return DEFAULT_TIME_SLICE; });
-
-    if (time_slice_ < 10ms || 1000ms < time_slice_) {
-      throw Exception(FLOW_EXCEPTION, std::string(Configure::nifi_flow_engine_event_driven_time_slice) + " is out of reasonable range!");
-    }
   }
 
   void schedule(core::Processor* processor) override;
 
   utils::TaskRescheduleInfo run(core::Processor* processor, const std::shared_ptr<core::ProcessContext> &processContext,
       const std::shared_ptr<core::ProcessSessionFactory> &sessionFactory) override;
-
- private:
-  std::chrono::milliseconds time_slice_;
 };
 
 }  // namespace org::apache::nifi::minifi

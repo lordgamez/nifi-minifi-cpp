@@ -26,8 +26,7 @@ std::vector<SerializedResponseNode> SchedulingDefaults::serialize() {
       .children = {
         {.name = "defaultSchedulingStrategy", .value = core::DEFAULT_SCHEDULING_STRATEGY},
         {.name = "defaultSchedulingPeriodMillis", .value = int64_t{core::DEFAULT_SCHEDULING_PERIOD_MILLIS.count()}},
-        {.name = "defaultRunDurationNanos", .value = int64_t{core::DEFAULT_RUN_DURATION.count()}},
-        {.name = "defaultRunDurationMillis", .value = int64_t{core::DEFAULT_RUN_DURATION.count()}},
+        // {.name = "defaultRunDurationNanos", .value = int64_t{core::DEFAULT_RUN_DURATION.count()}},
         {.name = "defaultMaxConcurrentTasks", .value = core::DEFAULT_MAX_CONCURRENT_TASKS},
         {.name = "yieldDurationMillis", .value = int64_t{std::chrono::milliseconds(core::DEFAULT_YIELD_PERIOD_SECONDS).count()}},
         {.name = "penalizationPeriodMillis", .value = int64_t{std::chrono::milliseconds{core::DEFAULT_PENALIZATION_PERIOD}.count()}},
