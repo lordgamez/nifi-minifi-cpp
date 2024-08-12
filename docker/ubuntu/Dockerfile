@@ -16,15 +16,15 @@
 # under the License.
 #
 
-ARG BASE_IMAGE="alpine:3.20.2"
+ARG BASE_IMAGE="ubuntu:24.04"
 
 # Build image
 FROM ${BASE_IMAGE} AS build
 LABEL maintainer="Apache NiFi <dev@nifi.apache.org>"
 
 ARG MINIFI_VERSION
-ARG UID=1000
-ARG GID=1000
+ARG UID=1001
+ARG GID=1001
 
 # MINIFI_OPTIONS will be passed directly to cmake
 # use it to define cmake options (e.g. -DENABLE_AWS=ON -DENABLE_AZURE=ON)
@@ -33,25 +33,22 @@ ARG CMAKE_BUILD_TYPE=Release
 ARG DOCKER_SKIP_TESTS=ON
 
 # Install the system dependencies needed for a build
-RUN apk --no-cache add gcc \
+RUN apt update && DEBIAN_FRONTEND="noninteractive" apt install -y \
   g++ \
   make \
   bash \
-  bison \
-  flex \
-  flex-dev \
-  linux-headers \
   autoconf \
   automake \
   libtool \
-  curl-dev \
   cmake \
   git \
   patch \
-  gpsd-dev \
+  libgps-dev \
   python3-dev \
   doxygen \
-  ccache
+  ccache \
+  flex \
+  bison
 
 ENV USER minificpp
 ENV MINIFI_BASE_DIR /opt/minifi
@@ -59,8 +56,7 @@ ENV MINIFI_HOME $MINIFI_BASE_DIR/nifi-minifi-cpp-${MINIFI_VERSION}
 ENV MINIFI_VERSION ${MINIFI_VERSION}
 
 # Setup minificpp user
-RUN addgroup -g ${GID} ${USER} && adduser -u ${UID} -D -G ${USER} -g "" ${USER} && \
-    install -d -o ${USER} -g ${USER} ${MINIFI_BASE_DIR}
+RUN groupadd -g ${GID} ${USER} && useradd -m -u ${UID} -g ${GID} ${USER}
 COPY --chown=${USER}:${USER} . ${MINIFI_BASE_DIR}
 
 USER ${USER}
@@ -77,30 +73,28 @@ RUN export PATH=/usr/lib64/ccache/bin${PATH:+:${PATH}} && \
 FROM ${BASE_IMAGE} AS release
 LABEL maintainer="Apache NiFi <dev@nifi.apache.org>"
 
-ARG UID=1000
-ARG GID=1000
+ARG UID=1001
+ARG GID=1001
 ARG MINIFI_VERSION
 
 ARG MINIFI_OPTIONS
-
-# Add testing repo for rocksdb
-RUN echo 'http://dl-cdn.alpinelinux.org/alpine/edge/testing' >> /etc/apk/repositories
 
 ENV USER minificpp
 ENV MINIFI_BASE_DIR /opt/minifi
 ENV MINIFI_HOME ${MINIFI_BASE_DIR}/minifi-current
 ENV MINIFI_VERSIONED_HOME ${MINIFI_BASE_DIR}/nifi-minifi-cpp-${MINIFI_VERSION}
+ENV SSL_CERT_FILE /etc/ssl/certs/ca-certificates.crt
 
-RUN addgroup -g ${GID} ${USER} && adduser -u ${UID} -D -G ${USER} -g "" ${USER} && \
+RUN groupadd -g ${GID} ${USER} && useradd -m -u ${UID} -g ${GID} ${USER} && \
     install -d -o ${USER} -g ${USER} ${MINIFI_BASE_DIR} && ln -s ${MINIFI_VERSIONED_HOME} ${MINIFI_HOME} && \
-    apk add --no-cache libstdc++ tzdata alpine-conf && \
-    if echo "$MINIFI_OPTIONS" | grep -q "ENABLE_GPS=ON"; then apk add --no-cache gpsd; fi && \
-    if echo "$MINIFI_OPTIONS" | grep -q "ENABLE_PYTHON_SCRIPTING=ON"; then apk add --no-cache python3; fi
+    apt update && apt install -y ca-certificates && \
+    if echo "$MINIFI_OPTIONS" | grep -q "ENABLE_GPS=ON"; then DEBIAN_FRONTEND="noninteractive" apt install -y gpsd; fi && \
+    if echo "$MINIFI_OPTIONS" | grep -q "ENABLE_PYTHON_SCRIPTING=ON"; then DEBIAN_FRONTEND="noninteractive" apt install -y python3 python3-dev python3-venv; fi
 
 # Copy built minifi distribution from builder
 COPY --from=build --chown=${USER}:${USER} ${MINIFI_VERSIONED_HOME} ${MINIFI_HOME}
 COPY --from=build --chown=${USER}:${USER} ${MINIFI_BASE_DIR}/docker/conf/minifi-log.properties ${MINIFI_HOME}/conf/minifi-log.properties
-RUN setup-timezone -z UTC
+RUN ln -sf /usr/share/zoneinfo/UTC /etc/localtime && echo "UTC" > /etc/timezone && dpkg-reconfigure -f noninteractive tzdata
 
 USER ${USER}
 WORKDIR ${MINIFI_HOME}

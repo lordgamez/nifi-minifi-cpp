@@ -43,7 +43,7 @@ function usage {
   echo "-p, --prefix          Additional prefix added to the image tag"
   echo "-u, --uid             User id to be used in the Docker image (default: 1000)"
   echo "-g, --gid             Group id to be used in the Docker image (default: 1000)"
-  echo "-d, --distro-name     Linux distribution build to be used for alternative builds (bionic|focal|fedora|centos)"
+  echo "-d, --distro-name     Linux distribution build to be used for alternative builds (rockylinux|centos|ubuntu)"
   echo "-l  --dump-location   Path where to the output dump to be put"
   echo "-c  --cmake-param     CMake parameter passed in PARAM=value format"
   echo "-o  --options         Minifi options string"
@@ -184,7 +184,7 @@ if [ ${#TAGS[@]} -eq 0 ]; then
   TAGS+=("${TAG}")
 
   TARGZ_TAG="bin"
-  if [ -n "${DISTRO_NAME}" ]; then
+  if [ -n "${DISTRO_NAME}" && "${DISTRO_NAME}" != "ubuntu" ]; then
     TARGZ_TAG="${TARGZ_TAG}-${DISTRO_NAME}"
   fi
   if [ -n "${BUILD_NUMBER}" ]; then
@@ -208,7 +208,7 @@ for t in "${TAGS[@]}"; do
   TAGGING_CMD="${TAGGING_CMD} -t ${t}"
 done
 
-if [ -n "${DISTRO_NAME}" ]; then
+if [ -n "${DISTRO_NAME}" && "${DISTRO_NAME}" != "ubuntu" ]; then
   # shellcheck disable=SC2086
   echo docker buildx build "${BUILD_ARGS[@]}" -f "${DOCKERFILE}" ${PLATFORMS} ${PUSH_OR_LOAD} ${TAGGING_CMD} ..
   # shellcheck disable=SC2086

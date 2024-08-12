@@ -141,6 +141,24 @@ add_custom_target(
         -c DOCKER_BASE_IMAGE=${DOCKER_BASE_IMAGE}
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/docker/)
 
+add_custom_target(
+    ubuntu
+    COMMAND ${CMAKE_SOURCE_DIR}/docker/DockerBuild.sh
+        -u 1001
+        -g 1001
+        -v ${PROJECT_VERSION_STR}
+        -o ${MINIFI_DOCKER_OPTIONS_STR}
+        -d ubuntu
+        -c DOCKER_BASE_IMAGE=${DOCKER_BASE_IMAGE}
+        -c DOCKER_CCACHE_DUMP_LOCATION=${DOCKER_CCACHE_DUMP_LOCATION}
+        -c DOCKER_SKIP_TESTS=${DOCKER_SKIP_TESTS}
+        -c CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+        -c BUILD_NUMBER=${BUILD_NUMBER}
+        -c DOCKER_PLATFORMS=${DOCKER_PLATFORMS}
+        -c DOCKER_PUSH=${DOCKER_PUSH}
+        -c DOCKER_TAGS=${DOCKER_TAGS}
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/docker/)
+
 if (EXISTS ${CMAKE_SOURCE_DIR}/docker/test/integration/features)
     set(ENABLED_TAGS "CORE")
     foreach(MINIFI_OPTION ${MINIFI_OPTIONS})
