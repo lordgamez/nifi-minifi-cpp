@@ -195,7 +195,7 @@ class ImageStore:
                                                os.path.join(self.test_dir, "resources", "python", "FailureWithAttributes.py"),
                                                os.path.join(self.test_dir, "resources", "python", "RelativeImporterProcessor.py"),
                                                os.path.join(self.test_dir, "resources", "python", "subtractutils.py"),
-                                               os.path.join(self.test_dir, "resources", "python", "multiplierutils.py")])
+                                               os.path.join(self.test_dir, "resources", "python", "multiplierutils.py"),
                                                os.path.join(self.test_dir, "resources", "python", "CreateNothing.py")])
 
     def __build_http_proxy_image(self):
