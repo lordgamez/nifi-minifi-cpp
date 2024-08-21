@@ -24,6 +24,7 @@
 #include <variant>
 #include <chrono>
 #include <concepts>
+#include "rapidjson/document.h"
 
 namespace org::apache::nifi::minifi::core {
 
@@ -78,6 +79,7 @@ struct RecordField {
 
   ~RecordField() = default;
 
+  rapidjson::Value toJson(rapidjson::Document::AllocatorType& alloc) const;
 
   bool operator==(const RecordField& rhs) const = default;
 

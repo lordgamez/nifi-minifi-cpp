@@ -55,6 +55,19 @@ class Record final {
 
   bool operator==(const Record& rhs) const = default;
 
+
+  rapidjson::Document toJson() const {
+    rapidjson::Document doc;
+    auto& alloc = doc.GetAllocator();
+    rapidjson::Value obj(rapidjson::kObjectType);
+    for (const auto& [key, field] : fields_) {
+      obj.AddMember(rapidjson::Value(key.c_str(), alloc), field.toJson(alloc), alloc);
+    }
+    doc.Swap(obj);
+    return doc;
+  }
+
+
  private:
   std::unordered_map<std::string, RecordField> fields_;
 };

@@ -79,6 +79,9 @@ if (${FORCE_COLORED_OUTPUT})
     endif()
 endif()
 
+
+add_compile_options (-fconcepts-diagnostics-depth=10)
+
 if (MINIFI_USE_REAL_ODBC_TEST_DRIVER)
     add_definitions("-DMINIFI_USE_REAL_ODBC_TEST_DRIVER")
 endif()
