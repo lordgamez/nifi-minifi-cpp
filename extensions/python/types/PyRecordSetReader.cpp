@@ -16,6 +16,11 @@ a * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
 #include "PyRecordSetReader.h"
+#include "rapidjson/writer.h"
+#include "rapidjson/stream.h"
+
+#include "PyProcessSession.h"
+#include "PyScriptFlowFile.h"
 
 extern "C" {
 namespace org::apache::nifi::minifi::extensions::python {
@@ -54,14 +59,46 @@ int PyRecordSetReader::init(PyRecordSetReader* self, PyObject* args, PyObject*) 
   return 0;
 }
 
-PyObject* PyRecordSetReader::read(PyRecordSetReader* self, PyObject* /*args*/) {
+PyObject* PyRecordSetReader::read(PyRecordSetReader* self, PyObject* args) {
   auto record_set_reader = self->record_set_reader_.lock();
   if (!record_set_reader) {
     PyErr_SetString(PyExc_AttributeError, "tried reading ssl context service outside 'on_trigger'");
     return nullptr;
   }
-  // return object::returnReference(record_set_reader->read());
-  return nullptr;
+
+  PyObject* script_flow_file = nullptr;
+  PyObject* py_session = nullptr;
+  if (!PyArg_ParseTuple(args, "O!O!", PyScriptFlowFile::typeObject(), PyProcessSessionObject::typeObject(), &script_flow_file, &py_session)) {
+    return nullptr;
+  }
+
+  const auto flow_file = reinterpret_cast<PyScriptFlowFile*>(script_flow_file)->script_flow_file_.lock();
+  if (!flow_file) {
+    PyErr_SetString(PyExc_AttributeError, "tried reading FlowFile outside 'on_trigger'");
+    return nullptr;
+  }
+
+  const auto process_session = reinterpret_cast<PyProcessSessionObject*>(py_session)->process_session_.lock();
+  if (!process_session) {
+    PyErr_SetString(PyExc_AttributeError, "tried reading ProcessSession outside 'on_trigger'");
+    return nullptr;
+  }
+
+  auto read_result = record_set_reader->read(flow_file, *process_session->getSession());
+  if  (!read_result) {
+    std::string error_message = "failed to read record set with the following error: " + read_result.error().message();
+    PyErr_SetString(PyExc_RuntimeError, error_message.c_str());
+    return nullptr;
+  }
+
+  auto records = OwnedList::create();
+  for (const auto& record : read_result.value()) {
+    rapidjson::StringBuffer buffer;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+    record.toJson().Accept(writer);
+    records.append(std::string{buffer.GetString(), buffer.GetSize()});
+  }
+  return object::returnReference(records);
 }
 
 PyTypeObject* PyRecordSetReader::typeObject() {
