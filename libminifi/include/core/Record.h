@@ -55,7 +55,6 @@ class Record final {
 
   bool operator==(const Record& rhs) const = default;
 
-
   rapidjson::Document toJson() const {
     rapidjson::Document doc;
     auto& alloc = doc.GetAllocator();
@@ -67,6 +66,13 @@ class Record final {
     return doc;
   }
 
+  static Record fromJson(const rapidjson::Document& document) {
+    Record record;
+    for (const auto& member : document.GetObject()) {
+      record.emplace(member.name.GetString(), RecordField::fromJson(member.value));
+    }
+    return record;
+  }
 
  private:
   std::unordered_map<std::string, RecordField> fields_;

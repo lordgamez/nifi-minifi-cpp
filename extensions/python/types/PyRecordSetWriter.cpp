@@ -17,6 +17,11 @@ a * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 
 #include "PyRecordSetWriter.h"
 
+#include "PyScriptFlowFile.h"
+#include "PyProcessSession.h"
+#include "core/Record.h"
+#include "rapidjson/document.h"
+
 extern "C" {
 namespace org::apache::nifi::minifi::extensions::python {
 
@@ -54,14 +59,48 @@ int PyRecordSetWriter::init(PyRecordSetWriter* self, PyObject* args, PyObject*) 
   return 0;
 }
 
-PyObject* PyRecordSetWriter::write(PyRecordSetWriter* self, PyObject* /*args*/) {
+PyObject* PyRecordSetWriter::write(PyRecordSetWriter* self, PyObject* args) {
   auto record_set_writer = self->record_set_writer_.lock();
   if (!record_set_writer) {
     PyErr_SetString(PyExc_AttributeError, "tried reading record set writer outside 'on_trigger'");
     return nullptr;
   }
-  // return object::returnReference(record_set_writer_->write());
-  return nullptr;
+
+  PyObject* py_recordset = nullptr;
+  PyObject* script_flow_file = nullptr;
+  PyObject* py_session = nullptr;
+  if (!PyArg_ParseTuple(args, "OO!O!", PyScriptFlowFile::typeObject(), PyProcessSessionObject::typeObject(), &py_recordset, &script_flow_file, &py_session)) {
+    return nullptr;
+  }
+
+  if (!py_recordset) {
+    PyErr_SetString(PyExc_AttributeError, "Recordset is invalid!");
+    return nullptr;
+  }
+
+  const auto flow_file = reinterpret_cast<PyScriptFlowFile*>(script_flow_file)->script_flow_file_.lock();
+  if (!flow_file) {
+    PyErr_SetString(PyExc_AttributeError, "tried reading FlowFile outside 'on_trigger'");
+    return nullptr;
+  }
+
+  const auto process_session = reinterpret_cast<PyProcessSessionObject*>(py_session)->process_session_.lock();
+  if (!process_session) {
+    PyErr_SetString(PyExc_AttributeError, "tried reading ProcessSession outside 'on_trigger'");
+    return nullptr;
+  }
+
+  auto record_list = OwnedList(py_recordset);
+  std::vector<core::Record> record_set;
+  for (size_t i = 0; i < record_list.length(); ++i) {
+    auto record_json_str = OwnedStr(record_list[i].get()).toUtf8String();
+    rapidjson::Document document;
+    document.Parse<0>(record_json_str.c_str());
+    record_set.push_back(core::Record::fromJson(document));
+  }
+
+  record_set_writer->write(record_set, flow_file, *process_session->getSession());
+  Py_RETURN_NONE;
 }
 
 PyTypeObject* PyRecordSetWriter::typeObject() {

@@ -21,7 +21,6 @@
 
 namespace org::apache::nifi::minifi::core {
 
-// void SerializeRecordField(const RecordField& recordField, rapidjson::Value& value, rapidjson::Document::AllocatorType& allocator) {/
 rapidjson::Value RecordField::toJson(rapidjson::Document::AllocatorType& allocator) const {
     rapidjson::Value value;
     std::visit(utils::overloaded {
@@ -63,6 +62,38 @@ rapidjson::Value RecordField::toJson(rapidjson::Document::AllocatorType& allocat
     }, value_);
 
     return value;
+}
+
+RecordField RecordField::fromJson(const rapidjson::Value& value) {
+  if (value.IsString()) {
+    std::string str_value = value.GetString();
+    if (auto test_time = utils::timeutils::parseDateTimeStr(str_value)) {
+      return RecordField(std::chrono::time_point{*test_time});
+    }
+    return RecordField(str_value);
+  } else if (value.IsInt64()) {
+    return RecordField(value.GetInt64());
+  } else if (value.IsUint64()) {
+    return RecordField(value.GetUint64());
+  } else if (value.IsDouble()) {
+    return RecordField(value.GetDouble());
+  } else if (value.IsBool()) {
+    return RecordField(value.GetBool());
+  } else if (value.IsArray()) {
+    RecordArray arr;
+    for (const auto& elem : value.GetArray()) {
+      arr.push_back(RecordField::fromJson(elem));
+    }
+    return RecordField(std::move(arr));
+  } else if (value.IsObject()) {
+    RecordObject obj;
+    for (const auto& member : value.GetObject()) {
+      obj.emplace(member.name.GetString(), BoxedRecordField(std::make_unique<RecordField>(RecordField::fromJson(member.value))));
+    }
+    return RecordField(std::move(obj));
+  } else {
+    throw std::runtime_error("Invalid JSON value type");
+  }
 }
 
 }  // namespace org::apache::nifi::minifi::core

@@ -80,6 +80,7 @@ struct RecordField {
   ~RecordField() = default;
 
   rapidjson::Value toJson(rapidjson::Document::AllocatorType& alloc) const;
+  static RecordField fromJson(const rapidjson::Value& value);
 
   bool operator==(const RecordField& rhs) const = default;
 
