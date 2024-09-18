@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import json
+from utils import retry_until_not_none
 
 
 class ElasticSearchChecker:
@@ -33,9 +34,12 @@ class ElasticSearchChecker:
                                                                                       "curl -u elastic:password -k -XGET https://localhost:9200/" + index_name + "/_doc/" + doc_id])
         return code == 0 and (field_name + '":"' + field_value) in output
 
+    @retry_until_not_none()
     def elastic_generate_apikey(self, elastic_container_name):
-        (_, output) = self.container_communicator.execute_command(elastic_container_name, ["/bin/bash", "-c",
-                                                                                           "curl -u elastic:password -k -XPOST https://localhost:9200/_security/api_key -H Content-Type:application/json -d'{\"name\":\"my-api-key\",\"expiration\":\"1d\",\"role_descriptors\":{\"role-a\": {\"cluster\": [\"all\"],\"index\": [{\"names\": [\"my_index\"],\"privileges\": [\"all\"]}]}}}'"])
+        (code, output) = self.container_communicator.execute_command(elastic_container_name, ["/bin/bash", "-c",
+                                                                                              "curl -u elastic:password -k -XPOST https://localhost:9200/_security/api_key -H Content-Type:application/json -d'{\"name\":\"my-api-key\",\"expiration\":\"1d\",\"role_descriptors\":{\"role-a\": {\"cluster\": [\"all\"],\"index\": [{\"names\": [\"my_index\"],\"privileges\": [\"all\"]}]}}}'"])
+        if code != 0:
+            return None
         output_lines = output.splitlines()
         result = json.loads(output_lines[-1])
         return result["encoded"]

@@ -25,13 +25,28 @@ def retry_check(max_tries=5, retry_interval=1):
     def retry_check_func(func):
         @functools.wraps(func)
         def retry_wrapper(*args, **kwargs):
-            for i in range(max_tries):
+            for _ in range(max_tries):
                 if func(*args, **kwargs):
                     return True
                 time.sleep(retry_interval)
             return False
         return retry_wrapper
     return retry_check_func
+
+
+def retry_until_not_none(max_retries=10, delay=1):
+    def decorator_retry(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            result = None
+            for _ in range(max_retries):
+                result = func(*args, **kwargs)
+                if result is not None:
+                    return result
+                time.sleep(delay)
+            return result
+        return wrapper
+    return decorator_retry
 
 
 def decode_escaped_str(str):
