@@ -18,6 +18,8 @@ import logging
 import time
 import uuid
 from typing import List
+import subprocess
+import os
 
 import OpenSSL.crypto
 
@@ -60,6 +62,9 @@ class MiNiFi_integration_test:
         minifi_client_cert, minifi_client_key = make_cert_without_extended_usage(common_name=f"minifi-cpp-flow-{self.feature_id}",
                                                                                  ca_cert=self.root_ca_cert,
                                                                                  ca_key=self.root_ca_key)
+        nifi_client_cert, nifi_client_key = make_server_cert(common_name=f"nifi-{self.feature_id}",
+                                                             ca_cert=self.root_ca_cert,
+                                                             ca_key=self.root_ca_key)
         minifi_server_cert, minifi_server_key = make_server_cert(common_name=f"server-{self.feature_id}",
                                                                  ca_cert=self.root_ca_cert,
                                                                  ca_key=self.root_ca_key)
@@ -92,6 +97,22 @@ class MiNiFi_integration_test:
                                                                cert=minifi_client_cert)
                                + OpenSSL.crypto.dump_privatekey(type=OpenSSL.crypto.FILETYPE_PEM,
                                                                 pkey=minifi_client_key))
+        self.put_test_resource('nifi_client.crt',
+                               OpenSSL.crypto.dump_certificate(type=OpenSSL.crypto.FILETYPE_PEM,
+                                                               cert=nifi_client_cert))
+        self.put_test_resource('nifi_client.key',
+                               OpenSSL.crypto.dump_privatekey(type=OpenSSL.crypto.FILETYPE_PEM,
+                                                              pkey=nifi_client_key))
+        base = os.path.dirname(self.get_test_resource_path('nifi_client.key'))
+        test_dir = os.environ['TEST_DIRECTORY']  # Based on DockerVerify.sh
+        cmd = [
+            os.path.join(test_dir, "convert_cert_to_jks.sh"),
+            base,
+            os.path.join(base, "nifi_client.key"),
+            os.path.join(base, "nifi_client.crt"),
+            os.path.join(base, "root_ca.crt"),
+        ]
+        subprocess.run(cmd, check=True)
 
     def get_container_name_with_postfix(self, container_name: str):
         return self.cluster.container_store.get_container_name_with_postfix(container_name)
@@ -205,6 +226,9 @@ class MiNiFi_integration_test:
 
     def put_test_resource(self, file_name, contents):
         self.docker_directory_bindings.put_test_resource(self.feature_id, file_name, contents)
+
+    def get_test_resource_path(self, file_name):
+        return self.docker_directory_bindings.get_test_resource_path(self.feature_id, file_name)
 
     def rm_out_child(self):
         self.docker_directory_bindings.rm_out_child(self.feature_id)

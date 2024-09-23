@@ -129,6 +129,9 @@ class DockerTestDirectoryBindings:
         file_abs_path = os.path.join(self.data_directories[feature_id]["resources_dir"], file_name)
         self.put_file_contents(file_abs_path, contents)
 
+    def get_test_resource_path(self, feature_id, file_name):
+        return os.path.join(self.data_directories[feature_id]["resources_dir"], file_name)
+
     def put_test_input(self, feature_id, file_name, contents):
         file_abs_path = os.path.join(self.data_directories[feature_id]["input_dir"], file_name)
         self.put_file_contents(file_abs_path, contents)

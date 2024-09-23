@@ -319,6 +319,7 @@ def step_impl(context, processor_name):
 
 # NiFi setups
 @given("a NiFi flow receiving data from a RemoteProcessGroup \"{source_name}\" on port 8080")
+@given("a NiFi flow receiving data from a RemoteProcessGroup \"{source_name}\" on port 8443")
 def step_impl(context, source_name):
     remote_process_group = context.test.get_remote_process_group_by_name("RemoteProcessGroup")
     source = context.test.generate_input_port_for_remote_process_group(remote_process_group, source_name)
@@ -496,9 +497,20 @@ def setUpSslContextServiceForProcessor(context, processor_name: str):
     minifi_key_file = '/tmp/resources/minifi_client.key'
     root_ca_crt_file = '/tmp/resources/root_ca.crt'
     ssl_context_service = SSLContextService(cert=minifi_crt_file, ca_cert=root_ca_crt_file, key=minifi_key_file)
-    post_elasticsearch_json = context.test.get_node_by_name(processor_name)
-    post_elasticsearch_json.controller_services.append(ssl_context_service)
-    post_elasticsearch_json.set_property("SSL Context Service", ssl_context_service.name)
+    processor = context.test.get_node_by_name(processor_name)
+    processor.controller_services.append(ssl_context_service)
+    processor.set_property("SSL Context Service", ssl_context_service.name)
+
+
+def setUpSslContextServiceForRPG(context, rpg_name: str):
+    minifi_crt_file = '/tmp/resources/minifi_client.crt'
+    minifi_key_file = '/tmp/resources/minifi_client.key'
+    root_ca_crt_file = '/tmp/resources/root_ca.crt'
+    ssl_context_service = SSLContextService(cert=minifi_crt_file, ca_cert=root_ca_crt_file, key=minifi_key_file)
+    container = context.test.acquire_container(context=context, name="minifi-cpp-flow")
+    container.add_controller(ssl_context_service)
+    rpg = context.test.get_remote_process_group_by_name(rpg_name)
+    rpg.add_property("SSL Context Service", ssl_context_service.name)
 
 
 @given(u'a SSL context service is set up for PostElasticsearch and Elasticsearch')
@@ -1278,6 +1290,11 @@ def step_impl(context, lines: str, timeout_seconds: int):
 @given(u'a SSL context service is set up for the following processor: \"{processor_name}\"')
 def step_impl(context, processor_name: str):
     setUpSslContextServiceForProcessor(context, processor_name)
+
+
+@given(u'a SSL context service is set up for the following remote process group: \"{remote_process_group}\"')
+def step_impl(context, remote_process_group: str):
+    setUpSslContextServiceForRPG(context, remote_process_group)
 
 
 # Nginx reverse proxy
