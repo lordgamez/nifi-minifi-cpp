@@ -17,6 +17,7 @@ import shortuuid
 from .containers.MinifiContainer import MinifiOptions
 from .containers.MinifiContainer import MinifiContainer
 from .containers.NifiContainer import NifiContainer
+from .containers.NifiContainer import NiFiOptions
 from .containers.ZookeeperContainer import ZookeeperContainer
 from .containers.KafkaBrokerContainer import KafkaBrokerContainer
 from .containers.S3ServerContainer import S3ServerContainer
@@ -52,6 +53,7 @@ class ContainerStore:
         self.network = network
         self.image_store = image_store
         self.kubernetes_proxy = kubernetes_proxy
+        self.nifi_options = NiFiOptions()
 
     def get_container_name_with_postfix(self, container_name: str):
         if not container_name.endswith(self.feature_id):
@@ -90,6 +92,7 @@ class ContainerStore:
             return self.containers.setdefault(container_name,
                                               NifiContainer(feature_context=feature_context,
                                                             config_dir=self.data_directories["nifi_config_dir"],
+                                                            options=self.nifi_options,
                                                             name=container_name,
                                                             vols=self.vols,
                                                             network=self.network,
@@ -405,3 +408,6 @@ class ContainerStore:
 
     def enable_multi_tenancy_in_grafana_loki(self):
         self.grafana_loki_options.enable_multi_tenancy = True
+
+    def enable_ssl_in_nifi(self):
+        self.nifi_options.use_ssl = True

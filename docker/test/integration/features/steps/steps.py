@@ -318,8 +318,7 @@ def step_impl(context, processor_name):
 
 
 # NiFi setups
-@given("a NiFi flow receiving data from a RemoteProcessGroup \"{source_name}\" on port 8080")
-@given("a NiFi flow receiving data from a RemoteProcessGroup \"{source_name}\" on port 8443")
+@given("a NiFi flow receiving data from a RemoteProcessGroup \"{source_name}\"")
 def step_impl(context, source_name):
     remote_process_group = context.test.get_remote_process_group_by_name("RemoteProcessGroup")
     source = context.test.generate_input_port_for_remote_process_group(remote_process_group, source_name)
@@ -334,6 +333,11 @@ def step_impl(context, source_name):
 @given("a NiFi flow with the name \"{flow_name}\" is set up")
 def step_impl(context, flow_name):
     context.test.acquire_container(context=context, name=flow_name, engine='nifi')
+
+
+@given("SSL is enabled in NiFi flow")
+def step_impl(context):
+    context.test.enable_ssl_in_nifi()
 
 
 @given("a transient MiNiFi flow with the name \"{flow_name}\" is set up")

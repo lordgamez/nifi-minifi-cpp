@@ -506,3 +506,6 @@ class MiNiFi_integration_test:
 
     def set_value_on_plc_with_modbus(self, container_name, modbus_cmd):
         assert self.cluster.set_value_on_plc_with_modbus(container_name, modbus_cmd)
+
+    def enable_ssl_in_nifi(self):
+        self.cluster.enable_ssl_in_nifi()
