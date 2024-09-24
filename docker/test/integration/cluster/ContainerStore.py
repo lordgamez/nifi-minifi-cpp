@@ -85,8 +85,8 @@ class ContainerStore:
             logging.info('Container name was not provided; using generated name \'%s\'', container_name)
 
         feature_context = FeatureContext(feature_id=context.feature_id,
-                                         root_ca_cert=context.test.root_ca_cert,
-                                         root_ca_key=context.test.root_ca_key)
+                                         root_ca_cert=context.root_ca_cert,
+                                         root_ca_key=context.root_ca_key)
 
         if engine == 'nifi':
             return self.containers.setdefault(container_name,
