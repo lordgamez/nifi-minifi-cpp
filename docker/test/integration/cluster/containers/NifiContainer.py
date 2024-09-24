@@ -28,7 +28,7 @@ class NiFiOptions:
 
 
 class NifiContainer(FlowContainer):
-    NIFI_VERSION = '2.0.0-M4'
+    NIFI_VERSION = '2.0.0-M2'
     NIFI_ROOT = '/opt/nifi/nifi-' + NIFI_VERSION
 
     def __init__(self, feature_context, config_dir, options, name, vols, network, image_store, command=None):

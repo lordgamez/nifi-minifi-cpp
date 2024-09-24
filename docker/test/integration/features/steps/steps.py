@@ -567,14 +567,14 @@ def step_impl(context):
     root_ca_crt_file = '/tmp/resources/root_ca.crt'
     ssl_context_service = SSLContextService(cert=minifi_crt_file, ca_cert=root_ca_crt_file, key=minifi_key_file)
 
-    splunk_cert, splunk_key = make_server_cert(context.test.get_container_name_with_postfix("splunk"), context.test.root_ca_cert, context.test.root_ca_key)
+    splunk_cert, splunk_key = make_server_cert(context.test.get_container_name_with_postfix("splunk"), context.root_ca_cert, context.root_ca_key)
     put_splunk_http = context.test.get_node_by_name("PutSplunkHTTP")
     put_splunk_http.controller_services.append(ssl_context_service)
     put_splunk_http.set_property("SSL Context Service", ssl_context_service.name)
     query_splunk_indexing_status = context.test.get_node_by_name("QuerySplunkIndexingStatus")
     query_splunk_indexing_status.controller_services.append(ssl_context_service)
     query_splunk_indexing_status.set_property("SSL Context Service", ssl_context_service.name)
-    context.test.enable_splunk_hec_ssl('splunk', OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM, splunk_cert), OpenSSL.crypto.dump_privatekey(OpenSSL.crypto.FILETYPE_PEM, splunk_key), OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM, context.test.root_ca_cert))
+    context.test.enable_splunk_hec_ssl('splunk', OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM, splunk_cert), OpenSSL.crypto.dump_privatekey(OpenSSL.crypto.FILETYPE_PEM, splunk_key), OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM, context.root_ca_cert))
 
 
 @given(u'the {processor_one} processor is set up with a GCPCredentialsControllerService to communicate with the Google Cloud storage server')
@@ -706,11 +706,11 @@ def step_impl(context, content, topic_name):
 @when("a message with content \"{content}\" is published to the \"{topic_name}\" topic using an ssl connection")
 def step_impl(context, content, topic_name):
     ca_cert_file = tempfile.NamedTemporaryFile(delete=False)
-    ca_cert_file.write(OpenSSL.crypto.dump_certificate(type=OpenSSL.crypto.FILETYPE_PEM, cert=context.test.root_ca_cert))
+    ca_cert_file.write(OpenSSL.crypto.dump_certificate(type=OpenSSL.crypto.FILETYPE_PEM, cert=context.root_ca_cert))
     ca_cert_file.close()
     os.chmod(ca_cert_file.name, 0o644)
 
-    client_cert, client_key = make_client_cert(socket.gethostname(), context.test.root_ca_cert, context.test.root_ca_key)
+    client_cert, client_key = make_client_cert(socket.gethostname(), context.root_ca_cert, context.root_ca_key)
     client_cert_file = tempfile.NamedTemporaryFile(delete=False)
     client_cert_file.write(OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM, client_cert))
     client_cert_file.close()
