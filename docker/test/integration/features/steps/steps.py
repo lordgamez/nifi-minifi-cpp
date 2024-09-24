@@ -1081,6 +1081,11 @@ def step_impl(context):
     context.test.set_ssl_context_properties_in_minifi()
 
 
+@given("SSL properties are set in MiNiFi")
+def step_impl(context):
+    context.test.set_ssl_context_properties_in_minifi()
+
+
 @given(u'a MiNiFi C2 server is set up')
 def step_impl(context):
     context.test.acquire_container(context=context, name="minifi-c2-server", engine="minifi-c2-server")
