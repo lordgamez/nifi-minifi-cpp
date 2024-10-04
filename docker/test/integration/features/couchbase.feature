@@ -19,7 +19,7 @@ Feature: Executing Couchbase operations from MiNiFi-C++
     Given the content of "/tmp/output" is monitored
 
   Scenario: A MiNiFi instance can insert data to test bucket with PutCouchbaseKey processor
-    Given a Couchbase storage is set up
+    Given a Couchbase server is set up
     And a GetFile processor with the "Input Directory" property set to "/tmp/input"
     And a file with the content '{"field1": "value1", "field2": "value2"}' is present in '/tmp/input'
     And a PutCouchbaseKey processor with the "Bucket Name" property set to "test_bucket"
@@ -30,7 +30,8 @@ Feature: Executing Couchbase operations from MiNiFi-C++
     And the "success" relationship of the GetFile processor is connected to the PutCouchbaseKey
     And the "success" relationship of the PutCouchbaseKey processor is connected to the LogAttribute
 
-    When all instances start up
+    When a Couchbase server is started
+    And all instances start up
 
     Then the Minifi logs contain the following message: "key:couchbase.bucket value:test_bucket" in less than 60 seconds
     And the Minifi logs contain the following message: "key:couchbase.doc.id value:test_doc_id" in less than 1 seconds

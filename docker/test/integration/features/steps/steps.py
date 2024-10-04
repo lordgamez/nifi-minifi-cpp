@@ -1359,9 +1359,14 @@ def step_impl(context, modbus_cmd):
 
 
 # Couchbase
-@given("a Couchbase storage is set up")
+@given("a Couchbase server is set up")
 def step_impl(context):
     context.test.acquire_container(context=context, name="couchbase-server", engine="couchbase-server")
+
+
+@when(u'a Couchbase server is started')
+def step_impl(context):
+    context.test.start_couchbase_server(context)
 
 
 @given("a CouchbaseClusterService is setup up for {processor_name} with the name \"{service_name}\"")

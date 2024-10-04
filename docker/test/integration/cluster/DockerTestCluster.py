@@ -68,13 +68,7 @@ class DockerTestCluster:
         self.container_store.deploy_container(name)
 
     def deploy_all(self):
-        for container_name in self.container_store.get_container_names():
-            self.deploy_container(container_name)
-            if not self.wait_for_container_startup_to_finish(container_name):
-                return False
-            if not self.run_post_startup_commands(container_name):
-                return False
-        return True
+        self.container_store.deploy_all()
 
     def stop_container(self, container_name):
         self.container_store.stop_container(container_name)
@@ -311,28 +305,15 @@ class DockerTestCluster:
         startup_success = self.wait_for_startup_log(container_name, 300)
         if not startup_success:
             logging.error("Cluster startup failed for %s", container_name)
-            self.log_app_output()
-        return startup_success
+            return False
+        if not self.container_store.run_post_startup_commands(container_name):
+            logging.error("Failed to run post startup commands for container %s", container_name)
+            return False
+        return True
 
     def wait_for_all_containers_to_finish_startup(self):
         for container_name in self.container_store.get_container_names():
             if not self.wait_for_container_startup_to_finish(container_name):
-                return False
-            if not self.run_post_startup_commands(container_name):
-                return False
-        return True
-
-    @retry_check(10, 2)
-    def run_post_startup_command(self, container_name, command):
-        (code, output) = self.container_communicator.execute_command(container_name, command)
-        if code != 0:
-            logging.error("Failed to run post startup command %s for container %s with error %s", command, container_name, output)
-            return False
-        return True
-
-    def run_post_startup_commands(self, container_name):
-        for command in self.container_store.post_startup_commands(container_name):
-            if not self.run_post_startup_command(container_name, command):
                 return False
         return True
 

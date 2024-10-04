@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from .Container import Container
+from utils import retry_check
 
 
 class CouchbaseServerContainer(Container):
@@ -22,13 +23,23 @@ class CouchbaseServerContainer(Container):
     def get_startup_finished_log_entry(self):
         return "logs available in"
 
-    def post_startup_commands(self):
-        return [
+    @retry_check(15, 2)
+    def run_post_startup_commands(self):
+        if self.post_startup_commands_finished:
+            return True
+
+        commands = [
             ["couchbase-cli", "cluster-init", "-c", "localhost", "--cluster-username", "Administrator", "--cluster-password", "password123", "--services", "data,index,query",
              "--cluster-ramsize", "2048", "--cluster-index-ramsize", "256"],
             ["couchbase-cli", "bucket-create", "-c", "localhost", "--username", "Administrator", "--password", "password123", "--bucket", "test_bucket", "--bucket-type", "couchbase",
              "--bucket-ramsize", "1024"]
         ]
+        for command in commands:
+            (code, _) = self.client.containers.get(self.name).exec_run(command)
+            if code != 0:
+                return False
+        self.post_startup_commands_finished = True
+        return True
 
     def deploy(self):
         if not self.set_deployed():

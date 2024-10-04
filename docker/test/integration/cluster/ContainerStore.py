@@ -321,6 +321,10 @@ class ContainerStore:
 
         self.containers[container_name].deploy()
 
+    def deploy_all(self):
+        for container in self.containers.values():
+            container.deploy()
+
     def stop_container(self, container_name):
         container_name = self.get_container_name_with_postfix(container_name)
         if container_name not in self.containers:
@@ -417,6 +421,6 @@ class ContainerStore:
     def enable_ssl_in_nifi(self):
         self.nifi_options.use_ssl = True
 
-    def post_startup_commands(self, container_name):
+    def run_post_startup_commands(self, container_name):
         container_name = self.get_container_name_with_postfix(container_name)
-        return self.containers[container_name].post_startup_commands()
+        return self.containers[container_name].run_post_startup_commands()
