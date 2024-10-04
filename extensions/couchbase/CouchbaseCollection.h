@@ -34,6 +34,7 @@ struct CouchbaseUpsertResult {
 class CouchbaseCollection {
  public:
   virtual nonstd::expected<CouchbaseUpsertResult, std::error_code> upsert(const std::string& document_id, const std::vector<std::byte>& buffer, const ::couchbase::upsert_options& options) = 0;
+  virtual ~CouchbaseCollection() = default;
 };
 
 }  // namespace org::apache::nifi::minifi::couchbase
