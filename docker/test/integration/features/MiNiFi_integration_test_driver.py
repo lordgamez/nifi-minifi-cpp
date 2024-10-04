@@ -93,8 +93,7 @@ class MiNiFi_integration_test:
             assert self.cluster.wait_for_container_startup_to_finish(container_name)
             return
         logging.info("MiNiFi_integration_test start")
-        self.cluster.deploy_all()
-        assert self.cluster.wait_for_all_containers_to_finish_startup()
+        assert self.cluster.deploy_all()
 
     def stop(self, container_name):
         logging.info("Stopping container %s", container_name)

@@ -84,3 +84,6 @@ class Container:
 
     def get_app_log(self):
         raise NotImplementedError()
+
+    def post_startup_commands(self):
+        return []
