@@ -61,6 +61,11 @@ void PutCouchbaseKey::onTrigger(core::ProcessContext& context, core::ProcessSess
   }
 
   auto collection = couchbase_cluster_service_->getCollection(bucket_name, scope_name, collection_name);
+  if (!collection) {
+    logger_->log_error("Failed to get collection '{}.{}.{}', transferring to retry relationship", bucket_name, scope_name, collection_name);
+    session.transfer(flow_file, Retry);
+    return;
+  }
   ::couchbase::upsert_options options;
   options.durability(persist_to_, replicate_to_);
   auto result = session.readBuffer(flow_file);
@@ -72,6 +77,9 @@ void PutCouchbaseKey::onTrigger(core::ProcessContext& context, core::ProcessSess
     session.putAttribute(*flow_file, "couchbase.partition.uuid", std::to_string(upsert_result->partition_uuid));
     session.putAttribute(*flow_file, "couchbase.partition.id", std::to_string(upsert_result->partition_id));
     session.transfer(flow_file, Success);
+  } else if (upsert_result.error() == ::couchbase::errc::common::unambiguous_timeout) {
+    logger_->log_error("Failed to upsert document '{}' due to timeout, transferring to retry relationship", document_id);
+    session.transfer(flow_file, Retry);
   } else {
     logger_->log_error("Failed to upsert document '{}': {}", document_id, upsert_result.error().message());
     session.transfer(flow_file, Failure);

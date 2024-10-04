@@ -121,8 +121,9 @@ class PutCouchbaseKey final : public core::AbstractProcessor<PutCouchbaseKey> {
   });
 
   EXTENSIONAPI static constexpr auto Success = core::RelationshipDefinition{"success", "All FlowFiles that are written to Couchbase Server are routed to this relationship."};
-  EXTENSIONAPI static constexpr auto Failure = core::RelationshipDefinition{"failure", "All FlowFiles failed to be written to Couchbase Server are routed to this relationship."};
-  EXTENSIONAPI static constexpr auto Relationships = std::array{Success, Failure};
+  EXTENSIONAPI static constexpr auto Failure = core::RelationshipDefinition{"failure", "All FlowFiles failed to be written to Couchbase Server and not retry-able are routed to this relationship."};
+  EXTENSIONAPI static constexpr auto Retry = core::RelationshipDefinition{"retry", "All FlowFiles failed to be written to Couchbase Server but can be retried are routed to this relationship."};
+  EXTENSIONAPI static constexpr auto Relationships = std::array{Success, Failure, Retry};
 
   EXTENSIONAPI static constexpr auto CouchbaseBucket = core::OutputAttributeDefinition<>{"couchbase.bucket", {Success}, "Bucket where the document was stored."};
   EXTENSIONAPI static constexpr auto CouchbaseDocId = core::OutputAttributeDefinition<>{"couchbase.doc.id", {Success}, "Id of the document."};

@@ -39,9 +39,9 @@ struct UpsertParameters {
 
 class MockCouchbaseCollection : public CouchbaseCollection {
  public:
-  MockCouchbaseCollection(UpsertParameters& parameters, bool& upsert_result, const std::string& bucket_name)
+  MockCouchbaseCollection(UpsertParameters& parameters, std::error_code& upsert_error_code, std::string_view bucket_name)
       : parameters_(parameters),
-        upsert_result_(upsert_result),
+        upsert_error_code_(upsert_error_code),
         bucket_name_(bucket_name) {}
 
   nonstd::expected<CouchbaseUpsertResult, std::error_code> upsert(const std::string& document_id, const std::vector<std::byte>& buffer, const ::couchbase::upsert_options& options) override {
@@ -49,16 +49,16 @@ class MockCouchbaseCollection : public CouchbaseCollection {
     parameters_.buffer = buffer;
     parameters_.options = options;
 
-    if (upsert_result_) {
-      return CouchbaseUpsertResult{bucket_name_, 1, 2, 3, 4};
+    if (upsert_error_code_) {
+      return nonstd::make_unexpected(upsert_error_code_);
     } else {
-      return nonstd::make_unexpected(std::make_error_code(std::errc::invalid_argument));
+      return CouchbaseUpsertResult{bucket_name_, 1, 2, 3, 4};
     }
   }
 
  private:
   UpsertParameters& parameters_;
-  bool& upsert_result_;
+  std::error_code& upsert_error_code_;
   std::string bucket_name_;
 };
 
@@ -75,7 +75,11 @@ class MockCouchbaseClusterService : public controllers::CouchbaseClusterService 
     get_collection_parameters_.bucket_name = bucket_name;
     get_collection_parameters_.scope_name = scope_name;
     get_collection_parameters_.collection_name = collection_name;
-    return std::make_unique<MockCouchbaseCollection>(upsert_parameters_, upsert_result_, get_collection_parameters_.bucket_name);
+    if (!get_collection_succeeds_) {
+      return nullptr;
+    } else {
+      return std::make_unique<MockCouchbaseCollection>(upsert_parameters_, upsert_error_code_, bucket_name);
+    }
   }
 
   GetCollectionParameters getGetCollectionParameters() const {
@@ -86,13 +90,22 @@ class MockCouchbaseClusterService : public controllers::CouchbaseClusterService 
     return upsert_parameters_;
   }
 
-  void setUpsertResult(bool result) {
-    upsert_result_ = result;
+  void setUpsertErrorCode(const std::error_code& error) {
+    upsert_error_code_ = error;
+  }
+
+  void setGetCollectionSucceeds(bool succeeds) {
+    get_collection_succeeds_ = succeeds;
+  }
+
+  bool getGetCollectionSucceeds() const {
+    return get_collection_succeeds_;
   }
 
  private:
   GetCollectionParameters get_collection_parameters_;
   UpsertParameters upsert_parameters_;
-  bool upsert_result_ = true;
+  std::error_code upsert_error_code_;
+  bool get_collection_succeeds_{true};
 };
 }  // namespace org::apache::nifi::minifi::couchbase::test

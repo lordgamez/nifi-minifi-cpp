@@ -35,32 +35,64 @@
 
 namespace org::apache::nifi::minifi::couchbase {
 
+class CouchBaseClient;
+
 class RemoteCouchbaseCollection : public CouchbaseCollection {
  public:
-  explicit RemoteCouchbaseCollection(::couchbase::collection collection)
-      : collection_(std::move(collection)) {
+  explicit RemoteCouchbaseCollection(::couchbase::collection collection, CouchBaseClient& client)
+      : collection_(std::move(collection)),
+        client_(client) {
   }
 
-  nonstd::expected<CouchbaseUpsertResult, std::error_code> upsert(const std::string& document_id, const std::vector<std::byte>& buffer, const ::couchbase::upsert_options& options) override {
-    auto [err, resp] = collection_.upsert<::couchbase::codec::raw_binary_transcoder>(document_id, buffer, options).get();
-    if (err.ec()) {
-      return nonstd::make_unexpected(err.ec());
-    } else {
-      uint64_t partition_uuid = (resp.mutation_token().has_value() ? resp.mutation_token()->partition_uuid() : 0);
-      uint64_t sequence_number = (resp.mutation_token().has_value() ? resp.mutation_token()->sequence_number() : 0);
-      uint16_t partition_id = (resp.mutation_token().has_value() ? resp.mutation_token()->partition_id() : 0);
-      return CouchbaseUpsertResult {
-        collection_.bucket_name(),
-        resp.cas().value(),
-        partition_uuid,
-        sequence_number,
-        partition_id
-      };
+  nonstd::expected<CouchbaseUpsertResult, std::error_code> upsert(const std::string& document_id, const std::vector<std::byte>& buffer, const ::couchbase::upsert_options& options) override;
+
+ private:
+  ::couchbase::collection collection_;
+  CouchBaseClient& client_;
+};
+
+class CouchBaseClient {
+ public:
+  enum class State {
+    DISCONNECTED,
+    CONNECTED,
+    UNKNOWN,
+  };
+
+  CouchBaseClient(std::string connection_string, std::string username, std::string password, const std::shared_ptr<core::logging::Logger>& logger)
+    : connection_string_(std::move(connection_string)), username_(std::move(username)), password_(std::move(password)), logger_(logger) {
+  }
+
+  std::unique_ptr<CouchbaseCollection> getCollection(std::string_view bucket_name, std::string_view scope_name, std::string_view collection_name) {
+    if (!establishConnection()) {
+      return nullptr;
+    }
+    return std::make_unique<RemoteCouchbaseCollection>(cluster_.bucket(bucket_name).scope(scope_name).collection(collection_name), *this);
+  }
+
+  void error() {
+    std::lock_guard<std::mutex> lock(state_mutex_);
+    state_ = State::UNKNOWN;
+  }
+
+  void close() {
+    std::lock_guard<std::mutex> lock(state_mutex_);
+    if (state_ == State::CONNECTED || state_ == State::UNKNOWN) {
+      cluster_.close().wait();
+      state_ = State::DISCONNECTED;
     }
   }
 
  private:
-  ::couchbase::collection collection_;
+  bool establishConnection();
+
+  std::mutex state_mutex_;
+  State state_ = State::DISCONNECTED;
+  std::string connection_string_;
+  std::string username_;
+  std::string password_;
+  ::couchbase::cluster cluster_;
+  std::shared_ptr<core::logging::Logger> logger_;
 };
 
 namespace controllers {
@@ -88,10 +120,7 @@ class CouchbaseClusterService : public core::controller::ControllerService {
       .withDescription("The user password to authenticate MiNiFi as a Couchbase client.")
       .isSensitive(true)
       .build();
-  // EXTENSIONAPI static constexpr auto SSLContextService = core::PropertyDefinitionBuilder<>::createProperty("SSL Context Service")
-  //     .withDescription("Name of the SSL Context Service when using mutual TLS authentication to authenticate MiNiFi as a Couchbase client.")
-  //     .withAllowedTypes<minifi::controllers::SSLContextService>()
-  //     .build();
+
   EXTENSIONAPI static constexpr auto Properties = std::to_array<core::PropertyReference>({
     ConnectionString,
     UserName,
@@ -117,17 +146,20 @@ class CouchbaseClusterService : public core::controller::ControllerService {
 
   void onEnable() override;
   void notifyStop() override {
-    cluster_.close().wait();
+    if (client_) {
+      client_->close();
+    }
   }
 
   virtual std::unique_ptr<CouchbaseCollection> getCollection(std::string_view bucket_name, std::string_view scope_name, std::string_view collection_name) {
-    return std::make_unique<RemoteCouchbaseCollection>(cluster_.bucket(bucket_name).scope(scope_name).collection(collection_name));
+    gsl_Expects(client_);
+    return client_->getCollection(bucket_name, scope_name, collection_name);
   }
 
   static gsl::not_null<std::shared_ptr<CouchbaseClusterService>> getFromProperty(const core::ProcessContext& context, const core::PropertyReference& property);
 
  private:
-  ::couchbase::cluster cluster_;
+  std::unique_ptr<CouchBaseClient> client_;
   std::shared_ptr<core::logging::Logger> logger_ = core::logging::LoggerFactory<CouchbaseClusterService>::getLogger(uuid_);
 };
 

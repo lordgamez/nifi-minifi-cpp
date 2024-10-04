@@ -22,7 +22,6 @@
 #include "processors/PutCouchbaseKey.h"
 #include "MockCouchbaseClusterService.h"
 #include "core/Resource.h"
-#include "unit/SingleProcessorTestController.h"
 
 namespace org::apache::nifi::minifi::couchbase::test {
 
@@ -54,23 +53,35 @@ class PutCouchbaseKeyTestController : public TestController {
     return byte_vector;
   }
 
-  void verifyResults(const minifi::test::ProcessorTriggerResult& results, bool expected_result, const ExpectedCallOptions& expected_call_options, const std::string& input) const {
+  void verifyResults(const minifi::test::ProcessorTriggerResult& results, const minifi::core::Relationship& expected_result, const ExpectedCallOptions& expected_call_options,
+      const std::string& input) const {
     std::shared_ptr<core::FlowFile> flow_file;
-    if (expected_result) {
+    if (expected_result == processors::PutCouchbaseKey::Success) {
       REQUIRE(results.at(processors::PutCouchbaseKey::Success).size() == 1);
       REQUIRE(results.at(processors::PutCouchbaseKey::Failure).size() == 0);
+      REQUIRE(results.at(processors::PutCouchbaseKey::Retry).size() == 0);
       flow_file = results.at(processors::PutCouchbaseKey::Success)[0];
-    } else {
+    } else if (expected_result == processors::PutCouchbaseKey::Failure) {
       REQUIRE(results.at(processors::PutCouchbaseKey::Success).size() == 0);
       REQUIRE(results.at(processors::PutCouchbaseKey::Failure).size() == 1);
+      REQUIRE(results.at(processors::PutCouchbaseKey::Retry).size() == 0);
       flow_file = results.at(processors::PutCouchbaseKey::Failure)[0];
       REQUIRE(LogTestController::getInstance().contains("Failed to upsert document", 1s));
+    } else {
+      REQUIRE(results.at(processors::PutCouchbaseKey::Success).size() == 0);
+      REQUIRE(results.at(processors::PutCouchbaseKey::Failure).size() == 0);
+      REQUIRE(results.at(processors::PutCouchbaseKey::Retry).size() == 1);
+      flow_file = results.at(processors::PutCouchbaseKey::Retry)[0];
     }
 
     auto get_collection_parameters = mock_couchbase_cluster_service_->getGetCollectionParameters();
     CHECK(get_collection_parameters.bucket_name == expected_call_options.bucket_name);
     CHECK(get_collection_parameters.collection_name == expected_call_options.collection_name);
     CHECK(get_collection_parameters.scope_name == expected_call_options.scope_name);
+
+    if (!mock_couchbase_cluster_service_->getGetCollectionSucceeds()) {
+      return;
+    }
 
     auto upsert_parameters = mock_couchbase_cluster_service_->getUpsertParameters();
     std::string expected_doc_id = expected_call_options.doc_id.empty() ? flow_file->getUUID().to_string() : expected_call_options.doc_id;
@@ -81,7 +92,7 @@ class PutCouchbaseKeyTestController : public TestController {
     CHECK(upsert_options.persist_to == expected_call_options.persist_to);
     CHECK(upsert_options.replicate_to == expected_call_options.replicate_to);
 
-    if (!expected_result) {
+    if (expected_result != processors::PutCouchbaseKey::Success) {
       return;
     }
 
@@ -115,7 +126,7 @@ TEST_CASE_METHOD(PutCouchbaseKeyTestController, "Put succeeeds with default prop
   proc_->setProperty(processors::PutCouchbaseKey::BucketName, "mybucket");
   const std::string input = "{\"name\": \"John\"}\n{\"name\": \"Jill\"}";
   auto results = controller_.trigger({minifi::test::InputFlowFileData{input}});
-  verifyResults(results, true, ExpectedCallOptions{"mybucket", "_default", "_default", ::couchbase::persist_to::none, ::couchbase::replicate_to::none, ""}, input);
+  verifyResults(results, processors::PutCouchbaseKey::Success, ExpectedCallOptions{"mybucket", "_default", "_default", ::couchbase::persist_to::none, ::couchbase::replicate_to::none, ""}, input);
 }
 
 TEST_CASE_METHOD(PutCouchbaseKeyTestController, "Put succeeeds with optional properties", "[putcouchbasekey]") {
@@ -127,15 +138,32 @@ TEST_CASE_METHOD(PutCouchbaseKeyTestController, "Put succeeeds with optional pro
   proc_->setProperty(processors::PutCouchbaseKey::ReplicateTo, "TWO");
   const std::string input = "{\"name\": \"John\"}\n{\"name\": \"Jill\"}";
   auto results = controller_.trigger({minifi::test::InputFlowFileData{input}});
-  verifyResults(results, true, ExpectedCallOptions{"mybucket", "scope1", "collection1", ::couchbase::persist_to::active, ::couchbase::replicate_to::two, "important_doc"}, input);
+  verifyResults(results, processors::PutCouchbaseKey::Success, ExpectedCallOptions{"mybucket", "scope1", "collection1", ::couchbase::persist_to::active,
+    ::couchbase::replicate_to::two, "important_doc"}, input);
 }
 
 TEST_CASE_METHOD(PutCouchbaseKeyTestController, "Put fails with default properties", "[putcouchbasekey]") {
   proc_->setProperty(processors::PutCouchbaseKey::BucketName, "mybucket");
-  mock_couchbase_cluster_service_->setUpsertResult(false);
+  mock_couchbase_cluster_service_->setUpsertErrorCode(std::make_error_code(std::errc::invalid_argument));
   const std::string input = "{\"name\": \"John\"}\n{\"name\": \"Jill\"}";
   auto results = controller_.trigger({minifi::test::InputFlowFileData{input}});
-  verifyResults(results, false, ExpectedCallOptions{"mybucket", "_default", "_default", ::couchbase::persist_to::none, ::couchbase::replicate_to::none, ""}, input);
+  verifyResults(results, processors::PutCouchbaseKey::Failure, ExpectedCallOptions{"mybucket", "_default", "_default", ::couchbase::persist_to::none, ::couchbase::replicate_to::none, ""}, input);
+}
+
+TEST_CASE_METHOD(PutCouchbaseKeyTestController, "FlowFile is transferred to retry relationship when get collection fails", "[putcouchbasekey]") {
+  proc_->setProperty(processors::PutCouchbaseKey::BucketName, "mybucket");
+  mock_couchbase_cluster_service_->setGetCollectionSucceeds(false);
+  const std::string input = "{\"name\": \"John\"}\n{\"name\": \"Jill\"}";
+  auto results = controller_.trigger({minifi::test::InputFlowFileData{input}});
+  verifyResults(results, processors::PutCouchbaseKey::Retry, ExpectedCallOptions{"mybucket", "_default", "_default", ::couchbase::persist_to::none, ::couchbase::replicate_to::none, ""}, input);
+}
+
+TEST_CASE_METHOD(PutCouchbaseKeyTestController, "FlowFile is transferred to retry relationship when unambiguous timeout is returned", "[putcouchbasekey]") {
+  proc_->setProperty(processors::PutCouchbaseKey::BucketName, "mybucket");
+  mock_couchbase_cluster_service_->setUpsertErrorCode(::couchbase::errc::common::unambiguous_timeout);
+  const std::string input = "{\"name\": \"John\"}\n{\"name\": \"Jill\"}";
+  auto results = controller_.trigger({minifi::test::InputFlowFileData{input}});
+  verifyResults(results, processors::PutCouchbaseKey::Retry, ExpectedCallOptions{"mybucket", "_default", "_default", ::couchbase::persist_to::none, ::couchbase::replicate_to::none, ""}, input);
 }
 
 }  // namespace org::apache::nifi::minifi::couchbase::test

@@ -20,7 +20,56 @@
 
 #include "core/Resource.h"
 
-namespace org::apache::nifi::minifi::couchbase::controllers {
+namespace org::apache::nifi::minifi::couchbase {
+
+nonstd::expected<CouchbaseUpsertResult, std::error_code> RemoteCouchbaseCollection::upsert(const std::string& document_id, const std::vector<std::byte>& buffer,
+    const ::couchbase::upsert_options& options) {
+  auto [err, resp] = collection_.upsert<::couchbase::codec::raw_binary_transcoder>(document_id, buffer, options).get();
+  if (err.ec()) {
+    client_.error();
+    return nonstd::make_unexpected(err.ec());
+  } else {
+    uint64_t partition_uuid = (resp.mutation_token().has_value() ? resp.mutation_token()->partition_uuid() : 0);
+    uint64_t sequence_number = (resp.mutation_token().has_value() ? resp.mutation_token()->sequence_number() : 0);
+    uint16_t partition_id = (resp.mutation_token().has_value() ? resp.mutation_token()->partition_id() : 0);
+    return CouchbaseUpsertResult {
+      collection_.bucket_name(),
+      resp.cas().value(),
+      partition_uuid,
+      sequence_number,
+      partition_id
+    };
+  }
+}
+
+bool CouchBaseClient::establishConnection() {
+  std::lock_guard<std::mutex> lock(state_mutex_);
+  if (state_ == State::CONNECTED) {
+    return true;
+  }
+
+  if (state_ == State::UNKNOWN) {
+    auto [err, resp] = cluster_.ping().get();
+    if (err.ec()) {
+      close();
+    } else {
+      state_ = State::CONNECTED;
+      return true;
+    }
+  }
+
+  auto options = ::couchbase::cluster_options(username_, password_);
+  auto [connect_err, cluster] = ::couchbase::cluster::connect(connection_string_, options).get();
+  if (connect_err.ec()) {
+    logger_->log_error("Failed to connect to Couchbase cluster: {}", connect_err.message());
+    return false;
+  }
+  cluster_ = std::move(cluster);
+  state_ = State::CONNECTED;
+  return true;
+}
+
+namespace controllers {
 
 void CouchbaseClusterService::initialize() {
   setSupportedProperties(Properties);
@@ -33,29 +82,7 @@ void CouchbaseClusterService::onEnable() {
   getProperty(UserName, username);
   std::string password;
   getProperty(UserPassword, password);
-
-  // TODO: add support for SSL through linked services
-  // std::shared_ptr<minifi::controllers::SSLContextService> ssl_context_service;
-  // if (auto ssl_context = context.getProperty(SSLContextService)) {
-  //   ssl_context_service = std::dynamic_pointer_cast<minifi::controllers::SSLContextService>(context.getControllerService(*ssl_context));
-  // }
-
-  // ::couchbase::cluster::options options;
-  // if (ssl_context_service) {
-  //   options.tls_config.certificate_path = ssl_context_service->getCertificateFile();
-  //   options.tls_config.private_key_path = ssl_context_service->getPrivateKeyFile();
-  //   options.tls_config.ca_cert_path = ssl_context_service->getCACertificate();
-  // } else {
-  //   options = ::couchbase::cluster_options(username, password);
-  // }
-
-  auto options = ::couchbase::cluster_options(username, password);
-  auto [connect_err, cluster] = ::couchbase::cluster::connect(connection_string, options).get();
-  if (connect_err.ec()) {
-    logger_->log_error("Failed to connect to Couchbase cluster: {}", connect_err.message());
-    throw Exception(CONTROLLER_ENABLE_EXCEPTION, "Failed to connect to Couchbase cluster: " + connect_err.ec().message());
-  }
-  cluster_ = std::move(cluster);
+  client_ = std::make_unique<CouchBaseClient>(connection_string, username, password, logger_);
 }
 
 gsl::not_null<std::shared_ptr<CouchbaseClusterService>> CouchbaseClusterService::getFromProperty(const core::ProcessContext& context, const core::PropertyReference& property) {
@@ -71,4 +98,5 @@ gsl::not_null<std::shared_ptr<CouchbaseClusterService>> CouchbaseClusterService:
 
 REGISTER_RESOURCE(CouchbaseClusterService, ControllerService);
 
-}  // namespace org::apache::nifi::minifi::couchbase::controllers
+}  // namespace controllers
+}  // namespace org::apache::nifi::minifi::couchbase

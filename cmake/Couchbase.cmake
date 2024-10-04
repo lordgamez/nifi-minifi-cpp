@@ -39,8 +39,3 @@ FetchContent_Declare(couchbase-cxx-client
 FetchContent_MakeAvailable(couchbase-cxx-client)
 
 set(COUCHBASE_INCLUDE_DIR "${couchbase-cxx-client_SOURCE_DIR}" CACHE STRING "" FORCE)
-if (WIN32)
-    set(COUCHBASE_LIBRARY "${couchbase-cxx-client_BINARY_DIR}/libcouchbase_cxx_client_static.lib" CACHE STRING "" FORCE)
-else()
-    set(COUCHBASE_LIBRARY "${couchbase-cxx-client_BINARY_DIR}/libcouchbase_cxx_client_static.a" CACHE STRING "" FORCE)
-endif()
