@@ -44,7 +44,7 @@ class PutCouchbaseKeyTestController : public TestController {
     proc_->setProperty(processors::PutCouchbaseKey::CouchbaseClusterControllerService, "MockCouchbaseClusterService");
   }
 
-  std::vector<std::byte> stringToByteVector(const std::string& str) const {
+  [[nodiscard]] static std::vector<std::byte> stringToByteVector(const std::string& str) {
     std::vector<std::byte> byte_vector;
     byte_vector.reserve(str.size());
     for (char ch : str) {
@@ -58,18 +58,18 @@ class PutCouchbaseKeyTestController : public TestController {
     std::shared_ptr<core::FlowFile> flow_file;
     if (expected_result == processors::PutCouchbaseKey::Success) {
       REQUIRE(results.at(processors::PutCouchbaseKey::Success).size() == 1);
-      REQUIRE(results.at(processors::PutCouchbaseKey::Failure).size() == 0);
-      REQUIRE(results.at(processors::PutCouchbaseKey::Retry).size() == 0);
+      REQUIRE(results.at(processors::PutCouchbaseKey::Failure).empty());
+      REQUIRE(results.at(processors::PutCouchbaseKey::Retry).empty());
       flow_file = results.at(processors::PutCouchbaseKey::Success)[0];
     } else if (expected_result == processors::PutCouchbaseKey::Failure) {
-      REQUIRE(results.at(processors::PutCouchbaseKey::Success).size() == 0);
+      REQUIRE(results.at(processors::PutCouchbaseKey::Success).empty());
       REQUIRE(results.at(processors::PutCouchbaseKey::Failure).size() == 1);
-      REQUIRE(results.at(processors::PutCouchbaseKey::Retry).size() == 0);
+      REQUIRE(results.at(processors::PutCouchbaseKey::Retry).empty());
       flow_file = results.at(processors::PutCouchbaseKey::Failure)[0];
       REQUIRE(LogTestController::getInstance().contains("Failed to upsert document", 1s));
     } else {
-      REQUIRE(results.at(processors::PutCouchbaseKey::Success).size() == 0);
-      REQUIRE(results.at(processors::PutCouchbaseKey::Failure).size() == 0);
+      REQUIRE(results.at(processors::PutCouchbaseKey::Success).empty());
+      REQUIRE(results.at(processors::PutCouchbaseKey::Failure).empty());
       REQUIRE(results.at(processors::PutCouchbaseKey::Retry).size() == 1);
       flow_file = results.at(processors::PutCouchbaseKey::Retry)[0];
     }
