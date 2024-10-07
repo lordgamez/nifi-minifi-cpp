@@ -77,7 +77,7 @@ void PutCouchbaseKey::onTrigger(core::ProcessContext& context, core::ProcessSess
     session.putAttribute(*flow_file, "couchbase.partition.uuid", std::to_string(upsert_result->partition_uuid));
     session.putAttribute(*flow_file, "couchbase.partition.id", std::to_string(upsert_result->partition_id));
     session.transfer(flow_file, Success);
-  } else if (upsert_result.error() == ::couchbase::errc::common::unambiguous_timeout) {
+  } else if (upsert_result.error().value() == static_cast<int>(::couchbase::errc::common::unambiguous_timeout)) {
     logger_->log_error("Failed to upsert document '{}' due to timeout, transferring to retry relationship", document_id);
     session.transfer(flow_file, Retry);
   } else {
