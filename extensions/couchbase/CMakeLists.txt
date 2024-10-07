@@ -21,7 +21,6 @@ if (NOT (ENABLE_ALL OR ENABLE_COUCHBASE))
     return()
 endif()
 
-include(Asio)
 include(Couchbase)
 include(${CMAKE_SOURCE_DIR}/extensions/ExtensionHeader.txt)
 

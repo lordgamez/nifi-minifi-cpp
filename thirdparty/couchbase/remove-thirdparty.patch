@@ -1,7 +1,98 @@
 diff --git a/cmake/ThirdPartyDependencies.cmake b/cmake/ThirdPartyDependencies.cmake
-index f02af02..59a2b72 100644
+index f02af02..1a51f82 100644
 --- a/cmake/ThirdPartyDependencies.cmake
 +++ b/cmake/ThirdPartyDependencies.cmake
+@@ -15,48 +15,48 @@ function(declare_system_library target)
+                                              $<TARGET_PROPERTY:${target},INTERFACE_INCLUDE_DIRECTORIES>)
+ endfunction()
+ 
+-if(NOT TARGET fmt::fmt)
+-  # https://github.com/fmtlib/fmt/releases
+-  cpmaddpackage(
+-    NAME
+-    fmt
+-    GIT_TAG
+-    11.0.1
+-    VERSION
+-    11.0.1
+-    GITHUB_REPOSITORY
+-    "fmtlib/fmt"
+-    EXCLUDE_FROM_ALL ON
+-    OPTIONS
+-    "FMT_INSTALL OFF"
+-    # Unicode support for MSVC enabled in CompilerWarnings.cmake
+-    "FMT_UNICODE OFF"
+-    "FMT_DOC OFF"
+-    "BUILD_SHARED_LIBS OFF"
+-    "CMAKE_C_VISIBILITY_PRESET hidden"
+-    "CMAKE_CXX_VISIBILITY_PRESET hidden"
+-    "CMAKE_POSITION_INDEPENDENT_CODE ON")
+-endif()
+-
+-if(NOT TARGET spdlog::spdlog)
+-  # https://github.com/gabime/spdlog/releases
+-  cpmaddpackage(
+-    NAME
+-    spdlog
+-    VERSION
+-    1.14.1
+-    GITHUB_REPOSITORY
+-    "gabime/spdlog"
+-    EXCLUDE_FROM_ALL ON
+-    OPTIONS
+-    "SPDLOG_INSTALL OFF"
+-    "BUILD_SHARED_LIBS OFF"
+-    "CMAKE_C_VISIBILITY_PRESET hidden"
+-    "CMAKE_CXX_VISIBILITY_PRESET hidden"
+-    "CMAKE_POSITION_INDEPENDENT_CODE ON"
+-    "SPDLOG_BUILD_SHARED OFF"
+-    "SPDLOG_FMT_EXTERNAL ON")
+-endif()
++# if(NOT TARGET fmt::fmt)
++#   # https://github.com/fmtlib/fmt/releases
++#   cpmaddpackage(
++#     NAME
++#     fmt
++#     GIT_TAG
++#     11.0.1
++#     VERSION
++#     11.0.1
++#     GITHUB_REPOSITORY
++#     "fmtlib/fmt"
++#     EXCLUDE_FROM_ALL ON
++#     OPTIONS
++#     "FMT_INSTALL OFF"
++#     # Unicode support for MSVC enabled in CompilerWarnings.cmake
++#     "FMT_UNICODE OFF"
++#     "FMT_DOC OFF"
++#     "BUILD_SHARED_LIBS OFF"
++#     "CMAKE_C_VISIBILITY_PRESET hidden"
++#     "CMAKE_CXX_VISIBILITY_PRESET hidden"
++#     "CMAKE_POSITION_INDEPENDENT_CODE ON")
++# endif()
++
++# if(NOT TARGET spdlog::spdlog)
++#   # https://github.com/gabime/spdlog/releases
++#   cpmaddpackage(
++#     NAME
++#     spdlog
++#     VERSION
++#     1.14.1
++#     GITHUB_REPOSITORY
++#     "gabime/spdlog"
++#     EXCLUDE_FROM_ALL ON
++#     OPTIONS
++#     "SPDLOG_INSTALL OFF"
++#     "BUILD_SHARED_LIBS OFF"
++#     "CMAKE_C_VISIBILITY_PRESET hidden"
++#     "CMAKE_CXX_VISIBILITY_PRESET hidden"
++#     "CMAKE_POSITION_INDEPENDENT_CODE ON"
++#     "SPDLOG_BUILD_SHARED OFF"
++#     "SPDLOG_FMT_EXTERNAL ON")
++# endif()
+ 
+ if(NOT TARGET Microsoft.GSL::GSL)
+   # https://github.com/microsoft/GSL/releases
 @@ -172,70 +172,70 @@ if(NOT TARGET taocpp::json)
  endif()
  
@@ -137,10 +228,14 @@ index f02af02..59a2b72 100644
  
  add_library(jsonsl OBJECT ${PROJECT_SOURCE_DIR}/third_party/jsonsl/jsonsl.c)
  set_target_properties(jsonsl PROPERTIES C_VISIBILITY_PRESET hidden POSITION_INDEPENDENT_CODE TRUE)
-@@ -247,5 +247,5 @@ declare_system_library(hdr_histogram_static)
+@@ -245,7 +245,7 @@ declare_system_library(snappy)
+ declare_system_library(llhttp::llhttp)
+ declare_system_library(hdr_histogram_static)
  declare_system_library(Microsoft.GSL::GSL)
- declare_system_library(spdlog::spdlog)
- declare_system_library(fmt::fmt)
+-declare_system_library(spdlog::spdlog)
+-declare_system_library(fmt::fmt)
 -declare_system_library(asio)
++# declare_system_library(spdlog::spdlog)
++# declare_system_library(fmt::fmt)
 +# declare_system_library(asio)
  declare_system_library(taocpp::json)

@@ -17,6 +17,10 @@
 
 include(FetchContent)
 
+include(fmt)
+include(Spdlog)
+include(Asio)
+
 set(COUCHBASE_CXX_CLIENT_BUILD_STATIC ON CACHE BOOL "" FORCE)
 set(COUCHBASE_CXX_CLIENT_BUILD_SHARED OFF CACHE BOOL "" FORCE)
 set(COUCHBASE_CXX_CLIENT_BUILD_TESTS OFF CACHE BOOL "" FORCE)
@@ -26,7 +30,7 @@ set(COUCHBASE_CXX_CLIENT_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
 set(COUCHBASE_CXX_CLIENT_POST_LINKED_OPENSSL ON CACHE BOOL "" FORCE)
 set(COUCHBASE_CXX_CLIENT_INSTALL OFF CACHE BOOL "" FORCE)
 
-set(PATCH_FILE "${CMAKE_SOURCE_DIR}/thirdparty/couchbase/remove-asio-build.patch")
+set(PATCH_FILE "${CMAKE_SOURCE_DIR}/thirdparty/couchbase/remove-thirdparty.patch")
 
 set(PC ${Bash_EXECUTABLE}  -c "set -x &&\
             (\\\"${Patch_EXECUTABLE}\\\" -p1 -R -s -f --dry-run -i \\\"${PATCH_FILE}\\\" || \\\"${Patch_EXECUTABLE}\\\" -p1 -N -i \\\"${PATCH_FILE}\\\")")
@@ -37,7 +41,5 @@ FetchContent_Declare(couchbase-cxx-client
     PATCH_COMMAND "${PC}"
 )
 FetchContent_MakeAvailable(couchbase-cxx-client)
-
-add_dependencies(couchbase_cxx_client_static OpenSSL::Crypto OpenSSL::SSL)
 
 set(COUCHBASE_INCLUDE_DIR "${couchbase-cxx-client_SOURCE_DIR}" CACHE STRING "" FORCE)
