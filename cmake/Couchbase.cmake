@@ -38,4 +38,6 @@ FetchContent_Declare(couchbase-cxx-client
 )
 FetchContent_MakeAvailable(couchbase-cxx-client)
 
+add_dependencies(couchbase_cxx_client_static OpenSSL::Crypto OpenSSL::SSL)
+
 set(COUCHBASE_INCLUDE_DIR "${couchbase-cxx-client_SOURCE_DIR}" CACHE STRING "" FORCE)
