@@ -18,6 +18,9 @@
 
 #include "CouchbaseClusterService.h"
 
+#include "couchbase/codec/raw_binary_transcoder.hxx"
+#include "couchbase/codec/raw_string_transcoder.hxx"
+
 #include "core/Resource.h"
 
 namespace org::apache::nifi::minifi::couchbase {
@@ -67,6 +70,39 @@ nonstd::expected<CouchbaseUpsertResult, CouchbaseErrorType> CouchbaseClient::ups
       sequence_number,
       partition_id
     };
+  }
+}
+
+nonstd::expected<CouchbaseGetResult, CouchbaseErrorType> CouchbaseClient::get(const CouchbaseCollection& collection,
+      const std::string& document_id, CouchbaseValueType return_type) {
+  auto collection_result = getCollection(collection);
+  if (!collection_result.has_value()) {
+    return nonstd::make_unexpected(collection_result.error());
+  }
+
+  ::couchbase::get_options options;
+  options.with_expiry(true);
+  auto [get_err, resp] = collection_result->get(document_id, options).get();
+  if (get_err.ec()) {
+    if (get_err.ec().value() == static_cast<int>(::couchbase::errc::common::unambiguous_timeout) || get_err.ec().value() == static_cast<int>(::couchbase::errc::common::ambiguous_timeout)) {
+      logger_->log_error("Failed to get document '{}' to collection '{}.{}.{}' due to timeout",
+        document_id, collection.bucket_name, collection.scope_name, collection.collection_name);
+      return nonstd::make_unexpected(CouchbaseErrorType::TEMPORARY);
+    }
+    std::string cause = get_err.cause() ? get_err.cause()->message() : "";
+    logger_->log_error("Failed to get document '{}' to collection '{}.{}.{}' with error code: '{}', message: '{}'",
+      document_id, collection.bucket_name, collection.scope_name, collection.collection_name, get_err.ec(), get_err.message());
+    return nonstd::make_unexpected(CouchbaseErrorType::FATAL);
+  } else {
+    CouchbaseGetResult result;
+    result.bucket_name = collection.bucket_name;
+    result.cas = resp.cas().value();
+    if (return_type == CouchbaseValueType::STRING) {
+      result.value = resp.content_as<::couchbase::codec::raw_string_transcoder>();
+    } else {
+      result.value = resp.content_as<::couchbase::codec::raw_binary_transcoder>();
+    }
+    return result;
   }
 }
 

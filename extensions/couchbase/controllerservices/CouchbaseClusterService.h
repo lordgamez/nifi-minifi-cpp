@@ -21,6 +21,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <variant>
 
 #include "core/controller/ControllerService.h"
 #include "core/PropertyDefinition.h"
@@ -29,7 +30,6 @@
 #include "couchbase/cluster.hxx"
 #include "core/ProcessContext.h"
 #include "core/logging/LoggerConfiguration.h"
-#include "couchbase/codec/raw_binary_transcoder.hxx"
 #include "couchbase/error.hxx"
 
 namespace org::apache::nifi::minifi::couchbase {
@@ -38,6 +38,12 @@ struct CouchbaseCollection {
   std::string bucket_name;
   std::string scope_name;
   std::string collection_name;
+};
+
+struct CouchbaseGetResult {
+  std::string bucket_name;
+  std::uint64_t cas{0};
+  std::variant<std::vector<std::byte>, std::string> value;
 };
 
 struct CouchbaseUpsertResult {
@@ -53,6 +59,11 @@ enum class CouchbaseErrorType {
   TEMPORARY,
 };
 
+enum class CouchbaseValueType {
+  BINARY,
+  STRING,
+};
+
 class CouchbaseClient {
  public:
   CouchbaseClient(std::string connection_string, std::string username, std::string password, const std::shared_ptr<core::logging::Logger>& logger)
@@ -61,6 +72,7 @@ class CouchbaseClient {
 
   nonstd::expected<CouchbaseUpsertResult, CouchbaseErrorType> upsert(const CouchbaseCollection& collection, const std::string& document_id, const std::vector<std::byte>& buffer,
     const ::couchbase::upsert_options& options);
+  nonstd::expected<CouchbaseGetResult, CouchbaseErrorType> get(const CouchbaseCollection& collection, const std::string& document_id, CouchbaseValueType return_type);
   std::optional<CouchbaseErrorType> establishConnection();
   void close();
 
@@ -146,6 +158,11 @@ class CouchbaseClusterService : public core::controller::ControllerService {
       const std::string& document_id, const std::vector<std::byte>& buffer, const ::couchbase::upsert_options& options) {
     gsl_Expects(client_);
     return client_->upsert(collection, document_id, buffer, options);
+  }
+
+  virtual nonstd::expected<CouchbaseGetResult, CouchbaseErrorType> get(const CouchbaseCollection& collection, const std::string& document_id, CouchbaseValueType return_type) {
+    gsl_Expects(client_);
+    return client_->get(collection, document_id, return_type);
   }
 
   static gsl::not_null<std::shared_ptr<CouchbaseClusterService>> getFromProperty(const core::ProcessContext& context, const core::PropertyReference& property);

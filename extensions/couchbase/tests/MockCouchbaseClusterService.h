@@ -30,6 +30,10 @@ struct UpsertParameters {
   std::vector<std::byte> buffer;
   ::couchbase::upsert_options options;
 };
+struct GetParameters {
+  std::string document_id;
+  CouchbaseValueType result_type;
+};
 
 class MockCouchbaseClusterService : public controllers::CouchbaseClusterService {
  public:
@@ -54,8 +58,27 @@ class MockCouchbaseClusterService : public controllers::CouchbaseClusterService 
     }
   }
 
+  nonstd::expected<CouchbaseGetResult, CouchbaseErrorType> get(const CouchbaseCollection& collection, const std::string& document_id, CouchbaseValueType result_type) override {
+    collection_ = collection;
+    get_parameters_.document_id = document_id;
+    get_parameters_.result_type = result_type;
+
+    if (get_error_) {
+      return nonstd::make_unexpected(*get_error_);
+    } else {
+      if (result_type == CouchbaseValueType::STRING) {
+        return CouchbaseGetResult{std::string(collection_.bucket_name), 1, std::string{"abc"}};
+      }
+      return CouchbaseGetResult{std::string(collection_.bucket_name), 1, std::vector<std::byte>{static_cast<std::byte>('a'), static_cast<std::byte>('b'), static_cast<std::byte>('c')}};
+    }
+  }
+
   UpsertParameters getUpsertParameters() const {
     return upsert_parameters_;
+  }
+
+  GetParameters getGetParameters() const {
+    return get_parameters_;
   }
 
   CouchbaseCollection getCollectionParameter() const {
@@ -66,9 +89,15 @@ class MockCouchbaseClusterService : public controllers::CouchbaseClusterService 
     upsert_error_ = upsert_error;
   }
 
+  void setGetError(const CouchbaseErrorType get_error) {
+    get_error_ = get_error;
+  }
+
  private:
   CouchbaseCollection collection_;
   UpsertParameters upsert_parameters_;
+  GetParameters get_parameters_;
   std::optional<CouchbaseErrorType> upsert_error_;
+  std::optional<CouchbaseErrorType> get_error_;
 };
 }  // namespace org::apache::nifi::minifi::couchbase::test
