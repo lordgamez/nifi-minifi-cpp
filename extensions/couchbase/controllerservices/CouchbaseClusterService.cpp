@@ -26,12 +26,12 @@ nonstd::expected<CouchbaseUpsertResult, std::error_code> RemoteCouchbaseCollecti
     const ::couchbase::upsert_options& options) {
   auto [err, resp] = collection_.upsert<::couchbase::codec::raw_binary_transcoder>(document_id, buffer, options).get();
   if (err.ec()) {
-    client_.error();
+    client_.setConnectionError();
     return nonstd::make_unexpected(err.ec());
   } else {
-    uint64_t partition_uuid = (resp.mutation_token().has_value() ? resp.mutation_token()->partition_uuid() : 0);
-    uint64_t sequence_number = (resp.mutation_token().has_value() ? resp.mutation_token()->sequence_number() : 0);
-    uint16_t partition_id = (resp.mutation_token().has_value() ? resp.mutation_token()->partition_id() : 0);
+    const uint64_t partition_uuid = (resp.mutation_token().has_value() ? resp.mutation_token()->partition_uuid() : 0);
+    const uint64_t sequence_number = (resp.mutation_token().has_value() ? resp.mutation_token()->sequence_number() : 0);
+    const uint16_t partition_id = (resp.mutation_token().has_value() ? resp.mutation_token()->partition_id() : 0);
     return CouchbaseUpsertResult {
       collection_.bucket_name(),
       resp.cas().value(),
@@ -39,6 +39,26 @@ nonstd::expected<CouchbaseUpsertResult, std::error_code> RemoteCouchbaseCollecti
       sequence_number,
       partition_id
     };
+  }
+}
+
+std::unique_ptr<CouchbaseCollection> CouchBaseClient::getCollection(std::string_view bucket_name, std::string_view scope_name, std::string_view collection_name) {
+  if (!establishConnection()) {
+    return nullptr;
+  }
+  return std::make_unique<RemoteCouchbaseCollection>(cluster_.bucket(bucket_name).scope(scope_name).collection(collection_name), *this);
+}
+
+void CouchBaseClient::setConnectionError() {
+  std::lock_guard<std::mutex> lock(state_mutex_);
+  state_ = State::UNKNOWN;
+}
+
+void CouchBaseClient::close() {
+  std::lock_guard<std::mutex> lock(state_mutex_);
+  if (state_ == State::CONNECTED || state_ == State::UNKNOWN) {
+    cluster_.close().wait();
+    state_ = State::DISCONNECTED;
   }
 }
 

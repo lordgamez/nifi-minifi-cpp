@@ -23,7 +23,6 @@
 #include <utility>
 
 #include "core/controller/ControllerService.h"
-// #include "controllers/SSLContextService.h"
 #include "core/PropertyDefinition.h"
 #include "core/PropertyDefinitionBuilder.h"
 #include "core/PropertyType.h"
@@ -63,25 +62,9 @@ class CouchBaseClient {
     : connection_string_(std::move(connection_string)), username_(std::move(username)), password_(std::move(password)), logger_(logger) {
   }
 
-  std::unique_ptr<CouchbaseCollection> getCollection(std::string_view bucket_name, std::string_view scope_name, std::string_view collection_name) {
-    if (!establishConnection()) {
-      return nullptr;
-    }
-    return std::make_unique<RemoteCouchbaseCollection>(cluster_.bucket(bucket_name).scope(scope_name).collection(collection_name), *this);
-  }
-
-  void error() {
-    std::lock_guard<std::mutex> lock(state_mutex_);
-    state_ = State::UNKNOWN;
-  }
-
-  void close() {
-    std::lock_guard<std::mutex> lock(state_mutex_);
-    if (state_ == State::CONNECTED || state_ == State::UNKNOWN) {
-      cluster_.close().wait();
-      state_ = State::DISCONNECTED;
-    }
-  }
+  std::unique_ptr<CouchbaseCollection> getCollection(std::string_view bucket_name, std::string_view scope_name, std::string_view collection_name);
+  void setConnectionError();
+  void close();
 
  private:
   bool establishConnection();
