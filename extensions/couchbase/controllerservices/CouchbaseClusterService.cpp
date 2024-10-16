@@ -136,8 +136,7 @@ nonstd::expected<void, CouchbaseErrorType> CouchbaseClient::establishConnection(
     return {};
   }
 
-  auto options = ::couchbase::cluster_options(username_, password_);
-  auto [connect_err, cluster] = ::couchbase::cluster::connect(connection_string_, options).get();
+  auto [connect_err, cluster] = ::couchbase::cluster::connect(connection_string_, cluster_options_).get();
   if (connect_err.ec()) {
     logger_->log_error("Failed to connect to Couchbase cluster with error code: '{}' and message: '{}'", connect_err.ec(), connect_err.message());
     return nonstd::make_unexpected(getErrorType(connect_err.ec()));
@@ -159,11 +158,28 @@ void CouchbaseClusterService::onEnable() {
   getProperty(UserName, username);
   std::string password;
   getProperty(UserPassword, password);
-  if (connection_string.empty() || username.empty() || password.empty()) {
-    throw minifi::Exception(ExceptionType::PROCESS_SCHEDULE_EXCEPTION, "Missing connection string, username or password");
+  if (connection_string.empty()) {
+    throw minifi::Exception(ExceptionType::PROCESS_SCHEDULE_EXCEPTION, "Missing connection string");
   }
 
-  client_ = std::make_unique<CouchbaseClient>(connection_string, username, password, logger_);
+  if ((username.empty() || password.empty()) && linked_services_.size() == 0) {
+    throw minifi::Exception(ExceptionType::PROCESS_SCHEDULE_EXCEPTION, "Missing username and password or SSLConextService as a linked service");
+  }
+
+  if ((!username.empty() && !password.empty()) && linked_services_.size() > 0) {
+    throw minifi::Exception(ExceptionType::PROCESS_SCHEDULE_EXCEPTION, "Either username and password or SSLConextService as a linked service should be provided exclusively for authentication");
+  }
+
+  if (linked_services_.size() > 0) {
+    auto ssl_context_service = std::dynamic_pointer_cast<minifi::controllers::SSLContextService>(linked_services_[0]);
+    if (!ssl_context_service) {
+      throw minifi::Exception(ExceptionType::PROCESS_SCHEDULE_EXCEPTION, "Linked service is not an SSLContextService");
+    }
+    client_ = std::make_unique<CouchbaseClient>(connection_string, *ssl_context_service, logger_);
+  } else {
+    client_ = std::make_unique<CouchbaseClient>(connection_string, username, password, logger_);
+  }
+
   auto result = client_->establishConnection();
   if (!result) {
     if (result.error() == CouchbaseErrorType::FATAL) {
