@@ -1,4 +1,3 @@
-#
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,25 +14,21 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-#
 
-if (WIN32 OR NOT (ENABLE_ALL OR ENABLE_GPS))
-    return()
-endif()
+function(get_rocksdb SOURCE_DIR BINARY_DIR)
+    if(MINIFI_ROCKSDB_SOURCE STREQUAL "CONAN")
+        message("Using Conan to install RocksDB")
+        find_package(RocksDB REQUIRED)
+        add_library(RocksDB::RocksDB ALIAS RocksDB::rocksdb)
+    elseif(MINIFI_ROCKSDB_SOURCE STREQUAL "BUILD")
+        message("Using CMake to build RocksDB from source")
 
-include(${CMAKE_SOURCE_DIR}/extensions/ExtensionHeader.txt)
-
-find_package(LibGPS REQUIRED)
-
-include_directories(${LIBGPS_INCLUDE_DIRS})
-
-file(GLOB SOURCES  "*.cpp")
-
-add_minifi_library(minifi-gps SHARED ${SOURCES})
-
-# Include UUID
-target_link_libraries(minifi-gps ${LIBMINIFI} )
-target_link_libraries(minifi-gps ${LIBGPS_LIBRARIES})
-
-register_extension(minifi-gps "GPS EXTENSIONS" GPS-EXTENSION "Enables LibGPS Functionality and the GetGPS processor." "extensions/gps/tests")
-register_extension_linter(minifi-gps-linter)
+        if (BUILD_ROCKSDB)
+            include(BundledRocksDB)
+            use_bundled_rocksdb(${SOURCE_DIR} ${BINARY_DIR})
+        else()
+            list(APPEND CMAKE_MODULE_PATH "${SOURCE_DIR}/cmake/rocksdb/sys")
+            find_package(RocksDB REQUIRED)
+        endif()
+    endif()
+endfunction(get_rocksdb SOURCE_DIR BINARY_DIR)

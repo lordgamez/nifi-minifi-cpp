@@ -77,7 +77,6 @@ The next table outlines CMAKE flags that correspond with MiNiFi extensions. Exte
 | CivetWeb                         | [ListenHTTP](PROCESSORS.md#listenhttp)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | -DENABLE_CIVET=ON            |
 | Elasticsearch                    | [ElasticsearchCredentialsControllerService](CONTROLLERS.md#elasticsearchcredentialscontrollerservice)<br/>[PostElasticsearch](PROCESSORS.md#postelasticsearch)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | -DENABLE_ELASTICSEARCH=ON    |
 | ExecuteProcess (Linux and macOS) | [ExecuteProcess](PROCESSORS.md#executeprocess)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | -DENABLE_EXECUTE_PROCESS=ON  |
-| GPS (Linux and macOS)            | [GetGPS](PROCESSORS.md#getgps)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | -DENABLE_GPS=ON              |
 | Google Cloud Platform            | [DeleteGCSObject](PROCESSORS.md#deletegcsobject)<br>[FetchGCSObject](PROCESSORS.md#fetchgcsobject)<br>[GCPCredentialsControllerService](CONTROLLERS.md#gcpcredentialscontrollerservice)<br>[ListGCSBucket](PROCESSORS.md#listgcsbucket)<br>[PutGCSObject](PROCESSORS.md#putgcsobject)                                                                                                                                                                                                                                                                                                                                                           | -DENABLE_GCP=ON              |
 | Grafana Loki                     | [PushGrafanaLokiREST](PROCESSORS.md#pushgrafanalokirest)<br>[PushGrafanaLokiGrpc](PROCESSORS.md#pushgrafanalokigrpc)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | -DENABLE_GRAFANA_LOKI=ON     |
 | Kafka                            | [PublishKafka](PROCESSORS.md#publishkafka)<br>[ConsumeKafka](PROCESSORS.md#consumekafka)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | -DENABLE_LIBRDKAFKA=ON       |
@@ -138,7 +137,6 @@ and rebuild.
 
 #### System Libraries / Development Headers Required
 * Python 3 and development headers -- Required if Python support is enabled
-* libgps-dev -- Required if building libGPS support
 * perl -- Required for OpenSSL configuration
 * NASM -- Required for OpenSSL only on Windows
 * jom (optional) -- for parallel build of OpenSSL on Windows
@@ -206,8 +204,6 @@ dnf install python36-devel
 dnf install docker
 # (Optional) for system integration tests
 dnf install docker python-virtualenv
-# If building with GPS support
-dnf install gpsd-devel
 ```
 
 ##### Aptitude based Linux Distributions
@@ -235,8 +231,6 @@ apt install libpython3-dev
 apt install docker.io
 # (Optional) for system integration tests
 apt install docker.io python-virtualenv
-# (Optional) If building with GPS support
-apt install libgps-dev
 ```
 
 ##### macOS Using Homebrew (with XCode Command Line Tools installed)
@@ -260,8 +254,6 @@ brew link curl --force
 # (Optional) for building docker image/running system integration tests
 # Install docker using instructions at https://docs.docker.com/docker-for-mac/install/
 sudo pip install virtualenv
-# If building with GPS support
-brew install gpsd
 # It is recommended that you install bison from source as HomeBrew now uses an incompatible version of Bison
 ```
 
@@ -327,7 +319,6 @@ This will set up a virtual environment in the bootstrap folder, and guide you th
     D. Python Scripting support ....Enabled
     E. Expression Language support .Enabled
     F. Kafka support ...............Enabled
-    I. GPS support .................Disabled
     K. Bustache Support ............Disabled
     L. Lua Scripting Support .......Enabled
     M. MQTT Support ................Enabled
@@ -366,6 +357,8 @@ This will set up a virtual environment in the bootstrap folder, and guide you th
 advanced features.
 
 ### Building
+
+#### Build MiNiFi using Standalone CMake
 
 - From your source checkout, create a directory to perform the build (e.g. build) and cd into that directory.
   ```
@@ -412,6 +405,8 @@ advanced features.
   [100%] Built target run-tests
   ```
 
+#### Create MiNiFi Package using Standalone CMake
+
 - Create a binary assembly located in your build directory with suffix .tar.gz
   ```
   ~/Development/code/apache/nifi-minifi-cpp/build
@@ -435,6 +430,11 @@ advanced features.
   CPack: Create package
   CPack: - package: ~/Development/code/apache/nifi-minifi-cpp/build/nifi-minifi-cpp-0.99.0-source.tar.gz generated.
   ```
+
+#### Build MiNiFi & Create MiNiFi Package using Conan v2
+
+Building MiNiFi and creating MiNiFi package supporting a portion of the extensions has been tested with Conan version 2 using VS code as an alternative to standalone CMake. By building MiNiFi using prebuilt conan packages for the external libraries as an alternative to CMake building the sources of those external libraries, we maybe able to speed up MiNiFi builds. Additionally, by creating a MiNiFi package as a conan package, it should be easier to integrate MiNiFi library and its executables into other C++
+project infrastructure to build out data pipelines on the edge. For instance, once we create the MiNiFi conan package, we can upload it to jfrog, conancenter or some other supported conan cloud repository and then download the prebuilt MiNiFi conan package to our new C++ project by adding it to our conanfile. For more details on the conan commands to build MiNiFi and create a MiNiFi conan package, see [CONAN.md](CONAN.md).
 
 ### Building a docker image
 
