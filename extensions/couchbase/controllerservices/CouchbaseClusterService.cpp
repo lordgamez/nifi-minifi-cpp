@@ -26,26 +26,48 @@
 
 namespace org::apache::nifi::minifi::couchbase {
 
-CouchbaseClient::CouchbaseClient(std::string connection_string, std::string username, std::string password, const std::shared_ptr<core::logging::Logger>& logger)
-    : connection_string_(std::move(connection_string)), cluster_options_(std::move(username), std::move(password)), logger_(logger) {
-  // cluster_options_.security().trust_certificate("/tmp/resources/root_ca.crt");
+CouchbaseClient::CouchbaseClient(std::string connection_string, std::string username, std::string password, minifi::controllers::SSLContextService* ssl_context_service,
+  const std::shared_ptr<core::logging::Logger>& logger)
+    : connection_string_(std::move(connection_string)), logger_(logger), cluster_options_(buildClusterOptions(std::move(username), std::move(password), ssl_context_service)) {
 }
 
-CouchbaseClient::CouchbaseClient(std::string connection_string, minifi::controllers::SSLContextService& ssl_context_service, const std::shared_ptr<core::logging::Logger>& logger)
-    : connection_string_(std::move(connection_string)),
-      cluster_options_(::couchbase::certificate_authenticator(ssl_context_service.getCertificateFile().string(), ssl_context_service.getPrivateKeyFile().string())),
-      logger_(logger) {
-  logger_->log_debug("Setting Couchbase client SSL key file path to '{}'", ssl_context_service.getPrivateKeyFile().string());
-  logger_->log_debug("Setting Couchbase client certificate file path to '{}'", ssl_context_service.getCertificateFile().string());
-  if (ssl_context_service.getPrivateKeyFile().empty() || ssl_context_service.getCertificateFile().empty()) {
+::couchbase::cluster_options CouchbaseClient::buildClusterOptions(std::string username, std::string password, minifi::controllers::SSLContextService* ssl_context_service) {
+  if (username.empty() && (!ssl_context_service || (ssl_context_service && ssl_context_service->getCertificateFile().empty()))) {
+    throw minifi::Exception(ExceptionType::PROCESS_SCHEDULE_EXCEPTION, "Neither username and password nor SSLContextService is provided for Couchbase authentication");
+  }
+
+  if (!username.empty() && ssl_context_service && !ssl_context_service->getCertificateFile().empty()) {
+    throw minifi::Exception(ExceptionType::PROCESS_SCHEDULE_EXCEPTION, "Username and password authentication or mTLS authentication using certificate defined in SSLConextService "
+      "linked service should be provided exclusively for Couchbase");
+  }
+
+  if (!username.empty()) {
+    logger_->log_debug("Using username and password authentication for Couchbase server");
+    if (password.empty()) {
+      throw minifi::Exception(ExceptionType::PROCESS_SCHEDULE_EXCEPTION, "Password missing for Couchbase server authentication");
+    }
+    ::couchbase::cluster_options cluster_options(std::move(username), std::move(password));
+    if (ssl_context_service && !ssl_context_service->getCACertificate().empty()) {
+      logger_->log_debug("Setting Couchbase client CA certificate path to '{}'", ssl_context_service->getCACertificate().string());
+      cluster_options.security().trust_certificate(ssl_context_service->getCertificateFile().string());
+    }
+    return cluster_options;
+  }
+
+  logger_->log_debug("Using mTLS authentication for Couchbase server");
+  logger_->log_debug("Setting Couchbase client SSL key file path to '{}'", ssl_context_service->getPrivateKeyFile().string());
+  logger_->log_debug("Setting Couchbase client certificate file path to '{}'", ssl_context_service->getCertificateFile().string());
+  if (ssl_context_service->getPrivateKeyFile().empty() || ssl_context_service->getCertificateFile().empty()) {
     throw minifi::Exception(ExceptionType::PROCESS_SCHEDULE_EXCEPTION, "Couchbase client private key path or client certificate path is empty");
   }
 
-  if (!ssl_context_service.getCACertificate().empty()) {
-    logger_->log_debug("Setting Couchbase client CA certificate path to '{}'", ssl_context_service.getCACertificate().string());
-    cluster_options_.security().trust_certificate(ssl_context_service.getCertificateFile().string());
+  ::couchbase::cluster_options cluster_options(::couchbase::certificate_authenticator(ssl_context_service->getCertificateFile().string(), ssl_context_service->getPrivateKeyFile().string()));
+  if (!ssl_context_service->getCACertificate().empty()) {
+    logger_->log_debug("Setting Couchbase client CA certificate path to '{}'", ssl_context_service->getCACertificate().string());
+    cluster_options.security().trust_certificate(ssl_context_service->getCertificateFile().string());
   }
-  cluster_options_.security().tls_verify(::couchbase::tls_verify_mode::peer);
+  cluster_options.security().tls_verify(::couchbase::tls_verify_mode::peer);
+  return cluster_options;
 }
 
 CouchbaseErrorType CouchbaseClient::getErrorType(const std::error_code& error_code) {
@@ -188,19 +210,15 @@ void CouchbaseClusterService::onEnable() {
     throw minifi::Exception(ExceptionType::PROCESS_SCHEDULE_EXCEPTION, "Missing username and password or SSLConextService as a linked service");
   }
 
-  if ((!username.empty() && !password.empty()) && linked_services_.size() > 0) {
-    throw minifi::Exception(ExceptionType::PROCESS_SCHEDULE_EXCEPTION, "Either username and password or SSLConextService as a linked service should be provided exclusively for authentication");
-  }
-
+  minifi::controllers::SSLContextService* ssl_context_service_ptr = nullptr;
   if (linked_services_.size() > 0) {
     auto ssl_context_service = std::dynamic_pointer_cast<minifi::controllers::SSLContextService>(linked_services_[0]);
     if (!ssl_context_service) {
       throw minifi::Exception(ExceptionType::PROCESS_SCHEDULE_EXCEPTION, "Linked service is not an SSLContextService");
     }
-    client_ = std::make_unique<CouchbaseClient>(connection_string, *ssl_context_service, logger_);
-  } else {
-    client_ = std::make_unique<CouchbaseClient>(connection_string, username, password, logger_);
+    ssl_context_service_ptr = ssl_context_service.get();
   }
+  client_ = std::make_unique<CouchbaseClient>(connection_string, username, password, ssl_context_service_ptr, logger_);
 
   auto result = client_->establishConnection();
   if (!result) {

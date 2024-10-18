@@ -174,7 +174,35 @@ Feature: Executing Couchbase operations from MiNiFi-C++
 
   #   Then the Minifi logs contain the following message: "Failed to get content for document 'test_doc_id' from collection 'test_bucket._default._default' with the following exception: 'raw_binary_transcoder expects document to have BINARY common flags" in less than 60 seconds
 
-  Scenario: A MiNiFi instance can get data from test bucket with GetCouchbaseKey processor using SSL
+  Scenario: A MiNiFi instance can get data from test bucket with GetCouchbaseKey processor using SSL connection
+    Given a GetFile processor with the "Input Directory" property set to "/tmp/input"
+    And a file with the content '{"field1": "value1", "field2": "value2"}' is present in '/tmp/input'
+    And a PutCouchbaseKey processor with the "Bucket Name" property set to "test_bucket"
+    And the "Document Id" property of the PutCouchbaseKey processor is set to "test_doc_id"
+    And the "Couchbase Cluster Controller Service" property of the PutCouchbaseKey processor is set to "CouchbaseClusterService"
+    And a GetCouchbaseKey processor with the "Bucket Name" property set to "test_bucket"
+    And the "Document Id" property of the GetCouchbaseKey processor is set to "test_doc_id"
+    And the "Couchbase Cluster Controller Service" property of the GetCouchbaseKey processor is set to "CouchbaseClusterService"
+    And a PutFile processor with the "Directory" property set to "/tmp/output"
+    And a LogAttribute processor with the "FlowFiles To Log" property set to "0"
+    And a CouchbaseClusterService is setup up with SSL connection with the name "CouchbaseClusterService"
+
+    And the "success" relationship of the GetFile processor is connected to the PutCouchbaseKey
+    And the "success" relationship of the PutCouchbaseKey processor is connected to the GetCouchbaseKey
+    And the "success" relationship of the GetCouchbaseKey processor is connected to the PutFile
+    And the "success" relationship of the PutFile processor is connected to the LogAttribute
+
+    When a Couchbase server with SSL is started
+    And all instances start up
+
+    Then a flowfile with the JSON content '{"field1": "value1", "field2": "value2"}' is placed in the monitored directory in less than 6000 seconds
+    And the Minifi logs contain the following message: "key:couchbase.bucket value:test_bucket" in less than 10 seconds
+    And the Minifi logs contain the following message: "key:couchbase.doc.id value:test_doc_id" in less than 1 seconds
+    And the Minifi logs match the following regex: "key:couchbase.doc.cas value:[1-9][0-9]*" in less than 1 seconds
+    And the Minifi logs match the following regex: "key:couchbase.doc.expiry value:\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}" in less than 1 seconds
+
+
+  Scenario: A MiNiFi instance can get data from test bucket with GetCouchbaseKey processor using mTLS authentication
     Given a GetFile processor with the "Input Directory" property set to "/tmp/input"
     And a file with the content '{"field1": "value1", "field2": "value2"}' is present in '/tmp/input'
     And a PutCouchbaseKey processor with the "Bucket Name" property set to "test_bucket"

@@ -25,6 +25,6 @@ class CouchbaseClusterService(ControllerService):
         self.properties['Connection String'] = connection_string
         if ssl_context_service:
             self.linked_services.append(ssl_context_service)
-        else:
+        if ssl_context_service and 'Client Certificate' not in ssl_context_service.properties:
             self.properties['User Name'] = "Administrator"
             self.properties['User Password'] = "password123"

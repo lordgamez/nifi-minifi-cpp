@@ -1373,8 +1373,21 @@ def step_impl(context):
 def step_impl(context, service_name):
     couchbase_cluster_controller_service = CouchbaseClusterService(
         name=service_name,
-        connection_string="couchbases://{server_hostname}".format(server_hostname=context.test.get_container_name_with_postfix("couchbase-server")))
+        connection_string="couchbase://{server_hostname}".format(server_hostname=context.test.get_container_name_with_postfix("couchbase-server")))
     container = context.test.acquire_container(context=context, name="minifi-cpp-flow")
+    container.add_controller(couchbase_cluster_controller_service)
+
+
+@given("a CouchbaseClusterService is setup up with SSL connection with the name \"{service_name}\"")
+def step_impl(context, service_name):
+    ssl_context_service = SSLContextService(name="SSLContextService",
+                                            ca_cert='/tmp/resources/root_ca.crt')
+    container = context.test.acquire_container(context=context, name="minifi-cpp-flow")
+    container.add_controller(ssl_context_service)
+    couchbase_cluster_controller_service = CouchbaseClusterService(
+        name=service_name,
+        connection_string="couchbases://{server_hostname}".format(server_hostname=context.test.get_container_name_with_postfix("couchbase-server")),
+        ssl_context_service=ssl_context_service)
     container.add_controller(couchbase_cluster_controller_service)
 
 
