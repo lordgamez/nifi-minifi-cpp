@@ -26,6 +26,28 @@
 
 namespace org::apache::nifi::minifi::couchbase {
 
+CouchbaseClient::CouchbaseClient(std::string connection_string, std::string username, std::string password, const std::shared_ptr<core::logging::Logger>& logger)
+    : connection_string_(std::move(connection_string)), cluster_options_(std::move(username), std::move(password)), logger_(logger) {
+  // cluster_options_.security().trust_certificate("/tmp/resources/root_ca.crt");
+}
+
+CouchbaseClient::CouchbaseClient(std::string connection_string, minifi::controllers::SSLContextService& ssl_context_service, const std::shared_ptr<core::logging::Logger>& logger)
+    : connection_string_(std::move(connection_string)),
+      cluster_options_(::couchbase::certificate_authenticator(ssl_context_service.getCertificateFile().string(), ssl_context_service.getPrivateKeyFile().string())),
+      logger_(logger) {
+  logger_->log_debug("Setting Couchbase client SSL key file path to '{}'", ssl_context_service.getPrivateKeyFile().string());
+  logger_->log_debug("Setting Couchbase client certificate file path to '{}'", ssl_context_service.getCertificateFile().string());
+  if (ssl_context_service.getPrivateKeyFile().empty() || ssl_context_service.getCertificateFile().empty()) {
+    throw minifi::Exception(ExceptionType::PROCESS_SCHEDULE_EXCEPTION, "Couchbase client private key path or client certificate path is empty");
+  }
+
+  if (!ssl_context_service.getCACertificate().empty()) {
+    logger_->log_debug("Setting Couchbase client CA certificate path to '{}'", ssl_context_service.getCACertificate().string());
+    cluster_options_.security().trust_certificate(ssl_context_service.getCertificateFile().string());
+  }
+  cluster_options_.security().tls_verify(::couchbase::tls_verify_mode::peer);
+}
+
 CouchbaseErrorType CouchbaseClient::getErrorType(const std::error_code& error_code) {
   for (const auto& temporary_error : temporary_connection_errors) {
     if (static_cast<int>(temporary_error) == error_code.value()) {

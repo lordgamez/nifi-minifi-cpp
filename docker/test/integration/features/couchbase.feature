@@ -186,6 +186,7 @@ Feature: Executing Couchbase operations from MiNiFi-C++
     And a PutFile processor with the "Directory" property set to "/tmp/output"
     And a LogAttribute processor with the "FlowFiles To Log" property set to "0"
     And a CouchbaseClusterService is setup up using mTLS authentication with the name "CouchbaseClusterService"
+    # And a CouchbaseClusterService is setup up with the name "CouchbaseClusterService"
 
     And the "success" relationship of the GetFile processor is connected to the PutCouchbaseKey
     And the "success" relationship of the PutCouchbaseKey processor is connected to the GetCouchbaseKey

@@ -31,20 +31,21 @@ class CouchbaseServerContainer(Container):
         super().__init__(feature_context, name, engine, vols, network, image_store, command)
         couchbase_cert, couchbase_key = make_server_cert(f"couchbase-server-{feature_context.id}", feature_context.root_ca_cert, feature_context.root_ca_key)
 
-        self.root_ca_file = tempfile.NamedTemporaryFile(delete=False)
-        self.root_ca_file.write(OpenSSL.crypto.dump_certificate(type=OpenSSL.crypto.FILETYPE_PEM, cert=feature_context.root_ca_cert))
-        self.root_ca_file.close()
-        os.chmod(self.root_ca_file.name, 0o700)
+        if self.ssl:
+            self.root_ca_file = tempfile.NamedTemporaryFile(delete=False)
+            self.root_ca_file.write(OpenSSL.crypto.dump_certificate(type=OpenSSL.crypto.FILETYPE_PEM, cert=feature_context.root_ca_cert))
+            self.root_ca_file.close()
+            os.chmod(self.root_ca_file.name, 0o700)
 
-        self.couchbase_cert_file = tempfile.NamedTemporaryFile(delete=False)
-        self.couchbase_cert_file.write(OpenSSL.crypto.dump_certificate(type=OpenSSL.crypto.FILETYPE_PEM, cert=couchbase_cert))
-        self.couchbase_cert_file.close()
-        os.chmod(self.couchbase_cert_file.name, 0o700)
+            self.couchbase_cert_file = tempfile.NamedTemporaryFile(delete=False)
+            self.couchbase_cert_file.write(OpenSSL.crypto.dump_certificate(type=OpenSSL.crypto.FILETYPE_PEM, cert=couchbase_cert))
+            self.couchbase_cert_file.close()
+            os.chmod(self.couchbase_cert_file.name, 0o700)
 
-        self.couchbase_key_file = tempfile.NamedTemporaryFile(delete=False)
-        self.couchbase_key_file.write(OpenSSL.crypto.dump_privatekey(type=OpenSSL.crypto.FILETYPE_PEM, pkey=couchbase_key))
-        self.couchbase_key_file.close()
-        os.chmod(self.couchbase_key_file.name, 0o700)
+            self.couchbase_key_file = tempfile.NamedTemporaryFile(delete=False)
+            self.couchbase_key_file.write(OpenSSL.crypto.dump_privatekey(type=OpenSSL.crypto.FILETYPE_PEM, pkey=couchbase_key))
+            self.couchbase_key_file.close()
+            os.chmod(self.couchbase_key_file.name, 0o700)
 
     def get_startup_finished_log_entry(self):
         # after startup the logs are only available in the container, only this message is shown
@@ -59,7 +60,9 @@ class CouchbaseServerContainer(Container):
             ["couchbase-cli", "cluster-init", "-c", "localhost", "--cluster-username", "Administrator", "--cluster-password", "password123", "--services", "data,index,query",
              "--cluster-ramsize", "2048", "--cluster-index-ramsize", "256"],
             ["couchbase-cli", "bucket-create", "-c", "localhost", "--username", "Administrator", "--password", "password123", "--bucket", "test_bucket", "--bucket-type", "couchbase",
-             "--bucket-ramsize", "1024", "--max-ttl", "36000"]
+             "--bucket-ramsize", "1024", "--max-ttl", "36000"],
+            ["couchbase-cli", "user-manage", "-c", "localhost", "-u", "Administrator", "-p", "password123", "--set", "--rbac-username", "clientuser", "--rbac-password", "password123",
+             "--roles", "data_reader[test_bucket],data_writer[test_bucket]", "--auth-domain", "local"]
         ]
         for command in commands:
             (code, _) = self.client.containers.get(self.name).exec_run(command)

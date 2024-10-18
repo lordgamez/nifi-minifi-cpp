@@ -110,7 +110,7 @@ def make_self_signed_cert(common_name):
     return ca_cert, ca_key
 
 
-def _make_cert(common_name, ca_cert, ca_key, extended_key_usage=None):
+def _make_cert(common_name, ca_cert, ca_key, extended_key_usage=None, use_subject_alt_name_dns=True):
     key = crypto.PKey()
     key.generate_key(crypto.TYPE_RSA, 2048)
 
@@ -126,15 +126,16 @@ def _make_cert(common_name, ca_cert, ca_key, extended_key_usage=None):
         crypto.X509Extension(b"subjectKeyIdentifier", False, b"hash", subject=cert),
     ])
 
-    extensions = [crypto.X509Extension(b"authorityKeyIdentifier", False, b"keyid:always", issuer=ca_cert),
+    extensions = [crypto.X509Extension(b"authorityKeyIdentifier", False, b"keyid,issuer:always", issuer=ca_cert),
                   crypto.X509Extension(b"keyUsage", False, b"digitalSignature")]
 
     if extended_key_usage:
         extensions.append(crypto.X509Extension(b"extendedKeyUsage", False, extended_key_usage))
 
-    cert.add_extensions([
-        crypto.X509Extension(b"subjectAltName", False, b"DNS.1:" + common_name.encode())
-    ])
+    if use_subject_alt_name_dns:
+        cert.add_extensions([
+            crypto.X509Extension(b"subjectAltName", False, b"DNS.1:" + common_name.encode())
+        ])
 
     cert.add_extensions(extensions)
 
@@ -149,8 +150,8 @@ def _make_cert(common_name, ca_cert, ca_key, extended_key_usage=None):
     return cert, key
 
 
-def make_client_cert(common_name, ca_cert, ca_key):
-    return _make_cert(common_name=common_name, ca_cert=ca_cert, ca_key=ca_key, extended_key_usage=b"clientAuth")
+def make_client_cert(common_name, ca_cert, ca_key, use_subject_alt_name_dns=True):
+    return _make_cert(common_name=common_name, ca_cert=ca_cert, ca_key=ca_key, extended_key_usage=b"clientAuth", use_subject_alt_name_dns=use_subject_alt_name_dns)
 
 
 def make_server_cert(common_name, ca_cert, ca_key):

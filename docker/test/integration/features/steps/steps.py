@@ -1373,7 +1373,7 @@ def step_impl(context):
 def step_impl(context, service_name):
     couchbase_cluster_controller_service = CouchbaseClusterService(
         name=service_name,
-        connection_string="couchbase://{server_hostname}".format(server_hostname=context.test.get_container_name_with_postfix("couchbase-server")))
+        connection_string="couchbases://{server_hostname}".format(server_hostname=context.test.get_container_name_with_postfix("couchbase-server")))
     container = context.test.acquire_container(context=context, name="minifi-cpp-flow")
     container.add_controller(couchbase_cluster_controller_service)
 
@@ -1385,8 +1385,8 @@ def step_impl(context, doc_id: str, bucket_name: str, data: str, data_type: str)
 
 @given("a CouchbaseClusterService is setup up using mTLS authentication with the name \"{service_name}\"")
 def step_impl(context, service_name):
-    ssl_context_service = SSLContextService(cert='/tmp/resources/minifi_client.crt',
-                                            key='/tmp/resources/minifi_client.key',
+    ssl_context_service = SSLContextService(cert='/tmp/resources/clientuser.crt',
+                                            key='/tmp/resources/clientuser.key',
                                             ca_cert='/tmp/resources/root_ca.crt')
     container = context.test.acquire_container(context=context, name="minifi-cpp-flow")
     container.add_controller(ssl_context_service)

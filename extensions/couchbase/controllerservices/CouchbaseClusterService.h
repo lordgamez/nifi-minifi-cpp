@@ -69,19 +69,8 @@ enum class CouchbaseErrorType {
 
 class CouchbaseClient {
  public:
-  CouchbaseClient(std::string connection_string, std::string username, std::string password, const std::shared_ptr<core::logging::Logger>& logger)
-    : connection_string_(std::move(connection_string)), cluster_options_(std::move(username), std::move(password)), logger_(logger) {
-  }
-
-  CouchbaseClient(std::string connection_string, controllers::SSLContextService& ssl_context_service, const std::shared_ptr<core::logging::Logger>& logger)
-    : connection_string_(std::move(connection_string)),
-      cluster_options_(::couchbase::certificate_authenticator(ssl_context_service.getCertificateFile().string(), ssl_context_service.getPrivateKeyFile().string())),
-      logger_(logger) {
-    if (!ssl_context_service.getCACertificate().empty()) {
-      cluster_options_.security().trust_certificate(ssl_context_service.getCertificateFile().string());
-    }
-    cluster_options_.security().tls_verify(::couchbase::tls_verify_mode::peer);
-  }
+  CouchbaseClient(std::string connection_string, std::string username, std::string password, const std::shared_ptr<core::logging::Logger>& logger);
+  CouchbaseClient(std::string connection_string, controllers::SSLContextService& ssl_context_service, const std::shared_ptr<core::logging::Logger>& logger);
 
   nonstd::expected<CouchbaseUpsertResult, CouchbaseErrorType> upsert(const CouchbaseCollection& collection, CouchbaseValueType document_type, const std::string& document_id,
     const std::vector<std::byte>& buffer, const ::couchbase::upsert_options& options);
