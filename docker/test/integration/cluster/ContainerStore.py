@@ -311,6 +311,15 @@ class ContainerStore:
                                                                        network=self.network,
                                                                        image_store=self.image_store,
                                                                        command=command))
+        elif engine == "couchbase-server-ssl":
+            return self.containers.setdefault(container_name,
+                                              CouchbaseServerContainer(feature_context=feature_context,
+                                                                       name=container_name,
+                                                                       vols=self.vols,
+                                                                       network=self.network,
+                                                                       image_store=self.image_store,
+                                                                       command=command,
+                                                                       ssl=True))
         else:
             raise Exception('invalid flow engine: \'%s\'' % engine)
 
