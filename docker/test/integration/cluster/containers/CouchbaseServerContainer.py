@@ -34,23 +34,50 @@ class CouchbaseServerContainer(Container):
         self.root_ca_file = tempfile.NamedTemporaryFile(delete=False)
         self.root_ca_file.write(OpenSSL.crypto.dump_certificate(type=OpenSSL.crypto.FILETYPE_PEM, cert=feature_context.root_ca_cert))
         self.root_ca_file.close()
-        os.chmod(self.root_ca_file.name, 0o700)
+        os.chmod(self.root_ca_file.name, 0o666)
 
         self.couchbase_cert_file = tempfile.NamedTemporaryFile(delete=False)
         self.couchbase_cert_file.write(OpenSSL.crypto.dump_certificate(type=OpenSSL.crypto.FILETYPE_PEM, cert=couchbase_cert))
         self.couchbase_cert_file.close()
-        os.chmod(self.couchbase_cert_file.name, 0o700)
+        os.chmod(self.couchbase_cert_file.name, 0o666)
 
         self.couchbase_key_file = tempfile.NamedTemporaryFile(delete=False)
         self.couchbase_key_file.write(OpenSSL.crypto.dump_privatekey(type=OpenSSL.crypto.FILETYPE_PEM, pkey=couchbase_key))
         self.couchbase_key_file.close()
-        os.chmod(self.couchbase_key_file.name, 0o700)
+        os.chmod(self.couchbase_key_file.name, 0o666)
 
     def get_startup_finished_log_entry(self):
         # after startup the logs are only available in the container, only this message is shown
         return "logs available in"
 
+    @retry_check(12, 5)
+    def _run_couchbase_cli_command(self, command):
+        (code, _) = self.client.containers.get(self.name).exec_run(command)
+        if code != 0:
+            logging.error(f"Failed to run command '{command}', returned error code: {code}")
+            return False
+        return True
+
+    def _run_couchbase_cli_commands(self, commands):
+        for command in commands:
+            if not self._run_couchbase_cli_command(command):
+                return False
+        return True
+
     @retry_check(15, 2)
+    def _load_couchbase_certs(self):
+        response = requests.post("http://localhost:8091/node/controller/loadTrustedCAs", auth=HTTPBasicAuth("Administrator", "password123"))
+        if response.status_code != 200:
+            logging.error(f"Failed to load CA certificates, with status code: {response.status_code}")
+            return False
+
+        response = requests.post("http://localhost:8091/node/controller/reloadCertificate", auth=HTTPBasicAuth("Administrator", "password123"))
+        if response.status_code != 200:
+            logging.error(f"Failed to reload certificates, with status code: {response.status_code}")
+            return False
+
+        return True
+
     def run_post_startup_commands(self):
         if self.post_startup_commands_finished:
             return True
@@ -65,20 +92,10 @@ class CouchbaseServerContainer(Container):
             ["bash", "-c", 'tee /tmp/auth.json <<< \'{"state": "enable", "prefixes": [ {"path": "subject.cn", "prefix": "", "delimiter": "."}]}\''],
             ['couchbase-cli', 'ssl-manage', '-c', 'localhost', '-u', 'Administrator', '-p', 'password123', '--set-client-auth', '/tmp/auth.json']
         ]
-
-        for command in commands:
-            (code, _) = self.client.containers.get(self.name).exec_run(command)
-            if code != 0:
-                return False
-
-        response = requests.post("http://localhost:8091/node/controller/loadTrustedCAs", auth=HTTPBasicAuth("Administrator", "password123"))
-        if response.status_code != 200:
-            logging.error("Failed to load CA certificates, with status code: {response.status_code}")
+        if not self._run_couchbase_cli_commands(commands):
             return False
 
-        response = requests.post("http://localhost:8091/node/controller/reloadCertificate", auth=HTTPBasicAuth("Administrator", "password123"))
-        if response.status_code != 200:
-            logging.error("Failed to reload certificates, with status code: {response.status_code}")
+        if not self._load_couchbase_certs():
             return False
 
         self.post_startup_commands_finished = True
