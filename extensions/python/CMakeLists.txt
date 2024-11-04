@@ -41,7 +41,7 @@ endif()
 target_compile_definitions(minifi-python-script-extension PUBLIC PY_SSIZE_T_CLEAN)
 
 target_sources(minifi-python-script-extension PRIVATE ${PY_SOURCES})
-if (WIN32)
+if (WIN32 OR APPLE)
     target_link_libraries(minifi-python-script-extension PUBLIC ${Python_LIBRARIES})
 endif()
 

@@ -15,9 +15,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef WIN32
-#include <cstdio>
+#if !defined(WIN32) && !defined(__APPLE__)
 #include <dlfcn.h>
+#include <cstdio>
 #include <iostream>
 #include <string>
 #include <array>
@@ -28,7 +28,7 @@
 
 namespace minifi = org::apache::nifi::minifi;
 
-#ifndef WIN32
+#if !defined(WIN32) && !defined(__APPLE__)
 class PythonLibLoader {
  public:
   explicit PythonLibLoader(const std::shared_ptr<minifi::Configure>& config) {
@@ -52,6 +52,11 @@ class PythonLibLoader {
     logger_->log_info("Loaded libpython from path '{}'", lib_python_path);
   }
 
+  PythonLibLoader(PythonLibLoader&&) = delete;
+  PythonLibLoader(const PythonLibLoader&) = delete;
+  PythonLibLoader& operator=(PythonLibLoader&&) = delete;
+  PythonLibLoader& operator=(const PythonLibLoader&) = delete;
+
   ~PythonLibLoader() {
     if (lib_python_handle_) {
       dlclose(lib_python_handle_);
@@ -60,7 +65,7 @@ class PythonLibLoader {
 
  private:
   static std::string execCommand(const std::string& cmd) {
-    std::array<char, 128> buffer;
+    std::array<char, 128> buffer{};
     std::string result;
     std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd.c_str(), "r"), pclose);
     if (!pipe) {
@@ -78,7 +83,7 @@ class PythonLibLoader {
 #endif
 
 static bool init(const std::shared_ptr<minifi::Configure>& config) {
-#ifndef WIN32
+#if !defined(WIN32) && !defined(__APPLE__)
   static PythonLibLoader python_lib_loader(config);
 #else
   (void)config;
