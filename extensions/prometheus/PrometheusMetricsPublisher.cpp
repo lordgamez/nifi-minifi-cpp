@@ -71,18 +71,13 @@ void PrometheusMetricsPublisher::clearMetricNodes() {
 }
 
 void PrometheusMetricsPublisher::loadMetricNodes() {
+  logger_->log_debug("Loading all metric nodes.");
   std::lock_guard<std::mutex> lock(registered_metrics_mutex_);
-  auto nodes = getMetricNodes();
-  for (const auto& metric_node : nodes) {
-    logger_->log_info("Registering metric node '{}'", static_cast<minifi::state::response::ResponseNode*>(metric_node.get())->getName());
-  }
-
-  // TODO: should we check if it is already registered?
-  gauge_collection_ = std::make_shared<PublishedMetricGaugeCollection>(nodes, agent_identifier_);
+  gauge_collection_ = std::make_shared<PublishedMetricGaugeCollection>(getMetricProviders(), agent_identifier_);
   exposer_->registerMetric(gauge_collection_);
 }
 
-std::vector<gsl::not_null<std::shared_ptr<state::PublishedMetricProvider>>> PrometheusMetricsPublisher::getMetricNodes() const {
+std::vector<gsl::not_null<std::shared_ptr<state::PublishedMetricProvider>>> PrometheusMetricsPublisher::getMetricProviders() const {
   gsl_Expects(response_node_loader_ && configuration_);
   std::vector<gsl::not_null<std::shared_ptr<state::PublishedMetricProvider>>> nodes;
   auto metric_classes_str = configuration_->get(minifi::Configuration::nifi_metrics_publisher_prometheus_metrics_publisher_metrics);
@@ -98,6 +93,7 @@ std::vector<gsl::not_null<std::shared_ptr<state::PublishedMetricProvider>>> Prom
         continue;
       }
       for (const auto& response_node : response_nodes) {
+        logger_->log_info("Loading metric node '{}'", response_node->getName());
         nodes.push_back(response_node);
       }
     }

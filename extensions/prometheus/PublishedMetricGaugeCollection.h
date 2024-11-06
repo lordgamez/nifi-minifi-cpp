@@ -36,7 +36,6 @@ class PublishedMetricGaugeCollection : public ::prometheus::Collectable {
  private:
   std::vector<gsl::not_null<std::shared_ptr<state::PublishedMetricProvider>>> metric_providers_;
   std::string agent_identifier_;
-  std::shared_ptr<minifi::core::logging::Logger> logger_{minifi::core::logging::LoggerFactory<PublishedMetricGaugeCollection>::getLogger()};
 };
 
 }  // namespace org::apache::nifi::minifi::extensions::prometheus
