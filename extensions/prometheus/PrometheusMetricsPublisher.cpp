@@ -73,9 +73,11 @@ void PrometheusMetricsPublisher::clearMetricNodes() {
 void PrometheusMetricsPublisher::loadMetricNodes() {
   std::lock_guard<std::mutex> lock(registered_metrics_mutex_);
   auto nodes = getMetricNodes();
-  // for (const auto& metric_node : nodes) {
-  //   logger_->log_debug("Registering metric node '{}'", metric_node->getName());
-  // }
+  for (const auto& metric_node : nodes) {
+    logger_->log_info("Registering metric node '{}'", static_cast<minifi::state::response::ResponseNode*>(metric_node.get())->getName());
+  }
+
+  // TODO: should we check if it is already registered?
   gauge_collection_ = std::make_shared<PublishedMetricGaugeCollection>(nodes, agent_identifier_);
   exposer_->registerMetric(gauge_collection_);
 }
@@ -95,7 +97,6 @@ std::vector<gsl::not_null<std::shared_ptr<state::PublishedMetricProvider>>> Prom
         logger_->log_warn("Metric class '{}' could not be loaded.", clazz);
         continue;
       }
-      nodes.insert(nodes.end(), response_nodes.begin(), response_nodes.end());
       for (const auto& response_node : response_nodes) {
         nodes.push_back(response_node);
       }
