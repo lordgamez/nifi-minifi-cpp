@@ -30,7 +30,7 @@ namespace org::apache::nifi::minifi::extensions::prometheus {
 
 class PublishedMetricGaugeCollection : public ::prometheus::Collectable {
  public:
-  explicit PublishedMetricGaugeCollection(const std::vector<gsl::not_null<std::shared_ptr<state::PublishedMetricProvider>>>& metric_providers, std::string agent_identifier);
+  explicit PublishedMetricGaugeCollection(std::vector<gsl::not_null<std::shared_ptr<state::PublishedMetricProvider>>>&& metric_providers, std::string agent_identifier);
   std::vector<::prometheus::MetricFamily> Collect() const override;
 
  private:

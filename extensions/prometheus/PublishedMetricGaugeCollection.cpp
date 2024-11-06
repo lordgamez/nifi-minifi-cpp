@@ -18,18 +18,16 @@
 
 #include <utility>
 #include <algorithm>
-#include <unordered_set>
 
 #include "prometheus/client_metric.h"
 #include "state/PublishedMetricProvider.h"
 #include "range/v3/range/conversion.hpp"
 #include "range/v3/view/transform.hpp"
-#include "state/nodes/MetricsBase.h"
 
 namespace org::apache::nifi::minifi::extensions::prometheus {
 
-PublishedMetricGaugeCollection::PublishedMetricGaugeCollection(const std::vector<gsl::not_null<std::shared_ptr<state::PublishedMetricProvider>>>& metric_providers, std::string agent_identifier)
-  : metric_providers_{metric_providers},
+PublishedMetricGaugeCollection::PublishedMetricGaugeCollection(std::vector<gsl::not_null<std::shared_ptr<state::PublishedMetricProvider>>>&& metric_providers, std::string agent_identifier)
+  : metric_providers_{std::move(metric_providers)},
     agent_identifier_(std::move(agent_identifier)) {
 }
 
