@@ -2,7 +2,19 @@ diff --git a/cmake/ThirdPartyDependencies.cmake b/cmake/ThirdPartyDependencies.c
 index f02af02..f83c181 100644
 --- a/cmake/ThirdPartyDependencies.cmake
 +++ b/cmake/ThirdPartyDependencies.cmake
-@@ -15,49 +15,6 @@ function(declare_system_library target)
+@@ -3,73 +3,30 @@
+ include(cmake/CPM.cmake)
+ 
+ # https://cmake.org/cmake/help/v3.28/policy/CMP0063.html
+ set(CMAKE_POLICY_DEFAULT_CMP0063 NEW)
+ 
+ function(declare_system_library target)
+   message(STATUS "Declaring system library ${target}")
+   get_target_property(target_aliased_name ${target} ALIASED_TARGET)
+   if(target_aliased_name)
+     set(target ${target_aliased_name})
+   endif()
+   set_target_properties(${target} PROPERTIES INTERFACE_SYSTEM_INCLUDE_DIRECTORIES
                                               $<TARGET_PROPERTY:${target},INTERFACE_INCLUDE_DIRECTORIES>)
  endfunction()
  
@@ -52,7 +64,31 @@ index f02af02..f83c181 100644
  if(NOT TARGET Microsoft.GSL::GSL)
    # https://github.com/microsoft/GSL/releases
    cpmaddpackage(
-@@ -171,72 +128,6 @@ if(NOT TARGET taocpp::json)
+     NAME
+     gsl
+     VERSION
+     4.0.0
+     GITHUB_REPOSITORY
+     "microsoft/gsl"
+     EXCLUDE_FROM_ALL ON
+     OPTIONS
+     "GSL_INSTALL OFF"
+     "CMAKE_C_VISIBILITY_PRESET hidden"
+     "CMAKE_CXX_VISIBILITY_PRESET hidden"
+     "CMAKE_POSITION_INDEPENDENT_CODE ON")
+@@ -159,93 +116,24 @@ if(NOT TARGET taocpp::json)
+     "CMAKE_POSITION_INDEPENDENT_CODE ON"
+     "BUILD_SHARED_LIBS OFF"
+     "PEGTL_INSTALL ${COUCHBASE_CXX_CLIENT_INSTALL}"
+     "PEGTL_INSTALL_CMAKE_DIR ${CMAKE_INSTALL_LIBDIR}/cmake/pegtl"
+     "PEGTL_INSTALL_DOC_DIR ${CMAKE_INSTALL_DATAROOTDIR}/doc/tao/pegtl"
+     "PEGTL_BUILD_TESTS OFF"
+     "PEGTL_BUILD_EXAMPLES OFF"
+     "PEGTL_USE_BOOST_FILESYSTEM OFF"
+     "TAOCPP_JSON_INSTALL ${COUCHBASE_CXX_CLIENT_INSTALL}"
+     "TAOCPP_JSON_INSTALL_CMAKE_DIR ${CMAKE_INSTALL_LIBDIR}/cmake/taocpp-json"
+     "TAOCPP_JSON_INSTALL_DOC_DIR ${CMAKE_INSTALL_DATAROOTDIR}/doc/tao/json"
+     "TAOCPP_JSON_BUILD_TESTS OFF"
      "TAOCPP_JSON_BUILD_EXAMPLES OFF")
  endif()
  
@@ -125,7 +161,8 @@ index f02af02..f83c181 100644
  add_library(jsonsl OBJECT ${PROJECT_SOURCE_DIR}/third_party/jsonsl/jsonsl.c)
  set_target_properties(jsonsl PROPERTIES C_VISIBILITY_PRESET hidden POSITION_INDEPENDENT_CODE TRUE)
  target_include_directories(jsonsl SYSTEM PUBLIC ${PROJECT_SOURCE_DIR}/third_party/jsonsl)
-@@ -245,7 +136,4 @@ declare_system_library(snappy)
+ 
+ declare_system_library(snappy)
  declare_system_library(llhttp::llhttp)
  declare_system_library(hdr_histogram_static)
  declare_system_library(Microsoft.GSL::GSL)
