@@ -82,9 +82,6 @@ ARG MINIFI_VERSION
 
 ARG MINIFI_OPTIONS
 
-# Add testing repo for rocksdb
-RUN echo 'http://dl-cdn.alpinelinux.org/alpine/edge/testing' >> /etc/apk/repositories
-
 ENV USER minificpp
 ENV MINIFI_BASE_DIR /opt/minifi
 ENV MINIFI_HOME ${MINIFI_BASE_DIR}/minifi-current
