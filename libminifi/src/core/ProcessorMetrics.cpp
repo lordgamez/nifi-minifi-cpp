@@ -44,7 +44,7 @@ std::vector<state::response::SerializedResponseNode> ProcessorMetrics::serialize
   state::response::SerializedResponseNode root_node {
     .name = source_processor_.getUUIDStr(),
     .children = {
-      {.name = "OnTriggerInvocations", .value = static_cast<uint32_t>(iterations.load())},
+      {.name = "OnTriggerInvocations", .value = static_cast<uint32_t>(invocations.load())},
       {.name = "AverageOnTriggerRunTime", .value = static_cast<uint64_t>(getAverageOnTriggerRuntime().count())},
       {.name = "LastOnTriggerRunTime", .value = static_cast<uint64_t>(getLastOnTriggerRuntime().count())},
       {.name = "AverageSessionCommitRunTime", .value = static_cast<uint64_t>(getAverageSessionCommitRuntime().count())},
@@ -73,7 +73,7 @@ std::vector<state::response::SerializedResponseNode> ProcessorMetrics::serialize
 
 std::vector<state::PublishedMetric> ProcessorMetrics::calculateMetrics() {
   std::vector<state::PublishedMetric> metrics = {
-    {"onTrigger_invocations", static_cast<double>(iterations.load()), getCommonLabels()},
+    {"onTrigger_invocations", static_cast<double>(invocations.load()), getCommonLabels()},
     {"average_onTrigger_runtime_milliseconds", static_cast<double>(getAverageOnTriggerRuntime().count()), getCommonLabels()},
     {"last_onTrigger_runtime_milliseconds", static_cast<double>(getLastOnTriggerRuntime().count()), getCommonLabels()},
     {"average_session_commit_runtime_milliseconds", static_cast<double>(getAverageSessionCommitRuntime().count()), getCommonLabels()},

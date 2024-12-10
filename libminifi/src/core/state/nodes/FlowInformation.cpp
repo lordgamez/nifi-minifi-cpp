@@ -76,6 +76,36 @@ std::vector<SerializedResponseNode> FlowInformation::serialize() {
     serialized.push_back(componentsNode);
   }
 
+  if (!processors_.empty()) {
+    SerializedResponseNode processorsStatusesNode{.name = "processorStatuses", .array = true, .collapsible = false};
+    for (const auto processor : processors_) {
+      if (!processor) {
+        continue;
+      }
+
+      auto metrics = processor->getMetrics();
+      processorsStatusesNode.children.push_back({
+        .name = processor->getName(),
+        .collapsible = false,
+        .children = {
+          {.name = "id", .value = std::string{processor->getUUIDStr()}},
+          // {.name = "groupId", .value = std::string{processor->getUUIDStr()}},
+          {.name = "bytesRead", .value = metrics->bytes_read.load()},
+          {.name = "bytesWritten", .value = metrics->bytes_written.load()},
+          {.name = "flowFilesIn", .value = metrics->incoming_flow_files.load()},
+          {.name = "flowFilesOut", .value = metrics->transferred_flow_files.load()},
+          {.name = "bytesIn", .value = metrics->incoming_bytes.load()},
+          {.name = "bytesOut", .value = metrics->transferred_bytes.load()},
+          {.name = "invocations", .value = metrics->invocations.load()},
+          {.name = "processingNanos", .value = metrics->processing_nanos.load()},
+          {.name = "activeThreadCount", .value = -1},
+          {.name = "terminatedThreadCount", .value = -1}
+        }
+      });
+    }
+    serialized.push_back(processorsStatusesNode);
+  }
+
   return serialized;
 }
 
@@ -88,6 +118,8 @@ std::vector<PublishedMetric> FlowInformation::calculateMetrics() {
         {{"component_uuid", component.getComponentUUID().to_string()}, {"component_name", component.getComponentName()}, {"metric_class", "FlowInformation"}}});
     });
   }
+
+  // TODO add processor metrics
   return metrics;
 }
 

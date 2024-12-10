@@ -53,9 +53,14 @@ class ProcessorMetrics : public state::response::ResponseNode {
   std::chrono::milliseconds getLastSessionCommitRuntime() const;
   void addLastSessionCommitRuntime(std::chrono::milliseconds runtime);
 
-  std::atomic<size_t> iterations{0};
+  std::atomic<size_t> invocations{0};
+  std::atomic<size_t> incoming_flow_files{0};
   std::atomic<size_t> transferred_flow_files{0};
+  std::atomic<uint64_t> incoming_bytes{0};
   std::atomic<uint64_t> transferred_bytes{0};
+  std::atomic<uint64_t> bytes_read{0};
+  std::atomic<uint64_t> bytes_written{0};
+  std::atomic<uint64_t> processing_nanos{0};
 
  protected:
   template<typename ValueType>
