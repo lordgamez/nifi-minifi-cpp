@@ -89,7 +89,7 @@ std::vector<SerializedResponseNode> FlowInformation::serialize() {
         .collapsible = false,
         .children = {
           {.name = "id", .value = std::string{processor->getUUIDStr()}},
-          // {.name = "groupId", .value = std::string{processor->getUUIDStr()}},
+          {.name = "groupId", .value = processor->getProcessGroupUUIDStr()},
           {.name = "bytesRead", .value = metrics->bytes_read.load()},
           {.name = "bytesWritten", .value = metrics->bytes_written.load()},
           {.name = "flowFilesIn", .value = metrics->incoming_flow_files.load()},
