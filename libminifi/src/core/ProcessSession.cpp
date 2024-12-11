@@ -841,7 +841,7 @@ void ProcessSession::commit() {
   const auto commit_start_time = std::chrono::steady_clock::now();
   try {
     std::unordered_map<std::string, TransferMetrics> transfers;
-      auto increaseTransferMetrics = [&](const FlowFile& record, const Relationship& relationship) {
+    auto increaseTransferMetrics = [&](const FlowFile& record, const Relationship& relationship) {
       ++transfers[relationship.getName()].transfer_count;
       transfers[relationship.getName()].transfer_size += record.getSize();
     };
