@@ -122,6 +122,14 @@ std::chrono::milliseconds ProcessorMetrics::getLastSessionCommitRuntime() const 
   return session_commit_runtime_averager_.getLastValue();
 }
 
+std::optional<size_t> ProcessorMetrics::getTransferredFlowFilesToRelationshipCount(const std::string& relationship) const {
+  std::lock_guard<std::mutex> lock(transferred_relationships_mutex_);
+  if (transferred_relationships_.contains(relationship)) {
+    return transferred_relationships_.at(relationship);
+  }
+  return {};
+}
+
 template<typename ValueType>
 requires Summable<ValueType> && DividableByInteger<ValueType>
 ValueType ProcessorMetrics::Averager<ValueType>::getAverage() const {

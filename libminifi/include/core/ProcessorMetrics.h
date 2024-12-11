@@ -52,6 +52,7 @@ class ProcessorMetrics : public state::response::ResponseNode {
   std::chrono::milliseconds getAverageSessionCommitRuntime() const;
   std::chrono::milliseconds getLastSessionCommitRuntime() const;
   void addLastSessionCommitRuntime(std::chrono::milliseconds runtime);
+  std::optional<size_t> getTransferredFlowFilesToRelationshipCount(const std::string& relationship) const;
 
   std::atomic<size_t> invocations{0};
   std::atomic<size_t> incoming_flow_files{0};
@@ -85,7 +86,7 @@ class ProcessorMetrics : public state::response::ResponseNode {
   [[nodiscard]] std::unordered_map<std::string, std::string> getCommonLabels() const;
   static constexpr uint8_t STORED_ON_TRIGGER_RUNTIME_COUNT = 10;
 
-  std::mutex transferred_relationships_mutex_;
+  mutable std::mutex transferred_relationships_mutex_;
   std::unordered_map<std::string, size_t> transferred_relationships_;
   const Processor& source_processor_;
   Averager<std::chrono::milliseconds> on_trigger_runtime_averager_;

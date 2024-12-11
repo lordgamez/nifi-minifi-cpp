@@ -335,6 +335,8 @@ TEST_CASE("Test processor metrics change after trigger", "[ProcessorMetrics]") {
   CHECK(metrics->invocations == 1);
   CHECK(metrics->incoming_flow_files == 1);
   CHECK(metrics->transferred_flow_files == 2);
+  CHECK(metrics->getTransferredFlowFilesToRelationshipCount("success") == 1);
+  CHECK(metrics->getTransferredFlowFilesToRelationshipCount("original") == 1);
   CHECK(metrics->incoming_bytes == 10);
   CHECK(metrics->transferred_bytes == 30);
   CHECK(metrics->bytes_read == 10);
@@ -346,6 +348,8 @@ TEST_CASE("Test processor metrics change after trigger", "[ProcessorMetrics]") {
   CHECK(metrics->invocations == 2);
   CHECK(metrics->incoming_flow_files == 2);
   CHECK(metrics->transferred_flow_files == 4);
+  CHECK(metrics->getTransferredFlowFilesToRelationshipCount("success") == 2);
+  CHECK(metrics->getTransferredFlowFilesToRelationshipCount("original") == 2);
   CHECK(metrics->incoming_bytes == 24);
   CHECK(metrics->transferred_bytes == 72);
   CHECK(metrics->bytes_read == 24);
