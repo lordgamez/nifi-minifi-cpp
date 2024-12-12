@@ -119,7 +119,29 @@ std::vector<PublishedMetric> FlowInformation::calculateMetrics() {
     });
   }
 
-  // TODO add processor metrics
+  for (const auto& processor : processors_) {
+    if (!processor) {
+      continue;
+    }
+    auto processor_metrics = processor->getMetrics();
+    metrics.push_back({"bytes_read", gsl::narrow<double>(processor_metrics->bytes_read.load()),
+        {{"processor_uuid", processor->getUUIDStr()}, {"processor_name", processor->getName()}, {"metric_class", "FlowInformation"}}});
+    metrics.push_back({"bytes_written", gsl::narrow<double>(processor_metrics->bytes_written.load()),
+        {{"processor_uuid", processor->getUUIDStr()}, {"processor_name", processor->getName()}, {"metric_class", "FlowInformation"}}});
+    metrics.push_back({"flow_files_in", gsl::narrow<double>(processor_metrics->incoming_flow_files.load()),
+        {{"processor_uuid", processor->getUUIDStr()}, {"processor_name", processor->getName()}, {"metric_class", "FlowInformation"}}});
+    metrics.push_back({"flow_files_out", gsl::narrow<double>(processor_metrics->transferred_flow_files.load()),
+        {{"processor_uuid", processor->getUUIDStr()}, {"processor_name", processor->getName()}, {"metric_class", "FlowInformation"}}});
+    metrics.push_back({"bytes_in", gsl::narrow<double>(processor_metrics->incoming_bytes.load()),
+        {{"processor_uuid", processor->getUUIDStr()}, {"processor_name", processor->getName()}, {"metric_class", "FlowInformation"}}});
+    metrics.push_back({"bytes_out", gsl::narrow<double>(processor_metrics->transferred_bytes.load()),
+        {{"processor_uuid", processor->getUUIDStr()}, {"processor_name", processor->getName()}, {"metric_class", "FlowInformation"}}});
+    metrics.push_back({"invocations", gsl::narrow<double>(processor_metrics->invocations.load()),
+        {{"processor_uuid", processor->getUUIDStr()}, {"processor_name", processor->getName()}, {"metric_class", "FlowInformation"}}});
+    metrics.push_back({"processing_nanos", gsl::narrow<double>(processor_metrics->processing_nanos.load()),
+        {{"processor_uuid", processor->getUUIDStr()}, {"processor_name", processor->getName()}, {"metric_class", "FlowInformation"}}});
+  }
+
   return metrics;
 }
 

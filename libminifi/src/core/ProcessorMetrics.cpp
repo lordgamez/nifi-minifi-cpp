@@ -50,7 +50,12 @@ std::vector<state::response::SerializedResponseNode> ProcessorMetrics::serialize
       {.name = "AverageSessionCommitRunTime", .value = static_cast<uint64_t>(getAverageSessionCommitRuntime().count())},
       {.name = "LastSessionCommitRunTime", .value = static_cast<uint64_t>(getLastSessionCommitRuntime().count())},
       {.name = "TransferredFlowFiles", .value = static_cast<uint32_t>(transferred_flow_files.load())},
-      {.name = "TransferredBytes", .value = transferred_bytes.load()}
+      {.name = "TransferredBytes", .value = static_cast<uint64_t>(transferred_bytes.load())},
+      {.name = "IncomingFlowFiles", .value = static_cast<uint32_t>(incoming_flow_files.load())},
+      {.name = "IncomingBytes", .value = static_cast<uint64_t>(incoming_bytes.load())},
+      {.name = "BytesRead", .value = static_cast<uint64_t>(bytes_read.load())},
+      {.name = "BytesWritten", .value = static_cast<uint64_t>(bytes_written.load())},
+      {.name = "ProcessingNanos", .value = static_cast<uint64_t>(processing_nanos.load())}
     }
   };
 
@@ -79,7 +84,12 @@ std::vector<state::PublishedMetric> ProcessorMetrics::calculateMetrics() {
     {"average_session_commit_runtime_milliseconds", static_cast<double>(getAverageSessionCommitRuntime().count()), getCommonLabels()},
     {"last_session_commit_runtime_milliseconds", static_cast<double>(getLastSessionCommitRuntime().count()), getCommonLabels()},
     {"transferred_flow_files", static_cast<double>(transferred_flow_files.load()), getCommonLabels()},
-    {"transferred_bytes", static_cast<double>(transferred_bytes.load()), getCommonLabels()}
+    {"transferred_bytes", static_cast<double>(transferred_bytes.load()), getCommonLabels()},
+    {"incoming_flow_files", static_cast<double>(incoming_flow_files.load()), getCommonLabels()},
+    {"incoming_bytes", static_cast<double>(incoming_bytes.load()), getCommonLabels()},
+    {"bytes_read", static_cast<double>(bytes_read.load()), getCommonLabels()},
+    {"bytes_written", static_cast<double>(bytes_written.load()), getCommonLabels()},
+    {"processing_nanos", static_cast<double>(processing_nanos.load()), getCommonLabels()}
   };
 
   {

@@ -201,7 +201,12 @@ class MetricsHandler: public HeartbeatHandler {
       processor_metrics["GetTCPMetrics"][GETTCP1_UUID].HasMember("TransferredFlowFiles") &&
       processor_metrics["GetTCPMetrics"][GETTCP1_UUID].HasMember("AverageOnTriggerRunTime") &&
       processor_metrics["GetTCPMetrics"][GETTCP1_UUID].HasMember("LastOnTriggerRunTime") &&
-      processor_metrics["GetTCPMetrics"][GETTCP1_UUID].HasMember("TransferredBytes");
+      processor_metrics["GetTCPMetrics"][GETTCP1_UUID].HasMember("TransferredBytes") &&
+      processor_metrics["GetTCPMetrics"][GETTCP1_UUID].HasMember("IncomingFlowFiles") &&
+      processor_metrics["GetTCPMetrics"][GETTCP1_UUID].HasMember("IncomingBytes") &&
+      processor_metrics["GetTCPMetrics"][GETTCP1_UUID].HasMember("BytesRead") &&
+      processor_metrics["GetTCPMetrics"][GETTCP1_UUID].HasMember("BytesWritten") &&
+      processor_metrics["GetTCPMetrics"][GETTCP1_UUID].HasMember("ProcessingNanos");
   }
 
   std::atomic_bool& metrics_updated_successfully_;
