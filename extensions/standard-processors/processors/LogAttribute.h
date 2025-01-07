@@ -112,7 +112,7 @@ class LogAttribute : public core::Processor {
   uint64_t flowfiles_to_log_{1};
   bool hexencode_{false};
   uint32_t max_line_length_{80};
-  std::shared_ptr<core::logging::Logger> logger_ = core::logging::LoggerFactory<LogAttribute>::getLogger(uuid_);
+  std::shared_ptr<core::logging::Logger> logger_ = createProcessorLogger<LogAttribute>();
   core::logging::LOG_LEVEL log_level_{core::logging::LOG_LEVEL::info};
   std::string dash_line_ = "--------------------------------------------------";
   bool log_payload_ = false;

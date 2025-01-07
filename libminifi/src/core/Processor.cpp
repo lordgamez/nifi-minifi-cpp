@@ -29,7 +29,6 @@
 
 #include "Connection.h"
 #include "core/Connectable.h"
-#include "core/logging/LoggerConfiguration.h"
 #include "core/ProcessorConfig.h"
 #include "core/ProcessContext.h"
 #include "core/ProcessSessionFactory.h"
@@ -50,7 +49,7 @@ Processor::Processor(std::string_view name, std::shared_ptr<ProcessorMetrics> me
       active_tasks_(0),
       _triggerWhenEmpty(false),
       metrics_(metrics ? std::move(metrics) : std::make_shared<ProcessorMetrics>(*this)),
-      logger_(logging::LoggerFactory<Processor>::getLogger(uuid_)) {
+      logger_(createProcessorLogger<Processor>()) {
   has_work_.store(false);
   // Setup the default values
   strategy_ = TIMER_DRIVEN;
@@ -69,7 +68,7 @@ Processor::Processor(std::string_view name, const utils::Identifier& uuid, std::
       active_tasks_(0),
       _triggerWhenEmpty(false),
       metrics_(metrics ? std::move(metrics) : std::make_shared<ProcessorMetrics>(*this)),
-      logger_(logging::LoggerFactory<Processor>::getLogger(uuid_)) {
+      logger_(createProcessorLogger<Processor>()) {
   has_work_.store(false);
   // Setup the default values
   strategy_ = TIMER_DRIVEN;

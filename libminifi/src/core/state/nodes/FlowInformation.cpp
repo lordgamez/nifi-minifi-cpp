@@ -106,6 +106,32 @@ std::vector<SerializedResponseNode> FlowInformation::serialize() {
     serialized.push_back(processorsStatusesNode);
   }
 
+  if (bulletin_store_) {
+    SerializedResponseNode processorBulletinsNode{.name = "processorBulletins", .array = true, .collapsible = false};
+    auto bulletins = bulletin_store_->getBulletins();
+    for (const auto& bulletin : bulletins) {
+      processorBulletinsNode.children.push_back({
+        .name = std::to_string(bulletin.id),
+        .collapsible = false,
+        .children = {
+          {.name = "id", .value = bulletin.id},
+          {.name = "timestamp", .value = bulletin.timestamp},
+          {.name = "nodeAddress", .value = bulletin.node_address},
+          {.name = "level", .value = bulletin.level},
+          {.name = "category", .value = bulletin.category},
+          {.name = "message", .value = bulletin.message},
+          {.name = "groupId", .value = bulletin.group_id},
+          {.name = "groupName", .value = bulletin.group_name},
+          {.name = "groupPath", .value = bulletin.group_path},
+          {.name = "sourceId", .value = bulletin.source_id},
+          {.name = "sourceName", .value = bulletin.source_name},
+          {.name = "flowFileUuid", .value = bulletin.flow_file_uuid}
+        }
+      });
+    }
+    serialized.push_back(processorBulletinsNode);
+  }
+
   return serialized;
 }
 

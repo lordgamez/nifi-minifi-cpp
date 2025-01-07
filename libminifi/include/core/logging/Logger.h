@@ -89,6 +89,38 @@ inline LOG_LEVEL mapFromSpdLogLevel(spdlog::level::level_enum level) {
   throw std::invalid_argument(fmt::format("Invalid spdlog::level::level_enum {}", magic_enum::enum_underlying(level)));
 }
 
+inline std::string mapSpdLogLevelToString(spdlog::level::level_enum level) {
+  switch (level) {
+    case spdlog::level::trace: return "TRACE";
+    case spdlog::level::debug: return "DEBUG";
+    case spdlog::level::info: return "INFO";
+    case spdlog::level::warn: return "WARN";
+    case spdlog::level::err: return "ERROR";
+    case spdlog::level::critical: return "CRITICAL";
+    case spdlog::level::off: return "OFF";
+    case spdlog::level::n_levels: break;
+  }
+  throw std::invalid_argument(fmt::format("Invalid spdlog::level::level_enum {}", magic_enum::enum_underlying(level)));
+}
+
+inline spdlog::level::level_enum mapStringToSpdLogLevel(const std::string& level_str) {
+  if (level_str == "TRACE") {
+    return spdlog::level::trace;
+  } else if (level_str == "DEBUG") {
+    return spdlog::level::debug;
+  } else if (level_str == "INFO") {
+    return spdlog::level::info;
+  } else if (level_str == "WARN") {
+    return spdlog::level::warn;
+  } else if (level_str == "ERROR") {
+    return spdlog::level::err;
+  } else if (level_str == "CRITICAL") {
+    return spdlog::level::critical;
+  }
+
+  return spdlog::level::n_levels;
+}
+
 class BaseLogger {
  public:
   virtual ~BaseLogger();
@@ -156,6 +188,11 @@ class Logger : public BaseLogger {
 
   virtual std::optional<std::string> get_id() = 0;
 
+  void addLogCallback(std::function<void(spdlog::level::level_enum level, const std::string&)> callback) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    log_callbacks_.push_back(std::move(callback));
+  }
+
  protected:
   Logger(std::shared_ptr<spdlog::logger> delegate, std::shared_ptr<LoggerControl> controller);
 
@@ -188,13 +225,18 @@ class Logger : public BaseLogger {
     if (controller_ && !controller_->is_enabled())
       return;
     std::lock_guard<std::mutex> lock(mutex_);
+    auto message = stringify(std::move(fmt), map_args(std::forward<Args>(args))...);
+    for (const auto& callback : log_callbacks_) {
+      callback(level, message);
+    }
     if (!delegate_->should_log(level)) {
       return;
     }
-    delegate_->log(level, stringify(std::move(fmt), map_args(std::forward<Args>(args))...));
+    delegate_->log(level, message);
   }
 
   std::atomic<int> max_log_size_{LOG_BUFFER_SIZE};
+  std::vector<std::function<void(spdlog::level::level_enum level, const std::string&)>> log_callbacks_;
 };
 
 }  // namespace org::apache::nifi::minifi::core::logging

@@ -43,6 +43,9 @@
 #include "ProcessorMetrics.h"
 #include "utils/gsl.h"
 #include "OutputAttributeDefinition.h"
+#include "core/BulletinStore.h"
+#include "core/logging/LoggerConfiguration.h"
+#include "utils/TimeUtil.h"
 
 #define ADD_GET_PROCESSOR_NAME \
   std::string getProcessorType() const override { \
@@ -173,6 +176,14 @@ class Processor : public Connectable, public ConfigurableComponent, public state
     process_group_uuid_ = uuid;
   }
 
+  std::string getProcessGroupName() const {
+    return process_group_name_;
+  }
+
+  void setProcessGroupName(const std::string &name) {
+    process_group_name_ = name;
+  }
+
   void yield() override;
 
   void yield(std::chrono::steady_clock::duration delta_time);
@@ -226,12 +237,29 @@ class Processor : public Connectable, public ConfigurableComponent, public state
     return metrics_;
   }
 
+  void setLogBulletinLevel(spdlog::level::level_enum level) {
+    log_bulletin_level_ = level;
+  }
+
+  void setLoggerObservers(core::BulletinStore* bulletin_store) {
+    for (const auto& logger : loggers_) {
+      addLogCallback(logger, bulletin_store);
+    }
+  }
+
   static constexpr auto DynamicProperties = std::array<DynamicProperty, 0>{};
 
   static constexpr auto OutputAttributes = std::array<OutputAttributeReference, 0>{};
 
  protected:
   virtual void notifyStop() {
+  }
+
+  template <typename T>
+  std::shared_ptr<logging::Logger> createProcessorLogger() {
+    auto logger = logging::LoggerFactory<T>::getLogger(uuid_);
+    loggers_.push_back(logger);
+    return logger;
   }
 
   std::atomic<ScheduledState> state_;
@@ -246,7 +274,9 @@ class Processor : public Connectable, public ConfigurableComponent, public state
   std::string cron_period_;
   gsl::not_null<std::shared_ptr<ProcessorMetrics>> metrics_;
 
+  std::vector<std::shared_ptr<logging::Logger>> loggers_;
   std::shared_ptr<logging::Logger> logger_;
+  spdlog::level::level_enum log_bulletin_level_ = spdlog::level::warn;
 
  private:
   mutable std::mutex mutex_;
@@ -255,6 +285,26 @@ class Processor : public Connectable, public ConfigurableComponent, public state
   static std::mutex& getGraphMutex() {
     static std::mutex mutex{};
     return mutex;
+  }
+
+  void addLogCallback(const std::shared_ptr<logging::Logger>& logger, core::BulletinStore* bulletin_store) {
+    logger->addLogCallback([this, bulletin_store](spdlog::level::level_enum level, const std::string& message) {
+      if (level < log_bulletin_level_) {
+        return;
+      }
+      if (bulletin_store) {
+        core::Bulletin bulletin;
+        bulletin.timestamp = minifi::utils::timeutils::getDateTimeStr(std::chrono::time_point_cast<std::chrono::seconds>(std::chrono::system_clock::now()));
+        bulletin.level = core::logging::mapSpdLogLevelToString(level);
+        bulletin.category = "Log Message";
+        bulletin.message = message;
+        bulletin.group_id = getProcessGroupUUIDStr();
+        bulletin.group_name = getProcessGroupName();
+        bulletin.source_id = getUUIDStr();
+        bulletin.source_name = getName();
+        bulletin_store->addBulletin(bulletin);
+      }
+    });
   }
 
   // must hold the graphMutex
@@ -266,6 +316,7 @@ class Processor : public Connectable, public ConfigurableComponent, public state
   std::unordered_map<Connection*, std::unordered_set<Processor*>> reachable_processors_;
 
   std::string process_group_uuid_;
+  std::string process_group_name_;
 };
 
 }  // namespace core

@@ -159,7 +159,7 @@ void ExecutePythonProcessor::reloadScriptIfUsingScriptFileProperty() {
 std::unique_ptr<PythonScriptEngine> ExecutePythonProcessor::createScriptEngine() {
   auto engine = std::make_unique<PythonScriptEngine>();
 
-  python_logger_ = core::logging::LoggerFactory<ExecutePythonProcessor>::getAliasedLogger(getName());
+  python_logger_ = core::logging::LoggerFactory<ExecutePythonProcessor>::getAliasedLogger(getName());  // TODO: add log callback
   engine->initialize(Success, Failure, Original, python_logger_);
 
   return engine;

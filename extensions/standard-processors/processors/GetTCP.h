@@ -187,7 +187,7 @@ class GetTCP : public core::Processor {
   std::optional<TcpClient> client_;
   size_t max_batch_size_{500};
   std::thread client_thread_;
-  std::shared_ptr<core::logging::Logger> logger_ = core::logging::LoggerFactory<GetTCP>::getLogger(uuid_);
+  std::shared_ptr<core::logging::Logger> logger_ = createProcessorLogger<GetTCP>();
 };
 
 }  // namespace org::apache::nifi::minifi::processors
