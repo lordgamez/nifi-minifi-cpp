@@ -303,11 +303,13 @@ int main(int argc, char **argv) {
   //     exit(EXIT_FAILURE);
   // }
 
-  if (CONF_modules_load_file("/home/ggyimesi/projects/nifi-minifi-cpp-fork/build/nifi-minifi-cpp-0.99.1/fips/openssl.cnf", NULL, 0) != 1) {
-    std::cerr << "Failed to load config" << std::endl;
-    ERR_print_errors_fp(stderr);
-    exit(EXIT_FAILURE);
-  }
+  utils::Environment::setEnvironmentVariable("OPENSSL_CONF", "/home/ggyimesi/projects/nifi-minifi-cpp-fork/build/nifi-minifi-cpp-0.99.1/fips/openssl.cnf", true);
+
+  // if (CONF_modules_load_file_ex(NULL, "/home/ggyimesi/projects/nifi-minifi-cpp-fork/build/nifi-minifi-cpp-0.99.1/fips/openssl.cnf", NULL, CONF_MFLAGS_DEFAULT_SECTION) <= 0) {
+  //   std::cerr << "Failed to load config" << std::endl;
+  //   ERR_print_errors_fp(stderr);
+  //   exit(EXIT_FAILURE);
+  // }
 
   // Set the default search path for providers
   std::string fips_module_path = "/home/ggyimesi/projects/nifi-minifi-cpp-fork/build/nifi-minifi-cpp-0.99.1/fips/";
@@ -316,11 +318,13 @@ int main(int argc, char **argv) {
     exit(EXIT_FAILURE);
   }
 
-  if (OSSL_LIB_CTX_load_config(NULL, "/home/ggyimesi/projects/nifi-minifi-cpp-fork/build/nifi-minifi-cpp-0.99.1/fips/") != 1) {
-    std::cerr << "Failed to config" << std::endl;
-    ERR_print_errors_fp(stderr);
-    exit(EXIT_FAILURE);
-  }
+  // if (OSSL_LIB_CTX_load_config(NULL, "/home/ggyimesi/projects/nifi-minifi-cpp-fork/build/nifi-minifi-cpp-0.99.1/fips/") != 1) {
+  //   std::cerr << "Failed to config" << std::endl;
+  //   ERR_print_errors_fp(stderr);
+  //   exit(EXIT_FAILURE);
+  // }
+
+
 
   // Load the FIPS provider
   OSSL_PROVIDER *fips_provider = OSSL_PROVIDER_load(NULL, "fips");
