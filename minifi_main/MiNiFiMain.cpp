@@ -44,6 +44,8 @@
 #include <cstdlib>
 #include <iostream>
 #include <vector>
+#include <openssl/provider.h>
+#include <openssl/evp.h>
 
 #include "ResourceClaim.h"
 #include "core/Core.h"
@@ -295,6 +297,64 @@ int main(int argc, char **argv) {
       logger->log_info("Initiating restart...");
     }
   };
+
+  // if (!OPENSSL_init_crypto(0, NULL)) {
+  //     std::cerr << "Failed to initialize OpenSSL" << std::endl;
+  //     exit(EXIT_FAILURE);
+  // }
+
+  if (CONF_modules_load_file("/home/ggyimesi/projects/nifi-minifi-cpp-fork/build/nifi-minifi-cpp-0.99.1/fips/openssl.cnf", NULL, 0) != 1) {
+    std::cerr << "Failed to load config" << std::endl;
+    ERR_print_errors_fp(stderr);
+    exit(EXIT_FAILURE);
+  }
+
+  // Set the default search path for providers
+  std::string fips_module_path = "/home/ggyimesi/projects/nifi-minifi-cpp-fork/build/nifi-minifi-cpp-0.99.1/fips/";
+  if (!OSSL_PROVIDER_set_default_search_path(NULL, fips_module_path.c_str())) {
+    std::cerr << "Failed to set FIPS module path: " << fips_module_path << std::endl;
+    exit(EXIT_FAILURE);
+  }
+
+  if (OSSL_LIB_CTX_load_config(NULL, "/home/ggyimesi/projects/nifi-minifi-cpp-fork/build/nifi-minifi-cpp-0.99.1/fips/") != 1) {
+    std::cerr << "Failed to config" << std::endl;
+    ERR_print_errors_fp(stderr);
+    exit(EXIT_FAILURE);
+  }
+
+  // Load the FIPS provider
+  OSSL_PROVIDER *fips_provider = OSSL_PROVIDER_load(NULL, "fips");
+  if (!fips_provider) {
+    std::cerr << "Failed to load FIPS provider" << std::endl;
+    ERR_print_errors_fp(stderr);
+    exit(EXIT_FAILURE);
+  }
+
+  // Optionally, load the default provider
+  OSSL_PROVIDER *default_provider = OSSL_PROVIDER_load(NULL, "default");
+  if (!default_provider) {
+    std::cerr << "Failed to load default provider" << std::endl;
+    exit(EXIT_FAILURE);
+  }
+
+  if (OSSL_PROVIDER_available(NULL, "fips") != 1) {
+    std::cerr << "FIPS provider not available in default search path" << std::endl;
+    exit(EXIT_FAILURE);
+  }
+
+  // Enable FIPS mode globally
+  if (!EVP_default_properties_enable_fips(NULL, 1)) {
+    std::cerr << "Failed to enable FIPS mode" << std::endl;
+    exit(EXIT_FAILURE);
+  }
+
+  // Verify FIPS mode is enabled
+  if (EVP_default_properties_is_fips_enabled(NULL)) {
+    std::cout << "FIPS mode successfully enabled with module at: " << fips_module_path << std::endl;
+  } else {
+    std::cerr << "FIPS mode is not enabled" << std::endl;
+    exit(EXIT_FAILURE);
+  }
 
   do {
     flow_controller_running.test_and_set();
