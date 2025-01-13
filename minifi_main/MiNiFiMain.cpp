@@ -46,6 +46,7 @@
 #include <vector>
 #include <openssl/provider.h>
 #include <openssl/evp.h>
+#include <fstream>
 
 #include "ResourceClaim.h"
 #include "core/Core.h"
@@ -185,6 +186,98 @@ void writeSchemaIfRequested(const argparse::ArgumentParser& parser, const std::s
   std::exit(0);
 }
 
+bool replaceMinifiHomeVariable(const std::filesystem::path& file_path, const std::string& full_path, const std::shared_ptr<core::logging::Logger>& logger) {
+  std::ifstream input_file(file_path);
+  if (!input_file) {
+    logger->log_error("Failed to open file: {}", file_path.string());
+    return false;
+  }
+
+  std::ostringstream buffer;
+  buffer << input_file.rdbuf();
+  std::string content = buffer.str();
+  input_file.close();
+
+  const std::string placeholder = "${MINIFI_HOME}";
+  size_t pos = 0;
+  if ((pos = content.find(placeholder, pos)) == std::string::npos) {
+    return true;
+  }
+
+  do {
+    content.replace(pos, placeholder.length(), full_path);
+    pos += full_path.length();
+  } while((pos = content.find(placeholder, pos)) != std::string::npos);
+
+  std::ofstream outputFile(file_path);
+  if (!outputFile) {
+    logger->log_error("Failed to open file for writing: {}", file_path.string());
+    return false;
+  }
+
+  outputFile << content;
+  outputFile.close();
+  return true;
+}
+
+void initializeFipsMode(const std::filesystem::path& minifi_home, const std::shared_ptr<core::logging::Logger>& logger) {
+  // if (!OPENSSL_init_crypto(0, NULL)) {
+  //     std::cerr << "Failed to initialize OpenSSL" << std::endl;
+  //     exit(EXIT_FAILURE);
+  // }
+  if (!replaceMinifiHomeVariable(minifi_home / "fips" / "openssl.cnf", minifi_home.string(), logger)) {
+    logger->log_error("Failed to replace MINIFI_HOME variable in openssl.cnf");
+    std::exit(1);
+  }
+
+  utils::Environment::setEnvironmentVariable("OPENSSL_CONF", (minifi_home / "fips" / "openssl.cnf").string().c_str(), true);
+
+  // if (CONF_modules_load_file_ex(NULL, "/home/ggyimesi/projects/nifi-minifi-cpp-fork/build/nifi-minifi-cpp-0.99.1/fips/openssl.cnf", NULL, CONF_MFLAGS_DEFAULT_SECTION) <= 0) {
+  //   std::cerr << "Failed to load config" << std::endl;
+  //   ERR_print_errors_fp(stderr);
+  //   exit(EXIT_FAILURE);
+  // }
+
+  if (!OSSL_PROVIDER_set_default_search_path(nullptr, (minifi_home / "fips").string().c_str())) {
+    logger->log_error("Failed to set FIPS module path: {}", (minifi_home / "fips").string());
+    std::exit(1);
+  }
+
+  // if (OSSL_LIB_CTX_load_config(NULL, "/home/ggyimesi/projects/nifi-minifi-cpp-fork/build/nifi-minifi-cpp-0.99.1/fips/") != 1) {
+  //   std::cerr << "Failed to config" << std::endl;
+  //   ERR_print_errors_fp(stderr);
+  //   exit(EXIT_FAILURE);
+  // }
+
+
+  OSSL_PROVIDER *fips_provider = OSSL_PROVIDER_load(nullptr, "fips");
+  if (!fips_provider) {
+    logger->log_error("Failed to load FIPS provider");
+    std::exit(1);
+  }
+
+  OSSL_PROVIDER *default_provider = OSSL_PROVIDER_load(nullptr, "default");
+  if (!default_provider) {
+    logger->log_error("Failed to load default provider");
+    std::exit(1);
+  }
+
+  if (OSSL_PROVIDER_available(nullptr, "fips") != 1) {
+    logger->log_error("FIPS provider not available in default search path");
+    std::exit(1);
+  }
+
+  if (!EVP_default_properties_enable_fips(nullptr, 1)) {
+    logger->log_error("Failed to enable FIPS mode");
+    std::exit(1);
+  }
+
+  if (!EVP_default_properties_is_fips_enabled(nullptr)) {
+    logger->log_error("FIPS mode is not enabled");
+    std::exit(1);
+  }
+}
+
 int main(int argc, char **argv) {
   argparse::ArgumentParser argument_parser("Apache MiNiFi C++", minifi::AgentBuild::VERSION);
   argument_parser.add_argument("-p", "--property")
@@ -298,67 +391,7 @@ int main(int argc, char **argv) {
     }
   };
 
-  // if (!OPENSSL_init_crypto(0, NULL)) {
-  //     std::cerr << "Failed to initialize OpenSSL" << std::endl;
-  //     exit(EXIT_FAILURE);
-  // }
-
-  utils::Environment::setEnvironmentVariable("OPENSSL_CONF", "/home/ggyimesi/projects/nifi-minifi-cpp-fork/build/nifi-minifi-cpp-0.99.1/fips/openssl.cnf", true);
-
-  // if (CONF_modules_load_file_ex(NULL, "/home/ggyimesi/projects/nifi-minifi-cpp-fork/build/nifi-minifi-cpp-0.99.1/fips/openssl.cnf", NULL, CONF_MFLAGS_DEFAULT_SECTION) <= 0) {
-  //   std::cerr << "Failed to load config" << std::endl;
-  //   ERR_print_errors_fp(stderr);
-  //   exit(EXIT_FAILURE);
-  // }
-
-  // Set the default search path for providers
-  std::string fips_module_path = "/home/ggyimesi/projects/nifi-minifi-cpp-fork/build/nifi-minifi-cpp-0.99.1/fips/";
-  if (!OSSL_PROVIDER_set_default_search_path(NULL, fips_module_path.c_str())) {
-    std::cerr << "Failed to set FIPS module path: " << fips_module_path << std::endl;
-    exit(EXIT_FAILURE);
-  }
-
-  // if (OSSL_LIB_CTX_load_config(NULL, "/home/ggyimesi/projects/nifi-minifi-cpp-fork/build/nifi-minifi-cpp-0.99.1/fips/") != 1) {
-  //   std::cerr << "Failed to config" << std::endl;
-  //   ERR_print_errors_fp(stderr);
-  //   exit(EXIT_FAILURE);
-  // }
-
-
-
-  // Load the FIPS provider
-  OSSL_PROVIDER *fips_provider = OSSL_PROVIDER_load(NULL, "fips");
-  if (!fips_provider) {
-    std::cerr << "Failed to load FIPS provider" << std::endl;
-    ERR_print_errors_fp(stderr);
-    exit(EXIT_FAILURE);
-  }
-
-  // Optionally, load the default provider
-  OSSL_PROVIDER *default_provider = OSSL_PROVIDER_load(NULL, "default");
-  if (!default_provider) {
-    std::cerr << "Failed to load default provider" << std::endl;
-    exit(EXIT_FAILURE);
-  }
-
-  if (OSSL_PROVIDER_available(NULL, "fips") != 1) {
-    std::cerr << "FIPS provider not available in default search path" << std::endl;
-    exit(EXIT_FAILURE);
-  }
-
-  // Enable FIPS mode globally
-  if (!EVP_default_properties_enable_fips(NULL, 1)) {
-    std::cerr << "Failed to enable FIPS mode" << std::endl;
-    exit(EXIT_FAILURE);
-  }
-
-  // Verify FIPS mode is enabled
-  if (EVP_default_properties_is_fips_enabled(NULL)) {
-    std::cout << "FIPS mode successfully enabled with module at: " << fips_module_path << std::endl;
-  } else {
-    std::cerr << "FIPS mode is not enabled" << std::endl;
-    exit(EXIT_FAILURE);
-  }
+  initializeFipsMode(minifiHome, logger);
 
   do {
     flow_controller_running.test_and_set();
