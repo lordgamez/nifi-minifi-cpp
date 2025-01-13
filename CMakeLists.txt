@@ -552,6 +552,10 @@ if (NOT WIN32)
         DESTINATION conf
         COMPONENT bin)
 
+    install(FILES fips/openssl.cnf
+        DESTINATION fips
+        COMPONENT bin)
+
     install(DIRECTORY extensions/python/pythonprocessors/
         DESTINATION minifi-python
         COMPONENT bin)
