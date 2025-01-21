@@ -57,6 +57,7 @@ class ProcFsMonitor : public core::Processor {
  public:
   explicit ProcFsMonitor(std::string name, utils::Identifier uuid = utils::Identifier())
       : Processor(std::move(name), uuid) {
+    logger_ = core::logging::LoggerFactory<ProcFsMonitor>::getLogger(uuid_);
   }
   ~ProcFsMonitor() override = default;
 
@@ -141,7 +142,6 @@ class ProcFsMonitor : public core::Processor {
   ResultRelativeness result_relativeness_ = ResultRelativeness::Absolute;
 
   std::optional<uint8_t> decimal_places_;
-  std::shared_ptr<core::logging::Logger> logger_ = core::logging::LoggerFactory<ProcFsMonitor>::getLogger(uuid_);
 
   ProcFs proc_fs_;
 

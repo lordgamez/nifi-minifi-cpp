@@ -41,6 +41,7 @@ class ListSmb : public core::Processor {
  public:
   explicit ListSmb(std::string name, const utils::Identifier& uuid = {})
       : core::Processor(std::move(name), uuid) {
+    logger_ = core::logging::LoggerFactory<ListSmb>::getLogger(uuid_);
   }
 
   EXTENSIONAPI static constexpr const char* Description = "Retrieves a listing of files from an SMB share. For each file that is listed, "
@@ -142,7 +143,6 @@ class ListSmb : public core::Processor {
  private:
   std::shared_ptr<core::FlowFile> createFlowFile(core::ProcessSession& session, const utils::ListedFile& listed_file);
 
-  std::shared_ptr<core::logging::Logger> logger_ = core::logging::LoggerFactory<ListSmb>::getLogger(uuid_);
   std::filesystem::path input_directory_;
   std::shared_ptr<SmbConnectionControllerService> smb_connection_controller_service_;
   std::unique_ptr<minifi::utils::ListingStateManager> state_manager_;

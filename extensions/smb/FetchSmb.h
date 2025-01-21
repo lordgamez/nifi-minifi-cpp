@@ -41,6 +41,7 @@ class FetchSmb : public core::Processor {
  public:
   explicit FetchSmb(std::string name, const utils::Identifier& uuid = {})
       : core::Processor(std::move(name), uuid) {
+    logger_ = core::logging::LoggerFactory<FetchSmb>::getLogger(uuid_);
   }
 
   EXTENSIONAPI static constexpr const char* Description = "Fetches files from a SMB Share. Designed to be used in tandem with ListSmb.";
@@ -83,7 +84,6 @@ class FetchSmb : public core::Processor {
 
  private:
   std::shared_ptr<SmbConnectionControllerService> smb_connection_controller_service_;
-  std::shared_ptr<core::logging::Logger> logger_ = core::logging::LoggerFactory<FetchSmb>::getLogger(uuid_);
 };
 
 }  // namespace org::apache::nifi::minifi::extensions::smb

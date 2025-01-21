@@ -91,6 +91,7 @@ class SplitText : public core::Processor {
  public:
   explicit SplitText(std::string_view name,  const utils::Identifier& uuid = {})
       : Processor(name, uuid) {
+    logger_ = core::logging::LoggerFactory<SplitText>::getLogger(uuid_);
   }
 
   EXTENSIONAPI static constexpr const char* Description = "Splits a text file into multiple smaller text files on line boundaries limited by maximum number of lines or total size of fragment. "
@@ -175,7 +176,6 @@ class SplitText : public core::Processor {
 
  private:
   SplitTextConfiguration split_text_config_;
-  std::shared_ptr<core::logging::Logger> logger_ = core::logging::LoggerFactory<SplitText>::getLogger(uuid_);
 };
 
 }  // namespace org::apache::nifi::minifi::processors

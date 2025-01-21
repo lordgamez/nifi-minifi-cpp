@@ -44,7 +44,9 @@ namespace org::apache::nifi::minifi::processors {
 class RetryFlowFile : public core::Processor {
  public:
   explicit RetryFlowFile(std::string_view name, const utils::Identifier& uuid = {})
-      : Processor(name, uuid) {}
+      : Processor(name, uuid) {
+    logger_ = core::logging::LoggerFactory<RetryFlowFile>::getLogger(uuid_);
+  }
   ~RetryFlowFile() override = default;
 
   // ReuseMode allowed values
@@ -158,8 +160,6 @@ class RetryFlowFile : public core::Processor {
   bool fail_on_non_numerical_overwrite_ = false;  // The real default value is set by the default on the FailOnNonNumericalOverwrite property
   std::string reuse_mode_;
   std::vector<core::Property> exceeded_flowfile_attribute_keys_;
-
-  std::shared_ptr<core::logging::Logger> logger_ = core::logging::LoggerFactory<RetryFlowFile>::getLogger(uuid_);
 };
 
 }  // namespace org::apache::nifi::minifi::processors

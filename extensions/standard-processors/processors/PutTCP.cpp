@@ -38,7 +38,9 @@ namespace org::apache::nifi::minifi::processors {
 constexpr size_t chunk_size = 1024;
 
 PutTCP::PutTCP(const std::string& name, const utils::Identifier& uuid)
-    : Processor(name, uuid) {}
+    : Processor(name, uuid) {
+  logger_ = core::logging::LoggerFactory<PutTCP>::getLogger(uuid_);
+}
 
 PutTCP::~PutTCP() = default;
 

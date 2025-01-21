@@ -41,6 +41,7 @@ class GenerateFlowFile : public core::Processor {
  public:
   explicit GenerateFlowFile(const std::string_view name, const utils::Identifier& uuid = {}) // NOLINT
       : Processor(name, uuid) {
+    logger_ = core::logging::LoggerFactory<GenerateFlowFile>::getLogger(uuid_);
   }
   ~GenerateFlowFile() override = default;
 
@@ -124,8 +125,6 @@ class GenerateFlowFile : public core::Processor {
   static Mode getMode(bool is_unique, bool is_text, bool has_custom_text, uint64_t file_size);
   static bool isUnique(Mode mode) { return mode == Mode::UniqueText || mode == Mode::UniqueByte; }
   static bool isText(Mode mode) { return mode == Mode::UniqueText || mode == Mode::CustomText || mode == Mode::NotUniqueText; }
-
-  std::shared_ptr<core::logging::Logger> logger_ = core::logging::LoggerFactory<GenerateFlowFile>::getLogger(uuid_);
 };
 
 }  // namespace org::apache::nifi::minifi::processors

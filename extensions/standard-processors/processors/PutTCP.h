@@ -157,7 +157,6 @@ class PutTCP final : public core::Processor {
   std::optional<size_t> max_size_of_socket_send_buffer_;
   std::chrono::milliseconds timeout_duration_ = std::chrono::seconds(15);
   std::optional<asio::ssl::context> ssl_context_;
-  std::shared_ptr<core::logging::Logger> logger_ = core::logging::LoggerFactory<PutTCP>::getLogger(uuid_);
 };
 
 }  // namespace org::apache::nifi::minifi::processors

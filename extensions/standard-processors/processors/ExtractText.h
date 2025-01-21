@@ -40,6 +40,7 @@ class ExtractText : public core::Processor {
  public:
   explicit ExtractText(std::string_view name,  const utils::Identifier& uuid = {})
       : Processor(name, uuid) {
+    logger_ = core::logging::LoggerFactory<ExtractText>::getLogger(uuid_);
   }
 
   // Default maximum bytes to read into an attribute
@@ -118,9 +119,6 @@ class ExtractText : public core::Processor {
     core::ProcessContext *ctx_;
     std::shared_ptr<core::logging::Logger> logger_;
   };
-
- private:
-  std::shared_ptr<core::logging::Logger> logger_ = core::logging::LoggerFactory<ExtractText>::getLogger(uuid_);
 };
 
 }  // namespace org::apache::nifi::minifi::processors

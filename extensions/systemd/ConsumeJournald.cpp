@@ -33,8 +33,10 @@ namespace org::apache::nifi::minifi::extensions::systemd {
 namespace chr = std::chrono;
 
 ConsumeJournald::ConsumeJournald(std::string_view name, const utils::Identifier &id, std::unique_ptr<libwrapper::LibWrapper>&& libwrapper)
-    :core::Processor{name, id}, libwrapper_{std::move(libwrapper)}
-{}
+    : core::Processor{name, id},
+      libwrapper_{std::move(libwrapper)} {
+  logger_ = core::logging::LoggerFactory<ConsumeJournald>::getLogger(uuid_);
+}
 
 void ConsumeJournald::initialize() {
   setSupportedProperties(Properties);

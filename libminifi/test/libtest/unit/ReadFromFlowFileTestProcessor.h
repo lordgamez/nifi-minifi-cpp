@@ -42,6 +42,7 @@ class ReadFromFlowFileTestProcessor : public core::Processor {
 
   explicit ReadFromFlowFileTestProcessor(std::string_view name, const utils::Identifier& uuid = utils::Identifier())
       : Processor(name, uuid) {
+    logger_ = core::logging::LoggerFactory<ReadFromFlowFileTestProcessor>::getLogger(uuid_);
   }
 
   static constexpr const char* Description = "ReadFromFlowFileTestProcessor (only for testing purposes)";
@@ -90,7 +91,6 @@ class ReadFromFlowFileTestProcessor : public core::Processor {
     std::map<std::string, std::string> attributes_;
   };
   bool clear_on_trigger_ = true;
-  std::shared_ptr<core::logging::Logger> logger_ = core::logging::LoggerFactory<ReadFromFlowFileTestProcessor>::getLogger(uuid_);
   std::vector<FlowFileData> flow_files_read_;
 };
 

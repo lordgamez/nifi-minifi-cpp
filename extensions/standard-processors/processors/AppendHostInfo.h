@@ -44,6 +44,7 @@ class AppendHostInfo : public core::Processor {
 
   explicit AppendHostInfo(std::string_view name, const utils::Identifier& uuid = {})
       : core::Processor(name, uuid) {
+    logger_ = core::logging::LoggerFactory<AppendHostInfo>::getLogger(uuid_);
   }
   ~AppendHostInfo() override = default;
 
@@ -92,7 +93,6 @@ class AppendHostInfo : public core::Processor {
 
  private:
   std::shared_mutex shared_mutex_;
-  std::shared_ptr<core::logging::Logger> logger_ = core::logging::LoggerFactory<AppendHostInfo>::getLogger(uuid_);
   std::string hostname_attribute_name_;
   std::string ipaddress_attribute_name_;
   std::optional<std::regex> interface_name_filter_;

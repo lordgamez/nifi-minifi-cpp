@@ -37,7 +37,9 @@ namespace org::apache::nifi::minifi::processors {
 class ApplyTemplate : public core::Processor {
  public:
   explicit ApplyTemplate(std::string name, const utils::Identifier& uuid = {})
-      : Processor(std::move(name), uuid) {}
+      : Processor(std::move(name), uuid) {
+    logger_ = core::logging::LoggerFactory<ApplyTemplate>::getLogger(uuid_);
+  }
 
   EXTENSIONAPI static constexpr const char* Description = "Applies the mustache template specified by the \"Template\" property and writes the output to the flow file content. "
     "FlowFile attributes are used as template parameters.";
@@ -59,9 +61,6 @@ class ApplyTemplate : public core::Processor {
 
   void onTrigger(core::ProcessContext& context, core::ProcessSession& session) override;
   void initialize() override;
-
- private:
-  std::shared_ptr<core::logging::Logger> logger_ = core::logging::LoggerFactory<ApplyTemplate>::getLogger(uuid_);
 };
 
 }  // namespace org::apache::nifi::minifi::processors

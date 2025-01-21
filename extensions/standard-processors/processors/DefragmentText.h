@@ -61,6 +61,7 @@ class DefragmentText : public core::Processor {
  public:
   explicit DefragmentText(std::string_view name,  const utils::Identifier& uuid = {})
       : Processor(name, uuid) {
+    logger_ = core::logging::LoggerFactory<DefragmentText>::getLogger(uuid_);
   }
 
   EXTENSIONAPI static constexpr const char* Description = "DefragmentText splits and merges incoming flowfiles so cohesive messages are not split between them. "
@@ -156,7 +157,6 @@ class DefragmentText : public core::Processor {
   std::optional<std::chrono::milliseconds> max_age_;
   std::optional<size_t> max_size_;
 
-  std::shared_ptr<core::logging::Logger> logger_ = core::logging::LoggerFactory<DefragmentText>::getLogger(uuid_);
   core::FlowFileStore flow_file_store_;
   std::unordered_map<FragmentSource::Id, FragmentSource, FragmentSource::Id::hash> fragment_sources_;
 

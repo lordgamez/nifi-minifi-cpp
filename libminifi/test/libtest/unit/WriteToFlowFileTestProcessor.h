@@ -40,6 +40,7 @@ class WriteToFlowFileTestProcessor : public core::Processor {
 
   explicit WriteToFlowFileTestProcessor(std::string_view name, const utils::Identifier& uuid = utils::Identifier())
       : Processor(name, uuid) {
+    logger_ = core::logging::LoggerFactory<WriteToFlowFileTestProcessor>::getLogger(uuid_);
   }
 
   static constexpr const char* Description = "WriteToFlowFileTestProcessor (only for testing purposes)";
@@ -67,7 +68,6 @@ class WriteToFlowFileTestProcessor : public core::Processor {
   }
 
  private:
-  std::shared_ptr<core::logging::Logger> logger_ = core::logging::LoggerFactory<WriteToFlowFileTestProcessor>::getLogger(uuid_);
   std::string content_;
 };
 

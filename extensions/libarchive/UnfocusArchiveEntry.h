@@ -42,6 +42,7 @@ class UnfocusArchiveEntry : public core::Processor {
  public:
   explicit UnfocusArchiveEntry(std::string_view name, const utils::Identifier& uuid = {})
       : core::Processor(name, uuid) {
+    logger_ = core::logging::LoggerFactory<UnfocusArchiveEntry>::getLogger(uuid_);
   }
   ~UnfocusArchiveEntry() override = default;
 
@@ -74,9 +75,6 @@ class UnfocusArchiveEntry : public core::Processor {
     static int ok_cb(struct archive *, void* /*d*/) { return ARCHIVE_OK; }
     static la_ssize_t write_cb(struct archive *, void *d, const void *buffer, size_t length);
   };
-
- private:
-  std::shared_ptr<Logger> logger_ = core::logging::LoggerFactory<UnfocusArchiveEntry>::getLogger(uuid_);
 };
 
 }  // namespace org::apache::nifi::minifi::processors

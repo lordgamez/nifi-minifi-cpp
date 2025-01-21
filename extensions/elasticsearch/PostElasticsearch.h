@@ -40,6 +40,7 @@ class PostElasticsearch : public core::Processor {
 
   explicit PostElasticsearch(const std::string& name, const utils::Identifier& uuid = {})
       : Processor(name, uuid) {
+    logger_ = core::logging::LoggerFactory<PostElasticsearch>::getLogger(uuid_);
   }
   ~PostElasticsearch() override = default;
 
@@ -115,7 +116,6 @@ class PostElasticsearch : public core::Processor {
   std::string host_url_;
   std::shared_ptr<ElasticsearchCredentialsControllerService> credentials_service_;
   http::HTTPClient client_;
-  std::shared_ptr<core::logging::Logger> logger_ = core::logging::LoggerFactory<PostElasticsearch>::getLogger(uuid_);
 };
 
 }  // namespace org::apache::nifi::minifi::extensions::elasticsearch

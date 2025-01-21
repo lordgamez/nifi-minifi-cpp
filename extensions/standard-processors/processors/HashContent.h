@@ -139,6 +139,7 @@ class HashContent : public core::Processor {
  public:
   explicit HashContent(std::string_view name,  const utils::Identifier& uuid = {})
       : Processor(name, uuid) {
+    logger_ = core::logging::LoggerFactory<HashContent>::getLogger(uuid_);
   }
 
   EXTENSIONAPI static constexpr const char* Description = "HashContent calculates the checksum of the content of the flowfile and adds it as an attribute. "
@@ -179,7 +180,6 @@ class HashContent : public core::Processor {
   void initialize() override;
 
  private:
-  std::shared_ptr<core::logging::Logger> logger_ = core::logging::LoggerFactory<HashContent>::getLogger(uuid_);
   std::function<HashReturnType(const std::shared_ptr<io::InputStream>&)> algorithm_ = SHA256Hash;
   std::string attrKey_;
   bool failOnEmpty_{};

@@ -115,6 +115,7 @@ class InvokeHTTP : public core::Processor {
 
   explicit InvokeHTTP(std::string_view name, const utils::Identifier& uuid = {})
       : Processor(name, uuid) {
+    logger_ = core::logging::LoggerFactory<InvokeHTTP>::getLogger(uuid_);
     setTriggerWhenEmpty(true);
   }
 
@@ -352,12 +353,7 @@ class InvokeHTTP : public core::Processor {
   http::HTTPProxy proxy_{};
   bool follow_redirects_ = false;
   std::optional<std::string> content_type_;
-
-
   invoke_http::InvalidHTTPHeaderFieldHandlingOption invalid_http_header_field_handling_strategy_{};
-
-  std::shared_ptr<core::logging::Logger> logger_{core::logging::LoggerFactory<InvokeHTTP>::getLogger(uuid_)};
-
   std::unique_ptr<invoke_http::HttpClientStore> client_queue_;
 };
 

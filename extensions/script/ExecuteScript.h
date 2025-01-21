@@ -48,6 +48,7 @@ class ExecuteScript : public core::Processor {
  public:
   explicit ExecuteScript(std::string_view name, const utils::Identifier &uuid = {})
       : Processor(name, uuid) {
+    logger_ = core::logging::LoggerFactory<ExecuteScript>::getLogger(uuid_);
   }
 
   EXTENSIONAPI static constexpr const char* Description = "Executes a script given the flow file and a process session. "
@@ -99,8 +100,6 @@ class ExecuteScript : public core::Processor {
   }
 
  private:
-  std::shared_ptr<core::logging::Logger> logger_ = core::logging::LoggerFactory<ExecuteScript>::getLogger(uuid_);
-
   std::unique_ptr<extensions::script::ScriptExecutor> script_executor_;
 };
 

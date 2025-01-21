@@ -57,6 +57,7 @@ class ListenHTTP : public core::Processor {
 
   explicit ListenHTTP(std::string_view name, const utils::Identifier& uuid = {})
       : Processor(name, uuid) {
+    logger_ = core::logging::LoggerFactory<ListenHTTP>::getLogger(uuid_);
     callbacks_.log_message = &logMessage;
     callbacks_.log_access = &logAccess;
   }
@@ -284,7 +285,6 @@ class ListenHTTP : public core::Processor {
     return handler_ ? handler_->requestCount() : 0;
   }
 
-  std::shared_ptr<core::logging::Logger> logger_ = core::logging::LoggerFactory<ListenHTTP>::getLogger(uuid_);
   CivetCallbacks callbacks_;
   std::unique_ptr<CivetServer> server_;
   std::unique_ptr<Handler> handler_;
