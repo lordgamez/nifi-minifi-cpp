@@ -199,8 +199,8 @@ bool replaceMinifiHomeVariable(const std::filesystem::path& file_path, const std
   input_file.close();
 
   const std::string placeholder = "${MINIFI_HOME}";
-  size_t pos = 0;
-  if ((pos = content.find(placeholder, pos)) == std::string::npos) {
+  size_t pos = content.find(placeholder, 0);
+  if (pos == std::string::npos) {
     return true;
   }
 
@@ -209,14 +209,14 @@ bool replaceMinifiHomeVariable(const std::filesystem::path& file_path, const std
     pos += full_path.length();
   } while((pos = content.find(placeholder, pos)) != std::string::npos);
 
-  std::ofstream outputFile(file_path);
-  if (!outputFile) {
+  std::ofstream output_file(file_path);
+  if (!output_file) {
     logger->log_error("Failed to open file for writing: {}", file_path.string());
     return false;
   }
 
-  outputFile << content;
-  outputFile.close();
+  output_file << content;
+  output_file.close();
   return true;
 }
 
