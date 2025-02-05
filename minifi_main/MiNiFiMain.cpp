@@ -225,8 +225,20 @@ void initializeFipsMode(const std::shared_ptr<minifi::Configure>& configure, con
     return;
   }
 
+#ifdef WIN32
+  static constexpr std::string_view FIPS_LIB = "fips.dll";
+#else
+  static constexpr std::string_view FIPS_LIB = "fips.so";
+#endif
+
+  if (!std::filesystem::exists(minifi_home / "fips" / FIPS_LIB)) {
+    logger->log_error("FIPS mode is enabled, but {} is not available in MINIFI_HOME/fips directory", FIPS_LIB);
+    std::exit(1);
+  }
+
   if (!std::filesystem::exists(minifi_home / "fips" / "fipsmodule.cnf")) {
-    logger->log_error("FIPS mode is enabled, but fipsmodule.cnf is not available in MINIFI_HOME/fips directory");
+    logger->log_error("FIPS mode is enabled, but fipsmodule.cnf is not available in MINIFI_HOME/fips directory. "
+      "Run MINIFI_HOME/fips/openssl fipsinstall -out fipsmodule.cnf -module MINIFI_HOME/fips/{} command to generate the configuration file", FIPS_LIB);
     std::exit(1);
   }
 
@@ -244,18 +256,6 @@ void initializeFipsMode(const std::shared_ptr<minifi::Configure>& configure, con
 
   if (!OSSL_PROVIDER_set_default_search_path(nullptr, (minifi_home / "fips").string().c_str())) {
     logger->log_error("Failed to set FIPS module path: {}", (minifi_home / "fips").string());
-    std::exit(1);
-  }
-
-  OSSL_PROVIDER *fips_provider = OSSL_PROVIDER_load(nullptr, "fips");
-  if (!fips_provider) {
-    logger->log_error("Failed to load FIPS provider");
-    std::exit(1);
-  }
-
-  OSSL_PROVIDER *default_provider = OSSL_PROVIDER_load(nullptr, "default");
-  if (!default_provider) {
-    logger->log_error("Failed to load default provider");
     std::exit(1);
   }
 
