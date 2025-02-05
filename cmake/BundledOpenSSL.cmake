@@ -157,6 +157,8 @@ function(use_openssl SOURCE_DIR BINARY_DIR)
 
     if (WIN32)
         set(BYPRODUCT_DYN_SUFFIX ".dll" CACHE STRING "" FORCE)
+    elseif(APPLE)
+        set(BYPRODUCT_DYN_SUFFIX ".dylib" CACHE STRING "" FORCE)
     else()
         set(BYPRODUCT_DYN_SUFFIX ".so" CACHE STRING "" FORCE)
     endif()

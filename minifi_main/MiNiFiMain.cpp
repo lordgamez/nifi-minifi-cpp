@@ -227,6 +227,8 @@ void initializeFipsMode(const std::shared_ptr<minifi::Configure>& configure, con
 
 #ifdef WIN32
   static constexpr std::string_view FIPS_LIB = "fips.dll";
+#elif defined(__APPLE__)
+  static constexpr std::string_view FIPS_LIB = "fips.dylib";
 #else
   static constexpr std::string_view FIPS_LIB = "fips.so";
 #endif
