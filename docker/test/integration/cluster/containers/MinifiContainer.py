@@ -55,11 +55,11 @@ class MinifiContainer(FlowContainer):
         self.options = options
         if options.enable_openssl_fips_mode:
             if command is not None:
-                command = ["/bin/sh", "-c", MinifiContainer.MINIFI_ROOT + "/fips/openssl fipsinstall -out " + MinifiContainer.MINIFI_ROOT + "/fips/fipsmodule.cnf -module " + \
-                    MinifiContainer.MINIFI_ROOT + "/fips/fips.so && " + command]
+                command = ["/bin/sh", "-c", MinifiContainer.MINIFI_ROOT + "/fips/openssl fipsinstall -out " + MinifiContainer.MINIFI_ROOT + "/fips/fipsmodule.cnf -module "
+                           + MinifiContainer.MINIFI_ROOT + "/fips/fips.so && " + command]
             else:
-                command = ["/bin/sh", "-c", MinifiContainer.MINIFI_ROOT + "/fips/openssl fipsinstall -out " + MinifiContainer.MINIFI_ROOT + "/fips/fipsmodule.cnf -module " + \
-                    MinifiContainer.MINIFI_ROOT + "/fips/fips.so && " + MinifiContainer.MINIFI_ROOT + "/bin/minifi.sh run"]
+                command = ["/bin/sh", "-c", MinifiContainer.MINIFI_ROOT + "/fips/openssl fipsinstall -out " + MinifiContainer.MINIFI_ROOT + "/fips/fipsmodule.cnf -module "
+                           + MinifiContainer.MINIFI_ROOT + "/fips/fips.so && " + MinifiContainer.MINIFI_ROOT + "/bin/minifi.sh run"]
 
         super().__init__(feature_context=feature_context,
                          config_dir=config_dir,
