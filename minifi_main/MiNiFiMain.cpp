@@ -220,11 +220,21 @@ bool replaceMinifiHomeVariable(const std::filesystem::path& file_path, const std
   return true;
 }
 
-void initializeFipsMode(const std::filesystem::path& minifi_home, const std::shared_ptr<core::logging::Logger>& logger) {
-  // if (!OPENSSL_init_crypto(0, NULL)) {
-  //     std::cerr << "Failed to initialize OpenSSL" << std::endl;
-  //     exit(EXIT_FAILURE);
-  // }
+void initializeFipsMode(const std::shared_ptr<minifi::Configure>& configure, const std::filesystem::path& minifi_home, const std::shared_ptr<core::logging::Logger>& logger) {
+  if (!(configure->get(minifi::Configure::nifi_openssl_fips_support_enable) | utils::andThen(utils::string::toBool)).value_or(false)) {
+    return;
+  }
+
+  if (!std::filesystem::exists(minifi_home / "fips" / "fipsmodule.cnf")) {
+    logger->log_error("FIPS mode is enabled, but fipsmodule.cnf is not available in MINIFI_HOME/fips directory");
+    std::exit(1);
+  }
+
+  if (!std::filesystem::exists(minifi_home / "fips" / "openssl.cnf")) {
+    logger->log_error("FIPS mode is enabled, but openssl.cnf is not available in MINIFI_HOME/fips directory");
+    std::exit(1);
+  }
+
   if (!replaceMinifiHomeVariable(minifi_home / "fips" / "openssl.cnf", minifi_home.string(), logger)) {
     logger->log_error("Failed to replace MINIFI_HOME variable in openssl.cnf");
     std::exit(1);
@@ -232,23 +242,10 @@ void initializeFipsMode(const std::filesystem::path& minifi_home, const std::sha
 
   utils::Environment::setEnvironmentVariable("OPENSSL_CONF", (minifi_home / "fips" / "openssl.cnf").string().c_str(), true);
 
-  // if (CONF_modules_load_file_ex(NULL, "/home/ggyimesi/projects/nifi-minifi-cpp-fork/build/nifi-minifi-cpp-0.99.1/fips/openssl.cnf", NULL, CONF_MFLAGS_DEFAULT_SECTION) <= 0) {
-  //   std::cerr << "Failed to load config" << std::endl;
-  //   ERR_print_errors_fp(stderr);
-  //   exit(EXIT_FAILURE);
-  // }
-
   if (!OSSL_PROVIDER_set_default_search_path(nullptr, (minifi_home / "fips").string().c_str())) {
     logger->log_error("Failed to set FIPS module path: {}", (minifi_home / "fips").string());
     std::exit(1);
   }
-
-  // if (OSSL_LIB_CTX_load_config(NULL, "/home/ggyimesi/projects/nifi-minifi-cpp-fork/build/nifi-minifi-cpp-0.99.1/fips/") != 1) {
-  //   std::cerr << "Failed to config" << std::endl;
-  //   ERR_print_errors_fp(stderr);
-  //   exit(EXIT_FAILURE);
-  // }
-
 
   OSSL_PROVIDER *fips_provider = OSSL_PROVIDER_load(nullptr, "fips");
   if (!fips_provider) {
@@ -393,8 +390,6 @@ int main(int argc, char **argv) {
     }
   };
 
-  initializeFipsMode(minifiHome, logger);
-
   do {
     flow_controller_running.test_and_set();
 
@@ -429,6 +424,8 @@ int main(int argc, char **argv) {
     configure->setHome(minifiHome);
     configure->loadConfigureFile(DEFAULT_NIFI_PROPERTIES_FILE);
     overridePropertiesFromCommandLine(argument_parser, configure);
+
+    initializeFipsMode(configure, minifiHome, logger);
 
     minifi::core::extension::ExtensionManagerImpl::get().initialize(configure);
 
