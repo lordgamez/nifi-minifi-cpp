@@ -47,6 +47,7 @@
 #include <openssl/provider.h>
 #include <openssl/evp.h>
 #include <fstream>
+#include <algorithm>
 
 #include "ResourceClaim.h"
 #include "core/Core.h"
@@ -186,7 +187,7 @@ void writeSchemaIfRequested(const argparse::ArgumentParser& parser, const std::s
   std::exit(0);
 }
 
-bool replaceMinifiHomeVariable(const std::filesystem::path& file_path, const std::string& full_path, const std::shared_ptr<core::logging::Logger>& logger) {
+bool replaceMinifiHomeVariable(const std::filesystem::path& file_path, std::string minifi_home_path, const std::shared_ptr<core::logging::Logger>& logger) {
   std::ifstream input_file(file_path);
   if (!input_file) {
     logger->log_error("Failed to open file: {}", file_path.string());
@@ -204,9 +205,10 @@ bool replaceMinifiHomeVariable(const std::filesystem::path& file_path, const std
     return true;
   }
 
+  std::replace(minifi_home_path.begin(), minifi_home_path.end(), '\\', '/');
   do {
-    content.replace(pos, placeholder.length(), full_path);
-    pos += full_path.length();
+    content.replace(pos, placeholder.length(), minifi_home_path);
+    pos += minifi_home_path.length();
   } while((pos = content.find(placeholder, pos)) != std::string::npos);
 
   std::ofstream output_file(file_path);
@@ -275,6 +277,8 @@ void initializeFipsMode(const std::shared_ptr<minifi::Configure>& configure, con
     logger->log_error("FIPS mode is not enabled");
     std::exit(1);
   }
+
+  logger->log_info("FIPS mode enabled in MiNiFi C++");
 }
 
 int main(int argc, char **argv) {
