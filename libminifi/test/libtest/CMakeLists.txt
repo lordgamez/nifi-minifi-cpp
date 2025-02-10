@@ -16,5 +16,12 @@
 # specific language governing permissions and limitations
 # under the License.
 #
+
+# build civetweb for tests if it is not enabled for base MiNiFi
+if (NOT ENABLE_CIVET)
+    include(GetCivetWeb)
+    get_civetweb()
+endif()
+
 add_subdirectory(unit)
 add_subdirectory(integration)
