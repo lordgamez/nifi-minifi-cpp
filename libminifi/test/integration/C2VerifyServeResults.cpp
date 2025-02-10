@@ -31,6 +31,7 @@
 
 namespace org::apache::nifi::minifi::test {
 
+// TODO: move to civetweb extension
 class VerifyC2Server : public HTTPIntegrationBase {
  public:
   VerifyC2Server() {

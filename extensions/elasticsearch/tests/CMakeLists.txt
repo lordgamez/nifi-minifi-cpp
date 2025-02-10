@@ -28,7 +28,7 @@ FOREACH(testfile ${ELASTICSEARCH_TESTS})
     target_include_directories(${testfilename} BEFORE PRIVATE "${civetweb_SOURCE_DIR}/include")
 
     createTests("${testfilename}")
-    target_link_libraries(${testfilename} Catch2WithMain minifi-elasticsearch minifi-standard-processors)
+    target_link_libraries(${testfilename} Catch2WithMain civetweb::civetweb-cpp minifi-elasticsearch minifi-standard-processors)
     MATH(EXPR ELASTICSEARCH_TEST_COUNT "${ELASTICSEARCH_TEST_COUNT}+1")
     add_test(NAME "${testfilename}" COMMAND "${testfilename}" WORKING_DIRECTORY ${TEST_DIR})
     set_tests_properties("${testfilename}" PROPERTIES LABELS "elasticsearch;memchecked")

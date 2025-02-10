@@ -34,7 +34,7 @@ FOREACH(testfile ${GRAFANA_LOKI_TESTS})
     target_include_directories(${testfilename} BEFORE PRIVATE "${civetweb_SOURCE_DIR}/include")
 
     createTests("${testfilename}")
-    target_link_libraries(${testfilename} Catch2WithMain minifi-grafana-loki minifi-standard-processors)
+    target_link_libraries(${testfilename} Catch2WithMain civetweb::civetweb-cpp minifi-grafana-loki minifi-standard-processors)
     MATH(EXPR GRAFANA_LOKI_TEST_COUNT "${GRAFANA_LOKI_TEST_COUNT}+1")
     add_test(NAME "${testfilename}" COMMAND "${testfilename}" WORKING_DIRECTORY ${TEST_DIR})
     set_tests_properties("${testfilename}" PROPERTIES LABELS "grafana-loki;memchecked")

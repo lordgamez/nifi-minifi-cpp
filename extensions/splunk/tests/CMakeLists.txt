@@ -28,7 +28,7 @@ FOREACH(testfile ${SPLUNK_TESTS})
     target_include_directories(${testfilename} BEFORE PRIVATE "${civetweb_SOURCE_DIR}/include")
 
     createTests("${testfilename}")
-    target_link_libraries(${testfilename} Catch2WithMain minifi-splunk minifi-standard-processors)
+    target_link_libraries(${testfilename} Catch2WithMain civetweb::civetweb-cpp minifi-splunk minifi-standard-processors)
     MATH(EXPR SPLUNK_TEST_COUNT "${SPLUNK_TEST_COUNT}+1")
     add_test(NAME "${testfilename}" COMMAND "${testfilename}" WORKING_DIRECTORY ${TEST_DIR})
 ENDFOREACH()

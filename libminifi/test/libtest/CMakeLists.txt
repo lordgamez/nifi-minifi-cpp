@@ -19,6 +19,7 @@
 
 # build civetweb for tests if it is not enabled for base MiNiFi
 if (NOT ENABLE_CIVET)
+    message(DEBUG "-- CivetWeb was disabled for MiNiFi, but will be enabled for tests")
     include(GetCivetWeb)
     get_civetweb()
 endif()
