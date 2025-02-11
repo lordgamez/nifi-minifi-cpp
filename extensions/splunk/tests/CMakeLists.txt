@@ -25,7 +25,7 @@ FOREACH(testfile ${SPLUNK_TESTS})
     add_minifi_executable("${testfilename}" "${testfile}")
     target_include_directories(${testfilename} PRIVATE BEFORE "${CMAKE_SOURCE_DIR}/extensions/standard-processors")
     target_include_directories(${testfilename} PRIVATE BEFORE "${CMAKE_SOURCE_DIR}/extensions/splunk")
-    target_include_directories(${testfilename} BEFORE PRIVATE "${civetweb_SOURCE_DIR}/include")
+    target_include_directories(${testfilename} BEFORE PRIVATE "${CivetWeb_INCLUDE_DIRS}")
 
     createTests("${testfilename}")
     target_link_libraries(${testfilename} Catch2WithMain civetweb::civetweb-cpp minifi-splunk minifi-standard-processors)

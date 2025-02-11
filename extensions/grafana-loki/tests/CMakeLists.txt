@@ -31,7 +31,7 @@ FOREACH(testfile ${GRAFANA_LOKI_TESTS})
     if (ENABLE_GRPC_FOR_LOKI)
         target_include_directories(${testfilename} SYSTEM PRIVATE BEFORE "${CMAKE_BINARY_DIR}/grafana-loki-protobuf-generated")
     endif()
-    target_include_directories(${testfilename} BEFORE PRIVATE "${civetweb_SOURCE_DIR}/include")
+    target_include_directories(${testfilename} BEFORE PRIVATE "${CivetWeb_INCLUDE_DIRS}")
 
     createTests("${testfilename}")
     target_link_libraries(${testfilename} Catch2WithMain civetweb::civetweb-cpp minifi-grafana-loki minifi-standard-processors)
