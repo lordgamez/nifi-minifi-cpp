@@ -31,7 +31,6 @@
 
 namespace org::apache::nifi::minifi::test {
 
-// TODO: move to civetweb extension
 class VerifyC2Server : public HTTPIntegrationBase {
  public:
   VerifyC2Server() {
@@ -75,6 +74,7 @@ class VerifyC2Server : public HTTPIntegrationBase {
     minifi::utils::parse_http_components(url, port, scheme, path);
     configuration->set(minifi::Configuration::nifi_c2_enable, "true");
     configuration->set(minifi::Configuration::nifi_c2_agent_class, "test");
+    configuration->set(minifi::Configuration::nifi_c2_agent_heartbeat_reporter_classes, "RESTReceiver");
     configuration->set(minifi::Configuration::nifi_c2_rest_listener_port, port);
     configuration->set(minifi::Configuration::nifi_c2_agent_heartbeat_period, "10");
   }

@@ -33,7 +33,6 @@ using namespace std::literals::chrono_literals;
 
 namespace org::apache::nifi::minifi::test {
 
-// TODO: move to civetweb extension
 class HttpTestHarness : public HTTPIntegrationBase {
  public:
   HttpTestHarness() {
