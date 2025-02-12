@@ -20,8 +20,9 @@
 
 #include <string>
 #include <utility>
- #include <memory>
+#include <memory>
 #include <vector>
+#include <thread>
 #include "core/ProcessGroup.h"
 #include "core/ClassLoader.h"
 #include "core/controller/ControllerService.h"
@@ -47,6 +48,9 @@ class StandardControllerServiceProvider : public ControllerServiceProviderImpl  
 
   StandardControllerServiceProvider& operator=(const StandardControllerServiceProvider &other) = delete;
   StandardControllerServiceProvider& operator=(StandardControllerServiceProvider &&other) = delete;
+  ~StandardControllerServiceProvider() override {
+    stopEnableRetryThread();
+  }
 
   std::shared_ptr<ControllerServiceNode> createControllerService(const std::string& type, const std::string&, const std::string& id, bool) override {
     std::shared_ptr<ControllerService> new_controller_service = extension_loader_.instantiate<ControllerService>(type, id);
@@ -64,27 +68,30 @@ class StandardControllerServiceProvider : public ControllerServiceProviderImpl  
   }
 
   void enableAllControllerServices() override {
-    logger_->log_info("Enabling {} controller services", controller_map_->getAllControllerServices().size());
-    for (const auto& service : controller_map_->getAllControllerServices()) {
-      logger_->log_info("Enabling {}", service->getName());
-      if (!service->canEnable()) {
-        logger_->log_warn("Service {} cannot be enabled", service->getName());
-        continue;
-      }
-      if (!service->enable()) {
-        logger_->log_warn("Could not enable {}", service->getName());
+    stopEnableRetryThread();
+    {
+      std::lock_guard<std::mutex> lock(enable_retry_mutex_);
+      logger_->log_info("Enabling {} controller services", controller_map_->getAllControllerServices().size());
+      for (const auto& service : controller_map_->getAllControllerServices()) {
+        logger_->log_info("Enabling {}", service->getName());
+        if (!service->canEnable()) {
+          logger_->log_warn("Service {} cannot be enabled", service->getName());
+          continue;
+        }
+        if (!service->enable()) {
+          logger_->log_warn("Could not enable {}", service->getName());
+          controller_services_to_enable_.push_back(service);
+        }
       }
     }
+    startEnableRetryThread();
   }
 
   void disableAllControllerServices() override {
+    stopEnableRetryThread();
     logger_->log_info("Disabling {} controller services", controller_map_->getAllControllerServices().size());
     for (const auto& service : controller_map_->getAllControllerServices()) {
       logger_->log_info("Disabling {}", service->getName());
-      if (!service->enabled()) {
-        logger_->log_warn("Service {} is not enabled", service->getName());
-        continue;
-      }
       if (!service->disable()) {
         logger_->log_warn("Could not disable {}", service->getName());
       }
@@ -92,10 +99,40 @@ class StandardControllerServiceProvider : public ControllerServiceProviderImpl  
   }
 
   void clearControllerServices() override {
+    stopEnableRetryThread();
     controller_map_->clear();
   }
 
  protected:
+  void stopEnableRetryThread() {
+    enable_retry_thread_running_ = false;
+    enable_retry_condition_.notify_all();
+    if (controller_service_enable_retry_thread_.joinable()) {
+      controller_service_enable_retry_thread_.join();
+    }
+  }
+
+  void startEnableRetryThread() {
+    enable_retry_thread_running_ = true;
+    controller_service_enable_retry_thread_ = std::thread([this]() {
+      std::unique_lock<std::mutex> lock(enable_retry_mutex_);
+      while (enable_retry_thread_running_) {
+        for (auto it = controller_services_to_enable_.begin(); it != controller_services_to_enable_.end();) {
+          if ((*it)->enable()) {
+            it = controller_services_to_enable_.erase(it);
+          } else {
+            ++it;
+          }
+        }
+        if (controller_services_to_enable_.empty()) {
+          break;
+        }
+        enable_retry_condition_.wait_for(lock, std::chrono::seconds(10));
+      }
+      controller_services_to_enable_.clear();
+    });
+  }
+
   bool canEdit() override {
     return false;
   }
@@ -106,6 +143,11 @@ class StandardControllerServiceProvider : public ControllerServiceProviderImpl  
 
  private:
   std::shared_ptr<logging::Logger> logger_;
+  std::thread controller_service_enable_retry_thread_;
+  std::atomic_bool enable_retry_thread_running_{false};
+  std::mutex enable_retry_mutex_;
+  std::condition_variable enable_retry_condition_;
+  std::vector<std::shared_ptr<ControllerServiceNode>> controller_services_to_enable_;
 };
 
 }  // namespace org::apache::nifi::minifi::core::controller

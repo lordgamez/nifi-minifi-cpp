@@ -47,12 +47,22 @@ bool StandardControllerServiceNode::enable() {
     for (const auto& service : linked_controller_services_) {
       services.push_back(service->getControllerServiceImplementation());
       if (!service->enable()) {
-        logger_->log_debug("Linked Service '{}' could not be enabled", service->getName());
+        logger_->log_warn("Linked Service '{}' could not be enabled", service->getName());
         return false;
       }
     }
-    impl->setLinkedControllerServices(services);
-    impl->onEnable();
+    try {
+      impl->setLinkedControllerServices(services);
+      impl->onEnable();
+    } catch(const std::exception& e) {
+      logger_->log_warn("Service '{}' failed to enable: {}", getName(), e.what());
+      controller_service_->setState(ENABLING);
+      return false;
+    }
+  } else {
+    logger_->log_warn("Service '{}' service implementation could not be found", controller_service_->getName());
+    controller_service_->setState(ENABLING);
+    return false;
   }
   active = true;
   controller_service_->setState(ENABLED);
