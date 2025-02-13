@@ -32,6 +32,8 @@
 #include "ControllerServiceProvider.h"
 #include "core/logging/LoggerFactory.h"
 
+using namespace std::literals::chrono_literals;
+
 namespace org::apache::nifi::minifi::core::controller {
 
 class StandardControllerServiceProvider : public ControllerServiceProviderImpl  {
@@ -40,6 +42,7 @@ class StandardControllerServiceProvider : public ControllerServiceProviderImpl  
       : ControllerServiceProviderImpl(std::move(services)),
         extension_loader_(loader),
         configuration_(std::move(configuration)),
+        admin_yield_duration_(readAdministrativeYieldDuration()),
         logger_(logging::LoggerFactory<StandardControllerServiceProvider>::getLogger()) {
   }
 
@@ -127,7 +130,7 @@ class StandardControllerServiceProvider : public ControllerServiceProviderImpl  
         if (controller_services_to_enable_.empty()) {
           break;
         }
-        enable_retry_condition_.wait_for(lock, std::chrono::seconds(10));
+        enable_retry_condition_.wait_for(lock, admin_yield_duration_);
       }
       controller_services_to_enable_.clear();
     });
@@ -142,12 +145,26 @@ class StandardControllerServiceProvider : public ControllerServiceProviderImpl  
   std::shared_ptr<Configure> configuration_;
 
  private:
-  std::shared_ptr<logging::Logger> logger_;
+  std::chrono::milliseconds readAdministrativeYieldDuration() const {
+    std::chrono::milliseconds admin_yield_duration = 30s;
+    std::string yield_value_str;
+
+    if (configuration_->get(Configure::nifi_administrative_yield_duration, yield_value_str)) {
+      std::optional<core::TimePeriodValue> value = core::TimePeriodValue::fromString(yield_value_str);
+      if (value) {
+        admin_yield_duration = value->getMilliseconds();
+      }
+    }
+    return admin_yield_duration;
+  }
+
   std::thread controller_service_enable_retry_thread_;
   std::atomic_bool enable_retry_thread_running_{false};
   std::mutex enable_retry_mutex_;
   std::condition_variable enable_retry_condition_;
   std::vector<std::shared_ptr<ControllerServiceNode>> controller_services_to_enable_;
+  std::chrono::milliseconds admin_yield_duration_;
+  std::shared_ptr<logging::Logger> logger_;
 };
 
 }  // namespace org::apache::nifi::minifi::core::controller
