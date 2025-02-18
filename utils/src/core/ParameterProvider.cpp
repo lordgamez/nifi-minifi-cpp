@@ -19,7 +19,7 @@
 
 namespace org::apache::nifi::minifi::core {
 
-ParameterProviderConfig ParameterProvider::readParameterProviderConfig() const {
+ParameterProviderConfig ParameterProviderImpl::readParameterProviderConfig() const {
   ParameterProviderConfig config;
 
   auto sensitive_parameter_scope_str = getProperty(SensitiveParameterScope);
@@ -46,7 +46,7 @@ ParameterProviderConfig ParameterProvider::readParameterProviderConfig() const {
   return config;
 }
 
-std::vector<gsl::not_null<std::unique_ptr<ParameterContext>>> ParameterProvider::createParameterContexts() {
+std::vector<gsl::not_null<std::unique_ptr<ParameterContext>>> ParameterProviderImpl::createParameterContexts() {
   auto config = readParameterProviderConfig();
 
   auto parameter_groups = buildParameterGroups();

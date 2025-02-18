@@ -26,13 +26,9 @@
 #include "core/ConfigurableComponent.h"
 #include "core/ParameterContext.h"
 #include "core/PropertyDefinitionBuilder.h"
+#include "minifi-cpp/core/ParameterProvider.h"
 
 namespace org::apache::nifi::minifi::core {
-
-struct ParameterGroup {
-  std::string name;
-  std::unordered_map<std::string, std::string> parameters;
-};
 
 enum class SensitiveParameterScopeOptions {
   none,
@@ -50,11 +46,11 @@ struct ParameterProviderConfig {
   }
 };
 
-class ParameterProvider : public ConfigurableComponent, public CoreComponent {
+class ParameterProviderImpl : public virtual ParameterProvider, public CoreComponentImpl, public ConfigurableComponentImpl {
  public:
-  using CoreComponent::CoreComponent;
-  ParameterProvider(const ParameterProvider &other) = delete;
-  ParameterProvider &operator=(const ParameterProvider &other) = delete;
+  using CoreComponentImpl::CoreComponentImpl;
+  ParameterProviderImpl(const ParameterProviderImpl &other) = delete;
+  ParameterProviderImpl &operator=(const ParameterProviderImpl &other) = delete;
 
   MINIFIAPI static constexpr auto SensitiveParameterScope = core::PropertyDefinitionBuilder<magic_enum::enum_count<SensitiveParameterScopeOptions>()>::createProperty("Sensitive Parameter Scope")
       .withDescription("Define which parameters are considered sensitive, being either 'none', 'all' or 'selected'. If 'selected' is chosen, the 'Sensitive Parameter List' property must be set.")
@@ -75,7 +71,6 @@ class ParameterProvider : public ConfigurableComponent, public CoreComponent {
 
  protected:
   ParameterProviderConfig readParameterProviderConfig() const;
-  virtual std::vector<ParameterGroup> buildParameterGroups() = 0;
 
   bool canEdit() override { return true; }
 };

@@ -17,7 +17,7 @@
 #pragma once
 
 #include "core/ParameterProvider.h"
-#include "core/logging/LoggerConfiguration.h"
+#include "core/logging/LoggerFactory.h"
 
 namespace org::apache::nifi::minifi::parameter_providers {
 
@@ -48,9 +48,9 @@ constexpr customize_t enum_name<EnvironmentVariableInclusionStrategyOptions>(Env
 
 namespace org::apache::nifi::minifi::parameter_providers {
 
-class EnvironmentVariableParameterProvider final : public core::ParameterProvider {
+class EnvironmentVariableParameterProvider final : public core::ParameterProviderImpl {
  public:
-  using ParameterProvider::ParameterProvider;
+  using ParameterProviderImpl::ParameterProviderImpl;
 
   MINIFIAPI static constexpr const char* Description = "Fetches parameters from environment variables";
 
@@ -71,7 +71,7 @@ class EnvironmentVariableParameterProvider final : public core::ParameterProvide
       .build();
 
   void initialize() override {
-    setSupportedProperties(minifi::utils::array_cat(core::ParameterProvider::Properties,
+    setSupportedProperties(minifi::utils::array_cat(core::ParameterProviderImpl::Properties,
       std::to_array<core::PropertyReference>({EnvironmentVariableInclusionStrategy, IncludeEnvironmentVariables, ParameterGroupName})));
   }
 
