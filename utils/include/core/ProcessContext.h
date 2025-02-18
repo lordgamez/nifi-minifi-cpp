@@ -146,8 +146,14 @@ class ProcessContextImpl : public core::VariableRegistryImpl, public virtual Pro
   ProcessContextImpl &operator=(const ProcessContextImpl &parent) = delete;
 
   std::shared_ptr<core::controller::ControllerService> getControllerService(const std::string &identifier, const utils::Identifier &processor_uuid) const override {
+    if (controller_service_provider_ == nullptr) {
+      throw std::runtime_error("Controller Service Provider is not set");
+    }
     auto controller_service = controller_service_provider_ == nullptr ? nullptr : controller_service_provider_->getControllerService(identifier, processor_uuid);
-    if (!controller_service || controller_service->getState() != core::controller::ControllerServiceState::ENABLED) {
+    if (!controller_service) {
+      throw std::runtime_error("Controller Service not found");
+    }
+    if (controller_service->getState() != core::controller::ControllerServiceState::ENABLED) {
       return nullptr;
     }
     return controller_service;

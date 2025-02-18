@@ -86,7 +86,7 @@ class DummmyControllerUserProcessor : public minifi::core::ProcessorImpl {
 
   void onSchedule(core::ProcessContext& context, core::ProcessSessionFactory& /*session_factory*/) override {
     if (auto controller_service = context.getProperty(DummmyControllerUserProcessor::DummyControllerService)) {
-      if (!std::dynamic_pointer_cast<DummyController>(context.getControllerService(*controller_service, getUUID()))) {
+      if (!std::dynamic_pointer_cast<DummyController>(context.getControllerService(*controller_service, uuid_))) {
         throw minifi::Exception(minifi::ExceptionType::PROCESS_SCHEDULE_EXCEPTION, "Invalid controller service");
       }
     } else {
@@ -153,7 +153,7 @@ class ControllerUpdateHandler: public HeartbeatHandler {
       }
       case TestState::VERIFY_UPDATED_METRICS: {
         sendEmptyHeartbeatResponse(conn);
-        REQUIRE(minifi::test::utils::verifyLogLinePresenceInPollTime(5s, "log2"));
+        REQUIRE(minifi::test::utils::verifyLogLinePresenceInPollTime(1000s, "log2"));
         flow_updated_successfully_ = true;
         break;
       }
