@@ -21,7 +21,7 @@
 #include <string>
 #include <utility>
 #include <memory>
-#include <vector>
+#include <unordered_set>
 #include <thread>
 #include "core/ProcessGroup.h"
 #include "core/ClassLoader.h"
@@ -83,7 +83,7 @@ class StandardControllerServiceProvider : public ControllerServiceProviderImpl  
         }
         if (!service->enable()) {
           logger_->log_warn("Could not enable {}", service->getName());
-          controller_services_to_enable_.push_back(service);
+          controller_services_to_enable_.insert(service);
         }
       }
     }
@@ -119,6 +119,10 @@ class StandardControllerServiceProvider : public ControllerServiceProviderImpl  
     enable_retry_thread_running_ = true;
     controller_service_enable_retry_thread_ = std::thread([this]() {
       std::unique_lock<std::mutex> lock(enable_retry_mutex_);
+      if (controller_services_to_enable_.empty()) {
+        return;
+      }
+      enable_retry_condition_.wait_for(lock, admin_yield_duration_);
       while (enable_retry_thread_running_) {
         for (auto it = controller_services_to_enable_.begin(); it != controller_services_to_enable_.end();) {
           if ((*it)->enable()) {
@@ -162,7 +166,7 @@ class StandardControllerServiceProvider : public ControllerServiceProviderImpl  
   std::atomic_bool enable_retry_thread_running_{false};
   std::mutex enable_retry_mutex_;
   std::condition_variable enable_retry_condition_;
-  std::vector<std::shared_ptr<ControllerServiceNode>> controller_services_to_enable_;
+  std::unordered_set<std::shared_ptr<ControllerServiceNode>> controller_services_to_enable_;
   std::chrono::milliseconds admin_yield_duration_;
   std::shared_ptr<logging::Logger> logger_;
 };
