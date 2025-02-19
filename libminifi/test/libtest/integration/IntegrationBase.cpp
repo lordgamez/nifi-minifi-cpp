@@ -101,13 +101,12 @@ void IntegrationBase::run(const std::optional<std::filesystem::path>& test_file_
             .sensitive_values_encryptor = sensitive_values_encryptor
         }, nifi_configuration_class_name);
 
-    auto controller_service_provider = flow_config->getControllerServiceProvider();
     char state_dir_name_template[] = "/var/tmp/integrationstate.XXXXXX";  // NOLINT(cppcoreguidelines-avoid-c-arrays)
     state_dir = minifi::utils::file::create_temp_directory(state_dir_name_template);
     if (!configuration->get(minifi::Configure::nifi_state_storage_local_path)) {
       configuration->set(minifi::Configure::nifi_state_storage_local_path, state_dir.string());
     }
-    core::ProcessContextImpl::getOrCreateDefaultStateStorage(controller_service_provider.get(), configuration);
+    core::ProcessContextImpl::getOrCreateDefaultStateStorage(flow_config->getControllerServiceProvider().get(), configuration);
 
     std::shared_ptr<core::ProcessGroup> pg(flow_config->getRoot());
     queryRootProcessGroup(pg);

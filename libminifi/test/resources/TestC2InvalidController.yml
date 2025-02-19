@@ -18,10 +18,10 @@
 #
 Flow Controller:
     name: MiNiFi Flow
-    id: 2438e3c8-015a-1000-79ca-83af40ec1998
+    id: 2438e3c8-015a-1000-79ca-83af40ec7777
 Processors:
     - name: DummmyControllerUserProcessor
-      id: 2438e3c8-015a-1000-79ca-83af40ec1899
+      id: 2438e3c8-015a-1000-79ca-83af40ec8888
       class: org.apache.nifi.processors.DummmyControllerUserProcessor
       max concurrent tasks: 1
       scheduling strategy: TIMER_DRIVEN
@@ -35,7 +35,7 @@ Processors:
 
 Controller Services:
     - name: DummyController
-      id: 2438e3c8-015a-1000-79ca-83af40ec1888
+      id: 2438e3c8-015a-1000-79ca-83af40ec9999
       class: DummyController
       Properties:
-        Dummy property:
+        Dummy Property: invalid

@@ -20,7 +20,7 @@ Flow Controller:
     name: MiNiFi Flow
     id: 2438e3c8-015a-1000-79ca-83af40ec1998
 Processors:
-    - name: DummmyControllerUserProcessor
+    - name: DummmyControllerUserProcessor2
       id: 2438e3c8-015a-1000-79ca-83af40ec1899
       class: org.apache.nifi.processors.DummmyControllerUserProcessor
       max concurrent tasks: 1
@@ -31,11 +31,11 @@ Processors:
       run duration nanos: 0
       auto-terminated relationships list:
       Properties:
-          Dummy Controller Service: DummyController
+          Dummy Controller Service: DummyController2
 
 Controller Services:
-    - name: DummyController
+    - name: DummyController2
       id: 2438e3c8-015a-1000-79ca-83af40ec1888
       class: DummyController
       Properties:
-        Dummy property: dummy
+        Dummy Property: dummy

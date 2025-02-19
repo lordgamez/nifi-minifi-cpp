@@ -34,22 +34,26 @@ public:
   explicit DummyController(std::string_view name, const minifi::utils::Identifier &uuid = {}) : ControllerServiceImpl(name, uuid) {}
   explicit DummyController(std::string_view name, const std::shared_ptr<Configure>& /*configuration*/) : ControllerServiceImpl(name) {}
 
-  EXTENSIONAPI static constexpr const char* Description = "Dummy controller";
+  static constexpr const char* Description = "Dummy controller";
 
-  EXTENSIONAPI static constexpr auto DummyProperty = core::PropertyDefinitionBuilder<>::createProperty("Dummy Property")
+  static constexpr auto DummyProperty = core::PropertyDefinitionBuilder<>::createProperty("Dummy Property")
       .withDescription("Dummy property")
       .build();
 
-  EXTENSIONAPI static constexpr auto Properties = std::to_array<core::PropertyReference>({DummyProperty});
-  EXTENSIONAPI static constexpr bool SupportsDynamicProperties = false;
+  static constexpr auto Properties = std::to_array<core::PropertyReference>({DummyProperty});
+  static constexpr bool SupportsDynamicProperties = false;
   ADD_COMMON_VIRTUAL_FUNCTIONS_FOR_CONTROLLER_SERVICES
 
+  void initialize() override {
+    setSupportedProperties(Properties);
+  }
+
   void yield() override {
-  };
+  }
 
   bool isWorkAvailable() override {
     return false;
-  };
+  }
 
   bool isRunning() const override {
     return getState() == core::controller::ControllerServiceState::ENABLED;
@@ -58,7 +62,7 @@ public:
   void onEnable() override {
     std::string dummy_property;
     getProperty(DummyProperty, dummy_property);
-    if (dummy_property.empty()) {
+    if (dummy_property != "dummy") {
       throw minifi::Exception(minifi::ExceptionType::PROCESS_SCHEDULE_EXCEPTION, "Missing dummy property");
     }
   }
@@ -75,7 +79,7 @@ class DummmyControllerUserProcessor : public minifi::core::ProcessorImpl {
  public:
   DummmyControllerUserProcessor(std::string_view name, const minifi::utils::Identifier& uuid) : ProcessorImpl(name, uuid) {}
   explicit DummmyControllerUserProcessor(std::string_view name) : ProcessorImpl(name) {}
-  EXTENSIONAPI static constexpr auto DummyControllerService = core::PropertyDefinitionBuilder<>::createProperty("Dummy Controller Service")
+  static constexpr auto DummyControllerService = core::PropertyDefinitionBuilder<>::createProperty("Dummy Controller Service")
     .withDescription("Dummy Controller Service")
     .withAllowedTypes<DummyController>()
     .build();
@@ -92,6 +96,7 @@ class DummmyControllerUserProcessor : public minifi::core::ProcessorImpl {
     } else {
       throw minifi::Exception(minifi::ExceptionType::PROCESS_SCHEDULE_EXCEPTION, "Missing controller service");
     }
+    logger_->log_debug("DummyControllerUserProcessor::onSchedule successful");
   }
 
   static constexpr const char* Description = "A processor that uses controller.";
@@ -102,6 +107,9 @@ class DummmyControllerUserProcessor : public minifi::core::ProcessorImpl {
   static constexpr core::annotation::Input InputRequirement = core::annotation::Input::INPUT_ALLOWED;
   static constexpr bool IsSingleThreaded = false;
   ADD_COMMON_VIRTUAL_FUNCTIONS_FOR_PROCESSORS
+
+ private:
+  std::shared_ptr<core::logging::Logger> logger_ = core::logging::LoggerFactory<DummmyControllerUserProcessor>::getLogger(uuid_);
 };
 
 REGISTER_RESOURCE(DummmyControllerUserProcessor, Processor);
@@ -153,8 +161,9 @@ class ControllerUpdateHandler: public HeartbeatHandler {
       }
       case TestState::VERIFY_UPDATED_METRICS: {
         sendEmptyHeartbeatResponse(conn);
-        REQUIRE(minifi::test::utils::verifyLogLinePresenceInPollTime(1000s, "log2"));
-        flow_updated_successfully_ = true;
+        if (minifi::test::utils::verifyLogLinePresenceInPollTime(0s, "DummyControllerUserProcessor::onSchedule successful")) {
+          flow_updated_successfully_ = true;
+        }
         break;
       }
     }
@@ -176,7 +185,7 @@ class ControllerUpdateHandler: public HeartbeatHandler {
   std::string replacement_config_;
 };
 
-TEST_CASE("C2MetricsTest", "[c2test]") {
+TEST_CASE("C2ControllerEnableFailureTest", "[c2test]") {
   std::atomic_bool flow_updated_successfully{false};
   VerifyC2ControllerUpdate harness(flow_updated_successfully);
   const auto test_file_path = std::filesystem::path(TEST_RESOURCES) / "TestC2InvalidController.yml";
