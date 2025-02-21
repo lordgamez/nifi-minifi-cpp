@@ -87,6 +87,14 @@ void ControllerSocketMetricsPublisher::loadMetricNodes() {
   }
 }
 
+void ControllerSocketMetricsPublisher::setRoot(core::ProcessGroup* /*root*/) {
+
+}
+
+std::string ControllerSocketMetricsPublisher::getFlowStatus(const std::vector<FlowStatusRequest>& /*requests*/) {
+  return {};
+}
+
 REGISTER_RESOURCE(ControllerSocketMetricsPublisher, DescriptionOnly);
 
 }  // namespace org::apache::nifi::minifi::c2

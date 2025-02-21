@@ -200,6 +200,13 @@ class TestControllerSocketReporter : public c2::ControllerSocketReporter {
   std::string getAgentManifest() override {
     return "testAgentManifest";
   }
+
+  void setRoot(core::ProcessGroup* /*root*/) override {
+  }
+
+  std::string getFlowStatus(const std::vector<c2::FlowStatusRequest>& /*requests*/) override {
+    return "";
+  }
 };
 
 class TestControllerServiceProvider : public core::controller::ControllerServiceProviderImpl {

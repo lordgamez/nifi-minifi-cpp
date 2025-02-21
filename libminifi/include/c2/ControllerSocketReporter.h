@@ -20,7 +20,30 @@
 #include <unordered_set>
 #include <string>
 
+#include "core/ProcessGroup.h"
+#include "utils/StringUtils.h"
+
 namespace org::apache::nifi::minifi::c2 {
+
+struct FlowStatusRequest {
+  std::string query_type;
+  std::string identifier;
+  std::vector<std::string> options;
+
+  FlowStatusRequest(const std::string& query_string) {
+    auto query_parameters = minifi::utils::string::splitAndTrimRemovingEmpty(query_string, ":");
+    if (query_parameters.size() < 2) {
+      throw std::invalid_argument("Invalid query string: " + query_string);
+    }
+    query_type = query_parameters[0];
+    if (query_parameters.size() > 2) {
+      identifier = query_parameters[1];
+      options = minifi::utils::string::splitAndTrimRemovingEmpty(query_parameters[2], ",");
+    } else {
+      options = minifi::utils::string::splitAndTrimRemovingEmpty(query_parameters[1], ",");
+    }
+  }
+};
 
 class ControllerSocketReporter {
  public:
@@ -33,6 +56,8 @@ class ControllerSocketReporter {
   virtual std::unordered_set<std::string> getFullConnections() = 0;
   virtual std::unordered_set<std::string> getConnections() = 0;
   virtual std::string getAgentManifest() = 0;
+  virtual void setRoot(core::ProcessGroup* root) = 0;
+  virtual std::string getFlowStatus(const std::vector<FlowStatusRequest>& requests) = 0;
   virtual ~ControllerSocketReporter() = default;
 };
 

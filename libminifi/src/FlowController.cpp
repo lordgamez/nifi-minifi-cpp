@@ -92,6 +92,7 @@ FlowController::FlowController(std::shared_ptr<core::Repository> provenance_repo
       controller_socket_metrics_publisher = std::dynamic_pointer_cast<c2::ControllerSocketMetricsPublisher>(publisher);
     }
     controller_socket_protocol_ = std::make_unique<c2::ControllerSocketProtocol>(*this, *this, configuration_, controller_socket_metrics_publisher);
+    root_wrapper_.setControllerSocketProtocol(controller_socket_protocol_.get());
   }
 }
 

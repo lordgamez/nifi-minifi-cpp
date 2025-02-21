@@ -42,6 +42,9 @@ class ControllerSocketMetricsPublisher : public state::MetricsPublisherImpl, pub
   std::unordered_set<std::string> getConnections() override;
   std::string getAgentManifest() override;
 
+  void setRoot(core::ProcessGroup* root) override;
+  std::string getFlowStatus(const std::vector<FlowStatusRequest>& requests) override;
+
  protected:
   c2::HeartbeatJsonSerializer heartbeat_json_serializer_;
   std::mutex queue_metrics_node_mutex_;
