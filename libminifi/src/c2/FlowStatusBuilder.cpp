@@ -19,12 +19,13 @@
 
 namespace org::apache::nifi::minifi::c2 {
 
-void FlowStatusBuilder::setRoot(core::ProcessGroup* /*root*/) {
-
+void FlowStatusBuilder::setRoot(core::ProcessGroup* root) {
+  std::lock_guard<std::mutex> guard(root_mutex_);
+  root_ = root;
 }
 
-void FlowStatusBuilder::setBulletinStore(core::BulletinStore* /*bulletin_store*/) {
-
+void FlowStatusBuilder::setBulletinStore(core::BulletinStore* bulletin_store) {
+  bulletin_store_ = bulletin_store;
 }
 
 rapidjson::Value FlowStatusBuilder::buildFlowStatus(const std::vector<FlowStatusRequest>& /*requests*/) {

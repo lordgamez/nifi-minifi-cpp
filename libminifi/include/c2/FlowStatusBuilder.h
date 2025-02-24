@@ -17,6 +17,7 @@
 #pragma once
 
 #include <vector>
+#include <mutex>
 
 #include "FlowStatusRequest.h"
 #include "rapidjson/rapidjson.h"
@@ -30,6 +31,11 @@ class FlowStatusBuilder {
   void setRoot(core::ProcessGroup* root);
   void setBulletinStore(core::BulletinStore* bulletin_store);
   rapidjson::Value buildFlowStatus(const std::vector<FlowStatusRequest>& requests);
+
+ private:
+  std::mutex root_mutex_;
+  core::ProcessGroup* root_{};
+  core::BulletinStore* bulletin_store_{};
 };
 
 }  // namespace org::apache::nifi::minifi::c2
