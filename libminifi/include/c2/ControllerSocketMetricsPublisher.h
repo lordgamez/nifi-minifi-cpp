@@ -26,6 +26,7 @@
 #include "core/state/MetricsPublisher.h"
 #include "core/logging/LoggerFactory.h"
 #include "c2/HeartbeatJsonSerializer.h"
+#include "FlowStatusBuilder.h"
 
 namespace org::apache::nifi::minifi::c2 {
 
@@ -43,12 +44,14 @@ class ControllerSocketMetricsPublisher : public state::MetricsPublisherImpl, pub
   std::string getAgentManifest() override;
 
   void setRoot(core::ProcessGroup* root) override;
+  void setBulletinStore(core::BulletinStore* bulletin_store) override;
   std::string getFlowStatus(const std::vector<FlowStatusRequest>& requests) override;
 
  protected:
   c2::HeartbeatJsonSerializer heartbeat_json_serializer_;
   std::mutex queue_metrics_node_mutex_;
   std::shared_ptr<state::response::ResponseNode> queue_metrics_node_;
+  FlowStatusBuilder flow_status_builder_;
   std::shared_ptr<core::logging::Logger> logger_ = core::logging::LoggerFactory<ControllerSocketMetricsPublisher>::getLogger();
 };
 

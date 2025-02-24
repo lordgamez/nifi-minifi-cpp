@@ -204,6 +204,9 @@ class TestControllerSocketReporter : public c2::ControllerSocketReporter {
   void setRoot(core::ProcessGroup* /*root*/) override {
   }
 
+  void setBulletinStore(core::BulletinStore* /*bulletin_store*/) override {
+  }
+
   std::string getFlowStatus(const std::vector<c2::FlowStatusRequest>& /*requests*/) override {
     return "";
   }

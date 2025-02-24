@@ -16,32 +16,30 @@
  */
 #pragma once
 
-#include <unordered_map>
-#include <unordered_set>
 #include <string>
 
-#include "core/ProcessGroup.h"
 #include "utils/StringUtils.h"
-#include "FlowStatusRequest.h"
-#include "core/BulletinStore.h"
 
 namespace org::apache::nifi::minifi::c2 {
 
-class ControllerSocketReporter {
- public:
-  struct QueueSize {
-    uint32_t queue_size{};
-    uint32_t queue_size_max{};
-  };
+struct FlowStatusRequest {
+  std::string query_type;
+  std::string identifier;
+  std::vector<std::string> options;
 
-  virtual std::unordered_map<std::string, QueueSize> getQueueSizes() = 0;
-  virtual std::unordered_set<std::string> getFullConnections() = 0;
-  virtual std::unordered_set<std::string> getConnections() = 0;
-  virtual std::string getAgentManifest() = 0;
-  virtual void setRoot(core::ProcessGroup* root) = 0;
-  virtual void setBulletinStore(core::BulletinStore* bulletin_store) = 0;
-  virtual std::string getFlowStatus(const std::vector<FlowStatusRequest>& requests) = 0;
-  virtual ~ControllerSocketReporter() = default;
+  FlowStatusRequest(const std::string& query_string) {
+    auto query_parameters = minifi::utils::string::splitAndTrimRemovingEmpty(query_string, ":");
+    if (query_parameters.size() < 2) {
+      throw std::invalid_argument("Invalid query string: " + query_string);
+    }
+    query_type = query_parameters[0];
+    if (query_parameters.size() > 2) {
+      identifier = query_parameters[1];
+      options = minifi::utils::string::splitAndTrimRemovingEmpty(query_parameters[2], ",");
+    } else {
+      options = minifi::utils::string::splitAndTrimRemovingEmpty(query_parameters[1], ",");
+    }
+  }
 };
 
 }  // namespace org::apache::nifi::minifi::c2

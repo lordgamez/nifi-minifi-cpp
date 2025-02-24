@@ -14,34 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#pragma once
 
-#include <unordered_map>
-#include <unordered_set>
-#include <string>
-
-#include "core/ProcessGroup.h"
-#include "utils/StringUtils.h"
-#include "FlowStatusRequest.h"
-#include "core/BulletinStore.h"
+ #include "c2/FlowStatusBuilder.h"
 
 namespace org::apache::nifi::minifi::c2 {
 
-class ControllerSocketReporter {
- public:
-  struct QueueSize {
-    uint32_t queue_size{};
-    uint32_t queue_size_max{};
-  };
+void FlowStatusBuilder::setRoot(core::ProcessGroup* /*root*/) {
 
-  virtual std::unordered_map<std::string, QueueSize> getQueueSizes() = 0;
-  virtual std::unordered_set<std::string> getFullConnections() = 0;
-  virtual std::unordered_set<std::string> getConnections() = 0;
-  virtual std::string getAgentManifest() = 0;
-  virtual void setRoot(core::ProcessGroup* root) = 0;
-  virtual void setBulletinStore(core::BulletinStore* bulletin_store) = 0;
-  virtual std::string getFlowStatus(const std::vector<FlowStatusRequest>& requests) = 0;
-  virtual ~ControllerSocketReporter() = default;
-};
+}
+
+void FlowStatusBuilder::setBulletinStore(core::BulletinStore* /*bulletin_store*/) {
+
+}
+
+rapidjson::Value FlowStatusBuilder::buildFlowStatus(const std::vector<FlowStatusRequest>& /*requests*/) {
+  return {};
+}
 
 }  // namespace org::apache::nifi::minifi::c2
