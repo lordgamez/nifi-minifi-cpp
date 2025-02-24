@@ -375,7 +375,11 @@ void ControllerSocketProtocol::writeFlowStatusResponse(io::BaseStream &stream) {
   auto request_strings = utils::string::splitAndTrimRemovingEmpty(query, ";");
   std::vector<FlowStatusRequest> requests;
   for (const auto& request_string : request_strings) {
-    requests.push_back(FlowStatusRequest(request_string));
+    try {
+      requests.push_back(FlowStatusRequest(request_string));
+    } catch (const std::exception& e) {
+      logger_->log_error("Invalid flow status request: {}", e.what());
+    }
   }
   io::BufferStream resp;
   auto op = static_cast<uint8_t>(Operation::describe);

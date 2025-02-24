@@ -23,6 +23,7 @@
 #include "rapidjson/rapidjson.h"
 #include "core/ProcessGroup.h"
 #include "core/BulletinStore.h"
+#include "core/logging/LoggerFactory.h"
 
 namespace org::apache::nifi::minifi::c2 {
 
@@ -30,12 +31,17 @@ class FlowStatusBuilder {
  public:
   void setRoot(core::ProcessGroup* root);
   void setBulletinStore(core::BulletinStore* bulletin_store);
-  rapidjson::Value buildFlowStatus(const std::vector<FlowStatusRequest>& requests);
+  rapidjson::Document buildFlowStatus(const std::vector<FlowStatusRequest>& requests);
 
  private:
+  void addProcessorStatus(core::Processor* processor, rapidjson::Value& processor_status_list, rapidjson::Document::AllocatorType& allocator, const std::unordered_set<std::string>& options);
+  nonstd::expected<void, std::string> addProcessorStatuses(rapidjson::Value& processor_status_list, rapidjson::Document::AllocatorType& allocator,
+    const std::string& identifier, const std::unordered_set<std::string>& options);
+
   std::mutex root_mutex_;
   core::ProcessGroup* root_{};
   core::BulletinStore* bulletin_store_{};
+  std::shared_ptr<core::logging::Logger> logger_ = core::logging::LoggerFactory<FlowStatusBuilder>::getLogger();
 };
 
 }  // namespace org::apache::nifi::minifi::c2
