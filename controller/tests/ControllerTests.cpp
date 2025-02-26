@@ -601,7 +601,7 @@ TEST_CASE_METHOD(ControllerTestFixture, "Test flow status getter", "[controllerT
   std::stringstream flow_status_stream;
   minifi::controller::getFlowStatus(controller_socket_data_, "processor:TailFile:health", flow_status_stream);
   std::string expected_status = "{\"controllerServiceStatusList\":null,\"connectionStatusList\":null,\"remoteProcessGroupStatusList\":null,\"instanceStatus\":null,\"systemDiagnosticsStatus\":null,"
-                                "\"reportingTaskStatusList\":null,\"processorStatusList\":[],\"errorsGeneratingReport\":[]}\n";
+                                "\"processorStatusList\":[],\"errorsGeneratingReport\":[]}\n";
   REQUIRE(flow_status_stream.str() == expected_status);
 }
 

@@ -20,17 +20,6 @@
 #include "utils/expected.h"
 #include "utils/Id.h"
 
-namespace {
-
-void handleError(const nonstd::expected<void, std::string>& result, rapidjson::Value& errors_node, rapidjson::Document::AllocatorType& allocator) {
-  if (result) {
-    return;
-  }
-  errors_node.GetArray().PushBack(rapidjson::Value(result.error().c_str(), allocator), allocator);
-}
-
-}  // namespace
-
 namespace org::apache::nifi::minifi::c2 {
 
 void FlowStatusBuilder::setRoot(core::ProcessGroup* root) {
@@ -138,18 +127,24 @@ rapidjson::Document FlowStatusBuilder::buildFlowStatus(const std::vector<FlowSta
 
   auto allocator = doc.GetAllocator();
 
+  auto handleError = [&doc, &allocator](const nonstd::expected<void, std::string>& result) {
+    if (result) {
+      return;
+    }
+    doc["errorsGeneratingReport"].GetArray().PushBack(rapidjson::Value(result.error().c_str(), allocator), allocator);
+  };
+
   doc.AddMember("controllerServiceStatusList", rapidjson::Value(rapidjson::kNullType), allocator);
   doc.AddMember("connectionStatusList", rapidjson::Value(rapidjson::kNullType), allocator);
   doc.AddMember("remoteProcessGroupStatusList", rapidjson::Value(rapidjson::kNullType), allocator);
   doc.AddMember("instanceStatus", rapidjson::Value(rapidjson::kNullType), allocator);
   doc.AddMember("systemDiagnosticsStatus", rapidjson::Value(rapidjson::kNullType), allocator);
-  doc.AddMember("reportingTaskStatusList", rapidjson::Value(rapidjson::kNullType), allocator);
   doc.AddMember("processorStatusList", rapidjson::Value(rapidjson::kArrayType), allocator);
   doc.AddMember("errorsGeneratingReport", rapidjson::Value(rapidjson::kArrayType), allocator);
 
   for (const auto& request : requests) {
     if (request.query_type == FlowStatusQueryType::processor) {
-      handleError(addProcessorStatuses(doc["processorStatusList"], allocator, request.identifier, request.options), doc["errorsGeneratingReport"], allocator);
+      handleError(addProcessorStatuses(doc["processorStatusList"], allocator, request.identifier, request.options));
     }
   }
 

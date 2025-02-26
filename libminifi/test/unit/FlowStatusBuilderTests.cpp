@@ -55,7 +55,6 @@ TEST_CASE("Build empty flow status", "[flowstatusbuilder]") {
   CHECK(status["remoteProcessGroupStatusList"].IsNull());
   CHECK(status["instanceStatus"].IsNull());
   CHECK(status["systemDiagnosticsStatus"].IsNull());
-  CHECK(status["reportingTaskStatusList"].IsNull());
   CHECK(status["processorStatusList"].Empty());
   CHECK(status["errorsGeneratingReport"].Empty());
 }
@@ -166,7 +165,6 @@ TEST_CASE("Non-existent processor generates an error", "[flowstatusbuilder]") {
   CHECK(status["remoteProcessGroupStatusList"].IsNull());
   CHECK(status["instanceStatus"].IsNull());
   CHECK(status["systemDiagnosticsStatus"].IsNull());
-  CHECK(status["reportingTaskStatusList"].IsNull());
   CHECK(status["processorStatusList"].Empty());
   CHECK(status["errorsGeneratingReport"].GetArray().Size() == 1);
   CHECK(status["errorsGeneratingReport"].GetArray()[0].GetString() == std::string{"Unable to get processorStatus: No processor with key 'InvalidProcessor' to report status on"});
@@ -200,7 +198,6 @@ TEST_CASE("Building processor status fails with incomplete query", "[flowstatusb
   CHECK(status["remoteProcessGroupStatusList"].IsNull());
   CHECK(status["instanceStatus"].IsNull());
   CHECK(status["systemDiagnosticsStatus"].IsNull());
-  CHECK(status["reportingTaskStatusList"].IsNull());
   CHECK(status["processorStatusList"].Empty());
   CHECK(status["errorsGeneratingReport"].GetArray().Size() == 1);
   CHECK(status["errorsGeneratingReport"].GetArray()[0].GetString() == std::string{"Unable to get processorStatus: Query is incomplete"});
