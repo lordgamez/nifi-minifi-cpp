@@ -33,7 +33,7 @@ struct FlowStatusRequest {
   std::string identifier;
   std::unordered_set<std::string> options;
 
-  FlowStatusRequest(const std::string& query_string) {
+  explicit FlowStatusRequest(const std::string& query_string) {
     auto query_parameters = minifi::utils::string::splitAndTrimRemovingEmpty(query_string, ":");
     if (query_parameters.size() < 2) {
       throw std::invalid_argument("Invalid query string: " + query_string);

@@ -580,4 +580,29 @@ TEST_CASE_METHOD(ControllerTestFixture, "Debug bundle retrieval fails if target 
   REQUIRE(result.error() == "Object specified as the target directory already exists and it is not a directory");
 }
 
+TEST_CASE_METHOD(ControllerTestFixture, "Test flow status getter", "[controllerTests]") {
+  SECTION("With SSL from service provider") {
+    setConnectionType(ControllerTestFixture::ConnectionType::SSL_FROM_SERVICE_PROVIDER);
+  }
+
+  SECTION("With SSL from properties") {
+    setConnectionType(ControllerTestFixture::ConnectionType::SSL_FROM_CONFIGURATION);
+  }
+
+  SECTION("Without SSL") {
+    setConnectionType(ControllerTestFixture::ConnectionType::UNSECURE);
+  }
+
+  auto reporter = std::make_shared<minifi::c2::ControllerSocketMetricsPublisher>("ControllerSocketMetricsPublisher");
+  auto response_node_loader = std::make_shared<minifi::state::response::ResponseNodeLoaderImpl>(configuration_, std::vector<std::shared_ptr<core::RepositoryMetricsSource>>{}, nullptr);
+  reporter->initialize(configuration_, response_node_loader);
+  initalizeControllerSocket(reporter);
+
+  std::stringstream flow_status_stream;
+  minifi::controller::getFlowStatus(controller_socket_data_, "processor:TailFile:health", flow_status_stream);
+  std::string expected_status = "{\"controllerServiceStatusList\":null,\"connectionStatusList\":null,\"remoteProcessGroupStatusList\":null,\"instanceStatus\":null,\"systemDiagnosticsStatus\":null,"
+                                "\"reportingTaskStatusList\":null,\"processorStatusList\":[],\"errorsGeneratingReport\":[]}\n";
+  REQUIRE(flow_status_stream.str() == expected_status);
+}
+
 }  // namespace org::apache::nifi::minifi::test
