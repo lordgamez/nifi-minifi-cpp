@@ -87,6 +87,8 @@ TEST_CASE("Build stats for single processor", "[flowstatusbuilder]") {
   processor->getMetrics()->bytesWritten() = 4;
   processor->getMetrics()->transferredFlowFiles() = 5;
   processor->getMetrics()->processingNanos() = 6;
+  processor->getMetrics()->incomingBytes() = 7;
+  processor->getMetrics()->transferredBytes() = 8;
   process_group.addProcessor(std::move(processor));
   flow_status_builder.setRoot(&process_group);
   auto status = flow_status_builder.buildFlowStatus({c2::FlowStatusRequest{"processor:DummyProcessor:stats"}});
@@ -101,6 +103,8 @@ TEST_CASE("Build stats for single processor", "[flowstatusbuilder]") {
   CHECK(status["processorStatusList"].GetArray()[0]["processorStats"]["flowfilesSent"].GetInt64() == 5);
   CHECK(status["processorStatusList"].GetArray()[0]["processorStats"]["invocations"].GetInt64() == 1);
   CHECK(status["processorStatusList"].GetArray()[0]["processorStats"]["processingNanos"].GetInt64() == 6);
+  CHECK(status["processorStatusList"].GetArray()[0]["processorStats"]["incomingBytes"].GetInt64() == 7);
+  CHECK(status["processorStatusList"].GetArray()[0]["processorStats"]["transferredBytes"].GetInt64() == 8);
   CHECK(status["errorsGeneratingReport"].Empty());
 }
 

@@ -68,9 +68,11 @@ void FlowStatusBuilder::addProcessorStatus(core::Processor* processor, rapidjson
     processor_status.AddMember("processorStats", rapidjson::Value(rapidjson::kObjectType), allocator);
     auto metrics = processor->getMetrics();
     processor_status["processorStats"].AddMember("flowfilesReceived", metrics->incomingFlowFiles().load(), allocator);
+    processor_status["processorStats"].AddMember("flowfilesSent", metrics->transferredFlowFiles().load(), allocator);
     processor_status["processorStats"].AddMember("bytesRead", metrics->bytesRead().load(), allocator);
     processor_status["processorStats"].AddMember("bytesWritten", metrics->bytesWritten().load(), allocator);
-    processor_status["processorStats"].AddMember("flowfilesSent", metrics->transferredFlowFiles().load(), allocator);
+    processor_status["processorStats"].AddMember("incomingBytes", metrics->incomingBytes().load(), allocator);
+    processor_status["processorStats"].AddMember("transferredBytes", metrics->transferredBytes().load(), allocator);
     processor_status["processorStats"].AddMember("invocations", metrics->invocations().load(), allocator);
     processor_status["processorStats"].AddMember("processingNanos", metrics->processingNanos().load(), allocator);
   } else {
