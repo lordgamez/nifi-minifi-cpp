@@ -109,3 +109,22 @@ Provides a list of full connections, if any.
     ./minificontroller --manifest
 
 Writes the agent manifest json to standard output
+
+#### Flowstatus command
+    ./minificontroller --flowstatus "processor:TailFile:health,stats,bulletins"
+
+The command returns the flow status for the specified query in JSON format.
+The query consists of the query type, the element identifier, and the query options. Each part is separated by the ':' colon character. Multiple query options are specified as a comma-separated list. In some query types the identifier is omitted, in this case only the query type and the query options are specified. Multiple queries can also be specified in a flowStatus command, in this case the queries are separated by the ';' semicolon character. For example: `./minificontroller --flowstatus "processor:TailFile:health,stats,bulletins;processor:LogAttribute:stats"`
+
+Supported query types:
+
+##### Processor
+
+To query the processors, use the processor flag and specify the processor (by ID, name or "all") followed by one of the processor options. The processor options are below:
+health: The processor's run status, whether or not it has bulletins.
+bulletins: A list of all the current bulletins (if there are any).
+stats: The current stats of the processor.
+
+An example query to get the health and stats of the "GenerateFlowFile" processor is below.
+
+./minificontroller --flowstatus "processor:GenerateFlowFile:health,stats"
