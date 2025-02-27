@@ -56,14 +56,14 @@ void FlowStatusBuilder::addProcessorStatus(core::Processor* processor, rapidjson
   if (options.contains("stats")) {
     processor_status.AddMember("processorStats", rapidjson::Value(rapidjson::kObjectType), allocator);
     auto metrics = processor->getMetrics();
-    processor_status["processorStats"].AddMember("flowfilesReceived", metrics->incomingFlowFiles().load(), allocator);
-    processor_status["processorStats"].AddMember("flowfilesSent", metrics->transferredFlowFiles().load(), allocator);
-    processor_status["processorStats"].AddMember("bytesRead", metrics->bytesRead().load(), allocator);
-    processor_status["processorStats"].AddMember("bytesWritten", metrics->bytesWritten().load(), allocator);
-    processor_status["processorStats"].AddMember("incomingBytes", metrics->incomingBytes().load(), allocator);
-    processor_status["processorStats"].AddMember("transferredBytes", metrics->transferredBytes().load(), allocator);
-    processor_status["processorStats"].AddMember("invocations", metrics->invocations().load(), allocator);
-    processor_status["processorStats"].AddMember("processingNanos", metrics->processingNanos().load(), allocator);
+    processor_status["processorStats"].AddMember<uint64_t>("flowfilesReceived", metrics->incomingFlowFiles().load(), allocator);
+    processor_status["processorStats"].AddMember<uint64_t>("flowfilesSent", metrics->transferredFlowFiles().load(), allocator);
+    processor_status["processorStats"].AddMember<uint64_t>("bytesRead", metrics->bytesRead().load(), allocator);
+    processor_status["processorStats"].AddMember<uint64_t>("bytesWritten", metrics->bytesWritten().load(), allocator);
+    processor_status["processorStats"].AddMember<uint64_t>("incomingBytes", metrics->incomingBytes().load(), allocator);
+    processor_status["processorStats"].AddMember<uint64_t>("transferredBytes", metrics->transferredBytes().load(), allocator);
+    processor_status["processorStats"].AddMember<uint64_t>("invocations", metrics->invocations().load(), allocator);
+    processor_status["processorStats"].AddMember<uint64_t>("processingNanos", metrics->processingNanos().load(), allocator);
   } else {
     processor_status.AddMember("processorStats", rapidjson::Value(rapidjson::kNullType), allocator);
   }
@@ -72,7 +72,7 @@ void FlowStatusBuilder::addProcessorStatus(core::Processor* processor, rapidjson
     processor_status.AddMember("bulletinList", rapidjson::Value(rapidjson::kArrayType), allocator);
     for (const auto& bulletin : bulletins) {
       rapidjson::Value bulletin_node(rapidjson::kObjectType);
-      bulletin_node.AddMember("timestamp", std::chrono::duration_cast<std::chrono::seconds>(bulletin.timestamp.time_since_epoch()).count(), allocator);
+      bulletin_node.AddMember<int64_t>("timestamp", std::chrono::duration_cast<std::chrono::seconds>(bulletin.timestamp.time_since_epoch()).count(), allocator);
       bulletin_node.AddMember("message", bulletin.message, allocator);
       processor_status["bulletinList"].PushBack(bulletin_node, allocator);
     }
@@ -93,7 +93,7 @@ nonstd::expected<void, std::string> FlowStatusBuilder::addProcessorStatuses(rapi
   std::vector<core::Processor*> processors;
   if (identifier.empty()) {
     logger_->log_error("Unable to get processorStatus: Query is incomplete");
-    return nonstd::unexpected("Unable to get processorStatus: Query is incomplete");
+    return nonstd::make_unexpected("Unable to get processorStatus: Query is incomplete");
   } else if (identifier == "all") {
     root_->getAllProcessors(processors);
   } else {
@@ -103,12 +103,12 @@ nonstd::expected<void, std::string> FlowStatusBuilder::addProcessorStatuses(rapi
       auto id_opt = minifi::utils::Identifier::parse(identifier);
       if (!id_opt) {
         logger_->log_error("Unable to get processorStatus: No processor with key '{}' to report status on", identifier);
-        return nonstd::unexpected(fmt::format("Unable to get processorStatus: No processor with key '{}' to report status on", identifier));
+        return nonstd::make_unexpected(fmt::format("Unable to get processorStatus: No processor with key '{}' to report status on", identifier));
       }
       processor = root_->findProcessorById(id_opt.value());
       if (!processor) {
         logger_->log_error("Unable to get processorStatus: No processor with key '{}' to report status on", identifier);
-        return nonstd::unexpected(fmt::format("Unable to get processorStatus: No processor with key '{}' to report status on", identifier));
+        return nonstd::make_unexpected(fmt::format("Unable to get processorStatus: No processor with key '{}' to report status on", identifier));
       }
     }
     processors.push_back(processor);

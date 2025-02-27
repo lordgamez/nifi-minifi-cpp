@@ -15,6 +15,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include <unordered_set>
+
 #include "unit/TestBase.h"
 #include "unit/Catch.h"
 #include "c2/FlowStatusBuilder.h"
@@ -146,10 +148,16 @@ TEST_CASE("Build health status for all processors", "[flowstatusbuilder]") {
   flow_status_builder.setRoot(&process_group);
   auto status = flow_status_builder.buildFlowStatus({c2::FlowStatusRequest{"processor:all:health"}});
   REQUIRE(status["processorStatusList"].GetArray().Size() == 2);
-  CHECK(status["processorStatusList"].GetArray()[0]["id"] == "123fa7e6-2459-46dd-b2ba-61517239edf5");
-  CHECK(status["processorStatusList"].GetArray()[0]["name"] == "DummyProcessor1");
-  CHECK(status["processorStatusList"].GetArray()[1]["id"] == "456fa7e6-2459-46dd-b2ba-61517239edf5");
-  CHECK(status["processorStatusList"].GetArray()[1]["name"] == "DummyProcessor2");
+  std::unordered_set<std::string> expected_processor_ids = {"123fa7e6-2459-46dd-b2ba-61517239edf5", "456fa7e6-2459-46dd-b2ba-61517239edf5"};
+  std::unordered_set<std::string> expected_processor_names = {"DummyProcessor1", "DummyProcessor2"};
+  for (const auto& processor_status : status["processorStatusList"].GetArray()) {
+    auto id = processor_status["id"].GetString();
+    auto name = processor_status["name"].GetString();
+    CHECK(expected_processor_ids.contains(id));
+    CHECK(expected_processor_names.contains(name));
+    expected_processor_ids.erase(id);
+    expected_processor_names.erase(name);
+  }
   CHECK(status["errorsGeneratingReport"].Empty());
 }
 
