@@ -34,13 +34,14 @@ class OpcUaTestServer {
 
     ns_index_ = UA_Server_addNamespace(server_, "custom.namespace");
 
-    UA_NodeId simulatorNode = addObject("Simulator", UA_NODEID_NUMERIC(0, UA_NS0ID_OBJECTSFOLDER));
-    UA_NodeId defaultNode = addObject("Default", simulatorNode);
-    UA_NodeId device1Node = addObject("Device1", defaultNode);
+    UA_NodeId simulator_node = addObject("Simulator", UA_NODEID_NUMERIC(0, UA_NS0ID_OBJECTSFOLDER));
+    UA_NodeId default_node = addObject("Default", simulator_node);
+    UA_NodeId device1_node = addObject("Device1", default_node);
 
-    addIntVariable("INT1", device1Node, 1);
-    addIntVariable("INT2", device1Node, 2);
-    addIntVariable("INT3", device1Node, 3);
+    addIntVariable("INT1", device1_node, 1);
+    addIntVariable("INT2", device1_node, 2);
+    auto int3_node = addIntVariable("INT3", device1_node, 3);
+    addIntVariable("INT4", int3_node, 4);
   }
 
   void start() {
@@ -78,33 +79,44 @@ class OpcUaTestServer {
     UA_ObjectAttributes attr = UA_ObjectAttributes_default;
     attr.displayName = UA_LOCALIZEDTEXT_ALLOC("en-US", name);
 
-    UA_Server_addObjectNode(
+    auto status = UA_Server_addObjectNode(
       server_, UA_NODEID_NULL, parent,
       UA_NODEID_NUMERIC(0, UA_NS0ID_ORGANIZES),
       UA_QUALIFIEDNAME(ns_index_, const_cast<char*>(name)),
       UA_NODEID_NUMERIC(0, UA_NS0ID_BASEOBJECTTYPE),
       attr, nullptr, &object_id);
 
+    if (status != UA_STATUSCODE_GOOD) {
+      UA_LocalizedText_clear(&attr.displayName);
+      throw std::runtime_error("Failed to add object node");
+    }
+
     UA_LocalizedText_clear(&attr.displayName);
     return object_id;
   }
 
-  void addIntVariable(const char *name, UA_NodeId parent, UA_Int32 value) {
+  UA_NodeId addIntVariable(const char *name, UA_NodeId parent, UA_Int32 value) {
     UA_VariableAttributes attr = UA_VariableAttributes_default;
     attr.displayName = UA_LOCALIZEDTEXT_ALLOC("en-US", name);
     attr.accessLevel = UA_ACCESSLEVELMASK_READ | UA_ACCESSLEVELMASK_WRITE;
 
     UA_Variant_setScalar(&attr.value, &value, &UA_TYPES[UA_TYPES_INT32]);
 
-    UA_NodeId nodeId;
-    UA_Server_addVariableNode(
+    UA_NodeId node_id;
+    auto status = UA_Server_addVariableNode(
       server_, UA_NODEID_NULL, parent,
       UA_NODEID_NUMERIC(0, UA_NS0ID_HASCOMPONENT),
       UA_QUALIFIEDNAME(ns_index_, const_cast<char*>(name)),
       UA_NODEID_NUMERIC(0, UA_NS0ID_BASEDATAVARIABLETYPE),
-      attr, nullptr, &nodeId);
+      attr, nullptr, &node_id);
+
+    if (status != UA_STATUSCODE_GOOD) {
+      UA_LocalizedText_clear(&attr.displayName);
+      throw std::runtime_error("Failed to add variable node");
+    }
 
     UA_LocalizedText_clear(&attr.displayName);
+    return node_id;
   }
 
   void ensureConnection() {

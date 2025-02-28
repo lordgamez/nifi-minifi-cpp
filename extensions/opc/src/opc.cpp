@@ -316,7 +316,7 @@ void Client::traverse(UA_NodeId nodeId, const std::function<nodeFoundCallBackFun
       if (cb(*this, ref, basePath)) {
         if (ref->nodeClass == UA_NODECLASS_VARIABLE || ref->nodeClass == UA_NODECLASS_OBJECT) {
           std::string browse_name(reinterpret_cast<char *>(ref->browseName.name.data), ref->browseName.name.length);
-          traverse(ref->nodeId.nodeId, cb, basePath + browse_name, maxDepth, false);
+          traverse(ref->nodeId.nodeId, cb, basePath + "/" + browse_name, maxDepth, false);
         }
       } else {
         return;
@@ -336,8 +336,8 @@ bool Client::exists(UA_NodeId nodeId) {
 }
 
 UA_StatusCode Client::translateBrowsePathsToNodeIdsRequest(const std::string& path, std::vector<UA_NodeId>& foundNodeIDs, int32_t namespace_index,
-    const std::shared_ptr<core::logging::Logger>& logger) {
-  logger->log_trace("Trying to find node id for {}", path.c_str());
+    const std::vector<UA_UInt32>& pathReferenceTypes, const std::shared_ptr<core::logging::Logger>& logger) {
+  logger->log_trace("Trying to find node ids for {}", path.c_str());
 
   auto tokens = utils::string::splitAndTrimRemovingEmpty(path, "/");
 
@@ -348,9 +348,19 @@ UA_StatusCode Client::translateBrowsePathsToNodeIdsRequest(const std::string& pa
   browsePath.relativePath.elements = reinterpret_cast<UA_RelativePathElement*>(UA_Array_new(tokens.size(), &UA_TYPES[UA_TYPES_RELATIVEPATHELEMENT]));
   browsePath.relativePath.elementsSize = tokens.size();
 
+  std::vector<UA_UInt32> ids;
+  ids.push_back(UA_NS0ID_ORGANIZES);
+  for (size_t i = 0; i < tokens.size() - 1; ++i) {
+    if (!pathReferenceTypes.empty()) {
+      ids.push_back(pathReferenceTypes[i]);
+    } else {
+      ids.push_back(UA_NS0ID_ORGANIZES);
+    }
+  }
+
   for (size_t i = 0; i < tokens.size(); ++i) {
     UA_RelativePathElement *elem = &browsePath.relativePath.elements[i];
-    elem->referenceTypeId = UA_NODEID_NUMERIC(0, UA_NS0ID_ORGANIZES);
+    elem->referenceTypeId = UA_NODEID_NUMERIC(0, ids[i]);
     elem->targetName = UA_QUALIFIEDNAME_ALLOC(namespace_index, tokens[i].c_str());
   }
 

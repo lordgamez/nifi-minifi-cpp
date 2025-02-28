@@ -39,7 +39,7 @@ namespace org::apache::nifi::minifi::processors {
 
 class PutOPCProcessor : public BaseOPCProcessor {
  public:
-  EXTENSIONAPI static constexpr const char* Description = "Creates/updates  OPC nodes";
+  EXTENSIONAPI static constexpr const char* Description = "Creates/updates OPC nodes";
 
   EXTENSIONAPI static constexpr auto ParentNodeIDType = core::PropertyDefinitionBuilder<3>::createProperty("Parent node ID type")
       .withDescription("Specifies the type of the provided node ID")
@@ -51,7 +51,7 @@ class PutOPCProcessor : public BaseOPCProcessor {
       .isRequired(true)
       .build();
   EXTENSIONAPI static constexpr auto ParentNameSpaceIndex = core::PropertyDefinitionBuilder<>::createProperty("Parent node namespace index")
-      .withDescription("The index of the namespace. Used only if node ID type is not path.")
+      .withDescription("The index of the namespace.")
       .withPropertyType(core::StandardPropertyTypes::INTEGER_TYPE)
       .withDefaultValue("0")
       .build();
@@ -73,7 +73,7 @@ class PutOPCProcessor : public BaseOPCProcessor {
       .supportsExpressionLanguage(true)
       .build();
   EXTENSIONAPI static constexpr auto TargetNodeNameSpaceIndex = core::PropertyDefinitionBuilder<>::createProperty("Target node namespace index")
-      .withDescription("The index of the namespace. Used only if node ID type is not path.")
+      .withDescription("The index of the namespace.")
       .supportsExpressionLanguage(true)
       .build();
   EXTENSIONAPI static constexpr auto Properties = utils::array_cat(BaseOPCProcessor::Properties, std::to_array<core::PropertyReference>({

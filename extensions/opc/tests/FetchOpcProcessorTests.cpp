@@ -23,7 +23,7 @@
 
 namespace org::apache::nifi::minifi::test {
 
-TEST_CASE("Test path node id", "[fetchopcprocessor]") {
+TEST_CASE("Test fetching using path node id", "[fetchopcprocessor]") {
   OpcUaTestServer server;
   server.start();
   SingleProcessorTestController controller{std::make_unique<processors::FetchOPCProcessor>("FetchOPCProcessor")};
@@ -35,7 +35,7 @@ TEST_CASE("Test path node id", "[fetchopcprocessor]") {
 
   const auto results = controller.trigger();
   REQUIRE(results.at(processors::FetchOPCProcessor::Failure).empty());
-  REQUIRE(results.at(processors::FetchOPCProcessor::Success).size() == 3);
+  REQUIRE(results.at(processors::FetchOPCProcessor::Success).size() == 4);
   for (size_t i = 0; i < 3; i++) {
     auto flow_file = results.at(processors::FetchOPCProcessor::Success)[i];
     CHECK(flow_file->getAttribute("Browsename") == "INT" + std::to_string(i + 1));
@@ -46,6 +46,39 @@ TEST_CASE("Test path node id", "[fetchopcprocessor]") {
     CHECK(flow_file->getAttribute("Typename") == "Int32");
     CHECK(controller.plan->getContent(flow_file) == std::to_string(i + 1));
   }
+
+  auto flow_file = results.at(processors::FetchOPCProcessor::Success)[3];
+  CHECK(flow_file->getAttribute("Browsename") == "INT4");
+  CHECK(flow_file->getAttribute("Datasize") == "4");
+  CHECK(flow_file->getAttribute("Full path") == "Simulator/Default/Device1/INT3/INT4");
+  CHECK(flow_file->getAttribute("NodeID"));
+  CHECK(flow_file->getAttribute("NodeID type") == "numeric");
+  CHECK(flow_file->getAttribute("Typename") == "Int32");
+  CHECK(controller.plan->getContent(flow_file) == "4");
+}
+
+TEST_CASE("Test fetching using custom reference type id path", "[fetchopcprocessor]") {
+  OpcUaTestServer server;
+  server.start();
+  SingleProcessorTestController controller{std::make_unique<processors::FetchOPCProcessor>("FetchOPCProcessor")};
+  auto fetch_opc_processor = controller.getProcessor();
+  fetch_opc_processor->setProperty(processors::FetchOPCProcessor::OPCServerEndPoint, "opc.tcp://127.0.0.1:4840/");
+  fetch_opc_processor->setProperty(processors::FetchOPCProcessor::NodeIDType, "Path");
+  fetch_opc_processor->setProperty(processors::FetchOPCProcessor::NodeID, "Simulator/Default/Device1/INT3");
+  fetch_opc_processor->setProperty(processors::FetchOPCProcessor::NameSpaceIndex, std::to_string(server.getNamespaceIndex()));
+  fetch_opc_processor->setProperty(processors::FetchOPCProcessor::PathReferenceTypes, "Organizes/Organizes/HasComponent");
+
+  const auto results = controller.trigger();
+  REQUIRE(results.at(processors::FetchOPCProcessor::Failure).empty());
+  REQUIRE(results.at(processors::FetchOPCProcessor::Success).size() == 2);
+  auto flow_file = results.at(processors::FetchOPCProcessor::Success)[0];
+  CHECK(flow_file->getAttribute("Browsename") == "INT4");
+  CHECK(flow_file->getAttribute("Datasize") == "4");
+  CHECK(flow_file->getAttribute("Full path") == "Simulator/Default/Device1/INT3/INT4");
+  CHECK(flow_file->getAttribute("NodeID"));
+  CHECK(flow_file->getAttribute("NodeID type") == "numeric");
+  CHECK(flow_file->getAttribute("Typename") == "Int32");
+  CHECK(controller.plan->getContent(flow_file) == "4");
 }
 
 }  // namespace org::apache::nifi::minifi::test

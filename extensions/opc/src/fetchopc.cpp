@@ -77,6 +77,10 @@ namespace org::apache::nifi::minifi::processors {
 
     context.getProperty(Lazy, value);
     lazy_mode_ = value == "On";
+
+    if (idType_ == opc::OPCNodeIDType::Path) {
+      readPathReferenceTypes(context, nodeID_);
+    }
   }
 
   void FetchOPCProcessor::onTrigger(core::ProcessContext& context, core::ProcessSession& session) {
@@ -108,7 +112,7 @@ namespace org::apache::nifi::minifi::processors {
       connection_->traverse(myID, f, "", maxDepth_);
     } else {
       if (translatedNodeIDs_.empty()) {
-        auto sc = connection_->translateBrowsePathsToNodeIdsRequest(nodeID_, translatedNodeIDs_, nameSpaceIdx_, logger_);
+        auto sc = connection_->translateBrowsePathsToNodeIdsRequest(nodeID_, translatedNodeIDs_, nameSpaceIdx_, pathReferenceTypes_, logger_);
         if (sc != UA_STATUSCODE_GOOD) {
           logger_->log_error("Failed to translate {} to node id, no flow files will be generated ({})", nodeID_.c_str(), UA_StatusCode_name(sc));
           yield();
