@@ -87,7 +87,7 @@ namespace org::apache::nifi::minifi::processors {
     if (!parentExists_) {
       if (idType_ == opc::OPCNodeIDType::Path) {
         std::vector<UA_NodeId> translatedNodeIDs;
-        if (connection_->translateBrowsePathsToNodeIdsRequest(nodeID_, translatedNodeIDs, logger_) !=
+        if (connection_->translateBrowsePathsToNodeIdsRequest(nodeID_, translatedNodeIDs, nameSpaceIdx_, logger_) !=
             UA_STATUSCODE_GOOD) {
           logger_->log_error("Failed to translate {} to node id, no flow files will be put", nodeID_.c_str());
           yield();

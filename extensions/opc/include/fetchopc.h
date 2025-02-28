@@ -54,7 +54,7 @@ class FetchOPCProcessor : public BaseOPCProcessor {
       .withAllowedValues({"Path", "Int", "String"})
       .build();
   EXTENSIONAPI static constexpr auto NodeID = core::PropertyDefinitionBuilder<>::createProperty("Node ID")
-      .withDescription("Specifies the ID of the root node to traverse")
+      .withDescription("Specifies the ID of the root node to traverse. In case of a Path Node ID Type, the path should be provided in the format of 'path/to/node'.")
       .isRequired(true)
       .build();
   EXTENSIONAPI static constexpr auto NameSpaceIndex = core::PropertyDefinitionBuilder<>::createProperty("Namespace index")

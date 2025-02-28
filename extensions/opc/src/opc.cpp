@@ -335,15 +335,11 @@ bool Client::exists(UA_NodeId nodeId) {
   return retval;
 }
 
-UA_StatusCode Client::translateBrowsePathsToNodeIdsRequest(const std::string& path, std::vector<UA_NodeId>& foundNodeIDs, const std::shared_ptr<core::logging::Logger>& logger) {
+UA_StatusCode Client::translateBrowsePathsToNodeIdsRequest(const std::string& path, std::vector<UA_NodeId>& foundNodeIDs, int32_t namespace_index,
+    const std::shared_ptr<core::logging::Logger>& logger) {
   logger->log_trace("Trying to find node id for {}", path.c_str());
 
-  auto tokens = utils::string::split(path, "/");
-  std::vector<UA_UInt32> ids;
-  for (size_t i = 0; i < tokens.size(); ++i) {
-    UA_UInt32 val = (i ==0) ? UA_NS0ID_ORGANIZES : UA_NS0ID_HASCOMPONENT;
-    ids.push_back(val);
-  }
+  auto tokens = utils::string::splitAndTrimRemovingEmpty(path, "/");
 
   UA_BrowsePath browsePath;
   UA_BrowsePath_init(&browsePath);
@@ -354,8 +350,8 @@ UA_StatusCode Client::translateBrowsePathsToNodeIdsRequest(const std::string& pa
 
   for (size_t i = 0; i < tokens.size(); ++i) {
     UA_RelativePathElement *elem = &browsePath.relativePath.elements[i];
-    elem->referenceTypeId = UA_NODEID_NUMERIC(0, ids[i]);
-    elem->targetName = UA_QUALIFIEDNAME_ALLOC(0, tokens[i].c_str());
+    elem->referenceTypeId = UA_NODEID_NUMERIC(0, UA_NS0ID_ORGANIZES);
+    elem->targetName = UA_QUALIFIEDNAME_ALLOC(namespace_index, tokens[i].c_str());
   }
 
   UA_TranslateBrowsePathsToNodeIdsRequest request;
@@ -365,11 +361,16 @@ UA_StatusCode Client::translateBrowsePathsToNodeIdsRequest(const std::string& pa
 
   UA_TranslateBrowsePathsToNodeIdsResponse response = UA_Client_Service_translateBrowsePathsToNodeIds(client_, request);
 
-  const auto guard = gsl::finally([&browsePath]() {
+  const auto guard = gsl::finally([&browsePath, &tokens, &response]() {
+    for (size_t i = 0; i < tokens.size(); ++i) {
+      UA_RelativePathElement *elem = &browsePath.relativePath.elements[i];
+      UA_QualifiedName_clear(&elem->targetName);
+    }
     UA_BrowsePath_clear(&browsePath);
+    UA_TranslateBrowsePathsToNodeIdsResponse_clear(&response);
   });
 
-  if (response.resultsSize < 1) {
+  if (response.resultsSize < 1 || response.results[0].statusCode != UA_STATUSCODE_GOOD) {
     logger->log_warn("No node id in response for {}", path.c_str());
     return UA_STATUSCODE_BADNODATAAVAILABLE;
   }
@@ -386,8 +387,6 @@ UA_StatusCode Client::translateBrowsePathsToNodeIdsRequest(const std::string& pa
       std::string namespaceUri(reinterpret_cast<char*>(res.targets[j].targetId.namespaceUri.data), res.targets[j].targetId.namespaceUri.length);
     }
   }
-
-  UA_TranslateBrowsePathsToNodeIdsResponse_clear(&response);
 
   if (foundData) {
     logger->log_debug("Found {} nodes for path {}", foundNodeIDs.size(), path.c_str());
