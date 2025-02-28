@@ -64,16 +64,18 @@ namespace org::apache::nifi::minifi::processors {
         throw Exception(PROCESS_SCHEDULE_EXCEPTION, error_msg);
       }
     }
-    if (idType_ != opc::OPCNodeIDType::Path) {
-      if (!context.getProperty(ParentNameSpaceIndex, nameSpaceIdx_)) {
-        auto error_msg = utils::string::join_pack(ParentNameSpaceIndex.name, " is mandatory in case ", ParentNodeIDType.name, " is not Path");
-        throw Exception(PROCESS_SCHEDULE_EXCEPTION, error_msg);
-      }
+    if (!context.getProperty(ParentNameSpaceIndex, nameSpaceIdx_)) {
+      auto error_msg = utils::string::join_pack(ParentNameSpaceIndex.name, " is mandatory in case ", ParentNodeIDType.name, " is not Path");
+      throw Exception(PROCESS_SCHEDULE_EXCEPTION, error_msg);
     }
 
     std::string typestr;
     context.getProperty(ValueType, typestr);
     nodeDataType_ = utils::at(opc::StringToOPCDataTypeMap, typestr);  // This throws, but allowed values are generated based on this map -> that's a really unexpected error
+
+    if (idType_ == opc::OPCNodeIDType::Path) {
+      readPathReferenceTypes(context, nodeID_);
+    }
   }
 
   void PutOPCProcessor::onTrigger(core::ProcessContext& context, core::ProcessSession& session) {
@@ -87,7 +89,7 @@ namespace org::apache::nifi::minifi::processors {
     if (!parentExists_) {
       if (idType_ == opc::OPCNodeIDType::Path) {
         std::vector<UA_NodeId> translatedNodeIDs;
-        if (connection_->translateBrowsePathsToNodeIdsRequest(nodeID_, translatedNodeIDs, logger_) !=
+        if (connection_->translateBrowsePathsToNodeIdsRequest(nodeID_, translatedNodeIDs, nameSpaceIdx_, pathReferenceTypes_, logger_) !=
             UA_STATUSCODE_GOOD) {
           logger_->log_error("Failed to translate {} to node id, no flow files will be put", nodeID_.c_str());
           yield();

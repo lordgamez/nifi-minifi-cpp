@@ -105,4 +105,27 @@ namespace org::apache::nifi::minifi::processors {
     return true;
   }
 
+  void BaseOPCProcessor::readPathReferenceTypes(core::ProcessContext& context, const std::string& node_id) {
+    std::string value;
+    context.getProperty(PathReferenceTypes, value);
+    if (value.empty()) {
+      return;
+    }
+    auto pathReferenceTypes = utils::string::splitAndTrimRemovingEmpty(value, "/");
+    if (pathReferenceTypes.size() != utils::string::splitAndTrimRemovingEmpty(node_id, "/").size() - 1) {
+      throw Exception(PROCESS_SCHEDULE_EXCEPTION, "Path reference types must be provided for each node pair in the path!");
+    }
+    for (const auto& pathReferenceType : pathReferenceTypes) {
+      if (pathReferenceType == "Organizes") {
+        pathReferenceTypes_.push_back(UA_NS0ID_ORGANIZES);
+      } else if (pathReferenceType == "HasComponent") {
+        pathReferenceTypes_.push_back(UA_NS0ID_HASCOMPONENT);
+      } else if (pathReferenceType == "HasProperty") {
+        pathReferenceTypes_.push_back(UA_NS0ID_HASPROPERTY);
+      } else {
+        throw Exception(PROCESS_SCHEDULE_EXCEPTION, fmt::format("Unsupported reference type set in 'Path reference types' property: '{}'.", pathReferenceType));
+      }
+    }
+  }
+
 }  // namespace org::apache::nifi::minifi::processors

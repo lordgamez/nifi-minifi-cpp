@@ -58,6 +58,10 @@ class BaseOPCProcessor : public core::ProcessorImpl {
   EXTENSIONAPI static constexpr auto TrustedPath = core::PropertyDefinitionBuilder<>::createProperty("Trusted server certificate path")
       .withDescription("Path to the DER-encoded trusted server certificate")
       .build();
+  EXTENSIONAPI static constexpr auto PathReferenceTypes = core::PropertyDefinitionBuilder<>::createProperty("Path reference types")
+      .withDescription("Specify the reference types between nodes in the path if Path Node ID type is used. If not provided, all reference types are assumed to be Organizes. "
+                       "The format is 'referenceType1/referenceType2/.../referenceTypeN' and the supported reference types are Organizes, HasComponent and HasProperty.")
+      .build();
   EXTENSIONAPI static constexpr auto Properties = std::to_array<core::PropertyReference>({
       OPCServerEndPoint,
       ApplicationURI,
@@ -65,7 +69,8 @@ class BaseOPCProcessor : public core::ProcessorImpl {
       Password,
       CertificatePath,
       KeyPath,
-      TrustedPath
+      TrustedPath,
+      PathReferenceTypes
   });
 
 
@@ -77,6 +82,7 @@ class BaseOPCProcessor : public core::ProcessorImpl {
 
  protected:
   virtual bool reconnect();
+  void readPathReferenceTypes(core::ProcessContext& context, const std::string& node_id);
 
   std::shared_ptr<core::logging::Logger> logger_;
 
@@ -94,6 +100,7 @@ class BaseOPCProcessor : public core::ProcessorImpl {
   std::vector<char> certBuffer_;
   std::vector<char> keyBuffer_;
   std::vector<std::vector<char>> trustBuffers_;
+  std::vector<UA_UInt32> pathReferenceTypes_;
 };
 
 }  // namespace org::apache::nifi::minifi::processors
