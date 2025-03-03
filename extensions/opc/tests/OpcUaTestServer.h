@@ -18,10 +18,9 @@
 
 #include <open62541/server.h>
 #include <open62541/server_config_default.h>
-#include <open62541/client.h>
-#include <open62541/client_config_default.h>
 #include <thread>
 #include <mutex>
+#include <algorithm>
 
 using namespace std::literals::chrono_literals;
 
@@ -31,6 +30,29 @@ class OpcUaTestServer {
  public:
   OpcUaTestServer() : server_(UA_Server_new()) {
     UA_ServerConfig_setDefault(UA_Server_getConfig(server_));
+
+    auto config = UA_Server_getConfig(server_);
+    config->logging->log = [] (void *log_context, UA_LogLevel level, UA_LogCategory /*category*/, const char *msg, va_list args) {
+      char buffer[1024];
+      vsnprintf(buffer, sizeof(buffer), msg, args);
+
+      std::string level_str;
+      switch (level) {
+          case UA_LOGLEVEL_TRACE: return;
+          case UA_LOGLEVEL_DEBUG: level_str = "DEBUG"; break;
+          case UA_LOGLEVEL_INFO: level_str = "INFO"; break;
+          case UA_LOGLEVEL_WARNING: level_str = "WARNING"; break;
+          case UA_LOGLEVEL_ERROR: level_str = "ERROR"; break;
+          case UA_LOGLEVEL_FATAL: level_str = "FATAL"; break;
+          default: level_str = "UNKNOWN"; break;
+      }
+
+      std::string log_message = "[" + level_str + "] " + buffer + "\n";
+      auto server = static_cast<OpcUaTestServer*>(log_context);
+      server->addLog(log_message);
+    };
+
+    config->logging->context = this;
 
     ns_index_ = UA_Server_addNamespace(server_, "custom.namespace");
 
@@ -71,6 +93,16 @@ class OpcUaTestServer {
 
   UA_UInt16 getNamespaceIndex() const {
     return ns_index_;
+  }
+
+  void addLog(const std::string& log) {
+    std::lock_guard<std::mutex> lock(server_logs_mutex_);
+    server_logs_.push_back(log);
+  }
+
+  std::vector<std::string> getLogs() const {
+    std::lock_guard<std::mutex> lock(server_logs_mutex_);
+    return server_logs_;
   }
 
  private:
@@ -120,19 +152,14 @@ class OpcUaTestServer {
   }
 
   void ensureConnection() {
-    UA_Client *client = UA_Client_new();
-    UA_ClientConfig_setDefault(UA_Client_getConfig(client));
-
     while (true) {
-      UA_StatusCode status = UA_Client_connect(client, "opc.tcp://127.0.0.1:4840");
-      if (status == UA_STATUSCODE_GOOD) {
+      auto logs = getLogs();
+      if (std::find_if(logs.begin(), logs.end(), [] (const std::string& message) {
+          return message.find("New DiscoveryUrl added") != std::string::npos;}) != logs.end()) {
         break;
       }
-      std::this_thread::sleep_for(200ms);
+      std::this_thread::sleep_for(100ms);
     }
-
-    UA_Client_disconnect(client);
-    UA_Client_delete(client);
   }
 
   UA_Server* server_;
@@ -140,6 +167,8 @@ class OpcUaTestServer {
   UA_Boolean running_ = false;
   std::mutex mutex_;
   std::thread server_thread_;
+  mutable std::mutex server_logs_mutex_;
+  std::vector<std::string> server_logs_;
 };
 
 }  // namespace org::apache::nifi::minifi::test

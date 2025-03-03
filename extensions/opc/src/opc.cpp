@@ -155,10 +155,10 @@ Client::Client(const std::shared_ptr<core::logging::Logger>& logger, const std::
     }
   }
 
-  const UA_Logger MinifiUALogger = {logFunc, logger.get(), [](void*){}};
+  minifi_ua_logger_ = {logFunc, logger.get(), [](UA_Logger*){}};
 
   UA_ClientConfig *configPtr = UA_Client_getConfig(client_);
-  configPtr->logger = MinifiUALogger;
+  configPtr->logging = &minifi_ua_logger_;
 
   if (applicationURI.length() > 0) {
     UA_String_clear(&configPtr->clientDescription.applicationUri);
