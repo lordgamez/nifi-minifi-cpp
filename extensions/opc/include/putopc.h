@@ -34,6 +34,7 @@
 #include "core/logging/LoggerFactory.h"
 #include "utils/ArrayUtils.h"
 #include "utils/Id.h"
+#include "utils/expected.h"
 
 namespace org::apache::nifi::minifi::processors {
 
@@ -55,9 +56,9 @@ class PutOPCProcessor : public BaseOPCProcessor {
       .withPropertyType(core::StandardPropertyTypes::INTEGER_TYPE)
       .withDefaultValue("0")
       .build();
-  EXTENSIONAPI static constexpr auto ValueType = core::PropertyDefinitionBuilder<opc::StringToOPCDataTypeMap.size()>::createProperty("Value type")
+  EXTENSIONAPI static constexpr auto ValueType = core::PropertyDefinitionBuilder<magic_enum::enum_count<opc::OPCNodeDataType>()>::createProperty("Value type")
       .withDescription("Set the OPC value type of the created nodes")
-      .withAllowedValues(utils::getKeys(opc::StringToOPCDataTypeMap))
+      .withAllowedValues(magic_enum::enum_names<opc::OPCNodeDataType>())
       .isRequired(true)
       .build();
   EXTENSIONAPI static constexpr auto TargetNodeIDType = core::PropertyDefinitionBuilder<>::createProperty("Target node ID type")
@@ -109,12 +110,16 @@ class PutOPCProcessor : public BaseOPCProcessor {
   void initialize() override;
 
  private:
-  std::string nodeID_;
-  int32_t nameSpaceIdx_{};
-  opc::OPCNodeIDType idType_{};
-  UA_NodeId parentNodeID_{};
-  bool parentExists_{};
-  opc::OPCNodeDataType nodeDataType_{};
+  bool readParentNodeId();
+  nonstd::expected<std::pair<bool, UA_NodeId>, std::string> configureTargetNode(core::ProcessContext& context, core::FlowFile& flow_file) const;
+  void updateNode(const UA_NodeId& target_node, const std::string& contentstr, core::ProcessSession& session, const std::shared_ptr<core::FlowFile>& flow_file) const;
+  void createNode(const UA_NodeId& target_node, const std::string& contentstr, core::ProcessContext& context, core::ProcessSession& session, const std::shared_ptr<core::FlowFile>& flow_file) const;
+
+  std::string node_id_;
+  int32_t namespace_idx_{};
+  opc::OPCNodeIDType id_type_{};
+  UA_NodeId parent_node_id_{};
+  opc::OPCNodeDataType node_data_type_{};
 };
 
 }  // namespace org::apache::nifi::minifi::processors

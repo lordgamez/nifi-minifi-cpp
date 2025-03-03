@@ -30,48 +30,48 @@ namespace org::apache::nifi::minifi::processors {
   void BaseOPCProcessor::onSchedule(core::ProcessContext& context, core::ProcessSessionFactory&) {
     logger_->log_trace("BaseOPCProcessor::onSchedule");
 
-    applicationURI_.clear();
-    certBuffer_.clear();
-    keyBuffer_.clear();
+    application_uri_.clear();
+    cert_buffer_.clear();
+    key_buffer_.clear();
     password_.clear();
     username_.clear();
-    trustBuffers_.clear();
+    trust_buffers_.clear();
 
-    context.getProperty(OPCServerEndPoint, endPointURL_);
-    context.getProperty(ApplicationURI, applicationURI_);
+    context.getProperty(OPCServerEndPoint, endpoint_url);
+    context.getProperty(ApplicationURI, application_uri_);
 
     if (context.getProperty(Username, username_) != context.getProperty(Password, password_)) {
       throw Exception(PROCESS_SCHEDULE_EXCEPTION, "Both or neither of Username and Password should be provided!");
     }
 
-    auto certificatePathRes = context.getProperty(CertificatePath, certpath_);
-    auto keyPathRes = context.getProperty(KeyPath, keypath_);
+    auto certificate_path_res = context.getProperty(CertificatePath, certpath_);
+    auto key_path_res = context.getProperty(KeyPath, keypath_);
     context.getProperty(TrustedPath, trustpath_);
-    if (certificatePathRes != keyPathRes) {
+    if (certificate_path_res != key_path_res) {
       throw Exception(PROCESS_SCHEDULE_EXCEPTION, "All or none of Certificate path and Key path should be provided!");
     }
 
     if (certpath_.empty()) {
       return;
     }
-    if (applicationURI_.empty()) {
+    if (application_uri_.empty()) {
       throw Exception(PROCESS_SCHEDULE_EXCEPTION, "Application URI must be provided if Certificate path is provided!");
     }
 
     std::ifstream input_cert(certpath_, std::ios::binary);
     if (input_cert.good()) {
-      certBuffer_ = std::vector<char>(std::istreambuf_iterator<char>(input_cert), {});
+      cert_buffer_ = std::vector<char>(std::istreambuf_iterator<char>(input_cert), {});
     }
     std::ifstream input_key(keypath_, std::ios::binary);
     if (input_key.good()) {
-      keyBuffer_ = std::vector<char>(std::istreambuf_iterator<char>(input_key), {});
+      key_buffer_ = std::vector<char>(std::istreambuf_iterator<char>(input_key), {});
     }
 
-    if (certBuffer_.empty()) {
+    if (cert_buffer_.empty()) {
       auto error_msg = utils::string::join_pack("Failed to load cert from path: ", certpath_);
       throw Exception(PROCESS_SCHEDULE_EXCEPTION, error_msg);
     }
-    if (keyBuffer_.empty()) {
+    if (key_buffer_.empty()) {
       auto error_msg = utils::string::join_pack("Failed to load key from path: ", keypath_);
       throw Exception(PROCESS_SCHEDULE_EXCEPTION, error_msg);
     }
@@ -79,7 +79,7 @@ namespace org::apache::nifi::minifi::processors {
     if (!trustpath_.empty()) {
       std::ifstream input_trust(trustpath_, std::ios::binary);
       if (input_trust.good()) {
-        trustBuffers_.push_back(std::vector<char>(std::istreambuf_iterator<char>(input_trust), {}));
+        trust_buffers_.push_back(std::vector<char>(std::istreambuf_iterator<char>(input_trust), {}));
       } else {
         auto error_msg = utils::string::join_pack("Failed to load trusted server certs from path: ", trustpath_);
         throw Exception(PROCESS_SCHEDULE_EXCEPTION, error_msg);
@@ -89,14 +89,14 @@ namespace org::apache::nifi::minifi::processors {
 
   bool BaseOPCProcessor::reconnect() {
     if (connection_ == nullptr) {
-      connection_ = opc::Client::createClient(logger_, applicationURI_, certBuffer_, keyBuffer_, trustBuffers_);
+      connection_ = opc::Client::createClient(logger_, application_uri_, cert_buffer_, key_buffer_, trust_buffers_);
     }
 
     if (connection_->isConnected()) {
       return true;
     }
 
-    auto sc = connection_->connect(endPointURL_, username_, password_);
+    auto sc = connection_->connect(endpoint_url, username_, password_);
     if (sc != UA_STATUSCODE_GOOD) {
       logger_->log_error("Failed to connect: {}!", UA_StatusCode_name(sc));
       return false;
@@ -117,11 +117,11 @@ namespace org::apache::nifi::minifi::processors {
     }
     for (const auto& pathReferenceType : pathReferenceTypes) {
       if (pathReferenceType == "Organizes") {
-        pathReferenceTypes_.push_back(UA_NS0ID_ORGANIZES);
+        path_reference_types_.push_back(UA_NS0ID_ORGANIZES);
       } else if (pathReferenceType == "HasComponent") {
-        pathReferenceTypes_.push_back(UA_NS0ID_HASCOMPONENT);
+        path_reference_types_.push_back(UA_NS0ID_HASCOMPONENT);
       } else if (pathReferenceType == "HasProperty") {
-        pathReferenceTypes_.push_back(UA_NS0ID_HASPROPERTY);
+        path_reference_types_.push_back(UA_NS0ID_HASPROPERTY);
       } else {
         throw Exception(PROCESS_SCHEDULE_EXCEPTION, fmt::format("Unsupported reference type set in 'Path reference types' property: '{}'.", pathReferenceType));
       }

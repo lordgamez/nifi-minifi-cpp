@@ -88,19 +88,19 @@ class BaseOPCProcessor : public core::ProcessorImpl {
 
   opc::ClientPtr connection_;
 
-  std::string endPointURL_;
+  std::string endpoint_url;
 
-  std::string applicationURI_;
+  std::string application_uri_;
   std::string username_;
   std::string password_;
   std::string certpath_;
   std::string keypath_;
   std::string trustpath_;
 
-  std::vector<char> certBuffer_;
-  std::vector<char> keyBuffer_;
-  std::vector<std::vector<char>> trustBuffers_;
-  std::vector<UA_UInt32> pathReferenceTypes_;
+  std::vector<char> cert_buffer_;
+  std::vector<char> key_buffer_;
+  std::vector<std::vector<char>> trust_buffers_;
+  std::vector<UA_UInt32> path_reference_types_;
 };
 
 }  // namespace org::apache::nifi::minifi::processors

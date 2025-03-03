@@ -121,17 +121,6 @@ struct NodeData {
   friend std::string nodeValue2String(const NodeData&);
 };
 
-inline constexpr std::array<std::pair<std::string_view, OPCNodeDataType>, 8>  StringToOPCDataTypeMap = {{
-  {"Int64", OPCNodeDataType::Int64},
-  {"UInt64", OPCNodeDataType::UInt64 },
-  {"Int32", OPCNodeDataType::Int32},
-  {"UInt32", OPCNodeDataType::UInt32},
-  {"Boolean", OPCNodeDataType::Boolean},
-  {"Float", OPCNodeDataType::Float},
-  {"Double", OPCNodeDataType::Double},
-  {"String", OPCNodeDataType::String}
-}};
-
 std::string nodeValue2String(const NodeData& nd);
 
 std::string OPCDateTime2String(UA_DateTime raw_date);

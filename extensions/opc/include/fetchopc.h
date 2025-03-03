@@ -39,6 +39,11 @@
 
 namespace org::apache::nifi::minifi::processors {
 
+enum class LazyModeOptions {
+  On,
+  Off
+};
+
 class FetchOPCProcessor : public BaseOPCProcessor {
  public:
   explicit FetchOPCProcessor(std::string_view name, const utils::Identifier& uuid = {})
@@ -48,10 +53,10 @@ class FetchOPCProcessor : public BaseOPCProcessor {
 
   EXTENSIONAPI static constexpr const char* Description = "Fetches OPC-UA node";
 
-  EXTENSIONAPI static constexpr auto NodeIDType = core::PropertyDefinitionBuilder<3>::createProperty("Node ID type")
+  EXTENSIONAPI static constexpr auto NodeIDType = core::PropertyDefinitionBuilder<magic_enum::enum_count<opc::OPCNodeIDType>()>::createProperty("Node ID type")
       .withDescription("Specifies the type of the provided node ID")
       .isRequired(true)
-      .withAllowedValues({"Path", "Int", "String"})
+      .withAllowedValues(magic_enum::enum_names<opc::OPCNodeIDType>())
       .build();
   EXTENSIONAPI static constexpr auto NodeID = core::PropertyDefinitionBuilder<>::createProperty("Node ID")
       .withDescription("Specifies the ID of the root node to traverse. In case of a Path Node ID Type, the path should be provided in the format of 'path/to/node'.")
@@ -67,11 +72,11 @@ class FetchOPCProcessor : public BaseOPCProcessor {
       .withPropertyType(core::StandardPropertyTypes::UNSIGNED_LONG_TYPE)
       .withDefaultValue("0")
       .build();
-  EXTENSIONAPI static constexpr auto Lazy = core::PropertyDefinitionBuilder<2>::createProperty("Lazy mode")
+  EXTENSIONAPI static constexpr auto Lazy = core::PropertyDefinitionBuilder<magic_enum::enum_count<LazyModeOptions>()>::createProperty("Lazy mode")
       .withDescription("Only creates flowfiles from nodes with new timestamp from the server.")
-      .withDefaultValue("Off")
       .isRequired(true)
-      .withAllowedValues({"On", "Off"})
+      .withAllowedValues(magic_enum::enum_names<LazyModeOptions>())
+      .withDefaultValue(magic_enum::enum_name(LazyModeOptions::Off))
       .build();
   EXTENSIONAPI static constexpr auto Properties = utils::array_cat(BaseOPCProcessor::Properties, std::to_array<core::PropertyReference>({
       NodeIDType,
@@ -102,9 +107,9 @@ class FetchOPCProcessor : public BaseOPCProcessor {
                          core::ProcessContext& context, core::ProcessSession& session,
                          size_t& nodes_found, size_t& variables_found);
 
-  void OPCData2FlowFile(const opc::NodeData& opcnode, core::ProcessContext& context, core::ProcessSession& session);
+  void OPCData2FlowFile(const opc::NodeData& opc_node, core::ProcessContext& context, core::ProcessSession& session);
 
-  std::string nodeID_;
+  std::string node_id_;
   int32_t namespace_idx_ = 0;
   opc::OPCNodeIDType id_type_{};
   uint64_t max_depth_ = 0;
