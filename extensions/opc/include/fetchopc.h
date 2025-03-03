@@ -63,9 +63,10 @@ class FetchOPCProcessor : public BaseOPCProcessor {
       .isRequired(true)
       .build();
   EXTENSIONAPI static constexpr auto NameSpaceIndex = core::PropertyDefinitionBuilder<>::createProperty("Namespace index")
-      .withDescription("The index of the namespace. Used only if node ID type is not path.")
+      .withDescription("The index of the namespace.")
       .withPropertyType(core::StandardPropertyTypes::INTEGER_TYPE)
       .withDefaultValue("0")
+      .isRequired(true)
       .build();
   EXTENSIONAPI static constexpr auto MaxDepth = core::PropertyDefinitionBuilder<>::createProperty("Max depth")
       .withDescription("Specifiec the max depth of browsing. 0 means unlimited.")
@@ -109,9 +110,6 @@ class FetchOPCProcessor : public BaseOPCProcessor {
 
   void OPCData2FlowFile(const opc::NodeData& opc_node, core::ProcessContext& context, core::ProcessSession& session);
 
-  std::string node_id_;
-  int32_t namespace_idx_ = 0;
-  opc::OPCNodeIDType id_type_{};
   uint64_t max_depth_ = 0;
   bool lazy_mode_ = false;
 

@@ -52,17 +52,19 @@ class PutOPCProcessor : public BaseOPCProcessor {
       .isRequired(true)
       .build();
   EXTENSIONAPI static constexpr auto ParentNameSpaceIndex = core::PropertyDefinitionBuilder<>::createProperty("Parent node namespace index")
-      .withDescription("The index of the namespace.")
+      .withDescription("The index of the namespace of the parent node.")
       .withPropertyType(core::StandardPropertyTypes::INTEGER_TYPE)
       .withDefaultValue("0")
+      .isRequired(true)
       .build();
   EXTENSIONAPI static constexpr auto ValueType = core::PropertyDefinitionBuilder<magic_enum::enum_count<opc::OPCNodeDataType>()>::createProperty("Value type")
       .withDescription("Set the OPC value type of the created nodes")
       .withAllowedValues(magic_enum::enum_names<opc::OPCNodeDataType>())
       .isRequired(true)
       .build();
-  EXTENSIONAPI static constexpr auto TargetNodeIDType = core::PropertyDefinitionBuilder<>::createProperty("Target node ID type")
+  EXTENSIONAPI static constexpr auto TargetNodeIDType = core::PropertyDefinitionBuilder<2>::createProperty("Target node ID type")
       .withDescription("ID type of target node. Allowed values are: Int, String.")
+      .withAllowedValues({"Int", "String"})
       .supportsExpressionLanguage(true)
       .build();
   EXTENSIONAPI static constexpr auto TargetNodeID = core::PropertyDefinitionBuilder<>::createProperty("Target node ID")
@@ -74,8 +76,10 @@ class PutOPCProcessor : public BaseOPCProcessor {
       .supportsExpressionLanguage(true)
       .build();
   EXTENSIONAPI static constexpr auto TargetNodeNameSpaceIndex = core::PropertyDefinitionBuilder<>::createProperty("Target node namespace index")
-      .withDescription("The index of the namespace.")
+      .withDescription("The index of the namespace of the target node.")
       .supportsExpressionLanguage(true)
+      .withDefaultValue("0")
+      .isRequired(true)
       .build();
   EXTENSIONAPI static constexpr auto Properties = utils::array_cat(BaseOPCProcessor::Properties, std::to_array<core::PropertyReference>({
       ParentNodeIDType,
@@ -115,9 +119,6 @@ class PutOPCProcessor : public BaseOPCProcessor {
   void updateNode(const UA_NodeId& target_node, const std::string& contentstr, core::ProcessSession& session, const std::shared_ptr<core::FlowFile>& flow_file) const;
   void createNode(const UA_NodeId& target_node, const std::string& contentstr, core::ProcessContext& context, core::ProcessSession& session, const std::shared_ptr<core::FlowFile>& flow_file) const;
 
-  std::string node_id_;
-  int32_t namespace_idx_{};
-  opc::OPCNodeIDType id_type_{};
   UA_NodeId parent_node_id_{};
   opc::OPCNodeDataType node_data_type_{};
 };

@@ -48,21 +48,9 @@ void FetchOPCProcessor::onSchedule(core::ProcessContext& context, core::ProcessS
   max_depth_ = 0;
   context.getProperty(MaxDepth, max_depth_);
 
-  id_type_ = utils::parseEnumProperty<opc::OPCNodeIDType>(context, NodeIDType);
+  parseIdType(context, NodeIDType);
 
-  if (id_type_ == opc::OPCNodeIDType::Int) {
-    try {
-      // ensure that nodeID_ can be parsed as an int
-      static_cast<void>(std::stoi(node_id_));
-    } catch(...) {
-      auto error_msg = utils::string::join_pack(node_id_, " cannot be used as an int type node ID");
-      throw Exception(PROCESS_SCHEDULE_EXCEPTION, error_msg);
-    }
-  }
-  if (!context.getProperty(NameSpaceIndex, namespace_idx_)) {
-    auto error_msg = utils::string::join_pack(NameSpaceIndex.name, " is mandatory");
-    throw Exception(PROCESS_SCHEDULE_EXCEPTION, error_msg);
-  }
+  context.getProperty(NameSpaceIndex, namespace_idx_);
 
   lazy_mode_ = utils::parseEnumProperty<LazyModeOptions>(context, Lazy) == LazyModeOptions::On;
 

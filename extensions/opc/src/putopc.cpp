@@ -40,22 +40,10 @@ void PutOPCProcessor::onSchedule(core::ProcessContext& context, core::ProcessSes
 
   std::string value;
   context.getProperty(ParentNodeID, node_id_);
-  id_type_ = utils::parseEnumProperty<opc::OPCNodeIDType>(context, ParentNodeIDType);
 
-  if (id_type_ == opc::OPCNodeIDType::Int) {
-    try {
-      // ensure that nodeID_ can be parsed as an int
-      static_cast<void>(std::stoi(node_id_));
-    } catch(...) {
-      auto error_msg = utils::string::join_pack(node_id_, " cannot be used as an int type node ID");
-      throw Exception(PROCESS_SCHEDULE_EXCEPTION, error_msg);
-    }
-  }
-  if (!context.getProperty(ParentNameSpaceIndex, namespace_idx_)) {
-    auto error_msg = utils::string::join_pack(ParentNameSpaceIndex.name, " is mandatory in case ", ParentNodeIDType.name, " is not Path");
-    throw Exception(PROCESS_SCHEDULE_EXCEPTION, error_msg);
-  }
+  parseIdType(context, ParentNodeIDType);
 
+  context.getProperty(ParentNameSpaceIndex, namespace_idx_);
   node_data_type_ = utils::parseEnumProperty<opc::OPCNodeDataType>(context, ValueType);
 
   if (id_type_ == opc::OPCNodeIDType::Path) {
@@ -95,7 +83,7 @@ bool PutOPCProcessor::readParentNodeId() {
 
 nonstd::expected<std::pair<bool, UA_NodeId>, std::string> PutOPCProcessor::configureTargetNode(core::ProcessContext& context, core::FlowFile& flow_file) const {
   std::string namespaceidx;
-  if (!context.getProperty(TargetNodeNameSpaceIndex, namespaceidx, &flow_file)) {
+  if (!context.getProperty(TargetNodeNameSpaceIndex, namespaceidx, &flow_file) || namespaceidx.empty()) {
     return nonstd::make_unexpected(fmt::format("Flowfile {} had no target namespace index specified, routing to failure!", flow_file.getUUIDStr()));
   }
   int32_t nsi = 0;
@@ -108,7 +96,8 @@ nonstd::expected<std::pair<bool, UA_NodeId>, std::string> PutOPCProcessor::confi
 
   std::string target_id_type;
   if (!context.getProperty(TargetNodeIDType, target_id_type, &flow_file) || target_id_type.empty()) {
-    return std::make_pair(false, UA_NODEID_NUMERIC(nsi, 0));
+    return nonstd::make_unexpected(fmt::format("Flowfile {} has invalid target node id type ({}), routing to failure!",
+                                   flow_file.getUUIDStr(), target_id_type));
   }
 
   std::string target_id;
@@ -163,13 +152,10 @@ void PutOPCProcessor::updateNode(const UA_NodeId& target_node, const std::string
         break;
       }
       case opc::OPCNodeDataType::Boolean: {
-        const auto contentstr_parsed = utils::string::toBool(contentstr);
-        if (contentstr_parsed) {
+        if (auto contentstr_parsed = utils::string::toBool(contentstr)) {
           sc = connection_->update_node(target_node, contentstr_parsed.value());
         } else {
-          logger_->log_error("Content cannot be converted to bool");
-          session.transfer(flow_file, Failure);
-          return;
+          throw std::runtime_error("Content cannot be converted to bool");
         }
         break;
       }
@@ -199,7 +185,7 @@ void PutOPCProcessor::updateNode(const UA_NodeId& target_node, const std::string
 
     logger_->log_trace("Node successfully updated!");
     session.transfer(flow_file, Success);
-  } catch (...) {
+  } catch (const std::exception&) {
     logger_->log_error("Failed to convert {} to data type {}", contentstr, magic_enum::enum_name(node_data_type_));
     session.transfer(flow_file, Failure);
   }
@@ -241,13 +227,10 @@ void PutOPCProcessor::createNode(const UA_NodeId& target_node, const std::string
         break;
       }
       case opc::OPCNodeDataType::Boolean: {
-        const auto contentstr_parsed = utils::string::toBool(contentstr);
-        if (contentstr_parsed) {
+        if (auto contentstr_parsed = utils::string::toBool(contentstr)) {
           sc = connection_->add_node(parent_node_id_, target_node, browse_name, contentstr_parsed.value(), &result_node);
         } else {
-          logger_->log_error("Content cannot be converted to bool");
-          session.transfer(flow_file, Failure);
-          return;
+          throw std::runtime_error("Content cannot be converted to bool");
         }
         break;
       }
@@ -277,7 +260,7 @@ void PutOPCProcessor::createNode(const UA_NodeId& target_node, const std::string
 
     logger_->log_trace("Node successfully created!");
     session.transfer(flow_file, Success);
-  } catch (...) {
+  } catch (const std::exception&) {
     logger_->log_error("Failed to convert {} to data type {}", contentstr, magic_enum::enum_name(node_data_type_));
     session.transfer(flow_file, Failure);
   }

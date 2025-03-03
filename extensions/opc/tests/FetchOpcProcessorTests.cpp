@@ -97,4 +97,80 @@ TEST_CASE("Test missing path reference types", "[fetchopcprocessor]") {
   REQUIRE_THROWS_WITH(controller.trigger(), "Process Schedule Operation: Path reference types must be provided for each node pair in the path!");
 }
 
+TEST_CASE("Test username and password should both be provided", "[fetchopcprocessor]") {
+  SingleProcessorTestController controller{std::make_unique<processors::FetchOPCProcessor>("FetchOPCProcessor")};
+  auto put_opc_processor = controller.getProcessor();
+  put_opc_processor->setProperty(processors::FetchOPCProcessor::OPCServerEndPoint, "opc.tcp://127.0.0.1:4840/");
+  put_opc_processor->setProperty(processors::FetchOPCProcessor::Username, "user");
+  put_opc_processor->setProperty(processors::FetchOPCProcessor::Password, "");
+
+  REQUIRE_THROWS_WITH(controller.trigger("42"), "Process Schedule Operation: Both or neither of Username and Password should be provided!");
+}
+
+TEST_CASE("Test certificate path and key path should both be provided", "[fetchopcprocessor]") {
+  SingleProcessorTestController controller{std::make_unique<processors::FetchOPCProcessor>("FetchOPCProcessor")};
+  auto put_opc_processor = controller.getProcessor();
+  put_opc_processor->setProperty(processors::FetchOPCProcessor::OPCServerEndPoint, "opc.tcp://127.0.0.1:4840/");
+  put_opc_processor->setProperty(processors::FetchOPCProcessor::CertificatePath, "cert");
+  put_opc_processor->setProperty(processors::FetchOPCProcessor::KeyPath, "");
+
+  REQUIRE_THROWS_WITH(controller.trigger("42"), "Process Schedule Operation: All or none of Certificate path and Key path should be provided!");
+}
+
+TEST_CASE("Test application uri should be provided if certificate is provided", "[fetchopcprocessor]") {
+  SingleProcessorTestController controller{std::make_unique<processors::FetchOPCProcessor>("FetchOPCProcessor")};
+  auto put_opc_processor = controller.getProcessor();
+  put_opc_processor->setProperty(processors::FetchOPCProcessor::OPCServerEndPoint, "opc.tcp://127.0.0.1:4840/");
+  put_opc_processor->setProperty(processors::FetchOPCProcessor::CertificatePath, "cert");
+  put_opc_processor->setProperty(processors::FetchOPCProcessor::KeyPath, "key");
+
+  REQUIRE_THROWS_WITH(controller.trigger("42"), "Process Schedule Operation: Application URI must be provided if Certificate path is provided!");
+}
+
+TEST_CASE("Test certificate path must be valid", "[fetchopcprocessor]") {
+  SingleProcessorTestController controller{std::make_unique<processors::FetchOPCProcessor>("FetchOPCProcessor")};
+  auto put_opc_processor = controller.getProcessor();
+  put_opc_processor->setProperty(processors::FetchOPCProcessor::OPCServerEndPoint, "opc.tcp://127.0.0.1:4840/");
+  put_opc_processor->setProperty(processors::FetchOPCProcessor::CertificatePath, "/invalid/cert/path");
+  put_opc_processor->setProperty(processors::FetchOPCProcessor::KeyPath, "key");
+  put_opc_processor->setProperty(processors::FetchOPCProcessor::ApplicationURI, "appuri");
+
+  REQUIRE_THROWS_WITH(controller.trigger("42"), "Process Schedule Operation: Failed to load cert from path: /invalid/cert/path");
+}
+
+TEST_CASE("Test key path must be valid", "[fetchopcprocessor]") {
+  SingleProcessorTestController controller{std::make_unique<processors::FetchOPCProcessor>("FetchOPCProcessor")};
+  auto put_opc_processor = controller.getProcessor();
+  auto test_cert_path = controller.createTempDirectory() /  "test_cert.pem";
+  {
+    std::ofstream cert_file(test_cert_path);
+    cert_file << "test";
+    cert_file.close();
+  }
+  put_opc_processor->setProperty(processors::FetchOPCProcessor::OPCServerEndPoint, "opc.tcp://127.0.0.1:4840/");
+  put_opc_processor->setProperty(processors::FetchOPCProcessor::CertificatePath, test_cert_path.string());
+  put_opc_processor->setProperty(processors::FetchOPCProcessor::KeyPath, "/invalid/key");
+  put_opc_processor->setProperty(processors::FetchOPCProcessor::ApplicationURI, "appuri");
+
+  REQUIRE_THROWS_WITH(controller.trigger("42"), "Process Schedule Operation: Failed to load key from path: /invalid/key");
+}
+
+TEST_CASE("Test trusted certs path must be valid", "[fetchopcprocessor]") {
+  SingleProcessorTestController controller{std::make_unique<processors::FetchOPCProcessor>("FetchOPCProcessor")};
+  auto put_opc_processor = controller.getProcessor();
+  auto test_cert_path = controller.createTempDirectory() /  "test_cert.pem";
+  {
+    std::ofstream cert_file(test_cert_path);
+    cert_file << "test";
+    cert_file.close();
+  }
+  put_opc_processor->setProperty(processors::FetchOPCProcessor::OPCServerEndPoint, "opc.tcp://127.0.0.1:4840/");
+  put_opc_processor->setProperty(processors::FetchOPCProcessor::CertificatePath, test_cert_path.string());
+  put_opc_processor->setProperty(processors::FetchOPCProcessor::KeyPath, test_cert_path.string());
+  put_opc_processor->setProperty(processors::FetchOPCProcessor::TrustedPath, "/invalid/trusted");
+  put_opc_processor->setProperty(processors::FetchOPCProcessor::ApplicationURI, "appuri");
+
+  REQUIRE_THROWS_WITH(controller.trigger("42"), "Process Schedule Operation: Failed to load trusted server certs from path: /invalid/trusted");
+}
+
 }  // namespace org::apache::nifi::minifi::test
