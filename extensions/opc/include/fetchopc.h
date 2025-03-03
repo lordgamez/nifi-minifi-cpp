@@ -98,21 +98,20 @@ class FetchOPCProcessor : public BaseOPCProcessor {
   void initialize() override;
 
  protected:
-  bool nodeFoundCallBack(opc::Client& client, const UA_ReferenceDescription *ref, const std::string& path,
-                         core::ProcessContext& context, core::ProcessSession& session);
+  bool nodeFoundCallBack(const UA_ReferenceDescription *ref, const std::string& path,
+                         core::ProcessContext& context, core::ProcessSession& session,
+                         size_t& nodes_found, size_t& variables_found);
 
   void OPCData2FlowFile(const opc::NodeData& opcnode, core::ProcessContext& context, core::ProcessSession& session);
 
   std::string nodeID_;
-  int32_t nameSpaceIdx_ = 0;
-  opc::OPCNodeIDType idType_{};
-  uint32_t nodesFound_ = 0;
-  uint32_t variablesFound_ = 0;
-  uint64_t maxDepth_ = 0;
+  int32_t namespace_idx_ = 0;
+  opc::OPCNodeIDType id_type_{};
+  uint64_t max_depth_ = 0;
   bool lazy_mode_ = false;
 
  private:
-  std::vector<UA_NodeId> translatedNodeIDs_;  // Only used when user provides path, path->nodeid translation is only done once
+  std::vector<UA_NodeId> translated_node_ids_;  // Only used when user provides path, path->nodeid translation is only done once
   std::unordered_map<std::string, std::string> node_timestamp_;  // Key = Full path, Value = Timestamp
 };
 

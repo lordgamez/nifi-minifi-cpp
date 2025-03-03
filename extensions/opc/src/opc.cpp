@@ -284,11 +284,11 @@ UA_ReferenceDescription * Client::getNodeReference(UA_NodeId nodeId) {
   return ref;
 }
 
-void Client::traverse(UA_NodeId nodeId, const std::function<nodeFoundCallBackFunc>& cb, const std::string& basePath, uint64_t maxDepth, bool fetchRoot) {
+void Client::traverse(UA_NodeId nodeId, const std::function<NodeFoundCallBackFunc>& cb, const std::string& basePath, uint64_t maxDepth, bool fetchRoot) {
   if (fetchRoot) {
     UA_ReferenceDescription *rootRef = getNodeReference(nodeId);
     if ((rootRef->nodeClass == UA_NODECLASS_VARIABLE || rootRef->nodeClass == UA_NODECLASS_OBJECT) && rootRef->browseName.name.length > 0) {
-      cb(*this, rootRef, basePath);
+      cb(rootRef, basePath);
     }
     UA_ReferenceDescription_delete(rootRef);
   }
@@ -319,7 +319,7 @@ void Client::traverse(UA_NodeId nodeId, const std::function<nodeFoundCallBackFun
   for (size_t i = 0; i < bResp.resultsSize; ++i) {
     for (size_t j = 0; j < bResp.results[i].referencesSize; ++j) {
       UA_ReferenceDescription *ref = &(bResp.results[i].references[j]);
-      if (cb(*this, ref, basePath)) {
+      if (cb(ref, basePath)) {
         if (ref->nodeClass == UA_NODECLASS_VARIABLE || ref->nodeClass == UA_NODECLASS_OBJECT) {
           std::string browse_name(reinterpret_cast<char *>(ref->browseName.name.data), ref->browseName.name.length);
           traverse(ref->nodeId.nodeId, cb, basePath + "/" + browse_name, maxDepth, false);
@@ -333,7 +333,7 @@ void Client::traverse(UA_NodeId nodeId, const std::function<nodeFoundCallBackFun
 
 bool Client::exists(UA_NodeId nodeId) {
   bool retval = false;
-  auto callback = [&retval](Client& /*client*/, const UA_ReferenceDescription* /*ref*/, const std::string& /*pat*/) -> bool {
+  auto callback = [&retval](const UA_ReferenceDescription* /*ref*/, const std::string& /*pat*/) -> bool {
     retval = true;
     return false;  // If any node is found, the given node exists, so traverse can be stopped
   };
