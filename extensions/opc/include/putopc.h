@@ -81,6 +81,11 @@ class PutOPCProcessor : public BaseOPCProcessor {
       .withDefaultValue("0")
       .isRequired(true)
       .build();
+  EXTENSIONAPI static constexpr auto CreateNodeReferenceType = core::PropertyDefinitionBuilder<4>::createProperty("Create node reference type")
+      .withDescription("Organizes, HasComponent, HasProperty, and HasSubtype")
+      .withAllowedValues({"Organizes", "HasComponent", "HasProperty", "HasSubtype"})
+      .withDefaultValue("HasComponent")
+      .build();
   EXTENSIONAPI static constexpr auto Properties = utils::array_cat(BaseOPCProcessor::Properties, std::to_array<core::PropertyReference>({
       ParentNodeIDType,
       ParentNodeID,
@@ -89,7 +94,8 @@ class PutOPCProcessor : public BaseOPCProcessor {
       TargetNodeIDType,
       TargetNodeID,
       TargetNodeBrowseName,
-      TargetNodeNameSpaceIndex
+      TargetNodeNameSpaceIndex,
+      CreateNodeReferenceType
   }));
 
 
@@ -121,6 +127,7 @@ class PutOPCProcessor : public BaseOPCProcessor {
 
   UA_NodeId parent_node_id_{};
   opc::OPCNodeDataType node_data_type_{};
+  UA_UInt32 create_node_reference_type_ = UA_NS0ID_HASCOMPONENT;
 };
 
 }  // namespace org::apache::nifi::minifi::processors

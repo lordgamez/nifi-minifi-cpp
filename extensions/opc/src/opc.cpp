@@ -413,7 +413,7 @@ UA_StatusCode Client::translateBrowsePathsToNodeIdsRequest(const std::string& pa
 }
 
 template<typename T>
-UA_StatusCode Client::add_node(const UA_NodeId parent_node_id, const UA_NodeId target_node_id, std::string_view browse_name, T value, UA_NodeId *received_node_id) {
+UA_StatusCode Client::add_node(const UA_NodeId parent_node_id, const UA_NodeId target_node_id, const UA_UInt32 ref_type_id, std::string_view browse_name, T value, UA_NodeId *received_node_id) {
   UA_VariableAttributes attr = UA_VariableAttributes_default;
   add_value_to_variant(&attr.value, value);
   char local[6] = "en-US";  // NOLINT(cppcoreguidelines-avoid-c-arrays)
@@ -421,8 +421,8 @@ UA_StatusCode Client::add_node(const UA_NodeId parent_node_id, const UA_NodeId t
   UA_StatusCode sc = UA_Client_addVariableNode(client_,
                                                target_node_id,
                                                parent_node_id,
-                                               UA_NODEID_NUMERIC(0, UA_NS0ID_ORGANIZES),
-                                               UA_QUALIFIEDNAME(1, const_cast<char*>(browse_name.data())),
+                                               UA_NODEID_NUMERIC(0, ref_type_id),
+                                               UA_QUALIFIEDNAME(target_node_id.namespaceIndex, const_cast<char*>(browse_name.data())),
                                                UA_NODEID_NULL,
                                                attr, received_node_id);
   UA_Variant_clear(&attr.value);
@@ -459,17 +459,24 @@ template UA_StatusCode Client::update_node<bool>(const UA_NodeId node_id, bool v
 template UA_StatusCode Client::update_node<const char *>(const UA_NodeId node_id, const char * value);
 template UA_StatusCode Client::update_node<std::string>(const UA_NodeId node_id, std::string value);
 
-template UA_StatusCode Client::add_node<int64_t>(const UA_NodeId parent_node_id, const UA_NodeId target_node_id, std::string_view browse_name, int64_t value, UA_NodeId *received_node_id);
-template UA_StatusCode Client::add_node<uint64_t>(const UA_NodeId parent_node_id, const UA_NodeId target_node_id, std::string_view browse_name, uint64_t value, UA_NodeId *received_node_id);
-template UA_StatusCode Client::add_node<int32_t>(const UA_NodeId parent_node_id, const UA_NodeId target_node_id, std::string_view browse_name, int32_t value, UA_NodeId *received_node_id);
-template UA_StatusCode Client::add_node<uint32_t>(const UA_NodeId parent_node_id, const UA_NodeId target_node_id, std::string_view browse_name, uint32_t value, UA_NodeId *received_node_id);
-template UA_StatusCode Client::add_node<float>(const UA_NodeId parent_node_id, const UA_NodeId target_node_id, std::string_view browse_name, float value, UA_NodeId *received_node_id);
-template UA_StatusCode Client::add_node<double>(const UA_NodeId parent_node_id, const UA_NodeId target_node_id, std::string_view browse_name, double value, UA_NodeId *received_node_id);
-template UA_StatusCode Client::add_node<bool>(const UA_NodeId parent_node_id, const UA_NodeId target_node_id, std::string_view browse_name, bool value, UA_NodeId *received_node_id);
-template UA_StatusCode Client::add_node<const char *>(const UA_NodeId parent_node_id, const UA_NodeId target_node_id, std::string_view browse_name,
-    const char * value, UA_NodeId *received_node_id);
-template UA_StatusCode Client::add_node<std::string>(const UA_NodeId parent_node_id, const UA_NodeId target_node_id, std::string_view browse_name,
-    std::string value, UA_NodeId *received_node_id);
+template UA_StatusCode Client::add_node<int64_t>(const UA_NodeId parent_node_id, const UA_NodeId target_node_id, const UA_UInt32 ref_type_id, std::string_view browse_name,
+  int64_t value, UA_NodeId *received_node_id);
+template UA_StatusCode Client::add_node<uint64_t>(const UA_NodeId parent_node_id, const UA_NodeId target_node_id, const UA_UInt32 ref_type_id, std::string_view browse_name,
+  uint64_t value, UA_NodeId *received_node_id);
+template UA_StatusCode Client::add_node<int32_t>(const UA_NodeId parent_node_id, const UA_NodeId target_node_id, const UA_UInt32 ref_type_id, std::string_view browse_name,
+  int32_t value, UA_NodeId *received_node_id);
+template UA_StatusCode Client::add_node<uint32_t>(const UA_NodeId parent_node_id, const UA_NodeId target_node_id, const UA_UInt32 ref_type_id, std::string_view browse_name,
+  uint32_t value, UA_NodeId *received_node_id);
+template UA_StatusCode Client::add_node<float>(const UA_NodeId parent_node_id, const UA_NodeId target_node_id, const UA_UInt32 ref_type_id, std::string_view browse_name,
+  float value, UA_NodeId *received_node_id);
+template UA_StatusCode Client::add_node<double>(const UA_NodeId parent_node_id, const UA_NodeId target_node_id, const UA_UInt32 ref_type_id, std::string_view browse_name,
+  double value, UA_NodeId *received_node_id);
+template UA_StatusCode Client::add_node<bool>(const UA_NodeId parent_node_id, const UA_NodeId target_node_id, const UA_UInt32 ref_type_id, std::string_view browse_name,
+  bool value, UA_NodeId *received_node_id);
+template UA_StatusCode Client::add_node<const char *>(const UA_NodeId parent_node_id, const UA_NodeId target_node_id, const UA_UInt32 ref_type_id, std::string_view browse_name,
+  const char * value, UA_NodeId *received_node_id);
+template UA_StatusCode Client::add_node<std::string>(const UA_NodeId parent_node_id, const UA_NodeId target_node_id, const UA_UInt32 ref_type_id, std::string_view browse_name,
+  std::string value, UA_NodeId *received_node_id);
 
 std::string nodeValue2String(const NodeData& nd) {
   std::string ret_val;
@@ -581,6 +588,20 @@ void logFunc(void *context, UA_LogLevel level, UA_LogCategory /*category*/, cons
   (void)vsnprintf(buffer.data(), buffer.size(), msg, args);
   auto loggerPtr = reinterpret_cast<core::logging::Logger*>(context);
   loggerPtr->log_string(MapOPCLogLevel(level), buffer.data());
+}
+
+std::optional<UA_UInt32> mapOpcReferenceType(const std::string& ref_type) {
+  if (ref_type == "Organizes") {
+    return UA_NS0ID_ORGANIZES;
+  } else if (ref_type == "HasComponent") {
+    return UA_NS0ID_HASCOMPONENT;
+  } else if (ref_type == "HasProperty") {
+    return UA_NS0ID_HASPROPERTY;
+  } else if (ref_type == "HasSubtype") {
+    return UA_NS0ID_HASSUBTYPE;
+  }
+
+  return std::nullopt;
 }
 
 }  // namespace org::apache::nifi::minifi::opc

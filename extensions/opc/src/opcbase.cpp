@@ -114,19 +114,15 @@ void BaseOPCProcessor::readPathReferenceTypes(core::ProcessContext& context, con
   if (value.empty()) {
     return;
   }
-  auto pathReferenceTypes = utils::string::splitAndTrimRemovingEmpty(value, "/");
-  if (pathReferenceTypes.size() != utils::string::splitAndTrimRemovingEmpty(node_id, "/").size() - 1) {
+  auto path_reference_types = utils::string::splitAndTrimRemovingEmpty(value, "/");
+  if (path_reference_types.size() != utils::string::splitAndTrimRemovingEmpty(node_id, "/").size() - 1) {
     throw Exception(PROCESS_SCHEDULE_EXCEPTION, "Path reference types must be provided for each node pair in the path!");
   }
-  for (const auto& pathReferenceType : pathReferenceTypes) {
-    if (pathReferenceType == "Organizes") {
-      path_reference_types_.push_back(UA_NS0ID_ORGANIZES);
-    } else if (pathReferenceType == "HasComponent") {
-      path_reference_types_.push_back(UA_NS0ID_HASCOMPONENT);
-    } else if (pathReferenceType == "HasProperty") {
-      path_reference_types_.push_back(UA_NS0ID_HASPROPERTY);
+  for (const auto& reference_type : path_reference_types) {
+    if (auto ua_ref_type = opc::mapOpcReferenceType(reference_type)) {
+      path_reference_types_.push_back(*ua_ref_type);
     } else {
-      throw Exception(PROCESS_SCHEDULE_EXCEPTION, fmt::format("Unsupported reference type set in 'Path reference types' property: '{}'.", pathReferenceType));
+      throw Exception(PROCESS_SCHEDULE_EXCEPTION, fmt::format("Unsupported reference type set in 'Path reference types' property: '{}'.", reference_type));
     }
   }
 }

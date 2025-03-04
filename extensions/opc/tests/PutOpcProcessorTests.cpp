@@ -20,29 +20,80 @@
 #include "OpcUaTestServer.h"
 #include "unit/SingleProcessorTestController.h"
 #include "include/putopc.h"
+#include "utils/StringUtils.h"
 
 namespace org::apache::nifi::minifi::test {
+
+struct NodeData {
+  uint8_t data;
+  uint16_t namespace_index;
+  uint32_t node_id;
+  std::string browse_name;
+  std::string path;
+  std::string path_reference_types = "";
+  std::string target_reference_type = "HasComponent";
+};
+
+void verifyCreatedNode(const NodeData& expected_node, SingleProcessorTestController& controller) {
+  auto client = minifi::opc::Client::createClient(controller.getLogger(), "", {}, {}, {});
+  REQUIRE(client->connect("opc.tcp://127.0.0.1:4840/") == UA_STATUSCODE_GOOD);
+  std::vector<UA_NodeId> found_node_ids;
+  std::vector<UA_UInt32> reference_types;
+
+  if (!expected_node.path_reference_types.empty()) {
+    auto ref_types = minifi::utils::string::split(expected_node.path_reference_types, "/");
+    for (const auto& ref_type : ref_types) {
+      reference_types.push_back(opc::mapOpcReferenceType(ref_type).value());
+    }
+  } else {
+    for (size_t i = 0; i < minifi::utils::string::split(expected_node.path, "/").size() - 1; ++i) {
+      reference_types.push_back(UA_NS0ID_ORGANIZES);
+    }
+  }
+  reference_types.push_back(opc::mapOpcReferenceType(expected_node.target_reference_type).value());
+
+  client->translateBrowsePathsToNodeIdsRequest(expected_node.path + "/" + expected_node.browse_name, found_node_ids, expected_node.namespace_index,
+    reference_types, controller.getLogger());
+  REQUIRE(found_node_ids.size() == 1);
+  REQUIRE(found_node_ids[0].namespaceIndex == expected_node.namespace_index);
+  REQUIRE(found_node_ids[0].identifierType == UA_NODEIDTYPE_NUMERIC);
+  REQUIRE(found_node_ids[0].identifier.numeric == expected_node.node_id);
+
+  UA_ReferenceDescription ref_desc;
+  ref_desc.isForward = true;
+  ref_desc.referenceTypeId = UA_NODEID_NUMERIC(0, UA_NODEIDTYPE_NUMERIC);
+  ref_desc.nodeId.nodeId = found_node_ids[0];
+  ref_desc.browseName = UA_QUALIFIEDNAME_ALLOC(expected_node.namespace_index, expected_node.browse_name.c_str());
+  ref_desc.displayName = UA_LOCALIZEDTEXT_ALLOC("en-US", expected_node.browse_name.c_str());
+  ref_desc.nodeClass = UA_NODECLASS_VARIABLE;
+  ref_desc.typeDefinition.nodeId = UA_NODEID_NUMERIC(0, UA_NODEIDTYPE_NUMERIC);
+  auto data = client->getNodeData(&ref_desc, expected_node.path);
+  CHECK(data.data[0] == expected_node.data);
+}
 
 TEST_CASE("Test creating a new node with path node id", "[putopcprocessor]") {
   OpcUaTestServer server;
   server.start();
   SingleProcessorTestController controller{std::make_unique<processors::PutOPCProcessor>("PutOPCProcessor")};
   auto put_opc_processor = controller.getProcessor();
+
+  NodeData expected_node{42, server.getNamespaceIndex(), 9999, "everything", "Simulator/Default/Device1"};
   put_opc_processor->setProperty(processors::PutOPCProcessor::OPCServerEndPoint, "opc.tcp://127.0.0.1:4840/");
   put_opc_processor->setProperty(processors::PutOPCProcessor::ParentNodeIDType, "Path");
-  put_opc_processor->setProperty(processors::PutOPCProcessor::ParentNodeID, "Simulator/Default/Device1");
-  put_opc_processor->setProperty(processors::PutOPCProcessor::ParentNameSpaceIndex, std::to_string(server.getNamespaceIndex()));
+  put_opc_processor->setProperty(processors::PutOPCProcessor::ParentNodeID, expected_node.path);
+  put_opc_processor->setProperty(processors::PutOPCProcessor::ParentNameSpaceIndex, std::to_string(expected_node.namespace_index));
   put_opc_processor->setProperty(processors::PutOPCProcessor::ValueType, "Int32");
   put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeIDType, "Int");
-  put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeID, "9999");
-  put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeNameSpaceIndex, "2");
-  put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeBrowseName, "everything");
+  put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeID, std::to_string(expected_node.node_id));
+  put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeNameSpaceIndex, std::to_string(expected_node.namespace_index));
+  put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeBrowseName, expected_node.browse_name);
 
-  const auto results = controller.trigger("42");
+  const auto results = controller.trigger(std::to_string(expected_node.data));
   REQUIRE(results.at(processors::PutOPCProcessor::Failure).empty());
   REQUIRE(results.at(processors::PutOPCProcessor::Success).size() == 1);
   auto flow_file = results.at(processors::PutOPCProcessor::Success)[0];
-  CHECK(controller.plan->getContent(flow_file) == "42");
+  CHECK(controller.plan->getContent(flow_file) == std::to_string(expected_node.data));
+  verifyCreatedNode(expected_node, controller);
 }
 
 TEST_CASE("Test fetching using custom reference type id path", "[putopcprocessor]") {
@@ -50,22 +101,52 @@ TEST_CASE("Test fetching using custom reference type id path", "[putopcprocessor
   server.start();
   SingleProcessorTestController controller{std::make_unique<processors::PutOPCProcessor>("PutOPCProcessor")};
   auto put_opc_processor = controller.getProcessor();
+
+  NodeData expected_node{42, server.getNamespaceIndex(), 9999, "everything", "Simulator/Default/Device1/INT3/INT4", "Organizes/Organizes/HasComponent/HasComponent"};
   put_opc_processor->setProperty(processors::PutOPCProcessor::OPCServerEndPoint, "opc.tcp://127.0.0.1:4840/");
   put_opc_processor->setProperty(processors::PutOPCProcessor::ParentNodeIDType, "Path");
-  put_opc_processor->setProperty(processors::PutOPCProcessor::ParentNodeID, "Simulator/Default/Device1/INT3/INT4");
-  put_opc_processor->setProperty(processors::PutOPCProcessor::PathReferenceTypes, "Organizes/Organizes/HasComponent/HasComponent");
-  put_opc_processor->setProperty(processors::PutOPCProcessor::ParentNameSpaceIndex, std::to_string(server.getNamespaceIndex()));
+  put_opc_processor->setProperty(processors::PutOPCProcessor::ParentNodeID, expected_node.path);
+  put_opc_processor->setProperty(processors::PutOPCProcessor::PathReferenceTypes, expected_node.path_reference_types);
+  put_opc_processor->setProperty(processors::PutOPCProcessor::ParentNameSpaceIndex, std::to_string(expected_node.namespace_index));
   put_opc_processor->setProperty(processors::PutOPCProcessor::ValueType, "Int32");
   put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeIDType, "Int");
-  put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeID, "9999");
-  put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeNameSpaceIndex, "2");
-  put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeBrowseName, "everything");
+  put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeID, std::to_string(expected_node.node_id));
+  put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeNameSpaceIndex, std::to_string(expected_node.namespace_index));
+  put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeBrowseName, expected_node.browse_name);
 
-  const auto results = controller.trigger("42");
+  const auto results = controller.trigger(std::to_string(expected_node.data));
   REQUIRE(results.at(processors::PutOPCProcessor::Failure).empty());
   REQUIRE(results.at(processors::PutOPCProcessor::Success).size() == 1);
   auto flow_file = results.at(processors::PutOPCProcessor::Success)[0];
-  CHECK(controller.plan->getContent(flow_file) == "42");
+  CHECK(controller.plan->getContent(flow_file) == std::to_string(expected_node.data));
+  verifyCreatedNode(expected_node, controller);
+}
+
+TEST_CASE("Test fetching using custom target reference type id", "[putopcprocessor]") {
+  OpcUaTestServer server;
+  server.start();
+  SingleProcessorTestController controller{std::make_unique<processors::PutOPCProcessor>("PutOPCProcessor")};
+  auto put_opc_processor = controller.getProcessor();
+
+  NodeData expected_node{42, server.getNamespaceIndex(), 9999, "everything", "Simulator/Default/Device1/INT3", "Organizes/Organizes/HasComponent", "Organizes"};
+  put_opc_processor->setProperty(processors::PutOPCProcessor::OPCServerEndPoint, "opc.tcp://127.0.0.1:4840/");
+  put_opc_processor->setProperty(processors::PutOPCProcessor::ParentNodeIDType, "Path");
+  put_opc_processor->setProperty(processors::PutOPCProcessor::ParentNodeID, expected_node.path);
+  put_opc_processor->setProperty(processors::PutOPCProcessor::PathReferenceTypes, expected_node.path_reference_types);
+  put_opc_processor->setProperty(processors::PutOPCProcessor::ParentNameSpaceIndex, std::to_string(expected_node.namespace_index));
+  put_opc_processor->setProperty(processors::PutOPCProcessor::ValueType, "Int32");
+  put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeIDType, "Int");
+  put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeID, std::to_string(expected_node.node_id));
+  put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeNameSpaceIndex, std::to_string(expected_node.namespace_index));
+  put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeBrowseName, expected_node.browse_name);
+  put_opc_processor->setProperty(processors::PutOPCProcessor::CreateNodeReferenceType, expected_node.target_reference_type);
+
+  const auto results = controller.trigger(std::to_string(expected_node.data));
+  REQUIRE(results.at(processors::PutOPCProcessor::Failure).empty());
+  REQUIRE(results.at(processors::PutOPCProcessor::Success).size() == 1);
+  auto flow_file = results.at(processors::PutOPCProcessor::Success)[0];
+  CHECK(controller.plan->getContent(flow_file) == std::to_string(expected_node.data));
+  verifyCreatedNode(expected_node, controller);
 }
 
 TEST_CASE("Test missing path reference types", "[putopcprocessor]") {
@@ -94,7 +175,7 @@ TEST_CASE("Test namespace cannot be empty", "[putopcprocessor]") {
   put_opc_processor->setProperty(processors::PutOPCProcessor::ParentNodeIDType, "Path");
   put_opc_processor->setProperty(processors::PutOPCProcessor::ParentNodeID, "Simulator/Default/Device1/INT3/INT4");
   put_opc_processor->setProperty(processors::PutOPCProcessor::PathReferenceTypes, "Organizes/Organizes/HasComponent/HasComponent");
-  put_opc_processor->setProperty(processors::PutOPCProcessor::ParentNameSpaceIndex, std::to_string(server.getNamespaceIndex()));
+  put_opc_processor->setProperty(processors::PutOPCProcessor::ParentNameSpaceIndex, "2");
   put_opc_processor->setProperty(processors::PutOPCProcessor::ValueType, "Int32");
   put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeBrowseName, "everything");
   put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeNameSpaceIndex, "${missing}");
@@ -229,7 +310,7 @@ TEST_CASE("Test invalid parent node id path", "[putopcprocessor]") {
   put_opc_processor->setProperty(processors::PutOPCProcessor::ValueType, "Int32");
   put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeIDType, "Int");
   put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeID, "9999");
-  put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeNameSpaceIndex, "2");
+  put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeNameSpaceIndex, std::to_string(server.getNamespaceIndex()));
   put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeBrowseName, "everything");
 
   const auto results = controller.trigger("42");
@@ -250,7 +331,7 @@ TEST_CASE("Test missing target node id", "[putopcprocessor]") {
   put_opc_processor->setProperty(processors::PutOPCProcessor::ValueType, "Int32");
   put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeIDType, "Int");
   put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeID, "${missing}");
-  put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeNameSpaceIndex, "2");
+  put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeNameSpaceIndex, std::to_string(server.getNamespaceIndex()));
   put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeBrowseName, "everything");
 
   const auto results = controller.trigger("42");
@@ -273,7 +354,7 @@ TEST_CASE("Test invalid target node id", "[putopcprocessor]") {
   put_opc_processor->setProperty(processors::PutOPCProcessor::ValueType, "Int32");
   put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeIDType, "Int");
   put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeID, "invalid_int");
-  put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeNameSpaceIndex, "2");
+  put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeNameSpaceIndex, std::to_string(server.getNamespaceIndex()));
   put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeBrowseName, "everything");
 
   const auto results = controller.trigger("42");
@@ -296,7 +377,7 @@ TEST_CASE("Test missing target node type", "[putopcprocessor]") {
   put_opc_processor->setProperty(processors::PutOPCProcessor::ValueType, "Int32");
   put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeIDType, "${missing}");
   put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeID, "9999");
-  put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeNameSpaceIndex, "2");
+  put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeNameSpaceIndex, std::to_string(server.getNamespaceIndex()));
   put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeBrowseName, "everything");
 
   const auto results = controller.trigger("42", {{"invalid_type", "invalid"}});
@@ -319,7 +400,7 @@ TEST_CASE("Test invalid target node type", "[putopcprocessor]") {
   put_opc_processor->setProperty(processors::PutOPCProcessor::ValueType, "Int32");
   put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeIDType, "${invalid_type}");
   put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeID, "9999");
-  put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeNameSpaceIndex, "2");
+  put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeNameSpaceIndex, std::to_string(server.getNamespaceIndex()));
   put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeBrowseName, "everything");
 
   const auto results = controller.trigger("42", {{"invalid_type", "invalid"}});
@@ -342,7 +423,7 @@ TEST_CASE("Test value type mismatch", "[putopcprocessor]") {
   put_opc_processor->setProperty(processors::PutOPCProcessor::ValueType, "Boolean");
   put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeIDType, "Int");
   put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeID, "9999");
-  put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeNameSpaceIndex, "2");
+  put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeNameSpaceIndex, std::to_string(server.getNamespaceIndex()));
   put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeBrowseName, "everything");
 
   const auto results = controller.trigger("42");

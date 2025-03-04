@@ -49,6 +49,14 @@ void PutOPCProcessor::onSchedule(core::ProcessContext& context, core::ProcessSes
   if (id_type_ == opc::OPCNodeIDType::Path) {
     readPathReferenceTypes(context, node_id_);
   }
+
+  if (context.getProperty(CreateNodeReferenceType, value)) {
+    if (auto ref_type = opc::mapOpcReferenceType(value)) {
+      create_node_reference_type_ = ref_type.value();
+    } else {
+      logger_->log_error("Invalid reference type: {}", value);
+    }
+  }
 }
 
 bool PutOPCProcessor::readParentNodeId() {
@@ -208,27 +216,27 @@ void PutOPCProcessor::createNode(const UA_NodeId& target_node, const std::string
     switch (node_data_type_) {
       case opc::OPCNodeDataType::Int64: {
         int64_t value = std::stoll(contentstr);
-        sc = connection_->add_node(parent_node_id_, target_node, browse_name, value, &result_node);
+        sc = connection_->add_node(parent_node_id_, target_node, create_node_reference_type_, browse_name, value, &result_node);
         break;
       }
       case opc::OPCNodeDataType::UInt64: {
         uint64_t value = std::stoull(contentstr);
-        sc = connection_->add_node(parent_node_id_, target_node, browse_name, value, &result_node);
+        sc = connection_->add_node(parent_node_id_, target_node, create_node_reference_type_, browse_name, value, &result_node);
         break;
       }
       case opc::OPCNodeDataType::Int32: {
         int32_t value = std::stoi(contentstr);
-        sc = connection_->add_node(parent_node_id_, target_node, browse_name, value, &result_node);
+        sc = connection_->add_node(parent_node_id_, target_node, create_node_reference_type_, browse_name, value, &result_node);
         break;
       }
       case opc::OPCNodeDataType::UInt32: {
         uint32_t value = std::stoul(contentstr);
-        sc = connection_->add_node(parent_node_id_, target_node, browse_name, value, &result_node);
+        sc = connection_->add_node(parent_node_id_, target_node, create_node_reference_type_, browse_name, value, &result_node);
         break;
       }
       case opc::OPCNodeDataType::Boolean: {
         if (auto contentstr_parsed = utils::string::toBool(contentstr)) {
-          sc = connection_->add_node(parent_node_id_, target_node, browse_name, contentstr_parsed.value(), &result_node);
+          sc = connection_->add_node(parent_node_id_, target_node, create_node_reference_type_, browse_name, contentstr_parsed.value(), &result_node);
         } else {
           throw std::runtime_error("Content cannot be converted to bool");
         }
@@ -236,16 +244,16 @@ void PutOPCProcessor::createNode(const UA_NodeId& target_node, const std::string
       }
       case opc::OPCNodeDataType::Float: {
         float value = std::stof(contentstr);
-        sc = connection_->add_node(parent_node_id_, target_node, browse_name, value, &result_node);
+        sc = connection_->add_node(parent_node_id_, target_node, create_node_reference_type_, browse_name, value, &result_node);
         break;
       }
       case opc::OPCNodeDataType::Double: {
         double value = std::stod(contentstr);
-        sc = connection_->add_node(parent_node_id_, target_node, browse_name, value, &result_node);
+        sc = connection_->add_node(parent_node_id_, target_node, create_node_reference_type_, browse_name, value, &result_node);
         break;
       }
       case opc::OPCNodeDataType::String: {
-        sc = connection_->add_node(parent_node_id_, target_node, browse_name, contentstr, &result_node);
+        sc = connection_->add_node(parent_node_id_, target_node, create_node_reference_type_, browse_name, contentstr, &result_node);
         break;
       }
       default:

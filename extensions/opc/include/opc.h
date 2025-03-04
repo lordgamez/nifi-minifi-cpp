@@ -26,6 +26,7 @@
 #include <memory>
 #include <string_view>
 #include <utility>
+#include <optional>
 
 #include "open62541/client.h"
 #include "core/logging/Logger.h"
@@ -79,7 +80,7 @@ class Client {
   UA_StatusCode update_node(const UA_NodeId node_id, T value);
 
   template<typename T>
-  UA_StatusCode add_node(const UA_NodeId parent_node_id, const UA_NodeId target_node_id, std::string_view browse_name, T value, UA_NodeId *received_node_id);
+  UA_StatusCode add_node(const UA_NodeId parent_node_id, const UA_NodeId target_node_id, const UA_UInt32 ref_type_id, std::string_view browse_name, T value, UA_NodeId *received_node_id);
 
   static std::unique_ptr<Client> createClient(const std::shared_ptr<core::logging::Logger>& logger, const std::string& application_uri,
                                               const std::vector<char>& cert_buffer, const std::vector<char>& key_buffer,
@@ -140,6 +141,8 @@ std::string nodeValue2String(const NodeData& nd);
 std::string OPCDateTime2String(UA_DateTime raw_date);
 
 void logFunc(void *context, UA_LogLevel level, UA_LogCategory category, const char *msg, va_list args);
+
+std::optional<UA_UInt32> mapOpcReferenceType(const std::string& ref_type);
 
 }  // namespace org::apache::nifi::minifi::opc
 
