@@ -85,6 +85,7 @@ TEST_CASE("Test fetching using custom reference type id path", "[fetchopcprocess
   CHECK(flow_file->getAttribute("NodeID"));
   CHECK(flow_file->getAttribute("NodeID type") == "numeric");
   CHECK(flow_file->getAttribute("Typename") == "Int32");
+  CHECK(flow_file->getAttribute("Sourcetimestamp") == "Int32");
 }
 
 TEST_CASE("Test missing path reference types", "[fetchopcprocessor]") {

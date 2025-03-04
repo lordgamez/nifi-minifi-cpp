@@ -82,7 +82,7 @@ class PutOPCProcessor : public BaseOPCProcessor {
       .isRequired(true)
       .build();
   EXTENSIONAPI static constexpr auto CreateNodeReferenceType = core::PropertyDefinitionBuilder<4>::createProperty("Create node reference type")
-      .withDescription("Organizes, HasComponent, HasProperty, and HasSubtype")
+      .withDescription("Reference type used when a new node is created.")
       .withAllowedValues({"Organizes", "HasComponent", "HasProperty", "HasSubtype"})
       .withDefaultValue("HasComponent")
       .build();
