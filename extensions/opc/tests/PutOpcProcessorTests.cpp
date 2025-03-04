@@ -31,7 +31,7 @@ struct NodeData {
   uint32_t node_id;
   std::string browse_name;
   std::string path;
-  std::string path_reference_types = "";
+  std::string path_reference_types;
   std::string target_reference_type = "HasComponent";
 };
 
@@ -55,13 +55,13 @@ void verifyCreatedNode(const NodeData& expected_node, SingleProcessorTestControl
 
   REQUIRE(utils::verifyEventHappenedInPollTime(5s, [&] {
     client->translateBrowsePathsToNodeIdsRequest(expected_node.path + "/" + expected_node.browse_name, found_node_ids, expected_node.namespace_index, reference_types, controller.getLogger());
-    return found_node_ids.size() > 0;
+    return !found_node_ids.empty();
   }, 100ms));
 
   REQUIRE(found_node_ids.size() == 1);
   REQUIRE(found_node_ids[0].namespaceIndex == expected_node.namespace_index);
   REQUIRE(found_node_ids[0].identifierType == UA_NODEIDTYPE_NUMERIC);
-  REQUIRE(found_node_ids[0].identifier.numeric == expected_node.node_id);
+  REQUIRE(found_node_ids[0].identifier.numeric == expected_node.node_id);  // NOLINT(cppcoreguidelines-pro-type-union-access)
 
   UA_ReferenceDescription ref_desc;
   ref_desc.isForward = true;
@@ -81,7 +81,7 @@ TEST_CASE("Test creating a new node with path node id", "[putopcprocessor]") {
   SingleProcessorTestController controller{std::make_unique<processors::PutOPCProcessor>("PutOPCProcessor")};
   auto put_opc_processor = controller.getProcessor();
 
-  NodeData expected_node{42, server.getNamespaceIndex(), 9999, "everything", "Simulator/Default/Device1"};
+  NodeData expected_node{42, server.getNamespaceIndex(), 9999, "everything", "Simulator/Default/Device1", {}};
   put_opc_processor->setProperty(processors::PutOPCProcessor::OPCServerEndPoint, "opc.tcp://127.0.0.1:4840/");
   put_opc_processor->setProperty(processors::PutOPCProcessor::ParentNodeIDType, "Path");
   put_opc_processor->setProperty(processors::PutOPCProcessor::ParentNodeID, expected_node.path);
