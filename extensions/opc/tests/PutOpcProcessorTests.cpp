@@ -255,7 +255,7 @@ TEST_CASE("Test certificate path must be valid", "[putopcprocessor]") {
 TEST_CASE("Test key path must be valid", "[putopcprocessor]") {
   SingleProcessorTestController controller{std::make_unique<processors::PutOPCProcessor>("PutOPCProcessor")};
   auto put_opc_processor = controller.getProcessor();
-  auto test_cert_path = controller.createTempDirectory() /  "test_cert.pem";
+  auto test_cert_path = controller.createTempDirectory() / "test_cert.pem";
   {
     std::ofstream cert_file(test_cert_path);
     cert_file << "test";
@@ -272,7 +272,7 @@ TEST_CASE("Test key path must be valid", "[putopcprocessor]") {
 TEST_CASE("Test trusted certs path must be valid", "[putopcprocessor]") {
   SingleProcessorTestController controller{std::make_unique<processors::PutOPCProcessor>("PutOPCProcessor")};
   auto put_opc_processor = controller.getProcessor();
-  auto test_cert_path = controller.createTempDirectory() /  "test_cert.pem";
+  auto test_cert_path = controller.createTempDirectory() / "test_cert.pem";
   {
     std::ofstream cert_file(test_cert_path);
     cert_file << "test";
