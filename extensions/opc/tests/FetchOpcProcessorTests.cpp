@@ -44,6 +44,7 @@ TEST_CASE("Test fetching using path node id", "[fetchopcprocessor]") {
     CHECK(flow_file->getAttribute("NodeID"));
     CHECK(flow_file->getAttribute("NodeID type") == "numeric");
     CHECK(flow_file->getAttribute("Typename") == "Int32");
+    CHECK(flow_file->getAttribute("Sourcetimestamp"));
     CHECK(controller.plan->getContent(flow_file) == std::to_string(i + 1));
   }
 
@@ -54,6 +55,7 @@ TEST_CASE("Test fetching using path node id", "[fetchopcprocessor]") {
   CHECK(flow_file->getAttribute("NodeID"));
   CHECK(flow_file->getAttribute("NodeID type") == "numeric");
   CHECK(flow_file->getAttribute("Typename") == "Int32");
+  CHECK(flow_file->getAttribute("Sourcetimestamp"));
   CHECK(controller.plan->getContent(flow_file) == "4");
 }
 
@@ -78,6 +80,8 @@ TEST_CASE("Test fetching using custom reference type id path", "[fetchopcprocess
   CHECK(flow_file->getAttribute("NodeID"));
   CHECK(flow_file->getAttribute("NodeID type") == "numeric");
   CHECK(flow_file->getAttribute("Typename") == "Int32");
+  CHECK(flow_file->getAttribute("Sourcetimestamp"));
+  CHECK(controller.plan->getContent(flow_file) == "3");
   flow_file = results.at(processors::FetchOPCProcessor::Success)[1];
   CHECK(flow_file->getAttribute("Browsename") == "INT4");
   CHECK(flow_file->getAttribute("Datasize") == "4");
@@ -85,7 +89,8 @@ TEST_CASE("Test fetching using custom reference type id path", "[fetchopcprocess
   CHECK(flow_file->getAttribute("NodeID"));
   CHECK(flow_file->getAttribute("NodeID type") == "numeric");
   CHECK(flow_file->getAttribute("Typename") == "Int32");
-  CHECK(flow_file->getAttribute("Sourcetimestamp") == "Int32");
+  CHECK(flow_file->getAttribute("Sourcetimestamp"));
+  CHECK(controller.plan->getContent(flow_file) == "4");
 }
 
 TEST_CASE("Test missing path reference types", "[fetchopcprocessor]") {

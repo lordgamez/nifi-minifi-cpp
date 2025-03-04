@@ -21,6 +21,7 @@
 #include "unit/SingleProcessorTestController.h"
 #include "include/putopc.h"
 #include "utils/StringUtils.h"
+#include "unit/TestUtils.h"
 
 namespace org::apache::nifi::minifi::test {
 
@@ -52,8 +53,11 @@ void verifyCreatedNode(const NodeData& expected_node, SingleProcessorTestControl
   }
   reference_types.push_back(opc::mapOpcReferenceType(expected_node.target_reference_type).value());
 
-  client->translateBrowsePathsToNodeIdsRequest(expected_node.path + "/" + expected_node.browse_name, found_node_ids, expected_node.namespace_index,
-    reference_types, controller.getLogger());
+  REQUIRE(utils::verifyEventHappenedInPollTime(5s, [&] {
+    client->translateBrowsePathsToNodeIdsRequest(expected_node.path + "/" + expected_node.browse_name, found_node_ids, expected_node.namespace_index, reference_types, controller.getLogger());
+    return found_node_ids.size() > 0;
+  }, 100ms));
+
   REQUIRE(found_node_ids.size() == 1);
   REQUIRE(found_node_ids[0].namespaceIndex == expected_node.namespace_index);
   REQUIRE(found_node_ids[0].identifierType == UA_NODEIDTYPE_NUMERIC);
