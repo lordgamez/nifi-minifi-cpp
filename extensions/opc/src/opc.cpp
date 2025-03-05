@@ -321,8 +321,9 @@ void Client::traverse(UA_NodeId node_id, const std::function<NodeFoundCallBackFu
       UA_ReferenceDescription *ref = &(browse_response.results[i].references[j]);
       if (cb(ref, base_path)) {
         if (ref->nodeClass == UA_NODECLASS_VARIABLE || ref->nodeClass == UA_NODECLASS_OBJECT) {
-          std::string browse_name(reinterpret_cast<char *>(ref->browseName.name.data), ref->browseName.name.length);
-          traverse(ref->nodeId.nodeId, cb, base_path + "/" + browse_name, max_depth, false);
+          std::string new_base_path = base_path;
+          new_base_path.append("/").append(reinterpret_cast<char *>(ref->browseName.name.data), ref->browseName.name.length);
+          traverse(ref->nodeId.nodeId, cb, new_base_path, max_depth, false);
         }
       } else {
         return;

@@ -93,7 +93,7 @@ class Client {
 
   UA_Client *client_;
   std::shared_ptr<core::logging::Logger> logger_;
-  UA_Logger minifi_ua_logger_;
+  UA_Logger minifi_ua_logger_{};
 };
 
 using ClientPtr = std::unique_ptr<Client>;
