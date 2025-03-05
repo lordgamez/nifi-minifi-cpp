@@ -66,10 +66,12 @@ class PutOPCProcessor : public BaseOPCProcessor {
       .withDescription("ID type of target node. Allowed values are: Int, String.")
       .withAllowedValues({"Int", "String"})
       .supportsExpressionLanguage(true)
+      .isRequired(true)
       .build();
   EXTENSIONAPI static constexpr auto TargetNodeID = core::PropertyDefinitionBuilder<>::createProperty("Target node ID")
       .withDescription("ID of target node.")
       .supportsExpressionLanguage(true)
+      .isRequired(true)
       .build();
   EXTENSIONAPI static constexpr auto TargetNodeBrowseName = core::PropertyDefinitionBuilder<>::createProperty("Target node browse name")
       .withDescription("Browse name of target node. Only used when new node is created.")
