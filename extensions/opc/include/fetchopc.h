@@ -72,6 +72,7 @@ class FetchOPCProcessor : public BaseOPCProcessor {
       .withDescription("Specifiec the max depth of browsing. 0 means unlimited.")
       .withPropertyType(core::StandardPropertyTypes::UNSIGNED_LONG_TYPE)
       .withDefaultValue("0")
+      .isRequired(true)
       .build();
   EXTENSIONAPI static constexpr auto Lazy = core::PropertyDefinitionBuilder<magic_enum::enum_count<LazyModeOptions>()>::createProperty("Lazy mode")
       .withDescription("Only creates flowfiles from nodes with new timestamp from the server.")
