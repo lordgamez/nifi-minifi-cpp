@@ -21,6 +21,8 @@
 #include <thread>
 #include <mutex>
 #include <algorithm>
+#include "unit/TestUtils.h"
+#include "unit/Catch.h"
 
 using namespace std::literals::chrono_literals;
 
@@ -152,14 +154,13 @@ class OpcUaTestServer {
   }
 
   void ensureConnection() {
-    while (true) {
-      auto logs = getLogs();
-      if (std::find_if(logs.begin(), logs.end(), [] (const std::string& message) {
-          return message.find("New DiscoveryUrl added") != std::string::npos;}) != logs.end()) {
-        break;
-      }
-      std::this_thread::sleep_for(100ms);
-    }
+    REQUIRE(utils::verifyEventHappenedInPollTime(
+      5s,
+      [&]() {
+        auto logs = getLogs();
+        return std::find_if(logs.begin(), logs.end(), [](const std::string& message) { return message.find("New DiscoveryUrl added") != std::string::npos;}) != logs.end();
+      },
+      100ms));
   }
 
   UA_Server* server_;
