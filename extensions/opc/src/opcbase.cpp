@@ -79,12 +79,13 @@ void BaseOPCProcessor::onSchedule(core::ProcessContext& context, core::ProcessSe
     throw Exception(PROCESS_SCHEDULE_EXCEPTION, error_msg);
   }
 
-  if (!trustpath_.empty()) {
-    std::ifstream input_trust(trustpath_, std::ios::binary);
+  auto trusted_cert_paths = utils::string::splitAndTrimRemovingEmpty(trustpath_, ",");
+  for (const auto& trust_path : trusted_cert_paths) {
+    std::ifstream input_trust(trust_path, std::ios::binary);
     if (input_trust.good()) {
       trust_buffers_.push_back(std::vector<char>(std::istreambuf_iterator<char>(input_trust), {}));
     } else {
-      auto error_msg = utils::string::join_pack("Failed to load trusted server certs from path: ", trustpath_);
+      auto error_msg = utils::string::join_pack("Failed to load trusted server certs from path: ", trust_path);
       throw Exception(PROCESS_SCHEDULE_EXCEPTION, error_msg);
     }
   }

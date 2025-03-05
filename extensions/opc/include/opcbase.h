@@ -56,7 +56,7 @@ class BaseOPCProcessor : public core::ProcessorImpl {
       .withDescription("Path to the DER-encoded key file")
       .build();
   EXTENSIONAPI static constexpr auto TrustedPath = core::PropertyDefinitionBuilder<>::createProperty("Trusted server certificate path")
-      .withDescription("Path to the DER-encoded trusted server certificate")
+      .withDescription("Comma separated list of paths to the DER-encoded trusted server certificates")
       .build();
   EXTENSIONAPI static constexpr auto PathReferenceTypes = core::PropertyDefinitionBuilder<>::createProperty("Path reference types")
       .withDescription("Specify the reference types between nodes in the path if Path Node ID type is used. If not provided, all reference types are assumed to be Organizes. "
