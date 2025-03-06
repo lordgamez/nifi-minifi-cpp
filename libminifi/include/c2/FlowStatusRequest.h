@@ -25,7 +25,8 @@
 namespace org::apache::nifi::minifi::c2 {
 
 enum class FlowStatusQueryType {
-  processor
+  processor,
+  connection
 };
 
 struct FlowStatusRequest {

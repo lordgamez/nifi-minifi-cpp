@@ -128,3 +128,12 @@ stats: The current stats of the processor.
 An example query to get the health and stats of the "GenerateFlowFile" processor is below.
 
 ./minificontroller --flowstatus "processor:GenerateFlowFile:health,stats"
+
+##### Connection
+
+To query the connections, use the connection flag and specify the connection (by ID, name or "all") followed by one of the connection options. The connection options are below.
+health: The processor's run status, whether or not it has bulletins.
+
+An example query to get the health and stats of the "Connection1" connection is below.
+
+./minificontroller --flowstatus "connection:Connection1:health"

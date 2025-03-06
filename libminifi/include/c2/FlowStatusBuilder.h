@@ -37,6 +37,9 @@ class FlowStatusBuilder {
   void addProcessorStatus(core::Processor* processor, rapidjson::Value& processor_status_list, rapidjson::Document::AllocatorType& allocator, const std::unordered_set<std::string>& options);
   nonstd::expected<void, std::string> addProcessorStatuses(rapidjson::Value& processor_status_list, rapidjson::Document::AllocatorType& allocator,
     const std::string& identifier, const std::unordered_set<std::string>& options);
+  void addConnectionStatus(Connection* connection, rapidjson::Value& processor_status_list, rapidjson::Document::AllocatorType& allocator, const std::unordered_set<std::string>& options);
+  nonstd::expected<void, std::string> addConnectionStatuses(rapidjson::Value& processor_status_list, rapidjson::Document::AllocatorType& allocator,
+    const std::string& identifier, const std::unordered_set<std::string>& options);
 
   std::mutex root_mutex_;
   core::ProcessGroup* root_{};

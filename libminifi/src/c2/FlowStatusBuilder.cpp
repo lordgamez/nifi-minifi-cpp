@@ -83,7 +83,7 @@ void FlowStatusBuilder::addProcessorStatus(core::Processor* processor, rapidjson
 }
 
 nonstd::expected<void, std::string> FlowStatusBuilder::addProcessorStatuses(rapidjson::Value& processor_status_list, rapidjson::Document::AllocatorType& allocator,
-  const std::string& identifier, const std::unordered_set<std::string>& options) {
+    const std::string& identifier, const std::unordered_set<std::string>& options) {
   std::lock_guard<std::mutex> guard(root_mutex_);
   if (!root_) {
     logger_->log_error("Root process group is not set for flow status builder!");
@@ -121,6 +121,60 @@ nonstd::expected<void, std::string> FlowStatusBuilder::addProcessorStatuses(rapi
   return {};
 }
 
+void FlowStatusBuilder::addConnectionStatus(Connection* connection, rapidjson::Value& connection_status_list, rapidjson::Document::AllocatorType& allocator,
+    const std::unordered_set<std::string>& options) {
+  if (!connection) {
+    return;
+  }
+  rapidjson::Value connection_status(rapidjson::kObjectType);
+  connection_status.AddMember("id", rapidjson::Value(connection->getUUIDStr().c_str(), allocator), allocator);
+  connection_status.AddMember("name", rapidjson::Value(connection->getName().c_str(), allocator), allocator);
+
+  if (options.contains("health")) {
+    connection_status.AddMember("connectionHealth", rapidjson::Value(rapidjson::kObjectType), allocator);
+    connection_status["connectionHealth"].AddMember("queuedCount", connection->getQueueSize(), allocator);
+    connection_status["connectionHealth"].AddMember("queuedBytes", connection->getQueueDataSize(), allocator);
+  } else {
+    connection_status.AddMember("connectionHealth", rapidjson::Value(rapidjson::kNullType), allocator);
+  }
+
+  connection_status_list.PushBack(connection_status, allocator);
+}
+
+nonstd::expected<void, std::string> FlowStatusBuilder::addConnectionStatuses(rapidjson::Value& connection_status_list, rapidjson::Document::AllocatorType& allocator,
+    const std::string& identifier, const std::unordered_set<std::string>& options) {
+  std::lock_guard<std::mutex> guard(root_mutex_);
+  if (!root_) {
+    logger_->log_error("Root process group is not set for flow status builder!");
+    return {};
+  }
+
+  if (identifier.empty()) {
+    logger_->log_error("Unable to get connectionStatus: Query is incomplete");
+    return nonstd::make_unexpected("Unable to get connectionStatus: Query is incomplete");
+  }
+
+  std::map<std::string, Connection*> connection_map;
+  std::unordered_set<Connection*> connections;
+  root_->getConnections(connection_map);
+  if (identifier == "all") {
+    std::transform(connection_map.begin(), connection_map.end(), std::inserter(connections, connections.begin()), [](const auto& pair) { return pair.second; });
+  } else {
+    if (connection_map.contains(identifier)) {
+      connections.insert(connection_map[identifier]);
+    } else {
+      logger_->log_error("Unable to get connectionStatus: No connection with key '{}' to report status on", identifier);
+      return nonstd::make_unexpected(fmt::format("Unable to get connectionStatus: No connection with key '{}' to report status on", identifier));
+    }
+  }
+
+  for (auto connection : connections) {
+    addConnectionStatus(connection, connection_status_list, allocator, options);
+  }
+
+  return {};
+}
+
 rapidjson::Document FlowStatusBuilder::buildFlowStatus(const std::vector<FlowStatusRequest>& requests) {
   rapidjson::Document doc;
   doc.SetObject();
@@ -139,12 +193,16 @@ rapidjson::Document FlowStatusBuilder::buildFlowStatus(const std::vector<FlowSta
   doc.AddMember("remoteProcessGroupStatusList", rapidjson::Value(rapidjson::kNullType), allocator);
   doc.AddMember("instanceStatus", rapidjson::Value(rapidjson::kNullType), allocator);
   doc.AddMember("systemDiagnosticsStatus", rapidjson::Value(rapidjson::kNullType), allocator);
-  doc.AddMember("processorStatusList", rapidjson::Value(rapidjson::kArrayType), allocator);
+  doc.AddMember("processorStatusList", rapidjson::Value(rapidjson::kNullType), allocator);
   doc.AddMember("errorsGeneratingReport", rapidjson::Value(rapidjson::kArrayType), allocator);
 
   for (const auto& request : requests) {
     if (request.query_type == FlowStatusQueryType::processor) {
+      doc["processorStatusList"] = rapidjson::Value(rapidjson::kArrayType);
       handleError(addProcessorStatuses(doc["processorStatusList"], allocator, request.identifier, request.options));
+    } else if (request.query_type == FlowStatusQueryType::connection) {
+      doc["connectionStatusList"] = rapidjson::Value(rapidjson::kArrayType);
+      handleError(addConnectionStatuses(doc["connectionStatusList"], allocator, request.identifier, request.options));
     }
   }
 

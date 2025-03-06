@@ -57,7 +57,7 @@ TEST_CASE("Build empty flow status", "[flowstatusbuilder]") {
   CHECK(status["remoteProcessGroupStatusList"].IsNull());
   CHECK(status["instanceStatus"].IsNull());
   CHECK(status["systemDiagnosticsStatus"].IsNull());
-  CHECK(status["processorStatusList"].Empty());
+  CHECK(status["processorStatusList"].IsNull());
   CHECK(status["errorsGeneratingReport"].Empty());
 }
 
@@ -209,6 +209,107 @@ TEST_CASE("Building processor status fails with incomplete query", "[flowstatusb
   CHECK(status["processorStatusList"].Empty());
   CHECK(status["errorsGeneratingReport"].GetArray().Size() == 1);
   CHECK(status["errorsGeneratingReport"].GetArray()[0].GetString() == std::string{"Unable to get processorStatus: Query is incomplete"});
+}
+
+TEST_CASE("Build health status for single connection", "[flowstatusbuilder]") {
+  c2::FlowStatusBuilder flow_status_builder;
+  core::ProcessGroup process_group(core::ROOT_PROCESS_GROUP, "root");
+  auto connection = std::make_unique<ConnectionImpl>(nullptr, nullptr, "Conn1", minifi::utils::Identifier::parse("123fa7e6-2459-46dd-b2ba-61517239edf5").value());
+  std::vector<std::shared_ptr<core::FlowFile>> flow_files{std::make_shared<core::FlowFileImpl>()};
+  connection->multiPut(flow_files);
+  process_group.addConnection(std::move(connection));
+  flow_status_builder.setRoot(&process_group);
+  auto status = flow_status_builder.buildFlowStatus({c2::FlowStatusRequest{"connection:Conn1:health"}});
+  REQUIRE(status["connectionStatusList"].GetArray().Size() == 1);
+  CHECK(status["connectionStatusList"].GetArray()[0]["id"] == "123fa7e6-2459-46dd-b2ba-61517239edf5");
+  CHECK(status["connectionStatusList"].GetArray()[0]["name"] == "Conn1");
+  CHECK(status["connectionStatusList"].GetArray()[0]["connectionHealth"]["queuedCount"].GetInt64() == 1);
+  CHECK(status["connectionStatusList"].GetArray()[0]["connectionHealth"]["queuedBytes"].GetInt64() == 0);
+  CHECK(status["errorsGeneratingReport"].Empty());
+}
+
+TEST_CASE("Build health status for all connections", "[flowstatusbuilder]") {
+  c2::FlowStatusBuilder flow_status_builder;
+  core::ProcessGroup process_group(core::ROOT_PROCESS_GROUP, "root");
+  auto connection1 = std::make_unique<ConnectionImpl>(nullptr, nullptr, "Conn1", minifi::utils::Identifier::parse("123fa7e6-2459-46dd-b2ba-61517239edf5").value());
+  auto connection2 = std::make_unique<ConnectionImpl>(nullptr, nullptr, "Conn2", minifi::utils::Identifier::parse("456fa7e6-2459-46dd-b2ba-61517239edf5").value());
+  std::vector<std::shared_ptr<core::FlowFile>> flow_files1{std::make_shared<core::FlowFileImpl>()};
+  connection1->multiPut(flow_files1);
+  std::vector<std::shared_ptr<core::FlowFile>> flow_files2{std::make_shared<core::FlowFileImpl>(), std::make_shared<core::FlowFileImpl>()};
+  connection2->multiPut(flow_files2);
+  process_group.addConnection(std::move(connection1));
+  process_group.addConnection(std::move(connection2));
+  flow_status_builder.setRoot(&process_group);
+  auto status = flow_status_builder.buildFlowStatus({c2::FlowStatusRequest{"connection:all:health"}});
+  REQUIRE(status["connectionStatusList"].GetArray().Size() == 2);
+  for (const auto& connection_status : status["connectionStatusList"].GetArray()) {
+    std::string id = connection_status["id"].GetString();
+    std::string name = connection_status["name"].GetString();
+    bool id_and_name_check = (id == "123fa7e6-2459-46dd-b2ba-61517239edf5" && name == "Conn1") || (id == "456fa7e6-2459-46dd-b2ba-61517239edf5" && name == "Conn2");
+    CHECK(id_and_name_check);
+    if (id == "123fa7e6-2459-46dd-b2ba-61517239edf5") {
+      CHECK(connection_status["connectionHealth"]["queuedCount"].GetInt64() == 1);
+      CHECK(connection_status["connectionHealth"]["queuedBytes"].GetInt64() == 0);
+    } else {
+      CHECK(connection_status["connectionHealth"]["queuedCount"].GetInt64() == 2);
+      CHECK(connection_status["connectionHealth"]["queuedBytes"].GetInt64() == 0);
+    }
+  }
+  CHECK(status["errorsGeneratingReport"].Empty());
+}
+
+TEST_CASE("Non-existent connection generates an error", "[flowstatusbuilder]") {
+  c2::FlowStatusBuilder flow_status_builder;
+  core::ProcessGroup process_group(core::ROOT_PROCESS_GROUP, "root");
+  auto connection = std::make_unique<ConnectionImpl>(nullptr, nullptr, "Conn1", minifi::utils::Identifier::parse("123fa7e6-2459-46dd-b2ba-61517239edf5").value());
+  std::vector<std::shared_ptr<core::FlowFile>> flow_files{std::make_shared<core::FlowFileImpl>()};
+  connection->multiPut(flow_files);
+  process_group.addConnection(std::move(connection));
+  flow_status_builder.setRoot(&process_group);
+  auto status = flow_status_builder.buildFlowStatus({c2::FlowStatusRequest{"connection:InvalidConnection:health"}});
+  CHECK(status["controllerServiceStatusList"].IsNull());
+  CHECK(status["connectionStatusList"].Empty());
+  CHECK(status["remoteProcessGroupStatusList"].IsNull());
+  CHECK(status["instanceStatus"].IsNull());
+  CHECK(status["systemDiagnosticsStatus"].IsNull());
+  CHECK(status["processorStatusList"].IsNull());
+  CHECK(status["errorsGeneratingReport"].GetArray().Size() == 1);
+  CHECK(status["errorsGeneratingReport"].GetArray()[0].GetString() == std::string{"Unable to get connectionStatus: No connection with key 'InvalidConnection' to report status on"});
+}
+
+TEST_CASE("Build connection status with only invalid options", "[flowstatusbuilder]") {
+  c2::FlowStatusBuilder flow_status_builder;
+  core::ProcessGroup process_group(core::ROOT_PROCESS_GROUP, "root");
+  auto connection = std::make_unique<ConnectionImpl>(nullptr, nullptr, "Conn1", minifi::utils::Identifier::parse("123fa7e6-2459-46dd-b2ba-61517239edf5").value());
+  std::vector<std::shared_ptr<core::FlowFile>> flow_files{std::make_shared<core::FlowFileImpl>()};
+  connection->multiPut(flow_files);
+  process_group.addConnection(std::move(connection));
+  flow_status_builder.setRoot(&process_group);
+  auto status = flow_status_builder.buildFlowStatus({c2::FlowStatusRequest{"connection:Conn1:invalid1,invalid2"}});
+  REQUIRE(status["connectionStatusList"].GetArray().Size() == 1);
+  CHECK(status["connectionStatusList"].GetArray()[0]["id"] == "123fa7e6-2459-46dd-b2ba-61517239edf5");
+  CHECK(status["connectionStatusList"].GetArray()[0]["name"] == "Conn1");
+  CHECK(status["connectionStatusList"].GetArray()[0]["connectionHealth"].IsNull());
+  CHECK(status["errorsGeneratingReport"].Empty());
+}
+
+TEST_CASE("Building connection status fails with incomplete query", "[flowstatusbuilder]") {
+  c2::FlowStatusBuilder flow_status_builder;
+  core::ProcessGroup process_group(core::ROOT_PROCESS_GROUP, "root");
+  auto connection = std::make_unique<ConnectionImpl>(nullptr, nullptr, "Conn1", minifi::utils::Identifier::parse("123fa7e6-2459-46dd-b2ba-61517239edf5").value());
+  std::vector<std::shared_ptr<core::FlowFile>> flow_files{std::make_shared<core::FlowFileImpl>()};
+  connection->multiPut(flow_files);
+  process_group.addConnection(std::move(connection));
+  flow_status_builder.setRoot(&process_group);
+  auto status = flow_status_builder.buildFlowStatus({c2::FlowStatusRequest{"connection:Conn1"}});
+  CHECK(status["controllerServiceStatusList"].IsNull());
+  CHECK(status["connectionStatusList"].Empty());
+  CHECK(status["remoteProcessGroupStatusList"].IsNull());
+  CHECK(status["instanceStatus"].IsNull());
+  CHECK(status["systemDiagnosticsStatus"].IsNull());
+  CHECK(status["processorStatusList"].IsNull());
+  CHECK(status["errorsGeneratingReport"].GetArray().Size() == 1);
+  CHECK(status["errorsGeneratingReport"].GetArray()[0].GetString() == std::string{"Unable to get connectionStatus: Query is incomplete"});
 }
 
 }  // namespace org::apache::nifi::minifi::test
