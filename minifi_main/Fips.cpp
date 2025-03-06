@@ -79,18 +79,18 @@ void initializeFipsMode(const std::shared_ptr<minifi::Configure>& configure, con
 #endif
 
   if (!std::filesystem::exists(minifi_home / "fips" / FIPS_LIB)) {
-    logger->log_error("FIPS mode is enabled, but {} is not available in MINIFI_HOME/fips directory", FIPS_LIB);
+    logger->log_error("FIPS mode is enabled, but {} is not available in $MINIFI_HOME/fips directory", FIPS_LIB);
     std::exit(1);
   }
 
   if (!std::filesystem::exists(minifi_home / "fips" / "fipsmodule.cnf")) {
-    logger->log_error("FIPS mode is enabled, but fipsmodule.cnf is not available in MINIFI_HOME/fips directory. "
-      "Run MINIFI_HOME/fips/openssl fipsinstall -out fipsmodule.cnf -module MINIFI_HOME/fips/{} command to generate the configuration file", FIPS_LIB);
+    logger->log_error("FIPS mode is enabled, but fipsmodule.cnf is not available in $MINIFI_HOME/fips directory. "
+      "Run $MINIFI_HOME/fips/openssl fipsinstall -out fipsmodule.cnf -module $MINIFI_HOME/fips/{} command to generate the configuration file", FIPS_LIB);
     std::exit(1);
   }
 
   if (!std::filesystem::exists(minifi_home / "fips" / "openssl.cnf")) {
-    logger->log_error("FIPS mode is enabled, but openssl.cnf is not available in MINIFI_HOME/fips directory");
+    logger->log_error("FIPS mode is enabled, but openssl.cnf is not available in $MINIFI_HOME/fips directory");
     std::exit(1);
   }
 
@@ -103,6 +103,21 @@ void initializeFipsMode(const std::shared_ptr<minifi::Configure>& configure, con
 
   if (!OSSL_PROVIDER_set_default_search_path(nullptr, (minifi_home / "fips").string().c_str())) {
     logger->log_error("Failed to set FIPS module path: {}", (minifi_home / "fips").string());
+    ERR_print_errors_fp(stderr);
+    std::exit(1);
+  }
+
+  std::ifstream file((minifi_home / "fips" / "openssl.cnf").string());
+  if (file.is_open()) {
+    std::string line;
+    while (std::getline(file, line)) {
+      logger->log_info("{}", line);
+    }
+    file.close();
+  }
+
+  if (!OSSL_PROVIDER_load(nullptr, "fips")) {
+    logger->log_error("Failed to load FIPS provider");
     ERR_print_errors_fp(stderr);
     std::exit(1);
   }

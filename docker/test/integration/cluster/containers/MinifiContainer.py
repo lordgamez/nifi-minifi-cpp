@@ -49,7 +49,7 @@ class MinifiOptions:
 class MinifiContainer(FlowContainer):
     MINIFI_TAG_PREFIX = os.environ['MINIFI_TAG_PREFIX']
     MINIFI_VERSION = os.environ['MINIFI_VERSION']
-    MINIFI_ROOT = '/opt/minifi/nifi-minifi-cpp-' + MINIFI_VERSION
+    MINIFI_ROOT = '/opt/minifi/minifi-current'
 
     def __init__(self, feature_context, config_dir, options, name, vols, network, image_store, command=None):
         self.options = options
