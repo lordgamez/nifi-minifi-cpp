@@ -43,7 +43,7 @@ class StateManager:
 
     def replace(self, old_state, new_values, scope) -> bool:
         try:
-            return self.cpp_state_manager.replace(old_state, new_values)
+            return self.cpp_state_manager.replace(old_state.toMap(), new_values)
         except Exception as exception:
             raise StateException("Replace state failed") from exception
 
@@ -56,7 +56,7 @@ class StateManager:
 
 class StateMap:
     def __init__(self, state_map):
-        self.state_map = state_map
+        self.state_map = state_map if state_map is not None else {}
 
     def getStateVersion(self):
         return 1
