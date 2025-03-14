@@ -13,9 +13,8 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from nifiapi.componentstate import Scope, StateManager, StateException
+from nifiapi.componentstate import Scope
 from nifiapi.flowfilesource import FlowFileSource, FlowFileSourceResult
-from nifiapi.properties import PropertyDescriptor, StandardValidators, PropertyDependency
 
 class TestStateManager(FlowFileSource):
     class Java:
@@ -26,38 +25,23 @@ class TestStateManager(FlowFileSource):
         description = '''A Python source processor that uses StateManager.'''
         tags = ['text', 'test', 'python', 'source']
 
-    METHOD_TO_TEST = PropertyDescriptor(
-        name='StateManager Method To Test',
-        description='''The name of StateManager's method that should be tested.''',
-        required=True
-    )
-
-    property_descriptors = [METHOD_TO_TEST]
-
     def __init__(self, **kwargs):
         pass
 
     def getPropertyDescriptors(self):
-        return self.property_descriptors
+        return []
 
     def create(self, context):
-        method_to_test = context.getProperty(self.METHOD_TO_TEST).getValue()
-        flowfile_attributes = None
         state_manager = context.getStateManager()
+        state = state_manager.getState(Scope.CLUSTER)
+        old_value = state.get("state_key")
+        if not old_value:
+            new_state = {'state_key': '1'}
+            state_manager.setState(new_state, Scope.CLUSTER)
+        elif old_value == '1':
+            new_state = {'state_key': '2'}
+            state_manager.replace(state, new_state, Scope.CLUSTER)
+        else:
+            state_manager.clear(Scope.CLUSTER)
 
-        match method_to_test.lower():
-            case 'setstate':
-                new_state = {'state_key_1': 'state_value_1'}
-                state_manager.setState(new_state, Scope.CLUSTER)
-            case 'getstate':
-                flowfile_attributes = state_manager.getState(Scope.CLUSTER).toMap()
-            case 'replace':
-                old_state = state_manager.getState(Scope.CLUSTER)
-                new_state = {'state_key_2': 'state_value_2'}
-                state_manager.replace(old_state, new_state, Scope.CLUSTER)
-            case 'clear':
-                state_manager.clear(Scope.CLUSTER)
-            case _:
-                pass
-
-        return FlowFileSourceResult(relationship='success', attributes=flowfile_attributes, contents='Output FlowFile Contents')
+        return FlowFileSourceResult(relationship='success', attributes=state.toMap(), contents='Output FlowFile Contents')

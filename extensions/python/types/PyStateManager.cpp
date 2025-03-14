@@ -131,18 +131,20 @@ PyObject* PyStateManager::replace(PyStateManager* self, PyObject* args) {
     Py_RETURN_FALSE;
   }
 
-  auto new_values = BorrowedDict::fromTuple(args, 1);
+  core::StateManager::State new_cpp_state;
 
-  auto new_value_keys = OwnedList(PyDict_Keys(new_values.get()));
-  for (size_t i = 0; i < new_value_keys.length(); ++i) {
-    BorrowedStr key{new_value_keys[i]};
-    if (auto value = new_values[key.toUtf8String()]) {
+  auto new_python_state = BorrowedDict::fromTuple(args, 1);
+
+  auto new_python_state_keys = OwnedList(PyDict_Keys(new_python_state.get()));
+  for (size_t i = 0; i < new_python_state_keys.length(); ++i) {
+    BorrowedStr key{new_python_state_keys[i]};
+    if (auto value = new_python_state[key.toUtf8String()]) {
       BorrowedStr value_str{*value};
-      old_cpp_state[key.toUtf8String()] = value_str.toUtf8String();
+      new_cpp_state[key.toUtf8String()] = value_str.toUtf8String();
     }
   }
 
-  return object::returnReference(self->state_manager_->set(old_cpp_state));
+  return object::returnReference(self->state_manager_->set(new_cpp_state));
 }
 
 PyTypeObject* PyStateManager::typeObject() {
