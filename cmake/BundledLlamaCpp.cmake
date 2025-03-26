@@ -23,8 +23,14 @@ function(use_bundled_llamacpp SOURCE_DIR BINARY_DIR)
         "${BINARY_DIR}/thirdparty/llamacpp-install/lib/libggml.a"
         "${BINARY_DIR}/thirdparty/llamacpp-install/lib/libggml-base.a"
         "${BINARY_DIR}/thirdparty/llamacpp-install/lib/libggml-cpu.a"
-        "${BINARY_DIR}/thirdparty/llamacpp-install/lib/libggml-blas.a"
+        # "${BINARY_DIR}/thirdparty/llamacpp-install/lib/libggml-blas.a"
     )
+
+    if(NOT CMAKE_SYSTEM_PROCESSOR MATCHES "(arm64)|(ARM64)|(aarch64)|(armv8)")
+        list(APPEND BYPRODUCTS
+            "${BINARY_DIR}/thirdparty/llamacpp-install/lib/libggml-amx.a"
+            )
+    endif()
 
     if (APPLE)
         list(APPEND BYPRODUCTS
@@ -38,6 +44,7 @@ function(use_bundled_llamacpp SOURCE_DIR BINARY_DIR)
         -DLLAMA_BUILD_TESTS=OFF
         -DLLAMA_BUILD_EXAMPLES=OFF
         -DLLAMA_BUILD_SERVER=OFF
+        -DGGML_OPENMP=OFF
     )
 
     append_third_party_passthrough_args(LLAMACPP_CMAKE_ARGS "${LLAMACPP_CMAKE_ARGS}")
@@ -80,10 +87,17 @@ function(use_bundled_llamacpp SOURCE_DIR BINARY_DIR)
     add_dependencies(LlamaCpp::ggml-cpu llamacpp-external)
     target_link_libraries(llamacpp INTERFACE LlamaCpp::ggml-cpu)
 
-    add_library(LlamaCpp::ggml-blas STATIC IMPORTED)
-    set_target_properties(LlamaCpp::ggml-blas PROPERTIES IMPORTED_LOCATION "${BINARY_DIR}/thirdparty/llamacpp-install/lib/libggml-blas.a")
-    add_dependencies(LlamaCpp::ggml-blas llamacpp-external)
-    target_link_libraries(llamacpp INTERFACE LlamaCpp::ggml-blas)
+    # add_library(LlamaCpp::ggml-blas STATIC IMPORTED)
+    # set_target_properties(LlamaCpp::ggml-blas PROPERTIES IMPORTED_LOCATION "${BINARY_DIR}/thirdparty/llamacpp-install/lib/libggml-blas.a")
+    # add_dependencies(LlamaCpp::ggml-blas llamacpp-external)
+    # target_link_libraries(llamacpp INTERFACE LlamaCpp::ggml-blas)
+
+    if(NOT CMAKE_SYSTEM_PROCESSOR MATCHES "(arm64)|(ARM64)|(aarch64)|(armv8)")
+        add_library(LlamaCpp::ggml-amx STATIC IMPORTED)
+        set_target_properties(LlamaCpp::ggml-amx PROPERTIES IMPORTED_LOCATION "${BINARY_DIR}/thirdparty/llamacpp-install/lib/libggml-amx.a")
+        add_dependencies(LlamaCpp::ggml-amx llamacpp-external)
+        target_link_libraries(llamacpp INTERFACE LlamaCpp::ggml-amx)
+    endif()
 
     if (APPLE)
         add_library(LlamaCpp::ggml-metal STATIC IMPORTED)

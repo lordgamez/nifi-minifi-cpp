@@ -32,7 +32,7 @@ void LlamaContext::testSetProvider(std::function<std::unique_ptr<LlamaContext>(c
 
 class DefaultLlamaContext : public LlamaContext {
  public:
-  DefaultLlamaContext(const std::filesystem::path& model_path, float temperature) {
+  DefaultLlamaContext(const std::filesystem::path& model_path, float temperature, uint64_t top_k, float top_p, uint64_t min_keep, uint64_t seed) {
     llama_backend_init();
 
     llama_model_params model_params = llama_model_default_params();
@@ -48,10 +48,10 @@ class DefaultLlamaContext : public LlamaContext {
     auto sparams = llama_sampler_chain_default_params();
     llama_sampler_ = llama_sampler_chain_init(sparams);
 
-    llama_sampler_chain_add(llama_sampler_, llama_sampler_init_top_k(50));
-    llama_sampler_chain_add(llama_sampler_, llama_sampler_init_top_p(0.9, 1));
+    llama_sampler_chain_add(llama_sampler_, llama_sampler_init_top_k(top_k));
+    llama_sampler_chain_add(llama_sampler_, llama_sampler_init_top_p(top_p, min_keep));
     llama_sampler_chain_add(llama_sampler_, llama_sampler_init_temp(temperature));
-    llama_sampler_chain_add(llama_sampler_, llama_sampler_init_dist(1234));
+    llama_sampler_chain_add(llama_sampler_, llama_sampler_init_dist(seed));
   }
 
   std::string applyTemplate(const std::vector<LlamaChatMessage>& messages) override {
@@ -66,8 +66,6 @@ class DefaultLlamaContext : public LlamaContext {
       llama_chat_apply_template(llama_model_, nullptr, msgs.data(), msgs.size(), true, text.data(), text.size());
     }
     text.resize(res_size);
-
-//    utils::string::replaceAll(text, "<NEWLINE_CHAR>", "\n");
 
     return text;
   }
@@ -138,11 +136,11 @@ class DefaultLlamaContext : public LlamaContext {
   llama_sampler* llama_sampler_{nullptr};
 };
 
-std::unique_ptr<LlamaContext> LlamaContext::create(const std::filesystem::path& model_path, float temperature) {
+std::unique_ptr<LlamaContext> LlamaContext::create(const std::filesystem::path& model_path, float temperature, uint64_t top_k, float top_p, uint64_t min_keep, uint64_t seed) {
   if (test_provider) {
     return test_provider(model_path, temperature);
   }
-  return std::make_unique<DefaultLlamaContext>(model_path, temperature);
+  return std::make_unique<DefaultLlamaContext>(model_path, temperature, top_k, top_p, min_keep, seed);
 }
 
 }  // namespace org::apache::nifi::minifi::processors::llamacpp

@@ -33,7 +33,7 @@ struct LlamaChatMessage {
 class LlamaContext {
  public:
   static void testSetProvider(std::function<std::unique_ptr<LlamaContext>(const std::filesystem::path&, float)> provider);
-  static std::unique_ptr<LlamaContext> create(const std::filesystem::path& model_path, float temperature);
+  static std::unique_ptr<LlamaContext> create(const std::filesystem::path& model_path, float temperature, uint64_t top_k, float top_p, uint64_t min_keep, uint64_t seed);
   virtual std::string applyTemplate(const std::vector<LlamaChatMessage>& messages) = 0;
   virtual void generate(const std::string& input, std::function<bool(std::string_view/*token*/)> cb) = 0;
   virtual ~LlamaContext() = default;

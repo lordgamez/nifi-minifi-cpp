@@ -26,10 +26,10 @@ namespace minifi = org::apache::nifi::minifi;
 
 class MockLlamaContext : public minifi::processors::llamacpp::LlamaContext {
  public:
-  std::string applyTemplate(const std::vector<minifi::processors::llamacpp::LlamaChatMessage>& messages) override {
+  std::string applyTemplate(const std::vector<minifi::processors::llamacpp::LlamaChatMessage>& /*messages*/) override {
     return "Test Message";
   }
-  void generate(const std::string& input, std::function<bool(std::string_view/*token*/)> cb) override {
+  void generate(const std::string& /*input*/, std::function<bool(std::string_view/*token*/)> cb) override {
     cb(
       "attributes:\n"
       "  a: 1\n"
@@ -49,7 +49,7 @@ TEST_CASE("Output is correctly parsed and routed") {
   minifi::processors::llamacpp::LlamaContext::testSetProvider([] (const std::filesystem::path&, float) {return std::make_unique<MockLlamaContext>();});
   minifi::test::SingleProcessorTestController controller(std::make_unique<minifi::processors::LlamaCppProcessor>("LlamaCppProcessor"));
   controller.addDynamicRelationship("banana");
-  controller.getProcessor()->setProperty(minifi::processors::LlamaCppProcessor::ModelName, "Dummy model");
+  controller.getProcessor()->setProperty(minifi::processors::LlamaCppProcessor::ModelPath, "Dummy model");
   controller.getProcessor()->setProperty(minifi::processors::LlamaCppProcessor::Prompt, "Do whatever");
   controller.getProcessor()->setProperty(minifi::processors::LlamaCppProcessor::Examples, "[]");
 

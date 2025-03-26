@@ -21,41 +21,30 @@
 #include "core/logging/LoggerFactory.h"
 #include "core/PropertyDefinitionBuilder.h"
 #include "LlamaContext.h"
+#pragma push_macro("DEPRECATED")
+#include "llama.h"
+#pragma pop_macro("DEPRECATED")
 
 namespace org::apache::nifi::minifi::processors {
 
-class LlamaCppProcessor : public core::Processor {
-    static constexpr const char* DEFAULT_SYSTEM_PROMPT = R"(You are a helpful assistant or otherwise called an AI processor.
-You are part of a flow based pipeline helping the user transforming and routing data (encapsulated in what is called flowfiles).
-The user will provide the data, it will have attributes (name and value) and a content.
-The output route is also called a relationship.
-You should only output the transformed flowfiles and a relationships to be transferred to.
-You might produce multiple flowfiles if instructed.
-You get $10000 if you respond according to the expected format.
-Do not use any other relationship than what the specified ones.
-Only split flow files when it is explicitly requested.
-Do not add extra attributes only when it is requested.
-
-What now follows is a description of how the user would like you to transform/route their data, and what relationships you are allowed to use:
-)";
-
+class LlamaCppProcessor : public core::ProcessorImpl {
   struct LLMExample {
+    std::string input_role;
     std::string input;
+    std::string output_role;
     std::string output;
   };
 
-
-
  public:
   explicit LlamaCppProcessor(std::string_view name, const utils::Identifier& uuid = {})
-      : core::Processor(name, uuid) {
+      : core::ProcessorImpl(name, uuid) {
   }
   ~LlamaCppProcessor() override = default;
 
   EXTENSIONAPI static constexpr const char* Description = "LlamaCpp processor";
 
-  EXTENSIONAPI static constexpr auto ModelName = core::PropertyDefinitionBuilder<>::createProperty("Model Name")
-      .withDescription("The name of the model")
+  EXTENSIONAPI static constexpr auto ModelPath = core::PropertyDefinitionBuilder<>::createProperty("Model Path")
+      .withDescription("The filesystem path of the model")
       .isRequired(true)
       .build();
   EXTENSIONAPI static constexpr auto Temperature = core::PropertyDefinitionBuilder<>::createProperty("Temperature")
@@ -63,30 +52,48 @@ What now follows is a description of how the user would like you to transform/ro
       .isRequired(true)
       .withDefaultValue("0.8")
       .build();
-  EXTENSIONAPI static constexpr auto SystemPrompt = core::PropertyDefinitionBuilder<>::createProperty("System Prompt")
-      .withDescription("The setup system prompt for the model")
+  EXTENSIONAPI static constexpr auto TopK = core::PropertyDefinitionBuilder<>::createProperty("Top K")
+      .withDescription("Limit the next token selection to the K most probable tokens.")
       .isRequired(true)
-      .withDefaultValue(DEFAULT_SYSTEM_PROMPT)
+      .withPropertyType(core::StandardPropertyTypes::UNSIGNED_INT_TYPE)
+      .withDefaultValue("40")
+      .build();
+  EXTENSIONAPI static constexpr auto TopP = core::PropertyDefinitionBuilder<>::createProperty("Top P")
+      .withDescription("Limit the next token selection to a subset of tokens with a cumulative probability above a threshold P")
+      .isRequired(true)
+      .withDefaultValue("0.95")
+      .build();
+  EXTENSIONAPI static constexpr auto MinKeep = core::PropertyDefinitionBuilder<>::createProperty("Min Keep")
+      .withDescription("If greater than 0, force samplers to return N possible tokens at minimum.")
+      .isRequired(true)
+      .withDefaultValue("0")
+      .build();
+  EXTENSIONAPI static constexpr auto Seed = core::PropertyDefinitionBuilder<>::createProperty("Seed")
+      .withDescription("Set RNG seed, if not set the default LLAMA seed will be used")
+      .withPropertyType(core::StandardPropertyTypes::UNSIGNED_LONG_TYPE)
       .build();
   EXTENSIONAPI static constexpr auto Prompt = core::PropertyDefinitionBuilder<>::createProperty("Prompt")
-      .withDescription("The prompt for the model")
+      .withDescription("The prompt for the inference")
+      .supportsExpressionLanguage(true)
       .isRequired(true)
       .build();
   EXTENSIONAPI static constexpr auto Examples = core::PropertyDefinitionBuilder<>::createProperty("Examples")
-      .withDescription("Example input/outputs pairs for the ai model")
-      .isRequired(true)
+      .withDescription("Example input/outputs in the following format: [{\"input\": {\"role\": \"role1\", \"content\": \"content1\"}, \"output\": {\"role\": \"role2\", \"content\": \"content2\"}}]")
       .build();
   EXTENSIONAPI static constexpr auto Properties = std::to_array<core::PropertyReference>({
-                                                                                            ModelName,
-                                                                                            Temperature,
-                                                                                            SystemPrompt,
-                                                                                            Prompt,
-                                                                                            Examples,
-                                                                                         });
+    ModelPath,
+    Temperature,
+    TopK,
+    TopP,
+    MinKeep,
+    Seed,
+    Prompt,
+    Examples,
+  });
 
 
-  EXTENSIONAPI static constexpr auto Malformed = core::RelationshipDefinition{"malformed", "Malformed output that could not be parsed"};
-  EXTENSIONAPI static constexpr auto Relationships = std::array{Malformed};
+  EXTENSIONAPI static constexpr auto Success = core::RelationshipDefinition{"success", "Generated result from the model"};
+  EXTENSIONAPI static constexpr auto Relationships = std::array{Success};
 
   EXTENSIONAPI static constexpr bool SupportsDynamicProperties = false;
   EXTENSIONAPI static constexpr bool SupportsDynamicRelationships = true;
@@ -103,11 +110,13 @@ What now follows is a description of how the user would like you to transform/ro
  private:
   std::shared_ptr<core::logging::Logger> logger_ = core::logging::LoggerFactory<LlamaCppProcessor>::getLogger(uuid_);
 
-  double temperature_{0};
-  std::string model_name_;
-  std::string system_prompt_;
+  double temperature_{0.8};
+  uint64_t top_k_{40};
+  double top_p_{0.95};
+  uint64_t min_keep_{0};
+  uint64_t seed_{LLAMA_DEFAULT_SEED};
+  std::string model_path_;
   std::string prompt_;
-  std::string full_prompt_;
   std::vector<LLMExample> examples_;
 
   std::unique_ptr<llamacpp::LlamaContext> llama_ctx_;
