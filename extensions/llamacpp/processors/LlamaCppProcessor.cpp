@@ -18,7 +18,7 @@
 #include "LlamaCppProcessor.h"
 #include "core/ProcessContext.h"
 #include "core/ProcessSession.h"
-#include "Resource.h"
+#include "core/Resource.h"
 #include "Exception.h"
 
 #include "rapidjson/document.h"
@@ -33,11 +33,20 @@ void LlamaCppProcessor::initialize() {
 }
 
 void LlamaCppProcessor::onSchedule(core::ProcessContext& context, core::ProcessSessionFactory&) {
-  context.getProperty(ModelName, model_name_);
-  context.getProperty(SystemPrompt, system_prompt_);
-  context.getProperty(Prompt, prompt_);
+  model_path_.clear();
+  context.getProperty(ModelPath, model_path_);
+  temperature_ = 0.8;
   context.getProperty(Temperature, temperature_);
-  full_prompt_ = system_prompt_ + prompt_;
+  top_k_ = 40;
+  context.getProperty(TopK, top_k_);
+  top_p_ = 0.95;
+  context.getProperty(TopP, top_p_);
+  min_keep_ = 0;
+  context.getProperty(MinKeep, min_keep_);
+  seed_ = LLAMA_DEFAULT_SEED;
+  context.getProperty(Seed, seed_);
+  prompt_.clear();
+  context.getProperty(Prompt, prompt_);
 
   examples_.clear();
   std::string examples_str;
@@ -50,7 +59,6 @@ void LlamaCppProcessor::onSchedule(core::ProcessContext& context, core::ProcessS
   if (!doc.IsArray()) {
     throw Exception(PROCESS_SCHEDULE_EXCEPTION, "Malformed json example, expected array at /");
   }
-  const auto& example_prop_keys = context.getDynamicPropertyKeys();
   for (rapidjson::SizeType example_idx = 0; example_idx < doc.Size(); ++example_idx) {
     auto& example = doc[example_idx];
     if (!example.IsObject()) {
@@ -59,55 +67,26 @@ void LlamaCppProcessor::onSchedule(core::ProcessContext& context, core::ProcessS
     if (!example.HasMember("input") || !example["input"].IsObject()) {
       throw Exception(PROCESS_SCHEDULE_EXCEPTION, fmt::format("Malformed json example, expected object at /{}/input", example_idx));
     }
-    if (!example.HasMember("outputs") || !example["outputs"].IsArray()) {
-      throw Exception(PROCESS_SCHEDULE_EXCEPTION, fmt::format("Malformed json example, expected array at /{}/outputs", example_idx));
+    if (!example.HasMember("output") || !example["output"].IsObject()) {
+      throw Exception(PROCESS_SCHEDULE_EXCEPTION, fmt::format("Malformed json example, expected array at /{}/output", example_idx));
     }
-    if (!example["input"].HasMember("attributes") || !example["input"]["attributes"].IsObject()) {
-      throw Exception(PROCESS_SCHEDULE_EXCEPTION, fmt::format("Malformed json example, expected object at /{}/input/attributes", example_idx));
+    if (!example["input"].HasMember("role")) {
+      throw Exception(PROCESS_SCHEDULE_EXCEPTION, fmt::format("Malformed json example, expected object at /{}/input/role", example_idx));
     }
-    std::string input;
-    input += "attributes:\n";
-    for (auto& [attr_name, attr_val] : example["input"]["attributes"].GetObject()) {
-      std::string attr_name_str{attr_name.GetString(), attr_name.GetStringLength()};
-      if (!attr_val.IsString()) {
-        throw Exception(PROCESS_SCHEDULE_EXCEPTION, fmt::format("Malformed json example, expected string at /{}/input/attributes/{}", example_idx, attr_name_str));
-      }
-      input += "  " + attr_name_str + ": " + std::string{attr_val.GetString(), attr_val.GetStringLength()} + "\n";
+    if (!example["input"].HasMember("content")) {
+      throw Exception(PROCESS_SCHEDULE_EXCEPTION, fmt::format("Malformed json example, expected object at /{}/input/content", example_idx));
     }
-    if (!example["input"].HasMember("content") || !example["input"]["content"].IsString()) {
-      throw Exception(PROCESS_SCHEDULE_EXCEPTION, fmt::format("Malformed json example, expected string at /{}/input/content", example_idx));
+    if (!example["output"].HasMember("role")) {
+      throw Exception(PROCESS_SCHEDULE_EXCEPTION, fmt::format("Malformed json example, expected object at /{}/output/role", example_idx));
     }
-    input += "content:\n  " + std::string{example["input"]["content"].GetString(), example["input"]["content"].GetStringLength()} + "\n";
-
-    std::string output;
-    size_t output_index{0};
-    for (auto& output_ff : example["outputs"].GetArray()) {
-      if (!output_ff.IsObject()) {
-        throw Exception(PROCESS_SCHEDULE_EXCEPTION, fmt::format("Malformed json example, expected object at /{}/outputs/{}", example_idx, output_index));
-      }
-      output += "attributes:\n";
-      for (auto& [attr_name, attr_val] : output_ff["attributes"].GetObject()) {
-        std::string attr_name_str{attr_name.GetString(), attr_name.GetStringLength()};
-        if (!attr_val.IsString()) {
-          throw Exception(PROCESS_SCHEDULE_EXCEPTION, fmt::format("Malformed json example, expected string at /{}/outputs/{}/attributes/{}", example_idx, output_index, attr_name_str));
-        }
-        output += "  " + attr_name_str + ": " + std::string{attr_val.GetString(), attr_val.GetStringLength()} + "\n";
-      }
-      if (!output_ff.HasMember("content") || !output_ff["content"].IsString()) {
-        throw Exception(PROCESS_SCHEDULE_EXCEPTION, fmt::format("Malformed json example, expected string at /{}/outputs/{}/content", example_idx, output_index));
-      }
-      output += "content:\n  " + std::string{output_ff["content"].GetString(), output_ff["content"].GetStringLength()} + "\n";
-      if (!output_ff.HasMember("relationship") || !output_ff["relationship"].IsString()) {
-        throw Exception(PROCESS_SCHEDULE_EXCEPTION, fmt::format("Malformed json example, expected string at /{}/outputs/{}/relationship", example_idx, output_index));
-      }
-      output += "relationship:\n  " + std::string{output_ff["relationship"].GetString(), output_ff["relationship"].GetStringLength()};
-      ++output_index;
+    if (!example["output"].HasMember("content")) {
+      throw Exception(PROCESS_SCHEDULE_EXCEPTION, fmt::format("Malformed json example, expected object at /{}/output/content", example_idx));
     }
-//    output += "<NEWLINE_CHAR>";
-    examples_.push_back(LLMExample{.input = std::move(input), .output = std::move(output)});
+    examples_.push_back(LLMExample{.input_role = example["input"]["role"].GetString(), .input = example["input"]["content"].GetString(),
+                                   .output_role = example["output"]["role"].GetString(), .output = example["output"]["content"].GetString()});
   }
 
-  llama_ctx_ = llamacpp::LlamaContext::create(model_name_, gsl::narrow_cast<float>(temperature_));
+  llama_ctx_ = llamacpp::LlamaContext::create(model_path_, gsl::narrow_cast<float>(temperature_), top_k_, gsl::narrow_cast<float>(top_p_), min_keep_, seed_);
 }
 
 void LlamaCppProcessor::onTrigger(core::ProcessContext& context, core::ProcessSession& session) {
@@ -121,24 +100,17 @@ void LlamaCppProcessor::onTrigger(core::ProcessContext& context, core::ProcessSe
   });
 
   auto read_result = session.readBuffer(input_ff);
-  std::string input_content{reinterpret_cast<const char*>(read_result.buffer.data()), read_result.buffer.size()};
-
-  std::string msg;
-  msg += "attributes:\n";
-  for (auto& [attr_name, attr_val] : input_ff->getAttributes()) {
-    msg += "  " + attr_name + ": " + attr_val + "\n";
-  }
-  msg += "content:\n  " + input_content + "\n";
-
+  std::string msg = "input data (or flowfile content): ";
+  msg.append({reinterpret_cast<const char*>(read_result.buffer.data()), read_result.buffer.size()});
 
   std::string input = [&] {
     std::vector<llamacpp::LlamaChatMessage> msgs;
-    msgs.push_back({.role = "system", .content = full_prompt_.c_str()});
+    msgs.push_back({.role = "system", .content = prompt_.c_str()});
     for (auto& ex : examples_) {
       msgs.push_back({.role = "user", .content = ex.input.c_str()});
       msgs.push_back({.role = "assistant", .content = ex.output.c_str()});
     }
-    msgs.push_back({.role = "user", .content = msg.c_str()});
+    msgs.push_back({.role = "system", .content = msg.c_str()});
 
     return llama_ctx_->applyTemplate(msgs);
   }();
@@ -153,74 +125,9 @@ void LlamaCppProcessor::onTrigger(core::ProcessContext& context, core::ProcessSe
 
   logger_->log_debug("AI model output: {}", text);
 
-  std::string_view output = text;
-
-  while (!output.empty()) {
-    auto result = session.create();
-    auto rest = output;
-    if (!output.starts_with("attributes:\n")) {
-      // no attributes tag
-      session.writeBuffer(result, rest);
-      session.transfer(result, Malformed);
-      return;
-    }
-    output = output.substr(std::strlen("attributes:\n"));
-    while (output.starts_with("  ")) {
-      output = output.substr(std::strlen("  "));
-      auto name_end = output.find(": ");
-      if (name_end == std::string_view::npos) {
-        // failed to parse attribute name, dump the rest as malformed
-        session.writeBuffer(result, rest);
-        session.transfer(result, Malformed);
-        return;
-      }
-      auto name = output.substr(0, name_end);
-      output = output.substr(name_end + std::strlen(": "));
-      auto val_end = output.find("\n");
-      if (val_end == std::string_view::npos) {
-        // failed to parse attribute value, dump the rest as malformed
-        session.writeBuffer(result, rest);
-        session.transfer(result, Malformed);
-        return;
-      }
-      auto val = output.substr(0, val_end);
-      output = output.substr(val_end + std::strlen("\n"));
-      result->setAttribute(name, std::string{val});
-    }
-    if (!output.starts_with("content:\n  ")) {
-      // no content
-      session.writeBuffer(result, rest);
-      session.transfer(result, Malformed);
-      return;
-    }
-    output = output.substr(std::strlen("content:\n  "));
-    auto content_end = output.find("\n");
-    if (content_end == std::string_view::npos) {
-      // no content closing tag
-      session.writeBuffer(result, rest);
-      session.transfer(result, Malformed);
-      return;
-    }
-    auto content = output.substr(0, content_end);
-    output = output.substr(content_end + std::strlen("\n"));
-    if (!output.starts_with("relationship:\n  ")) {
-      // no relationship opening tag
-      session.writeBuffer(result, rest);
-      session.transfer(result, Malformed);
-      return;
-    }
-    output = output.substr(std::strlen("relationship:\n  "));
-    auto rel_end = output.find("\n");
-    auto rel = output.substr(0, rel_end);
-
-    session.writeBuffer(result, content);
-    session.transfer(result, core::Relationship{std::string{rel}, ""});
-
-    if (rel_end == std::string_view::npos) {
-      break;
-    }
-    output = output.substr(rel_end + std::strlen("\n"));
-  }
+  auto result = session.create();
+  session.writeBuffer(result, text);
+  session.transfer(result, Success);
 }
 
 void LlamaCppProcessor::notifyStop() {
