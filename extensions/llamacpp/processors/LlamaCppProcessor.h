@@ -116,7 +116,6 @@ class LlamaCppProcessor : public core::ProcessorImpl {
   uint64_t min_keep_{0};
   uint64_t seed_{LLAMA_DEFAULT_SEED};
   std::string model_path_;
-  std::string prompt_;
   std::vector<LLMExample> examples_;
 
   std::unique_ptr<llamacpp::LlamaContext> llama_ctx_;
