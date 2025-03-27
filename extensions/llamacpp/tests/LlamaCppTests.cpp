@@ -51,7 +51,6 @@ TEST_CASE("Output is correctly parsed and routed") {
   controller.addDynamicRelationship("banana");
   controller.getProcessor()->setProperty(minifi::processors::LlamaCppProcessor::ModelPath, "Dummy model");
   controller.getProcessor()->setProperty(minifi::processors::LlamaCppProcessor::Prompt, "Do whatever");
-  controller.getProcessor()->setProperty(minifi::processors::LlamaCppProcessor::Examples, "[]");
 
 
   auto results = controller.trigger(minifi::test::InputFlowFileData{.content = "some data", .attributes = {}});

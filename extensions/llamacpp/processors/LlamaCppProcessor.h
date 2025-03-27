@@ -77,8 +77,11 @@ class LlamaCppProcessor : public core::ProcessorImpl {
       .supportsExpressionLanguage(true)
       .isRequired(true)
       .build();
-  EXTENSIONAPI static constexpr auto Examples = core::PropertyDefinitionBuilder<>::createProperty("Examples")
-      .withDescription("Example input/outputs in the following format: [{\"input\": {\"role\": \"role1\", \"content\": \"content1\"}, \"output\": {\"role\": \"role2\", \"content\": \"content2\"}}]")
+  EXTENSIONAPI static constexpr auto SystemPrompt = core::PropertyDefinitionBuilder<>::createProperty("System Prompt")
+      .withDescription("The system prompt for the inference")
+      .withDefaultValue("You are a helpful assisstant. You are given a question with some possible input data otherwise called flowfile data. "
+                        "You are expected to generate a response based on the quiestion and the input data.")
+      .isRequired(true)
       .build();
   EXTENSIONAPI static constexpr auto Properties = std::to_array<core::PropertyReference>({
     ModelPath,
@@ -88,7 +91,7 @@ class LlamaCppProcessor : public core::ProcessorImpl {
     MinKeep,
     Seed,
     Prompt,
-    Examples,
+    SystemPrompt
   });
 
 
@@ -117,6 +120,7 @@ class LlamaCppProcessor : public core::ProcessorImpl {
   uint64_t seed_{LLAMA_DEFAULT_SEED};
   std::string model_path_;
   std::vector<LLMExample> examples_;
+  std::string system_prompt_;
 
   std::unique_ptr<llamacpp::LlamaContext> llama_ctx_;
 };

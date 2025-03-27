@@ -32,8 +32,9 @@ void LlamaContext::testSetProvider(std::function<std::unique_ptr<LlamaContext>(c
 
 class DefaultLlamaContext : public LlamaContext {
  public:
-  DefaultLlamaContext(const std::filesystem::path& model_path, float /*temperature/*, uint64_t /*top_k*/, float /*top_p*/, uint64_t /*min_keep*/, uint64_t /*seed*/) {
+  DefaultLlamaContext(const std::filesystem::path& model_path, float temperature, uint64_t top_k, float top_p, uint64_t min_keep, uint64_t seed) {
     llama_backend_init();
+    ggml_backend_load_all();
 
     llama_model_params model_params = llama_model_default_params();
     llama_model_ = llama_load_model_from_file(model_path.c_str(), model_params);
@@ -41,19 +42,21 @@ class DefaultLlamaContext : public LlamaContext {
       throw Exception(ExceptionType::PROCESS_SCHEDULE_EXCEPTION, fmt::format("Failed to load model from '{}'", model_path.c_str()));
     }
 
-    const llama_vocab * vocab = llama_model_get_vocab(llama_model_);
-
     llama_context_params ctx_params = llama_context_default_params();
-    ctx_params.n_ctx = 0;
+    ctx_params.n_ctx = 4096;
+    ctx_params.n_batch = 2048;
+    ctx_params.n_seq_max = 1;
+    ctx_params.n_ubatch = 512;
+    ctx_params.flash_attn = 0;
     llama_ctx_ = llama_new_context_with_model(llama_model_, ctx_params);
 
-    // auto sparams = llama_sampler_chain_default_params();
-    // llama_sampler_ = llama_sampler_chain_init(sparams);
+    auto sparams = llama_sampler_chain_default_params();
+    llama_sampler_ = llama_sampler_chain_init(sparams);
 
-    // llama_sampler_chain_add(llama_sampler_, llama_sampler_init_top_k(top_k));
-    // llama_sampler_chain_add(llama_sampler_, llama_sampler_init_top_p(top_p, min_keep));
-    // llama_sampler_chain_add(llama_sampler_, llama_sampler_init_temp(temperature));
-    // llama_sampler_chain_add(llama_sampler_, llama_sampler_init_dist(seed));
+    llama_sampler_chain_add(llama_sampler_, llama_sampler_init_top_k(top_k));
+    llama_sampler_chain_add(llama_sampler_, llama_sampler_init_top_p(top_p, min_keep));
+    llama_sampler_chain_add(llama_sampler_, llama_sampler_init_temp(temperature));
+    llama_sampler_chain_add(llama_sampler_, llama_sampler_init_dist(seed));
   }
 
   std::string applyTemplate(const std::vector<LlamaChatMessage>& messages) override {
@@ -92,9 +95,7 @@ class DefaultLlamaContext : public LlamaContext {
 
     llama_token new_token_id;
 
-    bool terminate = false;
-
-    while (!terminate) {
+    while (true) {
       if (int32_t res = llama_decode(llama_ctx_, batch); res < 0) {
         throw std::logic_error("failed to execute decode");
       }
@@ -118,7 +119,7 @@ class DefaultLlamaContext : public LlamaContext {
 
       batch = llama_batch_get_one(&new_token_id, 1);
 
-      terminate = cb(token_str);
+      cb(token_str);
     }
   }
 

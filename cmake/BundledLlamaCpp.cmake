@@ -23,7 +23,6 @@ function(use_bundled_llamacpp SOURCE_DIR BINARY_DIR)
         "${BINARY_DIR}/thirdparty/llamacpp-install/lib/libggml.a"
         "${BINARY_DIR}/thirdparty/llamacpp-install/lib/libggml-base.a"
         "${BINARY_DIR}/thirdparty/llamacpp-install/lib/libggml-cpu.a"
-        # "${BINARY_DIR}/thirdparty/llamacpp-install/lib/libggml-blas.a"
     )
 
     if(NOT CMAKE_SYSTEM_PROCESSOR MATCHES "(arm64)|(ARM64)|(aarch64)|(armv8)")
@@ -34,6 +33,7 @@ function(use_bundled_llamacpp SOURCE_DIR BINARY_DIR)
 
     if (APPLE)
         list(APPEND BYPRODUCTS
+            "${BINARY_DIR}/thirdparty/llamacpp-install/lib/libggml-blas.a"
             "${BINARY_DIR}/thirdparty/llamacpp-install/lib/libggml-metal.a"
         )
     endif()
@@ -87,10 +87,7 @@ function(use_bundled_llamacpp SOURCE_DIR BINARY_DIR)
     add_dependencies(LlamaCpp::ggml-cpu llamacpp-external)
     target_link_libraries(llamacpp INTERFACE LlamaCpp::ggml-cpu)
 
-    # add_library(LlamaCpp::ggml-blas STATIC IMPORTED)
-    # set_target_properties(LlamaCpp::ggml-blas PROPERTIES IMPORTED_LOCATION "${BINARY_DIR}/thirdparty/llamacpp-install/lib/libggml-blas.a")
-    # add_dependencies(LlamaCpp::ggml-blas llamacpp-external)
-    # target_link_libraries(llamacpp INTERFACE LlamaCpp::ggml-blas)
+
 
     if(NOT CMAKE_SYSTEM_PROCESSOR MATCHES "(arm64)|(ARM64)|(aarch64)|(armv8)")
         add_library(LlamaCpp::ggml-amx STATIC IMPORTED)
@@ -100,6 +97,11 @@ function(use_bundled_llamacpp SOURCE_DIR BINARY_DIR)
     endif()
 
     if (APPLE)
+        add_library(LlamaCpp::ggml-blas STATIC IMPORTED)
+        set_target_properties(LlamaCpp::ggml-blas PROPERTIES IMPORTED_LOCATION "${BINARY_DIR}/thirdparty/llamacpp-install/lib/libggml-blas.a")
+        add_dependencies(LlamaCpp::ggml-blas llamacpp-external)
+        target_link_libraries(llamacpp INTERFACE LlamaCpp::ggml-blas)
+
         add_library(LlamaCpp::ggml-metal STATIC IMPORTED)
         set_target_properties(LlamaCpp::ggml-metal PROPERTIES IMPORTED_LOCATION "${BINARY_DIR}/thirdparty/llamacpp-install/lib/libggml-metal.a")
         add_dependencies(LlamaCpp::ggml-metal llamacpp-external)
