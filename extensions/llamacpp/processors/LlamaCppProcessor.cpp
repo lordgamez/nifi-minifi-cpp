@@ -45,12 +45,15 @@ void LlamaCppProcessor::onSchedule(core::ProcessContext& context, core::ProcessS
   context.getProperty(MinKeep, min_keep_);
   seed_ = LLAMA_DEFAULT_SEED;
   context.getProperty(Seed, seed_);
-  prompt_.clear();
-  context.getProperty(Prompt, prompt_);
+
+  llama_ctx_ = llamacpp::LlamaContext::create(model_path_, gsl::narrow_cast<float>(temperature_), top_k_, gsl::narrow_cast<float>(top_p_), min_keep_, seed_);
 
   examples_.clear();
   std::string examples_str;
   context.getProperty(Examples, examples_str);
+  if (examples_str.empty()) {
+    return;
+  }
   rapidjson::Document doc;
   rapidjson::ParseResult res = doc.Parse(examples_str.data(), examples_str.length());
   if (!res) {
@@ -85,8 +88,6 @@ void LlamaCppProcessor::onSchedule(core::ProcessContext& context, core::ProcessS
     examples_.push_back(LLMExample{.input_role = example["input"]["role"].GetString(), .input = example["input"]["content"].GetString(),
                                    .output_role = example["output"]["role"].GetString(), .output = example["output"]["content"].GetString()});
   }
-
-  llama_ctx_ = llamacpp::LlamaContext::create(model_path_, gsl::narrow_cast<float>(temperature_), top_k_, gsl::narrow_cast<float>(top_p_), min_keep_, seed_);
 }
 
 void LlamaCppProcessor::onTrigger(core::ProcessContext& context, core::ProcessSession& session) {
@@ -99,13 +100,16 @@ void LlamaCppProcessor::onTrigger(core::ProcessContext& context, core::ProcessSe
     session.remove(input_ff);
   });
 
+  std::string prompt;
+  context.getProperty(Prompt, prompt, input_ff.get());
+
   auto read_result = session.readBuffer(input_ff);
   std::string msg = "input data (or flowfile content): ";
   msg.append({reinterpret_cast<const char*>(read_result.buffer.data()), read_result.buffer.size()});
 
   std::string input = [&] {
     std::vector<llamacpp::LlamaChatMessage> msgs;
-    msgs.push_back({.role = "system", .content = prompt_.c_str()});
+    msgs.push_back({.role = "system", .content = prompt.c_str()});
     for (auto& ex : examples_) {
       msgs.push_back({.role = "user", .content = ex.input.c_str()});
       msgs.push_back({.role = "assistant", .content = ex.output.c_str()});
