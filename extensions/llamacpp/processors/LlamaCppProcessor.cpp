@@ -45,49 +45,9 @@ void LlamaCppProcessor::onSchedule(core::ProcessContext& context, core::ProcessS
   context.getProperty(MinKeep, min_keep_);
   seed_ = LLAMA_DEFAULT_SEED;
   context.getProperty(Seed, seed_);
+  context.getProperty(SystemPrompt, system_prompt_);
 
   llama_ctx_ = llamacpp::LlamaContext::create(model_path_, gsl::narrow_cast<float>(temperature_), top_k_, gsl::narrow_cast<float>(top_p_), min_keep_, seed_);
-
-  examples_.clear();
-  std::string examples_str;
-  context.getProperty(Examples, examples_str);
-  if (examples_str.empty()) {
-    return;
-  }
-  rapidjson::Document doc;
-  rapidjson::ParseResult res = doc.Parse(examples_str.data(), examples_str.length());
-  if (!res) {
-    throw Exception(PROCESS_SCHEDULE_EXCEPTION, fmt::format("Malformed transformation example: {}", rapidjson::GetParseError_En(res.Code()), res.Offset()));
-  }
-  if (!doc.IsArray()) {
-    throw Exception(PROCESS_SCHEDULE_EXCEPTION, "Malformed json example, expected array at /");
-  }
-  for (rapidjson::SizeType example_idx = 0; example_idx < doc.Size(); ++example_idx) {
-    auto& example = doc[example_idx];
-    if (!example.IsObject()) {
-      throw Exception(PROCESS_SCHEDULE_EXCEPTION, fmt::format("Malformed json example, expected object at /{}", example_idx));
-    }
-    if (!example.HasMember("input") || !example["input"].IsObject()) {
-      throw Exception(PROCESS_SCHEDULE_EXCEPTION, fmt::format("Malformed json example, expected object at /{}/input", example_idx));
-    }
-    if (!example.HasMember("output") || !example["output"].IsObject()) {
-      throw Exception(PROCESS_SCHEDULE_EXCEPTION, fmt::format("Malformed json example, expected array at /{}/output", example_idx));
-    }
-    if (!example["input"].HasMember("role")) {
-      throw Exception(PROCESS_SCHEDULE_EXCEPTION, fmt::format("Malformed json example, expected object at /{}/input/role", example_idx));
-    }
-    if (!example["input"].HasMember("content")) {
-      throw Exception(PROCESS_SCHEDULE_EXCEPTION, fmt::format("Malformed json example, expected object at /{}/input/content", example_idx));
-    }
-    if (!example["output"].HasMember("role")) {
-      throw Exception(PROCESS_SCHEDULE_EXCEPTION, fmt::format("Malformed json example, expected object at /{}/output/role", example_idx));
-    }
-    if (!example["output"].HasMember("content")) {
-      throw Exception(PROCESS_SCHEDULE_EXCEPTION, fmt::format("Malformed json example, expected object at /{}/output/content", example_idx));
-    }
-    examples_.push_back(LLMExample{.input_role = example["input"]["role"].GetString(), .input = example["input"]["content"].GetString(),
-                                   .output_role = example["output"]["role"].GetString(), .output = example["output"]["content"].GetString()});
-  }
 }
 
 void LlamaCppProcessor::onTrigger(core::ProcessContext& context, core::ProcessSession& session) {
@@ -106,15 +66,13 @@ void LlamaCppProcessor::onTrigger(core::ProcessContext& context, core::ProcessSe
   auto read_result = session.readBuffer(input_ff);
   std::string msg = "input data (or flowfile content): ";
   msg.append({reinterpret_cast<const char*>(read_result.buffer.data()), read_result.buffer.size()});
+  msg = prompt + "\n\n" + msg;
 
   std::string input = [&] {
     std::vector<llamacpp::LlamaChatMessage> msgs;
-    msgs.push_back({.role = "system", .content = prompt.c_str()});
-    for (auto& ex : examples_) {
-      msgs.push_back({.role = "user", .content = ex.input.c_str()});
-      msgs.push_back({.role = "assistant", .content = ex.output.c_str()});
-    }
-    msgs.push_back({.role = "system", .content = msg.c_str()});
+    msgs.push_back({.role = "system", .content = system_prompt_.c_str()});
+    msgs.push_back({.role = "user", .content = msg.c_str()});
+    msgs.push_back({.role = "assisstant", .content = ""});
 
     return llama_ctx_->applyTemplate(msgs);
   }();
