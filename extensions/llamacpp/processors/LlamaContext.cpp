@@ -33,7 +33,7 @@ void LlamaContext::testSetProvider(std::function<std::unique_ptr<LlamaContext>(c
 class DefaultLlamaContext : public LlamaContext {
  public:
   DefaultLlamaContext(const std::filesystem::path& model_path, float temperature, uint64_t top_k, float top_p, uint64_t min_keep, uint64_t seed) {
-    llama_backend_init();
+    // llama_backend_init();
     ggml_backend_load_all();
 
     llama_model_params model_params = llama_model_default_params();
@@ -45,7 +45,9 @@ class DefaultLlamaContext : public LlamaContext {
     llama_context_params ctx_params = llama_context_default_params();
     ctx_params.n_ctx = 4096;
     ctx_params.n_batch = 2048;
-    ctx_params.n_seq_max = 1;
+    ctx_params.n_seq_max = 20;
+    ctx_params.n_threads = 20;
+    ctx_params.n_threads_batch = 20;
     ctx_params.n_ubatch = 512;
     ctx_params.flash_attn = 0;
     llama_ctx_ = llama_new_context_with_model(llama_model_, ctx_params);
