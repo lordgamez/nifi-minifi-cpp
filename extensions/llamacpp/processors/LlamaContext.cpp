@@ -37,6 +37,7 @@ class DefaultLlamaContext : public LlamaContext {
     ggml_backend_load_all();
 
     llama_model_params model_params = llama_model_default_params();
+    model_params.n_gpu_layers = 10;
     llama_model_ = llama_load_model_from_file(model_path.c_str(), model_params);
     if (!llama_model_) {
       throw Exception(ExceptionType::PROCESS_SCHEDULE_EXCEPTION, fmt::format("Failed to load model from '{}'", model_path.c_str()));
@@ -50,6 +51,7 @@ class DefaultLlamaContext : public LlamaContext {
     ctx_params.n_threads_batch = 20;
     ctx_params.n_ubatch = 512;
     ctx_params.flash_attn = 0;
+    // ctx_params.no_perf = false;
     llama_ctx_ = llama_new_context_with_model(llama_model_, ctx_params);
 
     auto sparams = llama_sampler_chain_default_params();

@@ -51,6 +51,7 @@ void LlamaCppProcessor::onSchedule(core::ProcessContext& context, core::ProcessS
 }
 
 void LlamaCppProcessor::onTrigger(core::ProcessContext& context, core::ProcessSession& session) {
+  auto start_time = std::chrono::steady_clock::now();
   auto input_ff = session.get();
   if (!input_ff) {
     context.yield();
@@ -77,7 +78,7 @@ void LlamaCppProcessor::onTrigger(core::ProcessContext& context, core::ProcessSe
     return llama_ctx_->applyTemplate(msgs);
   }();
 
-  logger_->log_debug("AI model input: {}", input);
+  logger_->log_info("AI model input: {}", input);
 
   std::string text;
   llama_ctx_->generate(input, [&] (std::string_view token) {
@@ -85,11 +86,14 @@ void LlamaCppProcessor::onTrigger(core::ProcessContext& context, core::ProcessSe
     return true;
   });
 
-  logger_->log_debug("AI model output: {}", text);
+  logger_->log_info("AI model output: {}", text);
 
   auto result = session.create();
   session.writeBuffer(result, text);
   session.transfer(result, Success);
+  auto end_time = std::chrono::steady_clock::now();
+  auto elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+  logger_->log_info("AI model inference time: {} ms", elapsed_time);
 }
 
 void LlamaCppProcessor::notifyStop() {
