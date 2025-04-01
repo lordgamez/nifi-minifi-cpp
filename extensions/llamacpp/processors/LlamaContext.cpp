@@ -24,43 +24,45 @@
 
 namespace org::apache::nifi::minifi::processors::llamacpp {
 
-static std::function<std::unique_ptr<LlamaContext>(const std::filesystem::path&, float)> test_provider;
+static std::function<std::unique_ptr<LlamaContext>(const std::filesystem::path&, const LlamaSamplerParams&, const LlamaContextParams&, int32_t)> test_provider;
 
-void LlamaContext::testSetProvider(std::function<std::unique_ptr<LlamaContext>(const std::filesystem::path&, float)> provider) {
+void LlamaContext::testSetProvider(std::function<std::unique_ptr<LlamaContext>(const std::filesystem::path&, const LlamaSamplerParams&, const LlamaContextParams&, int32_t)> provider) {
   test_provider = provider;
 }
 
 class DefaultLlamaContext : public LlamaContext {
  public:
-  DefaultLlamaContext(const std::filesystem::path& model_path, float temperature, uint64_t top_k, float top_p, uint64_t min_keep, uint64_t seed) {
-    // llama_backend_init();
-    ggml_backend_load_all();
+  DefaultLlamaContext(const std::filesystem::path& model_path, const LlamaSamplerParams& llama_sampler_params, const LlamaContextParams& llama_ctx_params, int32_t n_gpu_layers) {
+    llama_backend_init();
 
     llama_model_params model_params = llama_model_default_params();
-    model_params.n_gpu_layers = 10;
+    model_params.n_gpu_layers = n_gpu_layers;
     llama_model_ = llama_load_model_from_file(model_path.c_str(), model_params);
     if (!llama_model_) {
       throw Exception(ExceptionType::PROCESS_SCHEDULE_EXCEPTION, fmt::format("Failed to load model from '{}'", model_path.c_str()));
     }
 
     llama_context_params ctx_params = llama_context_default_params();
-    ctx_params.n_ctx = 4096;
-    ctx_params.n_batch = 2048;
-    ctx_params.n_seq_max = 20;
-    ctx_params.n_threads = 20;
-    ctx_params.n_threads_batch = 20;
-    ctx_params.n_ubatch = 512;
+    ctx_params.n_ctx = llama_ctx_params.n_ctx;
+    ctx_params.n_batch = llama_ctx_params.n_batch;
+    ctx_params.n_ubatch = llama_ctx_params.n_ubatch;
+    ctx_params.n_seq_max = llama_ctx_params.n_seq_max;
+    ctx_params.n_threads = llama_ctx_params.n_threads;
+    ctx_params.n_threads_batch = llama_ctx_params.n_threads_batch;
     ctx_params.flash_attn = 0;
-    // ctx_params.no_perf = false;
     llama_ctx_ = llama_new_context_with_model(llama_model_, ctx_params);
 
     auto sparams = llama_sampler_chain_default_params();
     llama_sampler_ = llama_sampler_chain_init(sparams);
 
-    llama_sampler_chain_add(llama_sampler_, llama_sampler_init_top_k(top_k));
-    llama_sampler_chain_add(llama_sampler_, llama_sampler_init_top_p(top_p, min_keep));
-    llama_sampler_chain_add(llama_sampler_, llama_sampler_init_temp(temperature));
-    llama_sampler_chain_add(llama_sampler_, llama_sampler_init_dist(seed));
+    if (llama_sampler_params.min_p > 0.0f) {
+      llama_sampler_chain_add(llama_sampler_, llama_sampler_init_min_p(llama_sampler_params.min_p, llama_sampler_params.min_keep));
+    } else {
+      llama_sampler_chain_add(llama_sampler_, llama_sampler_init_top_k(llama_sampler_params.top_k));
+      llama_sampler_chain_add(llama_sampler_, llama_sampler_init_top_p(llama_sampler_params.top_p, llama_sampler_params.min_keep));
+    }
+    llama_sampler_chain_add(llama_sampler_, llama_sampler_init_temp(llama_sampler_params.temperature));
+    llama_sampler_chain_add(llama_sampler_, llama_sampler_init_dist(LLAMA_DEFAULT_SEED));
   }
 
   std::string applyTemplate(const std::vector<LlamaChatMessage>& messages) override {
@@ -143,11 +145,11 @@ class DefaultLlamaContext : public LlamaContext {
   llama_sampler* llama_sampler_{nullptr};
 };
 
-std::unique_ptr<LlamaContext> LlamaContext::create(const std::filesystem::path& model_path, float temperature, uint64_t top_k, float top_p, uint64_t min_keep, uint64_t seed) {
+std::unique_ptr<LlamaContext> LlamaContext::create(const std::filesystem::path& model_path, const LlamaSamplerParams& llama_sampler_params, const LlamaContextParams& llama_ctx_params, int32_t n_gpu_layers) {
   if (test_provider) {
-    return test_provider(model_path, temperature);
+    return test_provider(model_path, llama_sampler_params, llama_ctx_params, n_gpu_layers);
   }
-  return std::make_unique<DefaultLlamaContext>(model_path, temperature, top_k, top_p, min_keep, seed);
+  return std::make_unique<DefaultLlamaContext>(model_path, llama_sampler_params, llama_ctx_params, n_gpu_layers);
 }
 
 }  // namespace org::apache::nifi::minifi::processors::llamacpp

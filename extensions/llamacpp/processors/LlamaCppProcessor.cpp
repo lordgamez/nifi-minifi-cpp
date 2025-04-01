@@ -35,19 +35,58 @@ void LlamaCppProcessor::initialize() {
 void LlamaCppProcessor::onSchedule(core::ProcessContext& context, core::ProcessSessionFactory&) {
   model_path_.clear();
   context.getProperty(ModelPath, model_path_);
-  temperature_ = 0.8;
-  context.getProperty(Temperature, temperature_);
-  top_k_ = 40;
-  context.getProperty(TopK, top_k_);
-  top_p_ = 0.95;
-  context.getProperty(TopP, top_p_);
-  min_keep_ = 0;
-  context.getProperty(MinKeep, min_keep_);
-  seed_ = LLAMA_DEFAULT_SEED;
-  context.getProperty(Seed, seed_);
   context.getProperty(SystemPrompt, system_prompt_);
 
-  llama_ctx_ = llamacpp::LlamaContext::create(model_path_, gsl::narrow_cast<float>(temperature_), top_k_, gsl::narrow_cast<float>(top_p_), min_keep_, seed_);
+  llamacpp::LlamaSamplerParams llama_sampler_params;
+  double double_value = 0.0f;
+  if (context.getProperty(Temperature, double_value)) {
+    llama_sampler_params.temperature = gsl::narrow_cast<float>(double_value);
+  }
+
+  int64_t int_value = 0;
+  if (context.getProperty(TopK, int_value)) {
+    llama_sampler_params.top_k = gsl::narrow_cast<int32_t>(int_value);
+  }
+
+  if (context.getProperty(TopP, double_value)) {
+    llama_sampler_params.top_p = gsl::narrow_cast<float>(double_value);
+  }
+
+  if (context.getProperty(MinP, double_value)) {
+    llama_sampler_params.min_p = gsl::narrow_cast<float>(double_value);
+  }
+
+  uint64_t uint_value = 0;
+  if (context.getProperty(MinKeep, uint_value)) {
+    llama_sampler_params.min_keep = uint_value;
+  }
+
+  llamacpp::LlamaContextParams llama_ctx_params;
+  if (context.getProperty(TextContextSize, uint_value)) {
+    llama_ctx_params.n_ctx = gsl::narrow_cast<uint32_t>(uint_value);
+  }
+  if (context.getProperty(LogicalMaximumBatchSize, uint_value)) {
+    llama_ctx_params.n_batch = gsl::narrow_cast<uint32_t>(uint_value);
+  }
+  if (context.getProperty(PhysicalMaximumBatchSize, uint_value)) {
+    llama_ctx_params.n_ubatch = gsl::narrow_cast<uint32_t>(uint_value);
+  }
+  if (context.getProperty(MaxNumberOfSequences, uint_value)) {
+    llama_ctx_params.n_seq_max = gsl::narrow_cast<uint32_t>(uint_value);
+  }
+  if (context.getProperty(ThreadsForGeneration, int_value)) {
+    llama_ctx_params.n_threads = gsl::narrow_cast<int32_t>(int_value);
+  }
+  if (context.getProperty(ThreadsForBatchProcessing, int_value)) {
+    llama_ctx_params.n_threads_batch = gsl::narrow_cast<int32_t>(int_value);
+  }
+
+  int32_t n_gpu_layers = -1;
+  if (context.getProperty(NumberOfGPULayers, int_value)) {
+    n_gpu_layers = gsl::narrow_cast<int32_t>(int_value);
+  }
+
+  llama_ctx_ = llamacpp::LlamaContext::create(model_path_, llama_sampler_params, llama_ctx_params, n_gpu_layers);
 }
 
 void LlamaCppProcessor::onTrigger(core::ProcessContext& context, core::ProcessSession& session) {

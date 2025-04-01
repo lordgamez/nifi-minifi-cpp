@@ -41,7 +41,7 @@ class LlamaCppProcessor : public core::ProcessorImpl {
   }
   ~LlamaCppProcessor() override = default;
 
-  EXTENSIONAPI static constexpr const char* Description = "LlamaCpp processor";
+  EXTENSIONAPI static constexpr const char* Description = "LlamaCpp processor to use llama.cpp library for LLM inference";
 
   EXTENSIONAPI static constexpr auto ModelPath = core::PropertyDefinitionBuilder<>::createProperty("Model Path")
       .withDescription("The filesystem path of the model")
@@ -53,24 +53,68 @@ class LlamaCppProcessor : public core::ProcessorImpl {
       .withDefaultValue("0.8")
       .build();
   EXTENSIONAPI static constexpr auto TopK = core::PropertyDefinitionBuilder<>::createProperty("Top K")
-      .withDescription("Limit the next token selection to the K most probable tokens.")
+      .withDescription("Limit the next token selection to the K most probable tokens. <= 0 to use vocab size")
       .isRequired(true)
-      .withPropertyType(core::StandardPropertyTypes::UNSIGNED_INT_TYPE)
+      .withPropertyType(core::StandardPropertyTypes::INTEGER_TYPE)
       .withDefaultValue("40")
       .build();
   EXTENSIONAPI static constexpr auto TopP = core::PropertyDefinitionBuilder<>::createProperty("Top P")
-      .withDescription("Limit the next token selection to a subset of tokens with a cumulative probability above a threshold P")
+      .withDescription("Limit the next token selection to a subset of tokens with a cumulative probability above a threshold P. 1.0 = disabled")
       .isRequired(true)
-      .withDefaultValue("0.95")
+      .withDefaultValue("0.9")
+      .build();
+  EXTENSIONAPI static constexpr auto MinP = core::PropertyDefinitionBuilder<>::createProperty("Min P")
+      .withDescription("Sets a minimum base probability threshold for token selection. 0.0 = disabled")
+      .isRequired(true)
+      .withDefaultValue("0.0")
       .build();
   EXTENSIONAPI static constexpr auto MinKeep = core::PropertyDefinitionBuilder<>::createProperty("Min Keep")
       .withDescription("If greater than 0, force samplers to return N possible tokens at minimum.")
       .isRequired(true)
+      .withPropertyType(core::StandardPropertyTypes::UNSIGNED_INT_TYPE)
       .withDefaultValue("0")
       .build();
-  EXTENSIONAPI static constexpr auto Seed = core::PropertyDefinitionBuilder<>::createProperty("Seed")
-      .withDescription("Set RNG seed, if not set the default LLAMA seed will be used")
-      .withPropertyType(core::StandardPropertyTypes::UNSIGNED_LONG_TYPE)
+  EXTENSIONAPI static constexpr auto TextContextSize = core::PropertyDefinitionBuilder<>::createProperty("Text Context Size")
+      .withDescription("Size of the text context, use 0 to use size set in model")
+      .isRequired(true)
+      .withPropertyType(core::StandardPropertyTypes::UNSIGNED_INT_TYPE)
+      .withDefaultValue("512")
+      .build();
+  EXTENSIONAPI static constexpr auto LogicalMaximumBatchSize = core::PropertyDefinitionBuilder<>::createProperty("Logical Maximum Batch Size")
+      .withDescription("Logical maximum batch size that can be submitted to llama_decode")
+      .isRequired(true)
+      .withPropertyType(core::StandardPropertyTypes::UNSIGNED_INT_TYPE)
+      .withDefaultValue("2048")
+      .build();
+  EXTENSIONAPI static constexpr auto PhysicalMaximumBatchSize = core::PropertyDefinitionBuilder<>::createProperty("Physical Maximum Batch Size")
+      .withDescription("Physical maximum batch size")
+      .isRequired(true)
+      .withPropertyType(core::StandardPropertyTypes::UNSIGNED_INT_TYPE)
+      .withDefaultValue("512")
+      .build();
+  EXTENSIONAPI static constexpr auto MaxNumberOfSequences = core::PropertyDefinitionBuilder<>::createProperty("Max Number Of Sequences")
+      .withDescription("Max number of sequences (i.e. distinct states for recurrent models)")
+      .isRequired(true)
+      .withPropertyType(core::StandardPropertyTypes::UNSIGNED_INT_TYPE)
+      .withDefaultValue("1")
+      .build();
+  EXTENSIONAPI static constexpr auto ThreadsForGeneration = core::PropertyDefinitionBuilder<>::createProperty("Threads For Generation")
+      .withDescription("Number of threads to use for generation")
+      .isRequired(true)
+      .withPropertyType(core::StandardPropertyTypes::INTEGER_TYPE)
+      .withDefaultValue("4")
+      .build();
+  EXTENSIONAPI static constexpr auto ThreadsForBatchProcessing = core::PropertyDefinitionBuilder<>::createProperty("Threads For Batch Processing")
+      .withDescription("Number of threads to use for batch processing")
+      .isRequired(true)
+      .withPropertyType(core::StandardPropertyTypes::INTEGER_TYPE)
+      .withDefaultValue("4")
+      .build();
+  EXTENSIONAPI static constexpr auto NumberOfGPULayers = core::PropertyDefinitionBuilder<>::createProperty("Number Of GPU Layers")
+      .withDescription("Number of layers to store in VRAM for the draft model (-1 - use default)")
+      .isRequired(true)
+      .withPropertyType(core::StandardPropertyTypes::INTEGER_TYPE)
+      .withDefaultValue("-1")
       .build();
   EXTENSIONAPI static constexpr auto Prompt = core::PropertyDefinitionBuilder<>::createProperty("Prompt")
       .withDescription("The prompt for the inference")
@@ -83,13 +127,21 @@ class LlamaCppProcessor : public core::ProcessorImpl {
                         "You are expected to generate a response based on the quiestion and the input data.")
       .isRequired(true)
       .build();
+
   EXTENSIONAPI static constexpr auto Properties = std::to_array<core::PropertyReference>({
     ModelPath,
     Temperature,
     TopK,
     TopP,
+    MinP,
     MinKeep,
-    Seed,
+    TextContextSize,
+    LogicalMaximumBatchSize,
+    PhysicalMaximumBatchSize,
+    MaxNumberOfSequences,
+    ThreadsForGeneration,
+    ThreadsForBatchProcessing,
+    NumberOfGPULayers,
     Prompt,
     SystemPrompt
   });
@@ -113,11 +165,6 @@ class LlamaCppProcessor : public core::ProcessorImpl {
  private:
   std::shared_ptr<core::logging::Logger> logger_ = core::logging::LoggerFactory<LlamaCppProcessor>::getLogger(uuid_);
 
-  double temperature_{0.8};
-  uint64_t top_k_{40};
-  double top_p_{0.95};
-  uint64_t min_keep_{0};
-  uint64_t seed_{LLAMA_DEFAULT_SEED};
   std::string model_path_;
   std::vector<LLMExample> examples_;
   std::string system_prompt_;

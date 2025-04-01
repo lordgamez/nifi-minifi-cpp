@@ -30,10 +30,27 @@ struct LlamaChatMessage {
   std::string content;
 };
 
+struct LlamaSamplerParams {
+  float temperature = 0.8f;
+  int32_t top_k = 40;
+  float top_p = 0.9f;
+  float min_p = 0.0f;
+  uint64_t min_keep = 0;
+};
+
+struct LlamaContextParams {
+  uint32_t n_ctx = 512;
+  uint32_t n_batch = 2048;
+  uint32_t n_ubatch = 512;
+  uint32_t n_seq_max = 1;
+  int32_t n_threads = 4;
+  int32_t n_threads_batch = 4;
+};
+
 class LlamaContext {
  public:
-  static void testSetProvider(std::function<std::unique_ptr<LlamaContext>(const std::filesystem::path&, float)> provider);
-  static std::unique_ptr<LlamaContext> create(const std::filesystem::path& model_path, float temperature, uint64_t top_k, float top_p, uint64_t min_keep, uint64_t seed);
+  static void testSetProvider(std::function<std::unique_ptr<LlamaContext>(const std::filesystem::path&, const LlamaSamplerParams&, const LlamaContextParams&, int32_t)> provider);
+  static std::unique_ptr<LlamaContext> create(const std::filesystem::path& model_path, const LlamaSamplerParams& llama_sampler_params, const LlamaContextParams& llama_ctx_params, int32_t n_gpu_layers);
   virtual std::string applyTemplate(const std::vector<LlamaChatMessage>& messages) = 0;
   virtual void generate(const std::string& input, std::function<bool(std::string_view/*token*/)> cb) = 0;
   virtual ~LlamaContext() = default;
