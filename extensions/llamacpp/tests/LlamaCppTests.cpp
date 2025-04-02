@@ -103,6 +103,68 @@ TEST_CASE("Prompt is generated correctly with default parameters") {
   CHECK(mock_llama_context_ptr->getMessages()[2].content.empty());
 }
 
+TEST_CASE("Prompt is generated correctly with custom parameters") {
+  auto mock_llama_context = std::make_unique<MockLlamaContext>();
+  auto mock_llama_context_ptr = mock_llama_context.get();
+  std::filesystem::path test_model_path;
+  processors::LlamaSamplerParams test_sampler_params;
+  processors::LlamaContextParams test_context_params;
+  int32_t test_n_gpu_layers = 0;
+  processors::LlamaContext::testSetProvider(
+    [&](const std::filesystem::path& model_path, const processors::LlamaSamplerParams& sampler_params, const processors::LlamaContextParams& context_params, int32_t gpu_layers) {
+      test_model_path = model_path;
+      test_sampler_params = sampler_params;
+      test_context_params = context_params;
+      test_n_gpu_layers = gpu_layers;
+      return std::move(mock_llama_context);
+    }
+  );
+  minifi::test::SingleProcessorTestController controller(std::make_unique<processors::LlamaCppProcessor>("LlamaCppProcessor"));
+  LogTestController::getInstance().setTrace<processors::LlamaCppProcessor>();
+  controller.getProcessor()->setProperty(processors::LlamaCppProcessor::ModelPath, "/path/to/model");
+  controller.getProcessor()->setProperty(processors::LlamaCppProcessor::Prompt, "Question: What is the answer to life, the universe and everything?");
+  controller.getProcessor()->setProperty(processors::LlamaCppProcessor::Temperature, "0.4");
+  controller.getProcessor()->setProperty(processors::LlamaCppProcessor::TopK, "20");
+  controller.getProcessor()->setProperty(processors::LlamaCppProcessor::TopP, "");
+  controller.getProcessor()->setProperty(processors::LlamaCppProcessor::MinP, "0.1");
+  controller.getProcessor()->setProperty(processors::LlamaCppProcessor::MinKeep, "1");
+  controller.getProcessor()->setProperty(processors::LlamaCppProcessor::TextContextSize, "4096");
+  controller.getProcessor()->setProperty(processors::LlamaCppProcessor::LogicalMaximumBatchSize, "1024");
+  controller.getProcessor()->setProperty(processors::LlamaCppProcessor::PhysicalMaximumBatchSize, "796");
+  controller.getProcessor()->setProperty(processors::LlamaCppProcessor::MaxNumberOfSequences, "2");
+  controller.getProcessor()->setProperty(processors::LlamaCppProcessor::ThreadsForGeneration, "12");
+  controller.getProcessor()->setProperty(processors::LlamaCppProcessor::ThreadsForBatchProcessing, "8");
+  controller.getProcessor()->setProperty(processors::LlamaCppProcessor::NumberOfGPULayers, "10");
+  controller.getProcessor()->setProperty(processors::LlamaCppProcessor::SystemPrompt, "Whatever");
+
+  auto results = controller.trigger(minifi::test::InputFlowFileData{.content = "42", .attributes = {}});
+  CHECK(test_model_path == "/path/to/model");
+  CHECK(test_sampler_params.temperature == 0.4f);
+  CHECK(test_sampler_params.top_k == 20);
+  CHECK(test_sampler_params.top_p == std::nullopt);
+  CHECK(test_sampler_params.min_p == 0.1f);
+  CHECK(test_sampler_params.min_keep == 1);
+  CHECK(test_context_params.n_ctx == 4096);
+  CHECK(test_context_params.n_batch == 1024);
+  CHECK(test_context_params.n_ubatch == 796);
+  CHECK(test_context_params.n_seq_max == 2);
+  CHECK(test_context_params.n_threads == 12);
+  CHECK(test_context_params.n_threads_batch == 8);
+  CHECK(test_n_gpu_layers == 10);
+
+  REQUIRE(results.at(processors::LlamaCppProcessor::Success).size() == 1);
+  auto& output_flow_file = results.at(processors::LlamaCppProcessor::Success)[0];
+  CHECK(controller.plan->getContent(output_flow_file) == "Test generated content");
+  CHECK(mock_llama_context_ptr->getInput() == "Test input");
+  CHECK(mock_llama_context_ptr->getMessages().size() == 3);
+  CHECK(mock_llama_context_ptr->getMessages()[0].role == "system");
+  CHECK(mock_llama_context_ptr->getMessages()[0].content == "Whatever");
+  CHECK(mock_llama_context_ptr->getMessages()[1].role == "user");
+  CHECK(mock_llama_context_ptr->getMessages()[1].content == "Input data (or flowfile content): 42\n\nQuestion: What is the answer to life, the universe and everything?");
+  CHECK(mock_llama_context_ptr->getMessages()[2].role == "assisstant");
+  CHECK(mock_llama_context_ptr->getMessages()[2].content.empty());
+}
+
 TEST_CASE("Invalid values for optional double type properties throw exception") {
   processors::LlamaContext::testSetProvider(
     [&](const std::filesystem::path&, const processors::LlamaSamplerParams&, const processors::LlamaContextParams&, int32_t) {
