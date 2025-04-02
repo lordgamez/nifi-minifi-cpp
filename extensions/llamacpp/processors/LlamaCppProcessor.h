@@ -49,24 +49,18 @@ class LlamaCppProcessor : public core::ProcessorImpl {
       .build();
   EXTENSIONAPI static constexpr auto Temperature = core::PropertyDefinitionBuilder<>::createProperty("Temperature")
       .withDescription("The inference temperature")
-      .isRequired(true)
       .withDefaultValue("0.8")
       .build();
   EXTENSIONAPI static constexpr auto TopK = core::PropertyDefinitionBuilder<>::createProperty("Top K")
       .withDescription("Limit the next token selection to the K most probable tokens. <= 0 to use vocab size")
-      .isRequired(true)
-      .withPropertyType(core::StandardPropertyTypes::INTEGER_TYPE)
       .withDefaultValue("40")
       .build();
   EXTENSIONAPI static constexpr auto TopP = core::PropertyDefinitionBuilder<>::createProperty("Top P")
       .withDescription("Limit the next token selection to a subset of tokens with a cumulative probability above a threshold P. 1.0 = disabled")
-      .isRequired(true)
       .withDefaultValue("0.9")
       .build();
   EXTENSIONAPI static constexpr auto MinP = core::PropertyDefinitionBuilder<>::createProperty("Min P")
       .withDescription("Sets a minimum base probability threshold for token selection. 0.0 = disabled")
-      .isRequired(true)
-      .withDefaultValue("0.0")
       .build();
   EXTENSIONAPI static constexpr auto MinKeep = core::PropertyDefinitionBuilder<>::createProperty("Min Keep")
       .withDescription("If greater than 0, force samplers to return N possible tokens at minimum.")

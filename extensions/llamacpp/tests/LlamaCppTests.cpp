@@ -79,7 +79,7 @@ TEST_CASE("Prompt is generated correctly with default parameters") {
   CHECK(test_sampler_params.temperature == 0.8f);
   CHECK(test_sampler_params.top_k == 40);
   CHECK(test_sampler_params.top_p == 0.9f);
-  CHECK(test_sampler_params.min_p == 0.0f);
+  CHECK(test_sampler_params.min_p == std::nullopt);
   CHECK(test_sampler_params.min_keep == 0);
   CHECK(test_context_params.n_ctx == 512);
   CHECK(test_context_params.n_batch == 2048);
@@ -101,6 +101,58 @@ TEST_CASE("Prompt is generated correctly with default parameters") {
   CHECK(mock_llama_context_ptr->getMessages()[1].content == "Input data (or flowfile content): 42\n\nQuestion: What is the answer to life, the universe and everything?");
   CHECK(mock_llama_context_ptr->getMessages()[2].role == "assisstant");
   CHECK(mock_llama_context_ptr->getMessages()[2].content.empty());
+}
+
+TEST_CASE("Invalid values for optional double type properties throw exception") {
+  processors::LlamaContext::testSetProvider(
+    [&](const std::filesystem::path&, const processors::LlamaSamplerParams&, const processors::LlamaContextParams&, int32_t) {
+      return std::make_unique<MockLlamaContext>();
+    }
+  );
+  minifi::test::SingleProcessorTestController controller(std::make_unique<processors::LlamaCppProcessor>("LlamaCppProcessor"));
+  LogTestController::getInstance().setTrace<processors::LlamaCppProcessor>();
+  controller.getProcessor()->setProperty(processors::LlamaCppProcessor::ModelPath, "Dummy model");
+  controller.getProcessor()->setProperty(processors::LlamaCppProcessor::Prompt, "Question: What is the answer to life, the universe and everything?");
+
+  std::string property_name;
+  SECTION("Invalid value for Temperature property") {
+    controller.getProcessor()->setProperty(processors::LlamaCppProcessor::Temperature, "invalid_value");
+    property_name = processors::LlamaCppProcessor::Temperature.name;
+  }
+  SECTION("Invalid value for Top P property") {
+    controller.getProcessor()->setProperty(processors::LlamaCppProcessor::TopP, "invalid_value");
+    property_name = processors::LlamaCppProcessor::TopP.name;
+  }
+  SECTION("Invalid value for Min P property") {
+    controller.getProcessor()->setProperty(processors::LlamaCppProcessor::MinP, "invalid_value");
+    property_name = processors::LlamaCppProcessor::MinP.name;
+  }
+
+  REQUIRE_THROWS_WITH(controller.trigger(minifi::test::InputFlowFileData{.content = "42", .attributes = {}}), fmt::format("Process Schedule Operation: Property '{}' has invalid value 'invalid_value'", property_name));
+}
+
+TEST_CASE("Top K property empty and invalid values are handled properly") {
+  processors::LlamaSamplerParams sampler_params;
+  std::optional<int32_t> test_top_k;
+  processors::LlamaContext::testSetProvider(
+    [&](const std::filesystem::path&, const processors::LlamaSamplerParams& sampler_params, const processors::LlamaContextParams&, int32_t) {
+      test_top_k = sampler_params.top_k;
+      return std::make_unique<MockLlamaContext>();
+    }
+  );
+  minifi::test::SingleProcessorTestController controller(std::make_unique<processors::LlamaCppProcessor>("LlamaCppProcessor"));
+  LogTestController::getInstance().setTrace<processors::LlamaCppProcessor>();
+  controller.getProcessor()->setProperty(processors::LlamaCppProcessor::ModelPath, "Dummy model");
+  controller.getProcessor()->setProperty(processors::LlamaCppProcessor::Prompt, "Question: What is the answer to life, the universe and everything?");
+  SECTION("Empty value for Top K property") {
+    controller.getProcessor()->setProperty(processors::LlamaCppProcessor::TopK, "");
+    auto results = controller.trigger(minifi::test::InputFlowFileData{.content = "42", .attributes = {}});
+    REQUIRE(test_top_k == std::nullopt);
+  }
+  SECTION("Invalid value for Top K property") {
+    controller.getProcessor()->setProperty(processors::LlamaCppProcessor::TopK, "invalid_value");
+    REQUIRE_THROWS_WITH(controller.trigger(minifi::test::InputFlowFileData{.content = "42", .attributes = {}}), "Process Schedule Operation: Property 'Top K' has invalid value 'invalid_value'");
+  }
 }
 
 }  // namespace org::apache::nifi::minifi::extensions::llamacpp::test

@@ -22,6 +22,7 @@
 #include <string_view>
 #include <string>
 #include <functional>
+#include <optional>
 
 namespace org::apache::nifi::minifi::extensions::llamacpp::processors {
 
@@ -31,20 +32,20 @@ struct LlamaChatMessage {
 };
 
 struct LlamaSamplerParams {
-  float temperature = 0.8f;
-  int32_t top_k = 40;
-  float top_p = 0.9f;
-  float min_p = 0.0f;
-  uint64_t min_keep = 0;
+  std::optional<float> temperature;
+  std::optional<int32_t> top_k;
+  std::optional<float> top_p;
+  std::optional<float> min_p;
+  uint64_t min_keep{};
 };
 
 struct LlamaContextParams {
-  uint32_t n_ctx = 512;
-  uint32_t n_batch = 2048;
-  uint32_t n_ubatch = 512;
-  uint32_t n_seq_max = 1;
-  int32_t n_threads = 4;
-  int32_t n_threads_batch = 4;
+  uint32_t n_ctx{};
+  uint32_t n_batch{};
+  uint32_t n_ubatch{};
+  uint32_t n_seq_max{};
+  int32_t n_threads{};
+  int32_t n_threads_batch{};
 };
 
 class LlamaContext {

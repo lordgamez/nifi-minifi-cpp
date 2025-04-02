@@ -55,13 +55,18 @@ class DefaultLlamaContext : public LlamaContext {
     auto sparams = llama_sampler_chain_default_params();
     llama_sampler_ = llama_sampler_chain_init(sparams);
 
-    if (llama_sampler_params.min_p > 0.0f) {
-      llama_sampler_chain_add(llama_sampler_, llama_sampler_init_min_p(llama_sampler_params.min_p, llama_sampler_params.min_keep));
-    } else {
-      llama_sampler_chain_add(llama_sampler_, llama_sampler_init_top_k(llama_sampler_params.top_k));
-      llama_sampler_chain_add(llama_sampler_, llama_sampler_init_top_p(llama_sampler_params.top_p, llama_sampler_params.min_keep));
+    if (llama_sampler_params.min_p) {
+      llama_sampler_chain_add(llama_sampler_, llama_sampler_init_min_p(*llama_sampler_params.min_p, llama_sampler_params.min_keep));
     }
-    llama_sampler_chain_add(llama_sampler_, llama_sampler_init_temp(llama_sampler_params.temperature));
+    if (llama_sampler_params.top_k) {
+      llama_sampler_chain_add(llama_sampler_, llama_sampler_init_top_k(*llama_sampler_params.top_k));
+    }
+    if (llama_sampler_params.top_p) {
+      llama_sampler_chain_add(llama_sampler_, llama_sampler_init_top_p(*llama_sampler_params.top_p, llama_sampler_params.min_keep));
+    }
+    if (llama_sampler_params.temperature) {
+      llama_sampler_chain_add(llama_sampler_, llama_sampler_init_temp(*llama_sampler_params.temperature));
+    }
     llama_sampler_chain_add(llama_sampler_, llama_sampler_init_dist(LLAMA_DEFAULT_SEED));
   }
 

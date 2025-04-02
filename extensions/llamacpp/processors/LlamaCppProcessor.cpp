@@ -27,6 +27,34 @@
 
 namespace org::apache::nifi::minifi::extensions::llamacpp::processors {
 
+namespace {
+
+std::optional<float> parseOptionalFloatProperty(const core::ProcessContext& context, const core::PropertyReference& property) {
+  std::string str_value;
+  if (!context.getProperty(property, str_value) || str_value.empty()) {
+    return std::nullopt;
+  }
+  try {
+    return std::stof(str_value);
+  } catch(const std::exception&) {
+    throw Exception(PROCESS_SCHEDULE_EXCEPTION, fmt::format("Property '{}' has invalid value '{}'", property.name, str_value));
+  }
+}
+
+std::optional<int32_t> parseOptionalInt32Property(const core::ProcessContext& context, const core::PropertyReference& property) {
+  std::string str_value;
+  if (!context.getProperty(property, str_value) || str_value.empty()) {
+    return std::nullopt;
+  }
+  try {
+    return gsl::narrow<int32_t>(std::stoi(str_value));
+  } catch(const std::exception&) {
+    throw Exception(PROCESS_SCHEDULE_EXCEPTION, fmt::format("Property '{}' has invalid value '{}'", property.name, str_value));
+  }
+}
+
+}  // namespace
+
 void LlamaCppProcessor::initialize() {
   setSupportedProperties(Properties);
   setSupportedRelationships(Relationships);
@@ -38,23 +66,10 @@ void LlamaCppProcessor::onSchedule(core::ProcessContext& context, core::ProcessS
   context.getProperty(SystemPrompt, system_prompt_);
 
   LlamaSamplerParams llama_sampler_params;
-  double double_value = 0.0f;
-  if (context.getProperty(Temperature, double_value)) {
-    llama_sampler_params.temperature = gsl::narrow_cast<float>(double_value);
-  }
-
-  int64_t int_value = 0;
-  if (context.getProperty(TopK, int_value)) {
-    llama_sampler_params.top_k = gsl::narrow_cast<int32_t>(int_value);
-  }
-
-  if (context.getProperty(TopP, double_value)) {
-    llama_sampler_params.top_p = gsl::narrow_cast<float>(double_value);
-  }
-
-  if (context.getProperty(MinP, double_value)) {
-    llama_sampler_params.min_p = gsl::narrow_cast<float>(double_value);
-  }
+  llama_sampler_params.temperature = parseOptionalFloatProperty(context, Temperature);
+  llama_sampler_params.top_k = parseOptionalInt32Property(context, TopK);
+  llama_sampler_params.top_p = parseOptionalFloatProperty(context, TopP);
+  llama_sampler_params.min_p = parseOptionalFloatProperty(context, MinP);
 
   uint64_t uint_value = 0;
   if (context.getProperty(MinKeep, uint_value)) {
@@ -74,6 +89,7 @@ void LlamaCppProcessor::onSchedule(core::ProcessContext& context, core::ProcessS
   if (context.getProperty(MaxNumberOfSequences, uint_value)) {
     llama_ctx_params.n_seq_max = gsl::narrow_cast<uint32_t>(uint_value);
   }
+  int32_t int_value = 0;
   if (context.getProperty(ThreadsForGeneration, int_value)) {
     llama_ctx_params.n_threads = gsl::narrow_cast<int32_t>(int_value);
   }
