@@ -114,21 +114,21 @@ void LlamaCppProcessor::onTrigger(core::ProcessContext& context, core::ProcessSe
   context.getProperty(Prompt, prompt, input_ff.get());
 
   auto read_result = session.readBuffer(input_ff);
-  std::string msg;
+  std::string input_data_and_prompt;
   if (read_result.buffer.size() > 0) {
-    msg.append("Input data (or flowfile content):\n");
-    msg.append({reinterpret_cast<const char*>(read_result.buffer.data()), read_result.buffer.size()});
-    msg.append("\n\n");
+    input_data_and_prompt.append("Input data (or flowfile content):\n");
+    input_data_and_prompt.append({reinterpret_cast<const char*>(read_result.buffer.data()), read_result.buffer.size()});
+    input_data_and_prompt.append("\n\n");
   }
-  msg.append(prompt);
+  input_data_and_prompt.append(prompt);
 
   std::string input = [&] {
-    std::vector<LlamaChatMessage> msgs;
-    msgs.push_back({.role = "system", .content = system_prompt_.c_str()});
-    msgs.push_back({.role = "user", .content = msg.c_str()});
-    msgs.push_back({.role = "assisstant", .content = ""});
+    std::vector<LlamaChatMessage> messages;
+    messages.push_back({.role = "system", .content = system_prompt_.c_str()});
+    messages.push_back({.role = "user", .content = input_data_and_prompt.c_str()});
+    messages.push_back({.role = "assisstant", .content = ""});
 
-    return llama_ctx_->applyTemplate(msgs);
+    return llama_ctx_->applyTemplate(messages);
   }();
 
   logger_->log_debug("AI model input: {}", input);
