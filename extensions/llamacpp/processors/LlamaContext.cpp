@@ -22,7 +22,7 @@
 #include "llama.h"
 #pragma pop_macro("DEPRECATED")
 
-namespace org::apache::nifi::minifi::processors::llamacpp {
+namespace org::apache::nifi::minifi::extensions::llamacpp::processors {
 
 static std::function<std::unique_ptr<LlamaContext>(const std::filesystem::path&, const LlamaSamplerParams&, const LlamaContextParams&, int32_t)> test_provider;
 
@@ -81,7 +81,7 @@ class DefaultLlamaContext : public LlamaContext {
     return text;
   }
 
-  void generate(const std::string& input, std::function<bool(std::string_view/*token*/)> cb) override {
+  uint64_t generate(const std::string& input, std::function<void(std::string_view/*token*/)> token_handler) override {
     std::vector<llama_token> enc_input = [&] {
       int32_t n_tokens = input.length() + 2;
       std::vector<llama_token> enc_input(n_tokens);
@@ -101,6 +101,7 @@ class DefaultLlamaContext : public LlamaContext {
 
     llama_token new_token_id;
 
+    uint64_t tokens_generated = 0;
     while (true) {
       if (int32_t res = llama_decode(llama_ctx_, batch); res < 0) {
         throw std::logic_error("failed to execute decode");
@@ -112,6 +113,7 @@ class DefaultLlamaContext : public LlamaContext {
         break;
       }
 
+      ++tokens_generated;
       llama_sampler_accept(llama_sampler_, new_token_id);
 
       std::array<char, 128> buf;
@@ -125,8 +127,10 @@ class DefaultLlamaContext : public LlamaContext {
 
       batch = llama_batch_get_one(&new_token_id, 1);
 
-      cb(token_str);
+      token_handler(token_str);
     }
+
+    return tokens_generated;
   }
 
   ~DefaultLlamaContext() override {
@@ -152,4 +156,4 @@ std::unique_ptr<LlamaContext> LlamaContext::create(const std::filesystem::path& 
   return std::make_unique<DefaultLlamaContext>(model_path, llama_sampler_params, llama_ctx_params, n_gpu_layers);
 }
 
-}  // namespace org::apache::nifi::minifi::processors::llamacpp
+}  // namespace org::apache::nifi::minifi::extensions::llamacpp::processors

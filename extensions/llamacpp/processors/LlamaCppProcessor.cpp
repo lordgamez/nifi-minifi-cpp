@@ -25,7 +25,7 @@
 #include "rapidjson/error/en.h"
 #include "LlamaContext.h"
 
-namespace org::apache::nifi::minifi::processors {
+namespace org::apache::nifi::minifi::extensions::llamacpp::processors {
 
 void LlamaCppProcessor::initialize() {
   setSupportedProperties(Properties);
@@ -37,7 +37,7 @@ void LlamaCppProcessor::onSchedule(core::ProcessContext& context, core::ProcessS
   context.getProperty(ModelPath, model_path_);
   context.getProperty(SystemPrompt, system_prompt_);
 
-  llamacpp::LlamaSamplerParams llama_sampler_params;
+  LlamaSamplerParams llama_sampler_params;
   double double_value = 0.0f;
   if (context.getProperty(Temperature, double_value)) {
     llama_sampler_params.temperature = gsl::narrow_cast<float>(double_value);
@@ -61,7 +61,7 @@ void LlamaCppProcessor::onSchedule(core::ProcessContext& context, core::ProcessS
     llama_sampler_params.min_keep = uint_value;
   }
 
-  llamacpp::LlamaContextParams llama_ctx_params;
+  LlamaContextParams llama_ctx_params;
   if (context.getProperty(TextContextSize, uint_value)) {
     llama_ctx_params.n_ctx = gsl::narrow_cast<uint32_t>(uint_value);
   }
@@ -86,11 +86,10 @@ void LlamaCppProcessor::onSchedule(core::ProcessContext& context, core::ProcessS
     n_gpu_layers = gsl::narrow_cast<int32_t>(int_value);
   }
 
-  llama_ctx_ = llamacpp::LlamaContext::create(model_path_, llama_sampler_params, llama_ctx_params, n_gpu_layers);
+  llama_ctx_ = LlamaContext::create(model_path_, llama_sampler_params, llama_ctx_params, n_gpu_layers);
 }
 
 void LlamaCppProcessor::onTrigger(core::ProcessContext& context, core::ProcessSession& session) {
-  auto start_time = std::chrono::steady_clock::now();
   auto input_ff = session.get();
   if (!input_ff) {
     context.yield();
@@ -104,12 +103,13 @@ void LlamaCppProcessor::onTrigger(core::ProcessContext& context, core::ProcessSe
   context.getProperty(Prompt, prompt, input_ff.get());
 
   auto read_result = session.readBuffer(input_ff);
-  std::string msg = "input data (or flowfile content): ";
+  std::string msg = "Input data (or flowfile content): ";
   msg.append({reinterpret_cast<const char*>(read_result.buffer.data()), read_result.buffer.size()});
-  msg = prompt + "\n\n" + msg;
+  msg.append("\n\n");
+  msg.append(prompt);
 
   std::string input = [&] {
-    std::vector<llamacpp::LlamaChatMessage> msgs;
+    std::vector<LlamaChatMessage> msgs;
     msgs.push_back({.role = "system", .content = system_prompt_.c_str()});
     msgs.push_back({.role = "user", .content = msg.c_str()});
     msgs.push_back({.role = "assisstant", .content = ""});
@@ -117,22 +117,22 @@ void LlamaCppProcessor::onTrigger(core::ProcessContext& context, core::ProcessSe
     return llama_ctx_->applyTemplate(msgs);
   }();
 
-  logger_->log_info("AI model input: {}", input);
+  logger_->log_debug("AI model input: {}", input);
+
+  auto start_time = std::chrono::steady_clock::now();
 
   std::string text;
   llama_ctx_->generate(input, [&] (std::string_view token) {
     text += token;
-    return true;
   });
 
-  logger_->log_info("AI model output: {}", text);
+  auto elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time).count();
+  logger_->log_debug("AI model inference time: {} ms", elapsed_time);
+  logger_->log_debug("AI model output: {}", text);
 
   auto result = session.create();
   session.writeBuffer(result, text);
   session.transfer(result, Success);
-  auto end_time = std::chrono::steady_clock::now();
-  auto elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
-  logger_->log_info("AI model inference time: {} ms", elapsed_time);
 }
 
 void LlamaCppProcessor::notifyStop() {
@@ -141,4 +141,4 @@ void LlamaCppProcessor::notifyStop() {
 
 REGISTER_RESOURCE(LlamaCppProcessor, Processor);
 
-}  // namespace org::apache::nifi::minifi::processors
+}  // namespace org::apache::nifi::minifi::extensions::llamacpp::processors

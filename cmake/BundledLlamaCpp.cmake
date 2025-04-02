@@ -23,8 +23,6 @@ function(use_bundled_llamacpp SOURCE_DIR BINARY_DIR)
         "${BINARY_DIR}/thirdparty/llamacpp-install/lib/libggml.a"
         "${BINARY_DIR}/thirdparty/llamacpp-install/lib/libggml-base.a"
         "${BINARY_DIR}/thirdparty/llamacpp-install/lib/libggml-cpu.a"
-        # "${BINARY_DIR}/thirdparty/llamacpp-install/lib/libggml-blas.a"
-        "${BINARY_DIR}/thirdparty/llamacpp-install/lib/libggml-cuda.a"
     )
 
     if(NOT CMAKE_SYSTEM_PROCESSOR MATCHES "(arm64)|(ARM64)|(aarch64)|(armv8)")
@@ -46,9 +44,7 @@ function(use_bundled_llamacpp SOURCE_DIR BINARY_DIR)
         -DLLAMA_BUILD_TESTS=OFF
         -DLLAMA_BUILD_EXAMPLES=OFF
         -DLLAMA_BUILD_SERVER=OFF
-        -DGGML_OPENMP=ON
-        -DGGML_CUDA=ON
-        -DCMAKE_CUDA_COMPILER:PATH=/usr/local/cuda/bin/nvcc
+        -DGGML_OPENMP=OFF
     )
 
     append_third_party_passthrough_args(LLAMACPP_CMAKE_ARGS "${LLAMACPP_CMAKE_ARGS}")
@@ -64,9 +60,7 @@ function(use_bundled_llamacpp SOURCE_DIR BINARY_DIR)
         EXCLUDE_FROM_ALL TRUE
     )
 
-#    set(LLAMACPP_FOUND "YES" CACHE STRING "" FORCE)
     set(LLAMACPP_INCLUDE_DIR "${BINARY_DIR}/thirdparty/llamacpp-install/include" CACHE STRING "" FORCE)
-#    set(LLAMACPP_LIBRARIES "${BINARY_DIR}/thirdparty/llamacpp-install/lib/libllama.a;${BINARY_DIR}/thirdparty/llamacpp-install/lib/libggml.a;${BINARY_DIR}/thirdparty/llamacpp-install/lib/libggml-base.a" CACHE STRING "" FORCE)
 
     add_library(llamacpp INTERFACE)
 
@@ -85,16 +79,10 @@ function(use_bundled_llamacpp SOURCE_DIR BINARY_DIR)
     add_dependencies(LlamaCpp::ggml-base llamacpp-external)
     target_link_libraries(llamacpp INTERFACE LlamaCpp::ggml-base)
 
-    # backends
     add_library(LlamaCpp::ggml-cpu STATIC IMPORTED)
     set_target_properties(LlamaCpp::ggml-cpu PROPERTIES IMPORTED_LOCATION "${BINARY_DIR}/thirdparty/llamacpp-install/lib/libggml-cpu.a")
     add_dependencies(LlamaCpp::ggml-cpu llamacpp-external)
     target_link_libraries(llamacpp INTERFACE LlamaCpp::ggml-cpu)
-
-    add_library(LlamaCpp::ggml-cuda STATIC IMPORTED)
-    set_target_properties(LlamaCpp::ggml-cuda PROPERTIES IMPORTED_LOCATION "${BINARY_DIR}/thirdparty/llamacpp-install/lib/libggml-cuda.a")
-    add_dependencies(LlamaCpp::ggml-cuda llamacpp-external)
-    target_link_libraries(llamacpp INTERFACE LlamaCpp::ggml-cuda)
 
     if(NOT CMAKE_SYSTEM_PROCESSOR MATCHES "(arm64)|(ARM64)|(aarch64)|(armv8)")
         add_library(LlamaCpp::ggml-amx STATIC IMPORTED)
@@ -114,12 +102,6 @@ function(use_bundled_llamacpp SOURCE_DIR BINARY_DIR)
         add_dependencies(LlamaCpp::ggml-metal llamacpp-external)
         target_link_libraries(llamacpp INTERFACE LlamaCpp::ggml-metal)
     endif()
-
-    find_package(OpenMP)
-    target_link_libraries(llamacpp INTERFACE OpenMP::OpenMP_C OpenMP::OpenMP_CXX)
-
-    find_package(CUDAToolkit REQUIRED)
-    target_link_libraries(llamacpp INTERFACE cuda CUDA::cudart CUDA::cublas_static CUDA::cublasLt_static)
 
     file(MAKE_DIRECTORY ${LLAMACPP_INCLUDE_DIR})
     target_include_directories(llamacpp INTERFACE ${LLAMACPP_INCLUDE_DIR})

@@ -15,50 +15,92 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #include "unit/TestBase.h"
 #include "unit/Catch.h"
 #include "LlamaCppProcessor.h"
 #include "unit/SingleProcessorTestController.h"
 #include "core/FlowFile.h"
 
-namespace minifi = org::apache::nifi::minifi;
+namespace org::apache::nifi::minifi::extensions::llamacpp::test {
 
-class MockLlamaContext : public minifi::processors::llamacpp::LlamaContext {
+class MockLlamaContext : public processors::LlamaContext {
  public:
-  std::string applyTemplate(const std::vector<minifi::processors::llamacpp::LlamaChatMessage>& /*messages*/) override {
-    return "Test Message";
+  std::string applyTemplate(const std::vector<processors::LlamaChatMessage>& messages) override {
+    messages_ = messages;
+    return "Test input";
   }
-  void generate(const std::string& /*input*/, std::function<bool(std::string_view/*token*/)> cb) override {
-    cb(
-      "attributes:\n"
-      "  a: 1\n"
-      "  b: 2\n"
-      "content:\n"
-      "  Test content\n"
-      "relationship:\n"
-      "  banana\n"
-      "attributes:\n"
-      "messed up result\n"
-    );
+
+  uint64_t generate(const std::string& input, std::function<void(std::string_view/*token*/)> token_handler) override {
+    input_ = input;
+    token_handler("Test ");
+    token_handler("generated");
+    token_handler(" content");
+    return 3;
   }
+
+  const std::vector<processors::LlamaChatMessage>& getMessages() const {
+    return messages_;
+  }
+
+  const std::string& getInput() const {
+    return input_;
+  }
+
   ~MockLlamaContext() override = default;
+
+ private:
+  std::vector<processors::LlamaChatMessage> messages_;
+  std::string input_;
 };
 
-TEST_CASE("Output is correctly parsed and routed") {
-  minifi::processors::llamacpp::LlamaContext::testSetProvider([] (const std::filesystem::path&, float) {return std::make_unique<MockLlamaContext>();});
-  minifi::test::SingleProcessorTestController controller(std::make_unique<minifi::processors::LlamaCppProcessor>("LlamaCppProcessor"));
-  controller.addDynamicRelationship("banana");
-  controller.getProcessor()->setProperty(minifi::processors::LlamaCppProcessor::ModelPath, "Dummy model");
-  controller.getProcessor()->setProperty(minifi::processors::LlamaCppProcessor::Prompt, "Do whatever");
+TEST_CASE("Prompt is generated correctly with default parameters") {
+  auto mock_llama_context = std::make_unique<MockLlamaContext>();
+  auto mock_llama_context_ptr = mock_llama_context.get();
+  std::filesystem::path test_model_path;
+  processors::LlamaSamplerParams test_sampler_params;
+  processors::LlamaContextParams test_context_params;
+  int32_t test_n_gpu_layers = 0;
+  processors::LlamaContext::testSetProvider(
+    [&](const std::filesystem::path& model_path, const processors::LlamaSamplerParams& sampler_params, const processors::LlamaContextParams& context_params, int32_t gpu_layers) {
+      test_model_path = model_path;
+      test_sampler_params = sampler_params;
+      test_context_params = context_params;
+      test_n_gpu_layers = gpu_layers;
+      return std::move(mock_llama_context);
+    }
+  );
+  minifi::test::SingleProcessorTestController controller(std::make_unique<processors::LlamaCppProcessor>("LlamaCppProcessor"));
+  LogTestController::getInstance().setTrace<processors::LlamaCppProcessor>();
+  controller.getProcessor()->setProperty(processors::LlamaCppProcessor::ModelPath, "Dummy model");
+  controller.getProcessor()->setProperty(processors::LlamaCppProcessor::Prompt, "Question: What is the answer to life, the universe and everything?");
 
+  auto results = controller.trigger(minifi::test::InputFlowFileData{.content = "42", .attributes = {}});
+  CHECK(test_model_path == "Dummy model");
+  CHECK(test_sampler_params.temperature == 0.8f);
+  CHECK(test_sampler_params.top_k == 40);
+  CHECK(test_sampler_params.top_p == 0.9f);
+  CHECK(test_sampler_params.min_p == 0.0f);
+  CHECK(test_sampler_params.min_keep == 0);
+  CHECK(test_context_params.n_ctx == 512);
+  CHECK(test_context_params.n_batch == 2048);
+  CHECK(test_context_params.n_ubatch == 512);
+  CHECK(test_context_params.n_seq_max == 1);
+  CHECK(test_context_params.n_threads == 4);
+  CHECK(test_context_params.n_threads_batch == 4);
+  CHECK(test_n_gpu_layers == -1);
 
-  auto results = controller.trigger(minifi::test::InputFlowFileData{.content = "some data", .attributes = {}});
-  CHECK(results.size() == 2);
-  CHECK(results[core::Relationship{"malformed", ""}].size() == 1);
-  auto outputs = results[core::Relationship{"banana", ""}];
-  REQUIRE(outputs.size() == 1);
-  CHECK(controller.plan->getContent(outputs[0]) == "Test content");
-  CHECK(outputs[0]->getAttribute("a") == "1");
-  CHECK(outputs[0]->getAttribute("b") == "2");
+  REQUIRE(results.at(processors::LlamaCppProcessor::Success).size() == 1);
+  auto& output_flow_file = results.at(processors::LlamaCppProcessor::Success)[0];
+  CHECK(controller.plan->getContent(output_flow_file) == "Test generated content");
+  CHECK(mock_llama_context_ptr->getInput() == "Test input");
+  CHECK(mock_llama_context_ptr->getMessages().size() == 3);
+  CHECK(mock_llama_context_ptr->getMessages()[0].role == "system");
+  CHECK(mock_llama_context_ptr->getMessages()[0].content == "You are a helpful assisstant. You are given a question with some possible input data otherwise called flowfile data. "
+                                                            "You are expected to generate a response based on the quiestion and the input data.");
+  CHECK(mock_llama_context_ptr->getMessages()[1].role == "user");
+  CHECK(mock_llama_context_ptr->getMessages()[1].content == "Input data (or flowfile content): 42\n\nQuestion: What is the answer to life, the universe and everything?");
+  CHECK(mock_llama_context_ptr->getMessages()[2].role == "assisstant");
+  CHECK(mock_llama_context_ptr->getMessages()[2].content.empty());
 }
+
+}  // namespace org::apache::nifi::minifi::extensions::llamacpp::test

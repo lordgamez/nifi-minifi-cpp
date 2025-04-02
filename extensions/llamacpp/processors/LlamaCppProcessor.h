@@ -25,7 +25,7 @@
 #include "llama.h"
 #pragma pop_macro("DEPRECATED")
 
-namespace org::apache::nifi::minifi::processors {
+namespace org::apache::nifi::minifi::extensions::llamacpp::processors {
 
 class LlamaCppProcessor : public core::ProcessorImpl {
   struct LLMExample {
@@ -169,7 +169,7 @@ class LlamaCppProcessor : public core::ProcessorImpl {
   std::vector<LLMExample> examples_;
   std::string system_prompt_;
 
-  std::unique_ptr<llamacpp::LlamaContext> llama_ctx_;
+  std::unique_ptr<LlamaContext> llama_ctx_;
 };
 
-}  // namespace org::apache::nifi::minifi::processors
+}  // namespace org::apache::nifi::minifi::extensions::llamacpp::processors
