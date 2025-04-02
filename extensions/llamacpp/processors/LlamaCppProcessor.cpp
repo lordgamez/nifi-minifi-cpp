@@ -114,9 +114,12 @@ void LlamaCppProcessor::onTrigger(core::ProcessContext& context, core::ProcessSe
   context.getProperty(Prompt, prompt, input_ff.get());
 
   auto read_result = session.readBuffer(input_ff);
-  std::string msg = "Input data (or flowfile content): ";
-  msg.append({reinterpret_cast<const char*>(read_result.buffer.data()), read_result.buffer.size()});
-  msg.append("\n\n");
+  std::string msg;
+  if (read_result.buffer.size() > 0) {
+    msg.append("Input data (or flowfile content):\n");
+    msg.append({reinterpret_cast<const char*>(read_result.buffer.data()), read_result.buffer.size()});
+    msg.append("\n\n");
+  }
   msg.append(prompt);
 
   std::string input = [&] {

@@ -65,8 +65,7 @@ TEST_CASE("Prompt is generated correctly with default parameters") {
       test_sampler_params = sampler_params;
       test_context_params = context_params;
       return std::move(mock_llama_context);
-    }
-  );
+    });
   minifi::test::SingleProcessorTestController controller(std::make_unique<processors::LlamaCppProcessor>("LlamaCppProcessor"));
   LogTestController::getInstance().setTrace<processors::LlamaCppProcessor>();
   controller.getProcessor()->setProperty(processors::LlamaCppProcessor::ModelPath, "Dummy model");
@@ -95,7 +94,7 @@ TEST_CASE("Prompt is generated correctly with default parameters") {
   CHECK(mock_llama_context_ptr->getMessages()[0].content == "You are a helpful assisstant. You are given a question with some possible input data otherwise called flowfile data. "
                                                             "You are expected to generate a response based on the quiestion and the input data.");
   CHECK(mock_llama_context_ptr->getMessages()[1].role == "user");
-  CHECK(mock_llama_context_ptr->getMessages()[1].content == "Input data (or flowfile content): 42\n\nQuestion: What is the answer to life, the universe and everything?");
+  CHECK(mock_llama_context_ptr->getMessages()[1].content == "Input data (or flowfile content):\n42\n\nQuestion: What is the answer to life, the universe and everything?");
   CHECK(mock_llama_context_ptr->getMessages()[2].role == "assisstant");
   CHECK(mock_llama_context_ptr->getMessages()[2].content.empty());
 }
@@ -112,8 +111,7 @@ TEST_CASE("Prompt is generated correctly with custom parameters") {
       test_sampler_params = sampler_params;
       test_context_params = context_params;
       return std::move(mock_llama_context);
-    }
-  );
+    });
   minifi::test::SingleProcessorTestController controller(std::make_unique<processors::LlamaCppProcessor>("LlamaCppProcessor"));
   LogTestController::getInstance().setTrace<processors::LlamaCppProcessor>();
   controller.getProcessor()->setProperty(processors::LlamaCppProcessor::ModelPath, "/path/to/model");
@@ -153,7 +151,35 @@ TEST_CASE("Prompt is generated correctly with custom parameters") {
   CHECK(mock_llama_context_ptr->getMessages()[0].role == "system");
   CHECK(mock_llama_context_ptr->getMessages()[0].content == "Whatever");
   CHECK(mock_llama_context_ptr->getMessages()[1].role == "user");
-  CHECK(mock_llama_context_ptr->getMessages()[1].content == "Input data (or flowfile content): 42\n\nQuestion: What is the answer to life, the universe and everything?");
+  CHECK(mock_llama_context_ptr->getMessages()[1].content == "Input data (or flowfile content):\n42\n\nQuestion: What is the answer to life, the universe and everything?");
+  CHECK(mock_llama_context_ptr->getMessages()[2].role == "assisstant");
+  CHECK(mock_llama_context_ptr->getMessages()[2].content.empty());
+}
+
+TEST_CASE("Empty flow file does not include input data in prompt") {
+  auto mock_llama_context = std::make_unique<MockLlamaContext>();
+  auto mock_llama_context_ptr = mock_llama_context.get();
+  processors::LlamaContext::testSetProvider(
+    [&](const std::filesystem::path&, const processors::LlamaSamplerParams&, const processors::LlamaContextParams&) {
+      return std::move(mock_llama_context);
+    });
+  minifi::test::SingleProcessorTestController controller(std::make_unique<processors::LlamaCppProcessor>("LlamaCppProcessor"));
+  LogTestController::getInstance().setTrace<processors::LlamaCppProcessor>();
+  controller.getProcessor()->setProperty(processors::LlamaCppProcessor::ModelPath, "Dummy model");
+  controller.getProcessor()->setProperty(processors::LlamaCppProcessor::Prompt, "Question: What is the answer to life, the universe and everything?");
+
+  auto results = controller.trigger(minifi::test::InputFlowFileData{.content = "", .attributes = {}});
+
+  REQUIRE(results.at(processors::LlamaCppProcessor::Success).size() == 1);
+  auto& output_flow_file = results.at(processors::LlamaCppProcessor::Success)[0];
+  CHECK(controller.plan->getContent(output_flow_file) == "Test generated content");
+  CHECK(mock_llama_context_ptr->getInput() == "Test input");
+  CHECK(mock_llama_context_ptr->getMessages().size() == 3);
+  CHECK(mock_llama_context_ptr->getMessages()[0].role == "system");
+  CHECK(mock_llama_context_ptr->getMessages()[0].content == "You are a helpful assisstant. You are given a question with some possible input data otherwise called flowfile data. "
+                                                            "You are expected to generate a response based on the quiestion and the input data.");
+  CHECK(mock_llama_context_ptr->getMessages()[1].role == "user");
+  CHECK(mock_llama_context_ptr->getMessages()[1].content == "Question: What is the answer to life, the universe and everything?");
   CHECK(mock_llama_context_ptr->getMessages()[2].role == "assisstant");
   CHECK(mock_llama_context_ptr->getMessages()[2].content.empty());
 }
@@ -162,8 +188,7 @@ TEST_CASE("Invalid values for optional double type properties throw exception") 
   processors::LlamaContext::testSetProvider(
     [&](const std::filesystem::path&, const processors::LlamaSamplerParams&, const processors::LlamaContextParams&) {
       return std::make_unique<MockLlamaContext>();
-    }
-  );
+    });
   minifi::test::SingleProcessorTestController controller(std::make_unique<processors::LlamaCppProcessor>("LlamaCppProcessor"));
   LogTestController::getInstance().setTrace<processors::LlamaCppProcessor>();
   controller.getProcessor()->setProperty(processors::LlamaCppProcessor::ModelPath, "Dummy model");
@@ -183,7 +208,8 @@ TEST_CASE("Invalid values for optional double type properties throw exception") 
     property_name = processors::LlamaCppProcessor::MinP.name;
   }
 
-  REQUIRE_THROWS_WITH(controller.trigger(minifi::test::InputFlowFileData{.content = "42", .attributes = {}}), fmt::format("Process Schedule Operation: Property '{}' has invalid value 'invalid_value'", property_name));
+  REQUIRE_THROWS_WITH(controller.trigger(minifi::test::InputFlowFileData{.content = "42", .attributes = {}}),
+                      fmt::format("Process Schedule Operation: Property '{}' has invalid value 'invalid_value'", property_name));
 }
 
 TEST_CASE("Top K property empty and invalid values are handled properly") {
@@ -193,8 +219,7 @@ TEST_CASE("Top K property empty and invalid values are handled properly") {
     [&](const std::filesystem::path&, const processors::LlamaSamplerParams& sampler_params, const processors::LlamaContextParams&) {
       test_top_k = sampler_params.top_k;
       return std::make_unique<MockLlamaContext>();
-    }
-  );
+    });
   minifi::test::SingleProcessorTestController controller(std::make_unique<processors::LlamaCppProcessor>("LlamaCppProcessor"));
   LogTestController::getInstance().setTrace<processors::LlamaCppProcessor>();
   controller.getProcessor()->setProperty(processors::LlamaCppProcessor::ModelPath, "Dummy model");
