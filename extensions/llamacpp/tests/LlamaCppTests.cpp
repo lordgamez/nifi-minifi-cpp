@@ -89,14 +89,12 @@ TEST_CASE("Prompt is generated correctly with default parameters") {
   auto& output_flow_file = results.at(processors::LlamaCppProcessor::Success)[0];
   CHECK(controller.plan->getContent(output_flow_file) == "Test generated content");
   CHECK(mock_llama_context_ptr->getInput() == "Test input");
-  CHECK(mock_llama_context_ptr->getMessages().size() == 3);
+  REQUIRE(mock_llama_context_ptr->getMessages().size() == 2);
   CHECK(mock_llama_context_ptr->getMessages()[0].role == "system");
   CHECK(mock_llama_context_ptr->getMessages()[0].content == "You are a helpful assisstant. You are given a question with some possible input data otherwise called flowfile data. "
                                                             "You are expected to generate a response based on the quiestion and the input data.");
   CHECK(mock_llama_context_ptr->getMessages()[1].role == "user");
   CHECK(mock_llama_context_ptr->getMessages()[1].content == "Input data (or flowfile content):\n42\n\nQuestion: What is the answer to life, the universe and everything?");
-  CHECK(mock_llama_context_ptr->getMessages()[2].role == "assisstant");
-  CHECK(mock_llama_context_ptr->getMessages()[2].content.empty());
 }
 
 TEST_CASE("Prompt is generated correctly with custom parameters") {
@@ -147,13 +145,11 @@ TEST_CASE("Prompt is generated correctly with custom parameters") {
   auto& output_flow_file = results.at(processors::LlamaCppProcessor::Success)[0];
   CHECK(controller.plan->getContent(output_flow_file) == "Test generated content");
   CHECK(mock_llama_context_ptr->getInput() == "Test input");
-  CHECK(mock_llama_context_ptr->getMessages().size() == 3);
+  REQUIRE(mock_llama_context_ptr->getMessages().size() == 2);
   CHECK(mock_llama_context_ptr->getMessages()[0].role == "system");
   CHECK(mock_llama_context_ptr->getMessages()[0].content == "Whatever");
   CHECK(mock_llama_context_ptr->getMessages()[1].role == "user");
   CHECK(mock_llama_context_ptr->getMessages()[1].content == "Input data (or flowfile content):\n42\n\nQuestion: What is the answer to life, the universe and everything?");
-  CHECK(mock_llama_context_ptr->getMessages()[2].role == "assisstant");
-  CHECK(mock_llama_context_ptr->getMessages()[2].content.empty());
 }
 
 TEST_CASE("Empty flow file does not include input data in prompt") {
@@ -174,14 +170,12 @@ TEST_CASE("Empty flow file does not include input data in prompt") {
   auto& output_flow_file = results.at(processors::LlamaCppProcessor::Success)[0];
   CHECK(controller.plan->getContent(output_flow_file) == "Test generated content");
   CHECK(mock_llama_context_ptr->getInput() == "Test input");
-  CHECK(mock_llama_context_ptr->getMessages().size() == 3);
+  REQUIRE(mock_llama_context_ptr->getMessages().size() == 2);
   CHECK(mock_llama_context_ptr->getMessages()[0].role == "system");
   CHECK(mock_llama_context_ptr->getMessages()[0].content == "You are a helpful assisstant. You are given a question with some possible input data otherwise called flowfile data. "
                                                             "You are expected to generate a response based on the quiestion and the input data.");
   CHECK(mock_llama_context_ptr->getMessages()[1].role == "user");
   CHECK(mock_llama_context_ptr->getMessages()[1].content == "Question: What is the answer to life, the universe and everything?");
-  CHECK(mock_llama_context_ptr->getMessages()[2].role == "assisstant");
-  CHECK(mock_llama_context_ptr->getMessages()[2].content.empty());
 }
 
 TEST_CASE("Invalid values for optional double type properties throw exception") {
@@ -213,7 +207,6 @@ TEST_CASE("Invalid values for optional double type properties throw exception") 
 }
 
 TEST_CASE("Top K property empty and invalid values are handled properly") {
-  processors::LlamaSamplerParams sampler_params;
   std::optional<int32_t> test_top_k;
   processors::LlamaContext::testSetProvider(
     [&](const std::filesystem::path&, const processors::LlamaSamplerParams& sampler_params, const processors::LlamaContextParams&) {

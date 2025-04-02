@@ -126,7 +126,6 @@ void LlamaCppProcessor::onTrigger(core::ProcessContext& context, core::ProcessSe
     std::vector<LlamaChatMessage> messages;
     messages.push_back({.role = "system", .content = system_prompt_.c_str()});
     messages.push_back({.role = "user", .content = input_data_and_prompt.c_str()});
-    messages.push_back({.role = "assisstant", .content = ""});
 
     return llama_ctx_->applyTemplate(messages);
   }();
