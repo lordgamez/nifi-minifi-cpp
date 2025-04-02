@@ -24,20 +24,18 @@
 
 namespace org::apache::nifi::minifi::extensions::llamacpp::processors {
 
-static std::function<std::unique_ptr<LlamaContext>(const std::filesystem::path&, const LlamaSamplerParams&, const LlamaContextParams&, int32_t)> test_provider;
+static std::function<std::unique_ptr<LlamaContext>(const std::filesystem::path&, const LlamaSamplerParams&, const LlamaContextParams&)> test_provider;
 
-void LlamaContext::testSetProvider(std::function<std::unique_ptr<LlamaContext>(const std::filesystem::path&, const LlamaSamplerParams&, const LlamaContextParams&, int32_t)> provider) {
+void LlamaContext::testSetProvider(std::function<std::unique_ptr<LlamaContext>(const std::filesystem::path&, const LlamaSamplerParams&, const LlamaContextParams&)> provider) {
   test_provider = provider;
 }
 
 class DefaultLlamaContext : public LlamaContext {
  public:
-  DefaultLlamaContext(const std::filesystem::path& model_path, const LlamaSamplerParams& llama_sampler_params, const LlamaContextParams& llama_ctx_params, int32_t n_gpu_layers) {
+  DefaultLlamaContext(const std::filesystem::path& model_path, const LlamaSamplerParams& llama_sampler_params, const LlamaContextParams& llama_ctx_params) {
     llama_backend_init();
 
-    llama_model_params model_params = llama_model_default_params();
-    model_params.n_gpu_layers = n_gpu_layers;
-    llama_model_ = llama_load_model_from_file(model_path.c_str(), model_params);
+    llama_model_ = llama_load_model_from_file(model_path.c_str(), llama_model_default_params());
     if (!llama_model_) {
       throw Exception(ExceptionType::PROCESS_SCHEDULE_EXCEPTION, fmt::format("Failed to load model from '{}'", model_path.c_str()));
     }
@@ -154,11 +152,11 @@ class DefaultLlamaContext : public LlamaContext {
   llama_sampler* llama_sampler_{nullptr};
 };
 
-std::unique_ptr<LlamaContext> LlamaContext::create(const std::filesystem::path& model_path, const LlamaSamplerParams& llama_sampler_params, const LlamaContextParams& llama_ctx_params, int32_t n_gpu_layers) {
+std::unique_ptr<LlamaContext> LlamaContext::create(const std::filesystem::path& model_path, const LlamaSamplerParams& llama_sampler_params, const LlamaContextParams& llama_ctx_params) {
   if (test_provider) {
-    return test_provider(model_path, llama_sampler_params, llama_ctx_params, n_gpu_layers);
+    return test_provider(model_path, llama_sampler_params, llama_ctx_params);
   }
-  return std::make_unique<DefaultLlamaContext>(model_path, llama_sampler_params, llama_ctx_params, n_gpu_layers);
+  return std::make_unique<DefaultLlamaContext>(model_path, llama_sampler_params, llama_ctx_params);
 }
 
 }  // namespace org::apache::nifi::minifi::extensions::llamacpp::processors

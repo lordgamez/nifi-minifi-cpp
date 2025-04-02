@@ -59,13 +59,11 @@ TEST_CASE("Prompt is generated correctly with default parameters") {
   std::filesystem::path test_model_path;
   processors::LlamaSamplerParams test_sampler_params;
   processors::LlamaContextParams test_context_params;
-  int32_t test_n_gpu_layers = 0;
   processors::LlamaContext::testSetProvider(
-    [&](const std::filesystem::path& model_path, const processors::LlamaSamplerParams& sampler_params, const processors::LlamaContextParams& context_params, int32_t gpu_layers) {
+    [&](const std::filesystem::path& model_path, const processors::LlamaSamplerParams& sampler_params, const processors::LlamaContextParams& context_params) {
       test_model_path = model_path;
       test_sampler_params = sampler_params;
       test_context_params = context_params;
-      test_n_gpu_layers = gpu_layers;
       return std::move(mock_llama_context);
     }
   );
@@ -87,7 +85,6 @@ TEST_CASE("Prompt is generated correctly with default parameters") {
   CHECK(test_context_params.n_seq_max == 1);
   CHECK(test_context_params.n_threads == 4);
   CHECK(test_context_params.n_threads_batch == 4);
-  CHECK(test_n_gpu_layers == -1);
 
   REQUIRE(results.at(processors::LlamaCppProcessor::Success).size() == 1);
   auto& output_flow_file = results.at(processors::LlamaCppProcessor::Success)[0];
@@ -109,13 +106,11 @@ TEST_CASE("Prompt is generated correctly with custom parameters") {
   std::filesystem::path test_model_path;
   processors::LlamaSamplerParams test_sampler_params;
   processors::LlamaContextParams test_context_params;
-  int32_t test_n_gpu_layers = 0;
   processors::LlamaContext::testSetProvider(
-    [&](const std::filesystem::path& model_path, const processors::LlamaSamplerParams& sampler_params, const processors::LlamaContextParams& context_params, int32_t gpu_layers) {
+    [&](const std::filesystem::path& model_path, const processors::LlamaSamplerParams& sampler_params, const processors::LlamaContextParams& context_params) {
       test_model_path = model_path;
       test_sampler_params = sampler_params;
       test_context_params = context_params;
-      test_n_gpu_layers = gpu_layers;
       return std::move(mock_llama_context);
     }
   );
@@ -134,7 +129,6 @@ TEST_CASE("Prompt is generated correctly with custom parameters") {
   controller.getProcessor()->setProperty(processors::LlamaCppProcessor::MaxNumberOfSequences, "2");
   controller.getProcessor()->setProperty(processors::LlamaCppProcessor::ThreadsForGeneration, "12");
   controller.getProcessor()->setProperty(processors::LlamaCppProcessor::ThreadsForBatchProcessing, "8");
-  controller.getProcessor()->setProperty(processors::LlamaCppProcessor::NumberOfGPULayers, "10");
   controller.getProcessor()->setProperty(processors::LlamaCppProcessor::SystemPrompt, "Whatever");
 
   auto results = controller.trigger(minifi::test::InputFlowFileData{.content = "42", .attributes = {}});
@@ -150,7 +144,6 @@ TEST_CASE("Prompt is generated correctly with custom parameters") {
   CHECK(test_context_params.n_seq_max == 2);
   CHECK(test_context_params.n_threads == 12);
   CHECK(test_context_params.n_threads_batch == 8);
-  CHECK(test_n_gpu_layers == 10);
 
   REQUIRE(results.at(processors::LlamaCppProcessor::Success).size() == 1);
   auto& output_flow_file = results.at(processors::LlamaCppProcessor::Success)[0];
@@ -167,7 +160,7 @@ TEST_CASE("Prompt is generated correctly with custom parameters") {
 
 TEST_CASE("Invalid values for optional double type properties throw exception") {
   processors::LlamaContext::testSetProvider(
-    [&](const std::filesystem::path&, const processors::LlamaSamplerParams&, const processors::LlamaContextParams&, int32_t) {
+    [&](const std::filesystem::path&, const processors::LlamaSamplerParams&, const processors::LlamaContextParams&) {
       return std::make_unique<MockLlamaContext>();
     }
   );
@@ -197,7 +190,7 @@ TEST_CASE("Top K property empty and invalid values are handled properly") {
   processors::LlamaSamplerParams sampler_params;
   std::optional<int32_t> test_top_k;
   processors::LlamaContext::testSetProvider(
-    [&](const std::filesystem::path&, const processors::LlamaSamplerParams& sampler_params, const processors::LlamaContextParams&, int32_t) {
+    [&](const std::filesystem::path&, const processors::LlamaSamplerParams& sampler_params, const processors::LlamaContextParams&) {
       test_top_k = sampler_params.top_k;
       return std::make_unique<MockLlamaContext>();
     }

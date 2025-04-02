@@ -97,12 +97,7 @@ void LlamaCppProcessor::onSchedule(core::ProcessContext& context, core::ProcessS
     llama_ctx_params.n_threads_batch = gsl::narrow_cast<int32_t>(int_value);
   }
 
-  int32_t n_gpu_layers = -1;
-  if (context.getProperty(NumberOfGPULayers, int_value)) {
-    n_gpu_layers = gsl::narrow_cast<int32_t>(int_value);
-  }
-
-  llama_ctx_ = LlamaContext::create(model_path_, llama_sampler_params, llama_ctx_params, n_gpu_layers);
+  llama_ctx_ = LlamaContext::create(model_path_, llama_sampler_params, llama_ctx_params);
 }
 
 void LlamaCppProcessor::onTrigger(core::ProcessContext& context, core::ProcessSession& session) {

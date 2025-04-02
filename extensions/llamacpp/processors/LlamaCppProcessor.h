@@ -104,12 +104,6 @@ class LlamaCppProcessor : public core::ProcessorImpl {
       .withPropertyType(core::StandardPropertyTypes::INTEGER_TYPE)
       .withDefaultValue("4")
       .build();
-  EXTENSIONAPI static constexpr auto NumberOfGPULayers = core::PropertyDefinitionBuilder<>::createProperty("Number Of GPU Layers")
-      .withDescription("Number of layers to store in VRAM for the draft model (-1 - use default)")
-      .isRequired(true)
-      .withPropertyType(core::StandardPropertyTypes::INTEGER_TYPE)
-      .withDefaultValue("-1")
-      .build();
   EXTENSIONAPI static constexpr auto Prompt = core::PropertyDefinitionBuilder<>::createProperty("Prompt")
       .withDescription("The prompt for the inference")
       .supportsExpressionLanguage(true)
@@ -135,7 +129,6 @@ class LlamaCppProcessor : public core::ProcessorImpl {
     MaxNumberOfSequences,
     ThreadsForGeneration,
     ThreadsForBatchProcessing,
-    NumberOfGPULayers,
     Prompt,
     SystemPrompt
   });

@@ -50,8 +50,8 @@ struct LlamaContextParams {
 
 class LlamaContext {
  public:
-  static void testSetProvider(std::function<std::unique_ptr<LlamaContext>(const std::filesystem::path&, const LlamaSamplerParams&, const LlamaContextParams&, int32_t)> provider);
-  static std::unique_ptr<LlamaContext> create(const std::filesystem::path& model_path, const LlamaSamplerParams& llama_sampler_params, const LlamaContextParams& llama_ctx_params, int32_t n_gpu_layers);
+  static void testSetProvider(std::function<std::unique_ptr<LlamaContext>(const std::filesystem::path&, const LlamaSamplerParams&, const LlamaContextParams&)> provider);
+  static std::unique_ptr<LlamaContext> create(const std::filesystem::path& model_path, const LlamaSamplerParams& llama_sampler_params, const LlamaContextParams& llama_ctx_params);
   virtual std::string applyTemplate(const std::vector<LlamaChatMessage>& messages) = 0;
   virtual uint64_t generate(const std::string& input, std::function<void(std::string_view/*token*/)> token_handler) = 0;
   virtual ~LlamaContext() = default;
