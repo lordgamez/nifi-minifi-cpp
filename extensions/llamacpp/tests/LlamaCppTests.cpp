@@ -38,15 +38,13 @@ class MockLlamaContext : public processors::LlamaContext {
     return 3;
   }
 
-  const std::vector<processors::LlamaChatMessage>& getMessages() const {
+  [[nodiscard]] const std::vector<processors::LlamaChatMessage>& getMessages() const {
     return messages_;
   }
 
-  const std::string& getInput() const {
+  [[nodiscard]] const std::string& getInput() const {
     return input_;
   }
-
-  ~MockLlamaContext() override = default;
 
  private:
   std::vector<processors::LlamaChatMessage> messages_;
@@ -73,9 +71,9 @@ TEST_CASE("Prompt is generated correctly with default parameters") {
 
   auto results = controller.trigger(minifi::test::InputFlowFileData{.content = "42", .attributes = {}});
   CHECK(test_model_path == "Dummy model");
-  CHECK(test_sampler_params.temperature == 0.8f);
+  CHECK(test_sampler_params.temperature == 0.8F);
   CHECK(test_sampler_params.top_k == 40);
-  CHECK(test_sampler_params.top_p == 0.9f);
+  CHECK(test_sampler_params.top_p == 0.9F);
   CHECK(test_sampler_params.min_p == std::nullopt);
   CHECK(test_sampler_params.min_keep == 0);
   CHECK(test_context_params.n_ctx == 512);
@@ -129,10 +127,10 @@ TEST_CASE("Prompt is generated correctly with custom parameters") {
 
   auto results = controller.trigger(minifi::test::InputFlowFileData{.content = "42", .attributes = {}});
   CHECK(test_model_path == "/path/to/model");
-  CHECK(test_sampler_params.temperature == 0.4f);
+  CHECK(test_sampler_params.temperature == 0.4F);
   CHECK(test_sampler_params.top_k == 20);
   CHECK(test_sampler_params.top_p == std::nullopt);
-  CHECK(test_sampler_params.min_p == 0.1f);
+  CHECK(test_sampler_params.min_p == 0.1F);
   CHECK(test_sampler_params.min_keep == 1);
   CHECK(test_context_params.n_ctx == 4096);
   CHECK(test_context_params.n_batch == 1024);

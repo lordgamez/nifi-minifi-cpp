@@ -115,7 +115,7 @@ void LlamaCppProcessor::onTrigger(core::ProcessContext& context, core::ProcessSe
 
   auto read_result = session.readBuffer(input_ff);
   std::string input_data_and_prompt;
-  if (read_result.buffer.size() > 0) {
+  if (!read_result.buffer.empty()) {
     input_data_and_prompt.append("Input data (or flowfile content):\n");
     input_data_and_prompt.append({reinterpret_cast<const char*>(read_result.buffer.data()), read_result.buffer.size()});
     input_data_and_prompt.append("\n\n");
@@ -124,8 +124,8 @@ void LlamaCppProcessor::onTrigger(core::ProcessContext& context, core::ProcessSe
 
   std::string input = [&] {
     std::vector<LlamaChatMessage> messages;
-    messages.push_back({.role = "system", .content = system_prompt_.c_str()});
-    messages.push_back({.role = "user", .content = input_data_and_prompt.c_str()});
+    messages.push_back({.role = "system", .content = system_prompt_});
+    messages.push_back({.role = "user", .content = input_data_and_prompt});
 
     return llama_ctx_->applyTemplate(messages);
   }();
