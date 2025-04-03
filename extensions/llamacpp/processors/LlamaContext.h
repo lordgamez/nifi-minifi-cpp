@@ -50,11 +50,6 @@ struct LlamaContextParams {
 
 class LlamaContext {
  public:
-  LlamaContext() = default;
-  LlamaContext(const LlamaContext&) = default;
-  LlamaContext(LlamaContext&&) = default;
-  LlamaContext& operator=(const LlamaContext&) = default;
-  LlamaContext& operator=(LlamaContext&&) = default;
   static void testSetProvider(std::function<std::unique_ptr<LlamaContext>(const std::filesystem::path&, const LlamaSamplerParams&, const LlamaContextParams&)> provider);
   static std::unique_ptr<LlamaContext> create(const std::filesystem::path& model_path, const LlamaSamplerParams& llama_sampler_params, const LlamaContextParams& llama_ctx_params);
   virtual std::string applyTemplate(const std::vector<LlamaChatMessage>& messages) = 0;

@@ -67,6 +67,10 @@ class DefaultLlamaContext : public LlamaContext {
     }
     llama_sampler_chain_add(llama_sampler_, llama_sampler_init_dist(LLAMA_DEFAULT_SEED));
   }
+  DefaultLlamaContext(const DefaultLlamaContext&) = delete;
+  DefaultLlamaContext(DefaultLlamaContext&&) = delete;
+  DefaultLlamaContext& operator=(const DefaultLlamaContext&) = delete;
+  DefaultLlamaContext& operator=(DefaultLlamaContext&&) = delete;
 
   std::string applyTemplate(const std::vector<LlamaChatMessage>& messages) override {
     std::vector<llama_chat_message> llama_messages;
@@ -76,10 +80,10 @@ class DefaultLlamaContext : public LlamaContext {
     }
     std::string text;
     const char * chat_template = llama_model_chat_template(llama_model_, nullptr);
-    int32_t res_size = llama_chat_apply_template(chat_template, llama_messages.data(), llama_messages.size(), true, text.data(), text.size());
+    int32_t res_size = llama_chat_apply_template(chat_template, llama_messages.data(), llama_messages.size(), true, text.data(), gsl::narrow<int32_t>(text.size()));
     if (res_size > gsl::narrow<int32_t>(text.size())) {
       text.resize(res_size);
-      llama_chat_apply_template(chat_template, llama_messages.data(), llama_messages.size(), true, text.data(), text.size());
+      llama_chat_apply_template(chat_template, llama_messages.data(), llama_messages.size(), true, text.data(), gsl::narrow<int32_t>(text.size()));
     }
     text.resize(res_size);
 
@@ -89,12 +93,12 @@ class DefaultLlamaContext : public LlamaContext {
   uint64_t generate(const std::string& input, std::function<void(std::string_view/*token*/)> token_handler) override {
     const llama_vocab * vocab = llama_model_get_vocab(llama_model_);
     std::vector<llama_token> enc_input = [&] {
-      int32_t n_tokens = input.length() + 2;
+      int32_t n_tokens = gsl::narrow<int32_t>(input.length()) + 2;
       std::vector<llama_token> enc_input(n_tokens);
       n_tokens = llama_tokenize(vocab, input.data(), gsl::narrow<int32_t>(input.length()), enc_input.data(), gsl::narrow<int32_t>(enc_input.size()), true, true);
       if (n_tokens < 0) {
         enc_input.resize(-n_tokens);
-        int32_t check = llama_tokenize(vocab, input.data(), gsl::narrow<int32_t>(input.length()), enc_input.data(), gsl::narrow<int32_t>(enc_input.size()), true, true);
+        [[maybe_unused]] int32_t check = llama_tokenize(vocab, input.data(), gsl::narrow<int32_t>(input.length()), enc_input.data(), gsl::narrow<int32_t>(enc_input.size()), true, true);
         gsl_Assert(check == -n_tokens);
       } else {
         enc_input.resize(n_tokens);
