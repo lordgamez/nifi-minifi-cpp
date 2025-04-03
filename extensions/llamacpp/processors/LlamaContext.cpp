@@ -35,7 +35,7 @@ class DefaultLlamaContext : public LlamaContext {
   DefaultLlamaContext(const std::filesystem::path& model_path, const LlamaSamplerParams& llama_sampler_params, const LlamaContextParams& llama_ctx_params) {
     llama_backend_init();
 
-    llama_model_ = llama_load_model_from_file(model_path.c_str(), llama_model_default_params());
+    llama_model_ = llama_model_load_from_file(model_path.c_str(), llama_model_default_params());
     if (!llama_model_) {
       throw Exception(ExceptionType::PROCESS_SCHEDULE_EXCEPTION, fmt::format("Failed to load model from '{}'", model_path.c_str()));
     }
@@ -48,7 +48,7 @@ class DefaultLlamaContext : public LlamaContext {
     ctx_params.n_threads = llama_ctx_params.n_threads;
     ctx_params.n_threads_batch = llama_ctx_params.n_threads_batch;
     ctx_params.flash_attn = 0;
-    llama_ctx_ = llama_new_context_with_model(llama_model_, ctx_params);
+    llama_ctx_ = llama_init_from_model(llama_model_, ctx_params);
 
     auto sparams = llama_sampler_chain_default_params();
     llama_sampler_ = llama_sampler_chain_init(sparams);
@@ -74,10 +74,11 @@ class DefaultLlamaContext : public LlamaContext {
       msgs.push_back(llama_chat_message{.role = msg.role.c_str(), .content = msg.content.c_str()});
     }
     std::string text;
-    int32_t res_size = llama_chat_apply_template(llama_model_, nullptr, msgs.data(), msgs.size(), true, text.data(), text.size());
+    const char * chat_template = llama_model_chat_template(llama_model_, nullptr);
+    int32_t res_size = llama_chat_apply_template(chat_template, msgs.data(), msgs.size(), true, text.data(), text.size());
     if (res_size > gsl::narrow<int32_t>(text.size())) {
       text.resize(res_size);
-      llama_chat_apply_template(llama_model_, nullptr, msgs.data(), msgs.size(), true, text.data(), text.size());
+      llama_chat_apply_template(chat_template, msgs.data(), msgs.size(), true, text.data(), text.size());
     }
     text.resize(res_size);
 
@@ -85,13 +86,14 @@ class DefaultLlamaContext : public LlamaContext {
   }
 
   uint64_t generate(const std::string& input, std::function<void(std::string_view/*token*/)> token_handler) override {
+    const llama_vocab * vocab = llama_model_get_vocab(llama_model_);
     std::vector<llama_token> enc_input = [&] {
       int32_t n_tokens = input.length() + 2;
       std::vector<llama_token> enc_input(n_tokens);
-      n_tokens = llama_tokenize(llama_model_, input.data(), input.length(), enc_input.data(), enc_input.size(), true, true);
+      n_tokens = llama_tokenize(vocab, input.data(), input.length(), enc_input.data(), enc_input.size(), true, true);
       if (n_tokens < 0) {
         enc_input.resize(-n_tokens);
-        int check = llama_tokenize(llama_model_, input.data(), input.length(), enc_input.data(), enc_input.size(), true, true);
+        int check = llama_tokenize(vocab, input.data(), input.length(), enc_input.data(), enc_input.size(), true, true);
         gsl_Assert(check == -n_tokens);
       } else {
         enc_input.resize(n_tokens);
@@ -112,7 +114,7 @@ class DefaultLlamaContext : public LlamaContext {
 
       new_token_id = llama_sampler_sample(llama_sampler_, llama_ctx_, -1);
 
-      if (llama_token_is_eog(llama_model_, new_token_id)) {
+      if (llama_vocab_is_eog(vocab, new_token_id)) {
         break;
       }
 
@@ -120,7 +122,7 @@ class DefaultLlamaContext : public LlamaContext {
       llama_sampler_accept(llama_sampler_, new_token_id);
 
       std::array<char, 128> buf;
-      int32_t len = llama_token_to_piece(llama_model_, new_token_id, buf.data(), buf.size(), 0, true);
+      int32_t len = llama_token_to_piece(vocab, new_token_id, buf.data(), buf.size(), 0, true);
       if (len < 0) {
         throw std::logic_error("failed to convert to text");
       }
@@ -141,7 +143,7 @@ class DefaultLlamaContext : public LlamaContext {
     llama_sampler_ = nullptr;
     llama_free(llama_ctx_);
     llama_ctx_ = nullptr;
-    llama_free_model(llama_model_);
+    llama_model_free(llama_model_);
     llama_model_ = nullptr;
     llama_backend_free();
   }
