@@ -72,7 +72,7 @@ class LlamaCppProcessor : public core::ProcessorImpl {
       .withDescription("Size of the text context, use 0 to use size set in model")
       .isRequired(true)
       .withPropertyType(core::StandardPropertyTypes::UNSIGNED_INT_TYPE)
-      .withDefaultValue("512")
+      .withDefaultValue("4096")
       .build();
   EXTENSIONAPI static constexpr auto LogicalMaximumBatchSize = core::PropertyDefinitionBuilder<>::createProperty("Logical Maximum Batch Size")
       .withDescription("Logical maximum batch size that can be submitted to llama_decode")
