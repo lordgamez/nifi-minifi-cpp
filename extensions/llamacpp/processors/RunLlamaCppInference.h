@@ -132,8 +132,9 @@ class RunLlamaCppInference : public core::ProcessorImpl {
   });
 
 
-  EXTENSIONAPI static constexpr auto Success = core::RelationshipDefinition{"success", "Generated result from the model"};
-  EXTENSIONAPI static constexpr auto Relationships = std::array{Success};
+  EXTENSIONAPI static constexpr auto Success = core::RelationshipDefinition{"success", "Generated results from the model"};
+  EXTENSIONAPI static constexpr auto Failure = core::RelationshipDefinition{"failure", "Generation failed"};
+  EXTENSIONAPI static constexpr auto Relationships = std::array{Success, Failure};
 
   EXTENSIONAPI static constexpr bool SupportsDynamicProperties = false;
   EXTENSIONAPI static constexpr bool SupportsDynamicRelationships = true;

@@ -1760,9 +1760,10 @@ In the list below, the names of required properties appear in bold. Any other pr
 
 ### Relationships
 
-| Name    | Description                     |
-|---------|---------------------------------|
-| success | Generated result from the model |
+| Name    | Description                      |
+|---------|----------------------------------|
+| success | Generated results from the model |
+| failure | Generation failed                |
 
 
 ## LogAttribute

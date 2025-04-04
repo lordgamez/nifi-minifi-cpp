@@ -30,7 +30,7 @@ class DefaultLlamaContext : public LlamaContext {
   ~DefaultLlamaContext() override;
 
   std::string applyTemplate(const std::vector<LlamaChatMessage>& messages) override;
-  uint64_t generate(const std::string& input, std::function<void(std::string_view/*token*/)> token_handler) override;
+  nonstd::expected<uint64_t, std::string> generate(const std::string& input, std::function<void(std::string_view/*token*/)> token_handler) override;
 
  private:
   std::vector<llama_token> tokenizeInput(const llama_vocab* vocab, const std::string& input);

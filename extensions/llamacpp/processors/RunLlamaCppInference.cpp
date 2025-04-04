@@ -106,9 +106,6 @@ void RunLlamaCppInference::onTrigger(core::ProcessContext& context, core::Proces
     context.yield();
     return;
   }
-  auto ff_guard = gsl::finally([&] {
-    session.remove(input_ff);
-  });
 
   std::string prompt;
   context.getProperty(Prompt, prompt, input_ff.get());
@@ -135,11 +132,23 @@ void RunLlamaCppInference::onTrigger(core::ProcessContext& context, core::Proces
   auto start_time = std::chrono::steady_clock::now();
 
   std::string text;
-  llama_ctx_->generate(input, [&] (std::string_view token) {
+  auto number_of_tokens_generated = llama_ctx_->generate(input, [&] (std::string_view token) {
     text += token;
   });
 
   auto elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time).count();
+
+  if (!number_of_tokens_generated) {
+    logger_->log_error("Inference failed with generation error: '{}'", number_of_tokens_generated.error());
+    session.transfer(input_ff, Failure);
+    return;
+  }
+
+  auto ff_guard = gsl::finally([&] {
+    session.remove(input_ff);
+  });
+
+  logger_->log_debug("Number of tokens generated: {}", *number_of_tokens_generated);
   logger_->log_debug("AI model inference time: {} ms", elapsed_time);
   logger_->log_debug("AI model output: {}", text);
 

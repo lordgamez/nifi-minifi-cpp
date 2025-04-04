@@ -30,7 +30,10 @@ class MockLlamaContext : public processors::LlamaContext {
     return "Test input";
   }
 
-  uint64_t generate(const std::string& input, std::function<void(std::string_view/*token*/)> token_handler) override {
+  nonstd::expected<uint64_t, std::string> generate(const std::string& input, std::function<void(std::string_view/*token*/)> token_handler) override {
+    if (fail_generation_) {
+      return nonstd::make_unexpected("Generation failed");
+    }
     input_ = input;
     token_handler("Test ");
     token_handler("generated");
@@ -46,7 +49,12 @@ class MockLlamaContext : public processors::LlamaContext {
     return input_;
   }
 
+  void setFailure() {
+    fail_generation_ = true;
+  }
+
  private:
+  bool fail_generation_{false};
   std::vector<processors::LlamaChatMessage> messages_;
   std::string input_;
 };
@@ -224,6 +232,26 @@ TEST_CASE("Top K property empty and invalid values are handled properly") {
     controller.getProcessor()->setProperty(processors::RunLlamaCppInference::TopK, "invalid_value");
     REQUIRE_THROWS_WITH(controller.trigger(minifi::test::InputFlowFileData{.content = "42", .attributes = {}}), "Process Schedule Operation: Property 'Top K' has invalid value 'invalid_value'");
   }
+}
+
+TEST_CASE("Generation failed with error") {
+  auto mock_llama_context = std::make_unique<MockLlamaContext>();
+  mock_llama_context->setFailure();
+  processors::LlamaContext::testSetProvider(
+    [&](const std::filesystem::path&, const processors::LlamaSamplerParams&, const processors::LlamaContextParams&) {
+      return std::move(mock_llama_context);
+    });
+  minifi::test::SingleProcessorTestController controller(std::make_unique<processors::RunLlamaCppInference>("RunLlamaCppInference"));
+  LogTestController::getInstance().setTrace<processors::RunLlamaCppInference>();
+  controller.getProcessor()->setProperty(processors::RunLlamaCppInference::ModelPath, "/path/to/model");
+  controller.getProcessor()->setProperty(processors::RunLlamaCppInference::Prompt, "Question: What is the answer to life, the universe and everything?");
+
+  auto results = controller.trigger(minifi::test::InputFlowFileData{.content = "42", .attributes = {}});
+
+  REQUIRE(results.at(processors::RunLlamaCppInference::Success).empty());
+  REQUIRE(results.at(processors::RunLlamaCppInference::Failure).size() == 1);
+  auto& output_flow_file = results.at(processors::RunLlamaCppInference::Failure)[0];
+  CHECK(controller.plan->getContent(output_flow_file) == "42");
 }
 
 }  // namespace org::apache::nifi::minifi::extensions::llamacpp::test

@@ -99,7 +99,7 @@ std::vector<llama_token> DefaultLlamaContext::tokenizeInput(const llama_vocab* v
   return tokenized_input;
 }
 
-uint64_t DefaultLlamaContext::generate(const std::string& input, std::function<void(std::string_view/*token*/)> token_handler) {
+nonstd::expected<uint64_t, std::string> DefaultLlamaContext::generate(const std::string& input, std::function<void(std::string_view/*token*/)> token_handler) {
   const llama_vocab * vocab = llama_model_get_vocab(llama_model_);
   std::vector<llama_token> tokenized_input = tokenizeInput(vocab, input);
 
@@ -108,7 +108,7 @@ uint64_t DefaultLlamaContext::generate(const std::string& input, std::function<v
   uint64_t tokens_generated = 0;
   while (true) {
     if (int32_t res = llama_decode(llama_ctx_, batch); res < 0) {
-      throw std::logic_error("failed to execute decode");
+      return nonstd::make_unexpected("Failed to execute llama decode");
     }
 
     new_token_id = llama_sampler_sample(llama_sampler_, llama_ctx_, -1);
@@ -123,14 +123,12 @@ uint64_t DefaultLlamaContext::generate(const std::string& input, std::function<v
     std::array<char, 128> buf{};
     int32_t len = llama_token_to_piece(vocab, new_token_id, buf.data(), gsl::narrow<int32_t>(buf.size()), 0, true);
     if (len < 0) {
-      throw std::logic_error("failed to convert to text");
+      return nonstd::make_unexpected("Failed to convert token to text");
     }
     gsl_Assert(len < 128);
 
     std::string_view token_str{buf.data(), gsl::narrow<std::string_view::size_type>(len)};
-
     batch = llama_batch_get_one(&new_token_id, 1);
-
     token_handler(token_str);
   }
 
