@@ -35,9 +35,9 @@ class DefaultLlamaContext : public LlamaContext {
   DefaultLlamaContext(const std::filesystem::path& model_path, const LlamaSamplerParams& llama_sampler_params, const LlamaContextParams& llama_ctx_params) {
     llama_backend_init();
 
-    llama_model_ = llama_model_load_from_file(model_path.c_str(), llama_model_default_params());  // NOLINT(cppcoreguidelines-prefer-member-initializer)
+    llama_model_ = llama_model_load_from_file(model_path.string().c_str(), llama_model_default_params());  // NOLINT(cppcoreguidelines-prefer-member-initializer)
     if (!llama_model_) {
-      throw Exception(ExceptionType::PROCESS_SCHEDULE_EXCEPTION, fmt::format("Failed to load model from '{}'", model_path.c_str()));
+      throw Exception(ExceptionType::PROCESS_SCHEDULE_EXCEPTION, fmt::format("Failed to load model from '{}'", model_path.string()));
     }
 
     llama_context_params ctx_params = llama_context_default_params();
@@ -124,7 +124,7 @@ class DefaultLlamaContext : public LlamaContext {
       llama_sampler_accept(llama_sampler_, new_token_id);
 
       std::array<char, 128> buf{};
-      int32_t len = llama_token_to_piece(vocab, new_token_id, buf.data(), buf.size(), 0, true);
+      int32_t len = llama_token_to_piece(vocab, new_token_id, buf.data(), gsl::narrow<int32_t>(buf.size()), 0, true);
       if (len < 0) {
         throw std::logic_error("failed to convert to text");
       }
