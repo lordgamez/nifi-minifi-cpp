@@ -107,8 +107,11 @@ nonstd::expected<uint64_t, std::string> DefaultLlamaContext::generate(const std:
   llama_token new_token_id = 0;
   uint64_t tokens_generated = 0;
   while (true) {
-    if (int32_t res = llama_decode(llama_ctx_, batch); res < 0) {
-      return nonstd::make_unexpected("Failed to execute llama decode");
+    int32_t res = llama_decode(llama_ctx_, batch);
+    if (res == 1) {
+      return nonstd::make_unexpected("Could not find a KV slot for the batch (try reducing the size of the batch or increase the context)");
+    } else if (res < 0) {
+      return nonstd::make_unexpected("Error occurred while executing llama decode");
     }
 
     new_token_id = llama_sampler_sample(llama_sampler_, llama_ctx_, -1);
