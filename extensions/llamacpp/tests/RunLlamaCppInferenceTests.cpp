@@ -89,10 +89,10 @@ TEST_CASE("Prompt is generated correctly with default parameters") {
   CHECK(mock_llama_context_ptr->getInput() == "Test input");
   REQUIRE(mock_llama_context_ptr->getMessages().size() == 2);
   CHECK(mock_llama_context_ptr->getMessages()[0].role == "system");
-  CHECK(mock_llama_context_ptr->getMessages()[0].content == "You are a helpful assisstant. You are given a question with some possible input data otherwise called flowfile data. "
+  CHECK(mock_llama_context_ptr->getMessages()[0].content == "You are a helpful assisstant. You are given a question with some possible input data otherwise called flow file content. "
                                                             "You are expected to generate a response based on the quiestion and the input data.");
   CHECK(mock_llama_context_ptr->getMessages()[1].role == "user");
-  CHECK(mock_llama_context_ptr->getMessages()[1].content == "Input data (or flowfile content):\n42\n\nQuestion: What is the answer to life, the universe and everything?");
+  CHECK(mock_llama_context_ptr->getMessages()[1].content == "Input data (or flow file content):\n42\n\nQuestion: What is the answer to life, the universe and everything?");
 }
 
 TEST_CASE("Prompt is generated correctly with custom parameters") {
@@ -147,7 +147,7 @@ TEST_CASE("Prompt is generated correctly with custom parameters") {
   CHECK(mock_llama_context_ptr->getMessages()[0].role == "system");
   CHECK(mock_llama_context_ptr->getMessages()[0].content == "Whatever");
   CHECK(mock_llama_context_ptr->getMessages()[1].role == "user");
-  CHECK(mock_llama_context_ptr->getMessages()[1].content == "Input data (or flowfile content):\n42\n\nQuestion: What is the answer to life, the universe and everything?");
+  CHECK(mock_llama_context_ptr->getMessages()[1].content == "Input data (or flow file content):\n42\n\nQuestion: What is the answer to life, the universe and everything?");
 }
 
 TEST_CASE("Empty flow file does not include input data in prompt") {
@@ -170,7 +170,7 @@ TEST_CASE("Empty flow file does not include input data in prompt") {
   CHECK(mock_llama_context_ptr->getInput() == "Test input");
   REQUIRE(mock_llama_context_ptr->getMessages().size() == 2);
   CHECK(mock_llama_context_ptr->getMessages()[0].role == "system");
-  CHECK(mock_llama_context_ptr->getMessages()[0].content == "You are a helpful assisstant. You are given a question with some possible input data otherwise called flowfile data. "
+  CHECK(mock_llama_context_ptr->getMessages()[0].content == "You are a helpful assisstant. You are given a question with some possible input data otherwise called flow file content. "
                                                             "You are expected to generate a response based on the quiestion and the input data.");
   CHECK(mock_llama_context_ptr->getMessages()[1].role == "user");
   CHECK(mock_llama_context_ptr->getMessages()[1].content == "Question: What is the answer to life, the universe and everything?");

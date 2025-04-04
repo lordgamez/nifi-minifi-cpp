@@ -116,7 +116,7 @@ void RunLlamaCppInference::onTrigger(core::ProcessContext& context, core::Proces
   auto read_result = session.readBuffer(input_ff);
   std::string input_data_and_prompt;
   if (!read_result.buffer.empty()) {
-    input_data_and_prompt.append("Input data (or flowfile content):\n");
+    input_data_and_prompt.append("Input data (or flow file content):\n");
     input_data_and_prompt.append({reinterpret_cast<const char*>(read_result.buffer.data()), read_result.buffer.size()});
     input_data_and_prompt.append("\n\n");
   }
