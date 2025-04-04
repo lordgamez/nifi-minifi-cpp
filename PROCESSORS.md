@@ -65,7 +65,7 @@ limitations under the License.
 - [ListS3](#ListS3)
 - [ListSFTP](#ListSFTP)
 - [ListSmb](#ListSmb)
-- [LlamaCppProcessor](#LlamaCppProcessor)
+- [RunLlamaCppInference](#RunLlamaCppInference)
 - [LogAttribute](#LogAttribute)
 - [ManipulateArchive](#ManipulateArchive)
 - [MergeContent](#MergeContent)
@@ -1731,7 +1731,7 @@ In the list below, the names of required properties appear in bold. Any other pr
 | size             | success      | The size of the file in bytes.
 
                                                                                        |
-## LlamaCppProcessor
+## RunLlamaCppInference
 
 ### Description
 

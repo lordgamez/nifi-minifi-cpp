@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-#include "LlamaCppProcessor.h"
+#include "RunLlamaCppInference.h"
 #include "core/ProcessContext.h"
 #include "core/ProcessSession.h"
 #include "core/Resource.h"
@@ -55,12 +55,12 @@ std::optional<int32_t> parseOptionalInt32Property(const core::ProcessContext& co
 
 }  // namespace
 
-void LlamaCppProcessor::initialize() {
+void RunLlamaCppInference::initialize() {
   setSupportedProperties(Properties);
   setSupportedRelationships(Relationships);
 }
 
-void LlamaCppProcessor::onSchedule(core::ProcessContext& context, core::ProcessSessionFactory&) {
+void RunLlamaCppInference::onSchedule(core::ProcessContext& context, core::ProcessSessionFactory&) {
   model_path_.clear();
   context.getProperty(ModelPath, model_path_);
   context.getProperty(SystemPrompt, system_prompt_);
@@ -100,7 +100,7 @@ void LlamaCppProcessor::onSchedule(core::ProcessContext& context, core::ProcessS
   llama_ctx_ = LlamaContext::create(model_path_, llama_sampler_params, llama_ctx_params);
 }
 
-void LlamaCppProcessor::onTrigger(core::ProcessContext& context, core::ProcessSession& session) {
+void RunLlamaCppInference::onTrigger(core::ProcessContext& context, core::ProcessSession& session) {
   auto input_ff = session.get();
   if (!input_ff) {
     context.yield();
@@ -148,10 +148,10 @@ void LlamaCppProcessor::onTrigger(core::ProcessContext& context, core::ProcessSe
   session.transfer(result, Success);
 }
 
-void LlamaCppProcessor::notifyStop() {
+void RunLlamaCppInference::notifyStop() {
   llama_ctx_.reset();
 }
 
-REGISTER_RESOURCE(LlamaCppProcessor, Processor);
+REGISTER_RESOURCE(RunLlamaCppInference, Processor);
 
 }  // namespace org::apache::nifi::minifi::extensions::llamacpp::processors

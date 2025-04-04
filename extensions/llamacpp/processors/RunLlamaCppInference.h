@@ -27,7 +27,7 @@
 
 namespace org::apache::nifi::minifi::extensions::llamacpp::processors {
 
-class LlamaCppProcessor : public core::ProcessorImpl {
+class RunLlamaCppInference : public core::ProcessorImpl {
   struct LLMExample {
     std::string input_role;
     std::string input;
@@ -36,10 +36,10 @@ class LlamaCppProcessor : public core::ProcessorImpl {
   };
 
  public:
-  explicit LlamaCppProcessor(std::string_view name, const utils::Identifier& uuid = {})
+  explicit RunLlamaCppInference(std::string_view name, const utils::Identifier& uuid = {})
       : core::ProcessorImpl(name, uuid) {
   }
-  ~LlamaCppProcessor() override = default;
+  ~RunLlamaCppInference() override = default;
 
   EXTENSIONAPI static constexpr const char* Description = "LlamaCpp processor to use llama.cpp library for LLM inference";
 
@@ -150,7 +150,7 @@ class LlamaCppProcessor : public core::ProcessorImpl {
   void notifyStop() override;
 
  private:
-  std::shared_ptr<core::logging::Logger> logger_ = core::logging::LoggerFactory<LlamaCppProcessor>::getLogger(uuid_);
+  std::shared_ptr<core::logging::Logger> logger_ = core::logging::LoggerFactory<RunLlamaCppInference>::getLogger(uuid_);
 
   std::string model_path_;
   std::vector<LLMExample> examples_;

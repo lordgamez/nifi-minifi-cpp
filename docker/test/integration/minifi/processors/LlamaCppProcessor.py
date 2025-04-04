@@ -17,10 +17,10 @@
 from ..core.Processor import Processor
 
 
-class LlamaCppProcessor(Processor):
+class RunLlamaCppInference(Processor):
     def __init__(self, context, schedule={'scheduling strategy': 'EVENT_DRIVEN'}):
-        super(LlamaCppProcessor, self).__init__(
+        super(RunLlamaCppInference, self).__init__(
             context=context,
-            clazz='LlamaCppProcessor',
+            clazz='RunLlamaCppInference',
             auto_terminate=['success', 'failure'],
             schedule=schedule)
