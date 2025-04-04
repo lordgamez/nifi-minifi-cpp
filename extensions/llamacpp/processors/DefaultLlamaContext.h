@@ -33,6 +33,8 @@ class DefaultLlamaContext : public LlamaContext {
   uint64_t generate(const std::string& input, std::function<void(std::string_view/*token*/)> token_handler) override;
 
  private:
+  std::vector<llama_token> tokenizeInput(const llama_vocab* vocab, const std::string& input);
+
   llama_model* llama_model_{};
   llama_context* llama_ctx_{};
   llama_sampler* llama_sampler_{};

@@ -85,23 +85,25 @@ std::string DefaultLlamaContext::applyTemplate(const std::vector<LlamaChatMessag
   return text;
 }
 
+std::vector<llama_token> DefaultLlamaContext::tokenizeInput(const llama_vocab* vocab, const std::string& input) {
+  int32_t number_of_tokens = gsl::narrow<int32_t>(input.length()) + 2;
+  std::vector<llama_token> tokenized_input(number_of_tokens);
+  number_of_tokens = llama_tokenize(vocab, input.data(), gsl::narrow<int32_t>(input.length()), tokenized_input.data(), gsl::narrow<int32_t>(tokenized_input.size()), true, true);
+  if (number_of_tokens < 0) {
+    tokenized_input.resize(-number_of_tokens);
+    [[maybe_unused]] int32_t check = llama_tokenize(vocab, input.data(), gsl::narrow<int32_t>(input.length()), tokenized_input.data(), gsl::narrow<int32_t>(tokenized_input.size()), true, true);
+    gsl_Assert(check == -number_of_tokens);
+  } else {
+    tokenized_input.resize(number_of_tokens);
+  }
+  return tokenized_input;
+}
+
 uint64_t DefaultLlamaContext::generate(const std::string& input, std::function<void(std::string_view/*token*/)> token_handler) {
   const llama_vocab * vocab = llama_model_get_vocab(llama_model_);
-  std::vector<llama_token> enc_input = [&] {
-    int32_t n_tokens = gsl::narrow<int32_t>(input.length()) + 2;
-    std::vector<llama_token> enc_input(n_tokens);
-    n_tokens = llama_tokenize(vocab, input.data(), gsl::narrow<int32_t>(input.length()), enc_input.data(), gsl::narrow<int32_t>(enc_input.size()), true, true);
-    if (n_tokens < 0) {
-      enc_input.resize(-n_tokens);
-      [[maybe_unused]] int32_t check = llama_tokenize(vocab, input.data(), gsl::narrow<int32_t>(input.length()), enc_input.data(), gsl::narrow<int32_t>(enc_input.size()), true, true);
-      gsl_Assert(check == -n_tokens);
-    } else {
-      enc_input.resize(n_tokens);
-    }
-    return enc_input;
-  }();
+  std::vector<llama_token> tokenized_input = tokenizeInput(vocab, input);
 
-  llama_batch batch = llama_batch_get_one(enc_input.data(), gsl::narrow<int32_t>(enc_input.size()));
+  llama_batch batch = llama_batch_get_one(tokenized_input.data(), gsl::narrow<int32_t>(tokenized_input.size()));
   llama_token new_token_id = 0;
   uint64_t tokens_generated = 0;
   while (true) {
