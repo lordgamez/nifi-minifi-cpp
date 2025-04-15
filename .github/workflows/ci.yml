@@ -3,14 +3,14 @@ on: [push, pull_request, workflow_dispatch]
 env:
   DOCKER_CMAKE_FLAGS: -DDOCKER_VERIFY_THREAD=3 -DUSE_SHARED_LIBS= -DSTRICT_GSL_CHECKS=AUDIT -DCI_BUILD=ON -DENABLE_AWS=ON -DENABLE_KAFKA=ON -DENABLE_MQTT=ON -DENABLE_AZURE=ON -DENABLE_SQL=ON \
     -DENABLE_SPLUNK=ON -DENABLE_GCP=ON -DENABLE_OPC=ON -DENABLE_PYTHON_SCRIPTING=ON -DENABLE_LUA_SCRIPTING=ON -DENABLE_KUBERNETES=ON -DENABLE_TEST_PROCESSORS=ON -DENABLE_PROMETHEUS=ON \
-    -DENABLE_ELASTICSEARCH=ON -DENABLE_GRAFANA_LOKI=ON -DENABLE_COUCHBASE=ON -DDOCKER_BUILD_ONLY=ON
+    -DENABLE_ELASTICSEARCH=ON -DENABLE_GRAFANA_LOKI=ON -DENABLE_COUCHBASE=ON -DDOCKER_BUILD_ONLY=ON -DMINIFI_ADVANCED_LINK_TIME_OPTIMIZATION=ON
   SCCACHE_GHA_ENABLE: true
   CCACHE_DIR: ${{ GITHUB.WORKSPACE }}/.ccache
 jobs:
   macos_xcode:
     name: "macOS 15 aarch64"
     runs-on: macos-15
-    timeout-minutes: 180
+    timeout-minutes: 300
     env:
       MACOS_MINIFI_OPTIONS: >-
         -DCMAKE_BUILD_TYPE=Release
@@ -56,6 +56,7 @@ jobs:
         -DPORTABLE=ON
         -DSKIP_TESTS=OFF
         -DUSE_SHARED_LIBS=ON
+        -DMINIFI_ADVANCED_LINK_TIME_OPTIMIZATION=ON
     steps:
       - id: checkout
         uses: actions/checkout@v4
@@ -114,7 +115,7 @@ jobs:
   windows_VS2022:
     name: "Windows Server 2025 x86_64"
     runs-on: windows-2025
-    timeout-minutes: 240
+    timeout-minutes: 300
     env:
       WINDOWS_MINIFI_OPTIONS: >-
         -DCMAKE_BUILD_TYPE=Release
@@ -167,6 +168,7 @@ jobs:
         -DSTATIC_BUILD=ON
         -DMINIFI_USE_REAL_ODBC_TEST_DRIVER=ON
         -DUSE_SHARED_LIBS=OFF
+        -DMINIFI_ADVANCED_LINK_TIME_OPTIMIZATION=ON
     steps:
       - name: Support longpaths
         run: git config --system core.longpaths true
@@ -223,7 +225,7 @@ jobs:
   ubuntu_22_04_clang_arm:
     name: "Ubuntu 22.04 clang aarch64"
     runs-on: ubuntu-22.04-arm
-    timeout-minutes: 240
+    timeout-minutes: 300
     env:
       UBUNTU_CLANG_MINIFI_OPTIONS: >-
         -DCMAKE_BUILD_TYPE=RelWithDebInfo
@@ -270,6 +272,7 @@ jobs:
         -DSKIP_TESTS=OFF
         -DMINIFI_USE_REAL_ODBC_TEST_DRIVER=OFF
         -DUSE_SHARED_LIBS=ON
+        -DMINIFI_ADVANCED_LINK_TIME_OPTIMIZATION=ON
     steps:
       - id: checkout
         uses: actions/checkout@v4
@@ -370,7 +373,7 @@ jobs:
   rocky:
     name: "Rocky (docker) x86_64"
     runs-on: ubuntu-24.04
-    timeout-minutes: 180
+    timeout-minutes: 300
     steps:
       - id: checkout
         uses: actions/checkout@v4
@@ -403,7 +406,7 @@ jobs:
           mkdir build && cd build && cmake -DUSE_SHARED_LIBS=ON -DCI_BUILD=ON -DCMAKE_BUILD_TYPE=Release -DSTRICT_GSL_CHECKS=AUDIT -DMINIFI_FAIL_ON_WARNINGS=OFF -DENABLE_AWS=ON -DENABLE_AZURE=ON \
               -DENABLE_ENCRYPT_CONFIG=ON -DENABLE_KAFKA=ON -DENABLE_MQTT=ON -DENABLE_OPC=ON -DENABLE_OPENCV=ON -DENABLE_OPS=ON -DENABLE_SQL=ON -DENABLE_SYSTEMD=ON \
               -DENABLE_PYTHON_SCRIPTING=ON -DENABLE_LUA_SCRIPTING=ON -DENABLE_KUBERNETES=ON -DENABLE_GCP=ON -DENABLE_PROCFS=ON -DENABLE_PROMETHEUS=ON \
-              -DENABLE_ELASTICSEARCH=ON -DENABLE_GRAFANA_LOKI=ON -DDOCKER_SKIP_TESTS=OFF -DDOCKER_BUILD_ONLY=ON -DDOCKER_CCACHE_DUMP_LOCATION=${{ env.CCACHE_DIR }} .. && make rocky-test
+              -DENABLE_ELASTICSEARCH=ON -DENABLE_GRAFANA_LOKI=ON -DDOCKER_SKIP_TESTS=OFF -DDOCKER_BUILD_ONLY=ON -DMINIFI_ADVANCED_LINK_TIME_OPTIMIZATION=ON -DDOCKER_CCACHE_DUMP_LOCATION=${{ env.CCACHE_DIR }} .. && make rocky-test
       - name: cache save
         uses: actions/cache/save@v4
         if: always()
@@ -439,7 +442,7 @@ jobs:
   docker_build:
     name: "Docker build for integration tests (x86_64)"
     runs-on: ubuntu-22.04
-    timeout-minutes: 180
+    timeout-minutes: 300
     steps:
       - id: checkout
         uses: actions/checkout@v4
@@ -484,7 +487,7 @@ jobs:
     name: "Docker integration tests (x86_64)"
     needs: docker_build
     runs-on: ubuntu-24.04
-    timeout-minutes: 180
+    timeout-minutes: 300
     steps:
       - id: checkout
         uses: actions/checkout@v4
