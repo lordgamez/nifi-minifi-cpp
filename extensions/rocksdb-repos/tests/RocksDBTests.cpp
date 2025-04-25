@@ -36,10 +36,13 @@ struct OpenDatabase {
 
 struct RocksDBTest : TestController {
   RocksDBTest() {
+    // LogTestController::getInstance().getLogger<LogTestController>()->set_max_log_size(999999999);
     LogTestController::getInstance().setTrace<minifi::internal::RocksDatabase>();
     LogTestController::getInstance().setTrace<minifi::internal::RocksDbInstance>();
     LogTestController::getInstance().setTrace<minifi::internal::ColumnHandle>();
     LogTestController::getInstance().setTrace<minifi::internal::DbHandle>();
+    // LogTestController::getInstance().setTrace<LogTestController>();
+
     db_dir = createTempDirectory().string();
   }
 
