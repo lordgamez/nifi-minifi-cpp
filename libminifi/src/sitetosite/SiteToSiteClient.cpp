@@ -699,7 +699,20 @@ bool SiteToSiteClient::receiveFlowFiles(core::ProcessContext& context, core::Pro
 
       if (packet._size > 0) {
         session.write(flowFile, [&packet](const std::shared_ptr<io::OutputStream>& output_stream) -> int64_t {
-          return internal::pipe(packet.transaction_->getStream(), *output_stream);
+          uint64_t len = packet._size;
+          uint64_t total = 0;
+          std::array<std::byte, utils::configuration::DEFAULT_BUFFER_SIZE> buffer{};
+          while (len > 0) {
+            const auto size = std::min(len, uint64_t{utils::configuration::DEFAULT_BUFFER_SIZE});
+            const auto ret = packet.transaction_->getStream().read(std::as_writable_bytes(std::span(buffer).subspan(0, size)));
+            if (ret != size) {
+              return -1;
+            }
+            output_stream->write(std::span(buffer).subspan(0, size));
+            len -= size;
+            total += size;
+          }
+          return gsl::narrow<int64_t>(len);
         });
         if (flowFile->getSize() != packet._size) {
           std::stringstream message;
@@ -709,7 +722,7 @@ bool SiteToSiteClient::receiveFlowFiles(core::ProcessContext& context, core::Pro
           logger_->log_debug("received {} with expected {}", flowFile->getSize(), packet._size);
         }
       }
-      core::Relationship relation;  // undefined relationship
+      core::Relationship relation{"", ""};  // undefined relationship
       auto end_time = std::chrono::steady_clock::now();
       std::string transitUri = peer_->getURL() + "/" + sourceIdentifier;
       std::string details = "urn:nifi:" + sourceIdentifier + "Remote Host=" + peer_->getHostName();

@@ -123,8 +123,8 @@ class RemoteProcessorGroupPort : public core::ProcessorImpl {
   });
 
 
-  MINIFIAPI static constexpr auto relation = core::RelationshipDefinition{"", ""};
-  MINIFIAPI static constexpr auto Relationships = std::array{relation};
+  MINIFIAPI static constexpr auto DefaultRelationship = core::RelationshipDefinition{"", ""};
+  MINIFIAPI static constexpr auto Relationships = std::array{DefaultRelationship};
 
   MINIFIAPI static constexpr bool SupportsDynamicProperties = false;
   MINIFIAPI static constexpr bool SupportsDynamicRelationships = false;
