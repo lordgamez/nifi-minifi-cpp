@@ -147,3 +147,103 @@ Feature: Sending data from MiNiFi-C++ to NiFi using S2S protocol
     When both instances start up
     Then a flowfile with the content "test" is placed in the monitored directory in less than 90 seconds
     And the Minifi logs do not contain the following message: "ProcessSession rollback" after 1 seconds
+
+  Scenario: A MiNiFi instance produces and transfers data to a NiFi instance via s2s using HTTP protocol
+    Given a GetFile processor with the "Input Directory" property set to "/tmp/input"
+    And a file with the content "test" is present in "/tmp/input"
+    And a RemoteProcessGroup node opened on "http://nifi-${feature_id}:8080/nifi" with transport protocol set to "HTTP"
+    And the "success" relationship of the GetFile processor is connected to the input port on the RemoteProcessGroup
+
+    And a NiFi flow receiving data from a RemoteProcessGroup "from-minifi"
+    And a PutFile processor with the "Directory" property set to "/tmp/output" in the "nifi" flow
+    And the "success" relationship of the from-minifi is connected to the PutFile
+
+    When both instances start up
+    Then a flowfile with the content "test" is placed in the monitored directory in less than 90 seconds
+    And the Minifi logs do not contain the following message: "ProcessSession rollback" after 1 seconds
+
+  Scenario: A MiNiFi instance produces and transfers data to a NiFi instance via s2s using HTTP with YAML config and SSL config defined in minifi.properties
+    Given a MiNiFi CPP server with yaml config
+    And a GetFile processor with the "Input Directory" property set to "/tmp/input"
+    And the "Keep Source File" property of the GetFile processor is set to "true"
+    And a file with the content "test" is present in "/tmp/input"
+    And a RemoteProcessGroup node opened on "https://nifi-${feature_id}:8443/nifi" with transport protocol set to "HTTP"
+    And the "success" relationship of the GetFile processor is connected to the input port on the RemoteProcessGroup
+    And SSL properties are set in MiNiFi
+
+    And SSL is enabled in NiFi flow
+    And a NiFi flow receiving data from a RemoteProcessGroup "from-minifi"
+    And a PutFile processor with the "Directory" property set to "/tmp/output" in the "nifi" flow
+    And the "success" relationship of the from-minifi is connected to the PutFile
+
+    When both instances start up
+    Then a flowfile with the content "test" is placed in the monitored directory in less than 90 seconds
+    And the Minifi logs do not contain the following message: "ProcessSession rollback" after 1 seconds
+
+  Scenario: A NiFi instance produces and transfers data to a MiNiFi instance via s2s
+    Given a file with the content "test" is present in "/tmp/input"
+    And a RemoteProcessGroup node opened on "http://nifi-${feature_id}:8080/nifi"
+    And MiNiFi is receiving data from a RemoteProcessGroup port
+    And a PutFile processor with the "Directory" property set to "/tmp/output"
+    And the output port on the RemoteProcessGroup is connected to the PutFile processor
+
+    And a GetFile processor with the "Input Directory" property set to "/tmp/input" in the "nifi" flow using the "nifi" engine
+    And a NiFi flow sending data to a RemoteProcessGroup port "to-minifi-in-nifi"
+    And the "success" relationship of the GetFile is connected to the to-minifi-in-nifi
+
+    When both instances start up
+
+    Then a flowfile with the content "test" is placed in the monitored directory in less than 90 seconds
+    And the Minifi logs do not contain the following message: "ProcessSession rollback" after 1 seconds
+
+  Scenario: A NiFi instance produces and transfers data to a MiNiFi instance via s2s using HTTP protocol
+    Given a file with the content "test" is present in "/tmp/input"
+    And a RemoteProcessGroup node opened on "http://nifi-${feature_id}:8080/nifi" with transport protocol set to "HTTP"
+    And MiNiFi is receiving data from a RemoteProcessGroup port
+    And a PutFile processor with the "Directory" property set to "/tmp/output"
+    And the output port on the RemoteProcessGroup is connected to the PutFile processor
+
+    And a GetFile processor with the "Input Directory" property set to "/tmp/input" in the "nifi" flow using the "nifi" engine
+    And a NiFi flow sending data to a RemoteProcessGroup port "to-minifi-in-nifi"
+    And the "success" relationship of the GetFile is connected to the to-minifi-in-nifi
+
+    When both instances start up
+
+    Then a flowfile with the content "test" is placed in the monitored directory in less than 90 seconds
+    And the Minifi logs do not contain the following message: "ProcessSession rollback" after 1 seconds
+
+  Scenario: A NiFi instance produces and transfers data to a MiNiFi instance via s2s with SSL config defined in minifi.properties
+    Given a file with the content "test" is present in "/tmp/input"
+    And a RemoteProcessGroup node opened on "https://nifi-${feature_id}:8443/nifi"
+    And MiNiFi is receiving data from a RemoteProcessGroup port
+    And a PutFile processor with the "Directory" property set to "/tmp/output"
+    And the output port on the RemoteProcessGroup is connected to the PutFile processor
+    And SSL properties are set in MiNiFi
+
+    And SSL is enabled in NiFi flow
+    And a GetFile processor with the "Input Directory" property set to "/tmp/input" in the "nifi" flow using the "nifi" engine
+    And a NiFi flow sending data to a RemoteProcessGroup port "to-minifi-in-nifi"
+    And the "success" relationship of the GetFile is connected to the to-minifi-in-nifi
+
+    When both instances start up
+
+    Then a flowfile with the content "test" is placed in the monitored directory in less than 90 seconds
+    And the Minifi logs do not contain the following message: "ProcessSession rollback" after 1 seconds
+
+  Scenario: A NiFi instance produces and transfers data to a MiNiFi instance via s2s using HTTP protocol with SSL config defined in minifi.properties
+    Given a file with the content "test" is present in "/tmp/input"
+    And a RemoteProcessGroup node opened on "https://nifi-${feature_id}:8443/nifi" with transport protocol set to "HTTP"
+    And MiNiFi is receiving data from a RemoteProcessGroup port
+    And a PutFile processor with the "Directory" property set to "/tmp/output"
+    And the output port on the RemoteProcessGroup is connected to the PutFile processor
+    And SSL properties are set in MiNiFi
+
+    And SSL is enabled in NiFi flow
+    And a GetFile processor with the "Input Directory" property set to "/tmp/input" in the "nifi" flow using the "nifi" engine
+    And a NiFi flow sending data to a RemoteProcessGroup port "to-minifi-in-nifi"
+    And the "success" relationship of the GetFile is connected to the to-minifi-in-nifi
+
+    When both instances start up
+
+    Then a flowfile with the content "test" is placed in the monitored directory in less than 90 seconds
+    And the Minifi logs do not contain the following message: "ProcessSession rollback" after 1 seconds
