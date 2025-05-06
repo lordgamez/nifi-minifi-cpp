@@ -532,7 +532,9 @@ void StructuredConfiguration::parseRemoteProcessGroup(const Node& rpg_node_seq, 
     group->setTransmitting(true);
     group->setURL(url);
 
-    checkRequiredField(currRpgNode, schema_.rpg_input_ports);
+    std::vector<std::string> port_nodes(std::begin(schema_.rpg_input_ports), std::end(schema_.rpg_input_ports));
+    port_nodes.insert(std::end(port_nodes), std::begin(schema_.rpg_output_ports), std::end(schema_.rpg_output_ports));
+    checkRequiredField(currRpgNode, port_nodes);
     auto inputPorts = currRpgNode[schema_.rpg_input_ports];
     if (inputPorts && inputPorts.isSequence()) {
       for (const auto& currPort : inputPorts) {

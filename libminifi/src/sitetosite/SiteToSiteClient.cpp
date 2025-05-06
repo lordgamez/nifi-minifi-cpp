@@ -594,7 +594,7 @@ bool SiteToSiteClient::receive(const utils::Identifier& transactionID, DataPacke
   }
 
   // read the attributes
-  logger_->log_debug("Site2Site transaction {} receives attribute key {}", transactionID.to_string(), numAttributes);
+  logger_->log_debug("Site2Site transaction {} receives {} attributes", transactionID.to_string(), numAttributes);
   for (unsigned int i = 0; i < numAttributes; i++) {
     std::string key;
     std::string value;
