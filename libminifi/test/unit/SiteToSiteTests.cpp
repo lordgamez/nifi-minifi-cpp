@@ -31,7 +31,7 @@
 
 #define FMT_DEFAULT fmt_lower
 
-TEST_CASE("TestSetPortId", "[S2S1]") {
+TEST_CASE("TestSetPortId", "[S2S]") {
   auto peer = std::make_unique<minifi::sitetosite::SiteToSitePeer>(std::make_unique<org::apache::nifi::minifi::io::BufferStream>(), "fake_host", 65433, "");
 
   minifi::sitetosite::RawSiteToSiteClient protocol(std::move(peer));
@@ -63,7 +63,7 @@ void sunny_path_bootstrap(const std::unique_ptr<SiteToSiteResponder>& collector)
   collector->push_response(resp_code);
 }
 
-TEST_CASE("TestSiteToSiteVerifySend", "[S2S3]") {
+TEST_CASE("TestSiteToSiteVerifySend", "[S2S]") {
   auto collector = std::make_unique<SiteToSiteResponder>();
   auto collector_ptr = collector.get();
 
@@ -125,7 +125,7 @@ TEST_CASE("TestSiteToSiteVerifySend", "[S2S3]") {
   REQUIRE(payload == rx_payload);
 }
 
-TEST_CASE("TestSiteToSiteVerifyNegotiationFail", "[S2S4]") {
+TEST_CASE("TestSiteToSiteVerifyNegotiationFail", "[S2S]") {
   auto collector = std::make_unique<SiteToSiteResponder>();
 
   char a = '\xFF';
@@ -147,4 +147,89 @@ TEST_CASE("TestSiteToSiteVerifyNegotiationFail", "[S2S4]") {
   protocol.setPortId(fakeUUID);
 
   REQUIRE(false == protocol.bootstrap());
+}
+
+TEST_CASE("Test receiving data through site to site ", "[S2S]") {
+  auto collector = std::make_unique<SiteToSiteResponder>();
+  auto collector_ptr = collector.get();
+
+  sunny_path_bootstrap(collector);
+  collector->push_response("R");
+  collector->push_response("C");
+  auto addChar = [&collector](char ch) {
+    std::string resp_code;
+    resp_code.insert(resp_code.begin(), ch);
+    collector->push_response(resp_code);
+  };
+  addChar(0x14);  // MORE_DATA
+  auto addInt32 = [&collector](uint32_t number) {
+    std::string result(4, '\0');
+    for (std::size_t i = 0; i < 4; ++i) {
+      result[i] = static_cast<char>((number >> (8 * (3 - i))) & 0xFF);
+    }
+    collector->push_response(result);
+  };
+  addInt32(1);  // number of attributes
+  addInt32(13);  // number of bytes
+  collector->push_response("attribute_key");
+  addInt32(15);  // number of bytes
+  collector->push_response("attribute_value");
+  auto addInt64 = [&collector](uint64_t number) {
+    std::string result(8, '\0');
+    for (std::size_t i = 0; i < 8; ++i) {
+      result[i] = static_cast<char>((number >> (8 * (7 - i))) & 0xFF);
+    }
+    collector->push_response(result);
+  };
+  addInt64(4);  // payload length
+  collector->push_response("data");
+
+  auto peer = std::make_unique<minifi::sitetosite::SiteToSitePeer>(std::move(collector), "fake_host", 65433, "");
+
+  minifi::sitetosite::RawSiteToSiteClient protocol(std::move(peer));
+
+  utils::Identifier fakeUUID = utils::Identifier::parse("C56A4180-65AA-42EC-A945-5FD21DEC0538").value();
+
+  protocol.setPortId(fakeUUID);
+
+  REQUIRE(true == protocol.bootstrap());
+
+  REQUIRE(collector_ptr->get_next_client_response() == "NiFi");
+  collector_ptr->get_next_client_response();
+  REQUIRE(collector_ptr->get_next_client_response() == "SocketFlowFileProtocol");
+  collector_ptr->get_next_client_response();
+  collector_ptr->get_next_client_response();
+  collector_ptr->get_next_client_response();
+  collector_ptr->get_next_client_response();
+  REQUIRE(collector_ptr->get_next_client_response() == "nifi://fake_host:65433");
+  collector_ptr->get_next_client_response();
+  collector_ptr->get_next_client_response();
+  REQUIRE(collector_ptr->get_next_client_response() == "GZIP");
+  collector_ptr->get_next_client_response();
+  REQUIRE(collector_ptr->get_next_client_response() == "false");
+  collector_ptr->get_next_client_response();
+  REQUIRE(collector_ptr->get_next_client_response() == "PORT_IDENTIFIER");
+  collector_ptr->get_next_client_response();
+  REQUIRE(utils::string::equalsIgnoreCase(collector_ptr->get_next_client_response(), "c56a4180-65aa-42ec-a945-5fd21dec0538"));
+  collector_ptr->get_next_client_response();
+  REQUIRE(collector_ptr->get_next_client_response() == "REQUEST_EXPIRATION_MILLIS");
+  collector_ptr->get_next_client_response();
+  REQUIRE(collector_ptr->get_next_client_response() == "30000");
+  collector_ptr->get_next_client_response();
+  REQUIRE(collector_ptr->get_next_client_response() == "NEGOTIATE_FLOWFILE_CODEC");
+  collector_ptr->get_next_client_response();
+  REQUIRE(collector_ptr->get_next_client_response() == "StandardFlowFileCodec");
+  collector_ptr->get_next_client_response();  // codec version
+
+  std::shared_ptr<minifi::sitetosite::Transaction> transaction;
+  transaction = protocol.createTransaction(minifi::sitetosite::RECEIVE);
+  REQUIRE(transaction);
+  auto transactionID = transaction->getUUID();
+  collector_ptr->get_next_client_response();
+  REQUIRE(collector_ptr->get_next_client_response() == "RECEIVE_FLOWFILES");
+  std::map<std::string, std::string> attributes;
+  std::shared_ptr<logging::Logger> logger = nullptr;
+  minifi::sitetosite::DataPacket packet(logger, transaction, attributes, "");
+  bool eof = false;
+  REQUIRE(protocol.receive(transactionID, &packet, eof));
 }
