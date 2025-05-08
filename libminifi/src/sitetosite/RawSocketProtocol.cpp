@@ -300,7 +300,7 @@ bool RawSiteToSiteClient::handShake() {
     logger_->log_debug("Site2Site Protocol Send handshake properties {} {}", it->first, it->second);
   }
 
-  RespondCode code = RESERVED;
+  ResponseCode code = RESERVED;
   std::string message;
 
   {
@@ -332,7 +332,7 @@ bool RawSiteToSiteClient::handShake() {
       logger_->log_error("Site2Site HandShake on port {} failed: UNAUTHORIZED", port_id_.to_string());
       return false;
     default:
-      logger_->log_error("Site2Site HandShake on port {} failed: unknown respond code {}", port_id_.to_string(), magic_enum::enum_underlying(code));
+      logger_->log_error("Site2Site HandShake on port {} failed: unknown response code {}", port_id_.to_string(), magic_enum::enum_underlying(code));
       return false;
   }
 }
@@ -435,11 +435,11 @@ bool RawSiteToSiteClient::getPeerList(std::vector<PeerStatus> &peers) {
     return -1;
   }
 
-int RawSiteToSiteClient::readRespond(const std::shared_ptr<Transaction> &transaction, RespondCode &code, std::string &message) {
+int RawSiteToSiteClient::readRespond(const std::shared_ptr<Transaction> &transaction, ResponseCode &code, std::string &message) {
   return readResponse(transaction, code, message);
 }
 
-int RawSiteToSiteClient::writeRespond(const std::shared_ptr<Transaction> &transaction, RespondCode code, const std::string& message) {
+int RawSiteToSiteClient::writeRespond(const std::shared_ptr<Transaction> &transaction, ResponseCode code, const std::string& message) {
   return writeResponse(transaction, code, message);
 }
 
@@ -507,7 +507,7 @@ std::shared_ptr<Transaction> RawSiteToSiteClient::createTransaction(TransferDire
       return transaction;
     }
 
-    RespondCode code = RESERVED;
+    ResponseCode code = RESERVED;
     std::string message;
 
     ret = readRespond(nullptr, code, message);

@@ -66,20 +66,7 @@ class SiteToSiteClient : public core::ConnectableImpl {
     ssl_context_service_ = context_service;
   }
 
-  /**
-   * Creates a transaction using the transaction ID and the direction
-   * @param transactionID transaction identifier
-   * @param direction direction of transfer
-   */
   virtual std::shared_ptr<Transaction> createTransaction(TransferDirection direction) = 0;
-
-  /**
-   * Transfers flow files
-   * @param direction transfer direction
-   * @param context process context
-   * @param session process session
-   * @returns true if the process succeeded, failure OR exception thrown otherwise
-   */
   virtual bool transfer(TransferDirection direction, core::ProcessContext& context, core::ProcessSession& session) {
 #ifndef WIN32
     if (__builtin_expect(direction == SEND, 1)) {
@@ -212,11 +199,11 @@ class SiteToSiteClient : public core::ConnectableImpl {
   virtual void tearDown() = 0;
 
   // read Respond
-  virtual int readResponse(const std::shared_ptr<Transaction> &transaction, RespondCode &code, std::string &message);
+  virtual int readResponse(const std::shared_ptr<Transaction> &transaction, ResponseCode &code, std::string &message);
   // write respond
-  virtual int writeResponse(const std::shared_ptr<Transaction> &transaction, RespondCode code, const std::string& message);
+  virtual int writeResponse(const std::shared_ptr<Transaction> &transaction, ResponseCode code, const std::string& message);
   // getRespondCodeContext
-  virtual RespondCodeContext *getRespondCodeContext(RespondCode code) {
+  virtual RespondCodeContext *getRespondCodeContext(ResponseCode code) {
     for (auto & i : SiteToSiteRequest::respondCodeContext) {
       if (i.code == code) {
         return &i;

@@ -39,13 +39,13 @@ class HttpSiteToSiteClient : public sitetosite::SiteToSiteClient {
  public:
   explicit HttpSiteToSiteClient(std::string /*name*/, const utils::Identifier& /*uuid*/ = {})
       : SiteToSiteClient(),
-        current_code(sitetosite::UNRECOGNIZED_RESPONSE_CODE) {
+        current_code_(sitetosite::UNRECOGNIZED_RESPONSE_CODE) {
     peer_state_ = sitetosite::READY;
   }
 
   explicit HttpSiteToSiteClient(std::unique_ptr<sitetosite::SiteToSitePeer> peer)
       : SiteToSiteClient(),
-        current_code(sitetosite::UNRECOGNIZED_RESPONSE_CODE) {
+        current_code_(sitetosite::UNRECOGNIZED_RESPONSE_CODE) {
     peer_ = std::move(peer);
     peer_state_ = sitetosite::READY;
   }
@@ -74,19 +74,12 @@ class HttpSiteToSiteClient : public sitetosite::SiteToSiteClient {
   //! Transfer string for the process session
   bool transmitPayload(core::ProcessContext& context, core::ProcessSession& session, const std::string &payload,
                                std::map<std::string, std::string> attributes) override;
-  // deleteTransaction
-  void deleteTransaction(const utils::Identifier& transactionID) override;
+  void deleteTransaction(const utils::Identifier& transaction_id) override;
 
  protected:
-  /**
-   * Closes the transaction
-   * @param transactionID transaction id reference.
-   */
-  void closeTransaction(const utils::Identifier &transactionID);
-
-  int readResponse(const std::shared_ptr<sitetosite::Transaction> &transaction, sitetosite::RespondCode &code, std::string &message) override;
-  // write respond
-  int writeResponse(const std::shared_ptr<sitetosite::Transaction> &transaction, sitetosite::RespondCode code, const std::string& message) override;
+  void closeTransaction(const utils::Identifier &transaction_id);
+  int readResponse(const std::shared_ptr<sitetosite::Transaction> &transaction, sitetosite::ResponseCode &code, std::string &message) override;
+  int writeResponse(const std::shared_ptr<sitetosite::Transaction> &transaction, sitetosite::ResponseCode code, const std::string& message) override;
 
   /**
    * Bootstrapping is not really required for the HTTP Site To Site so we will set the peer state and return true.
@@ -112,46 +105,18 @@ class HttpSiteToSiteClient : public sitetosite::SiteToSiteClient {
    */
   std::shared_ptr<minifi::http::HTTPClient> openConnectionForReceive(const std::shared_ptr<HttpTransaction> &transaction);
 
-  std::string getBaseURI() {
-    std::string uri = ssl_context_service_ != nullptr ? "https://" : "http://";
-    uri.append(peer_->getHostName());
-    uri.append(":");
-    uri.append(std::to_string(peer_->getPort()));
-    uri.append("/nifi-api/");
-    return uri;
-  }
+  std::string getBaseURI();
 
   void tearDown() override;
 
-  static std::optional<utils::Identifier> parseTransactionId(const std::string &uri);
-
-  std::unique_ptr<minifi::http::HTTPClient> create_http_client(const std::string &uri, http::HttpRequestMethod method = http::HttpRequestMethod::POST, bool setPropertyHeaders = false) {
-    std::unique_ptr<minifi::http::HTTPClient> http_client_ = std::make_unique<minifi::http::HTTPClient>(uri, ssl_context_service_);
-    http_client_->initialize(method, uri, ssl_context_service_);
-    if (setPropertyHeaders) {
-      if (_currentVersion >= 5) {
-        // batch count, size, and duratin don't appear to be set through the interfaces.
-      }
-    }
-    if (!this->peer_->getInterface().empty()) {
-      logger_->log_info("HTTP Site2Site bind local network interface {}", this->peer_->getInterface());
-      http_client_->setInterface(this->peer_->getInterface());
-    }
-    if (!this->peer_->getHTTPProxy().host.empty()) {
-      logger_->log_info("HTTP Site2Site setup http proxy host {}", this->peer_->getHTTPProxy().host);
-      http_client_->setHTTPProxy(this->peer_->getHTTPProxy());
-    }
-    http_client_->setReadTimeout(idle_timeout_);
-    return http_client_;
-  }
+  std::unique_ptr<minifi::http::HTTPClient> createHttpClient(const std::string &uri, http::HttpRequestMethod method);
 
  private:
-  sitetosite::RespondCode current_code;
+  sitetosite::ResponseCode current_code_;
   std::shared_ptr<core::logging::Logger> logger_ = core::logging::LoggerFactory<HttpSiteToSiteClient>::getLogger();
 
   HttpSiteToSiteClient(const HttpSiteToSiteClient &parent);
   HttpSiteToSiteClient &operator=(const HttpSiteToSiteClient &parent);
-  static std::shared_ptr<utils::IdGenerator> id_generator_;
 };
 
 }  // namespace org::apache::nifi::minifi::sitetosite

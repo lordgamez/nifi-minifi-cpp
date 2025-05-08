@@ -35,17 +35,17 @@
 
 namespace org::apache::nifi::minifi::sitetosite {
 
-std::shared_ptr<utils::IdGenerator> HttpSiteToSiteClient::id_generator_ = utils::IdGenerator::getIdGenerator();
-
-std::optional<utils::Identifier> HttpSiteToSiteClient::parseTransactionId(const std::string &uri) {
+namespace {
+std::optional<utils::Identifier> parseTransactionId(const std::string &uri) {
   return utils::Identifier::parse(utils::string::partAfterLastOccurrenceOf(uri, '/'));
 }
+}  // namespace
 
 std::shared_ptr<sitetosite::Transaction> HttpSiteToSiteClient::createTransaction(sitetosite::TransferDirection direction) {
   std::string dir_str = direction == sitetosite::SEND ? "input-ports" : "output-ports";
   std::stringstream uri;
   uri << getBaseURI() << "data-transfer/" << dir_str << "/" << getPortId().to_string() << "/transactions";
-  auto client = create_http_client(uri.str(), http::HttpRequestMethod::POST);
+  auto client = createHttpClient(uri.str(), http::HttpRequestMethod::POST);
   client->setRequestHeader(PROTOCOL_VERSION_HEADER, "1");
   client->setConnectionTimeout(std::chrono::milliseconds(5000));
   client->setContentType("application/json");
@@ -54,8 +54,9 @@ std::shared_ptr<sitetosite::Transaction> HttpSiteToSiteClient::createTransaction
   client->setPostFields("");
   client->submit();
   auto http_stream = dynamic_cast<http::HttpStream*>(peer_->getStream());
-  if (peer_->getStream() != nullptr)
+  if (http_stream != nullptr) {
     logger_->log_debug("Closing {}", http_stream->getClientRef()->getURL());
+  }
   if (client->getResponseCode() == 201) {
     // parse the headers
     auto intent_name = client->getHeaderValue("x-location-uri-intent");
@@ -97,8 +98,8 @@ std::shared_ptr<sitetosite::Transaction> HttpSiteToSiteClient::createTransaction
   return nullptr;
 }
 
-int HttpSiteToSiteClient::readResponse(const std::shared_ptr<sitetosite::Transaction> &transaction, sitetosite::RespondCode &code, std::string &message) {
-  if (current_code == sitetosite::FINISH_TRANSACTION) {
+int HttpSiteToSiteClient::readResponse(const std::shared_ptr<sitetosite::Transaction> &transaction, sitetosite::ResponseCode &code, std::string &message) {
+  if (current_code_ == sitetosite::FINISH_TRANSACTION) {
     if (transaction->getDirection() == sitetosite::SEND) {
       auto stream = dynamic_cast<http::HttpStream*>(peer_->getStream());
       if (!stream)
@@ -118,7 +119,7 @@ int HttpSiteToSiteClient::readResponse(const std::shared_ptr<sitetosite::Transac
     }
   } else if (transaction->getDirection() == sitetosite::RECEIVE) {
     if (transaction->getState() == sitetosite::TRANSACTION_STARTED || transaction->getState() == sitetosite::DATA_EXCHANGED) {
-      if (current_code == sitetosite::CONFIRM_TRANSACTION && transaction->getState() == sitetosite::DATA_EXCHANGED) {
+      if (current_code_ == sitetosite::CONFIRM_TRANSACTION && transaction->getState() == sitetosite::DATA_EXCHANGED) {
         auto stream = dynamic_cast<http::HttpStream*>(peer_->getStream());
         if (!stream->isFinished()) {
           logger_->log_debug("confirm read for {}, but not finished ", transaction->getUUIDStr());
@@ -134,7 +135,7 @@ int HttpSiteToSiteClient::readResponse(const std::shared_ptr<sitetosite::Transac
         if (stream->isFinished()) {
           logger_->log_debug("Finished {} ", transaction->getUUIDStr());
           code = sitetosite::FINISH_TRANSACTION;
-          current_code = sitetosite::FINISH_TRANSACTION;
+          current_code_ = sitetosite::FINISH_TRANSACTION;
         } else {
           if (stream->waitForDataAvailable()) {
             logger_->log_debug("data is available, so continuing transaction  {} ", transaction->getUUIDStr());
@@ -142,7 +143,7 @@ int HttpSiteToSiteClient::readResponse(const std::shared_ptr<sitetosite::Transac
           } else {
             logger_->log_debug("No data available for transaction {} ", transaction->getUUIDStr());
             code = sitetosite::FINISH_TRANSACTION;
-            current_code = sitetosite::FINISH_TRANSACTION;
+            current_code_ = sitetosite::FINISH_TRANSACTION;
           }
         }
       }
@@ -160,9 +161,9 @@ int HttpSiteToSiteClient::readResponse(const std::shared_ptr<sitetosite::Transac
   }
   return SiteToSiteClient::readResponse(transaction, code, message);
 }
-// write respond
-int HttpSiteToSiteClient::writeResponse(const std::shared_ptr<sitetosite::Transaction> &transaction, sitetosite::RespondCode code, const std::string& message) {
-  current_code = code;
+
+int HttpSiteToSiteClient::writeResponse(const std::shared_ptr<sitetosite::Transaction> &transaction, sitetosite::ResponseCode code, const std::string& message) {
+  current_code_ = code;
   if (code == sitetosite::CONFIRM_TRANSACTION || code == sitetosite::FINISH_TRANSACTION) {
     return 1;
 
@@ -177,7 +178,7 @@ bool HttpSiteToSiteClient::getPeerList(std::vector<sitetosite::PeerStatus> &peer
   std::stringstream uri;
   uri << getBaseURI() << "site-to-site/peers";
 
-  auto client = create_http_client(uri.str(), http::HttpRequestMethod::GET);
+  auto client = createHttpClient(uri.str(), http::HttpRequestMethod::GET);
 
   client->setRequestHeader(PROTOCOL_VERSION_HEADER, "1");
 
@@ -194,7 +195,7 @@ bool HttpSiteToSiteClient::getPeerList(std::vector<sitetosite::PeerStatus> &peer
 std::shared_ptr<minifi::http::HTTPClient> HttpSiteToSiteClient::openConnectionForSending(const std::shared_ptr<HttpTransaction> &transaction) {
   std::stringstream uri;
   uri << transaction->getTransactionUrl() << "/flow-files";
-  std::shared_ptr<minifi::http::HTTPClient> client = create_http_client(uri.str(), http::HttpRequestMethod::POST);
+  std::shared_ptr<minifi::http::HTTPClient> client = createHttpClient(uri.str(), http::HttpRequestMethod::POST);
   client->setContentType("application/octet-stream");
   client->setRequestHeader("Accept", "text/plain");
   client->setRequestHeader("Transfer-Encoding", "chunked");
@@ -204,11 +205,34 @@ std::shared_ptr<minifi::http::HTTPClient> HttpSiteToSiteClient::openConnectionFo
 std::shared_ptr<minifi::http::HTTPClient> HttpSiteToSiteClient::openConnectionForReceive(const std::shared_ptr<HttpTransaction> &transaction) {
   std::stringstream uri;
   uri << transaction->getTransactionUrl() << "/flow-files";
-  std::shared_ptr<minifi::http::HTTPClient> client = create_http_client(uri.str(), http::HttpRequestMethod::GET);
+  std::shared_ptr<minifi::http::HTTPClient> client = createHttpClient(uri.str(), http::HttpRequestMethod::GET);
   return client;
 }
 
-//! Transfer string for the process session
+std::string HttpSiteToSiteClient::getBaseURI() {
+  std::string uri = ssl_context_service_ != nullptr ? "https://" : "http://";
+  uri.append(peer_->getHostName());
+  uri.append(":");
+  uri.append(std::to_string(peer_->getPort()));
+  uri.append("/nifi-api/");
+  return uri;
+}
+
+std::unique_ptr<minifi::http::HTTPClient> HttpSiteToSiteClient::createHttpClient(const std::string &uri, http::HttpRequestMethod method) {
+  std::unique_ptr<minifi::http::HTTPClient> http_client_ = std::make_unique<minifi::http::HTTPClient>(uri, ssl_context_service_);
+  http_client_->initialize(method, uri, ssl_context_service_);
+  if (!peer_->getInterface().empty()) {
+    logger_->log_info("HTTP Site2Site bind local network interface {}", peer_->getInterface());
+    http_client_->setInterface(peer_->getInterface());
+  }
+  if (!peer_->getHTTPProxy().host.empty()) {
+    logger_->log_info("HTTP Site2Site setup http proxy host {}", peer_->getHTTPProxy().host);
+    http_client_->setHTTPProxy(peer_->getHTTPProxy());
+  }
+  http_client_->setReadTimeout(idle_timeout_);
+  return http_client_;
+}
+
 bool HttpSiteToSiteClient::transmitPayload(core::ProcessContext&, core::ProcessSession&, const std::string& /*payload*/,
                                            std::map<std::string, std::string> /*attributes*/) {
   return false;
@@ -223,25 +247,20 @@ void HttpSiteToSiteClient::tearDown() {
   peer_state_ = sitetosite::IDLE;
 }
 
-void HttpSiteToSiteClient::closeTransaction(const utils::Identifier &transactionID) {
-  std::shared_ptr<sitetosite::Transaction> transaction;
-
-  auto it = this->known_transactions_.find(transactionID);
-
+void HttpSiteToSiteClient::closeTransaction(const utils::Identifier &transaction_id) {
+  auto it = known_transactions_.find(transaction_id);
   if (it == known_transactions_.end()) {
     return;
   }
 
-  transaction = it->second;
+  auto transaction = it->second;
   if (transaction->closed_) {
     return;
   }
 
-  std::string append_str;
   logger_->log_trace("Site to Site closing transaction {}", transaction->getUUIDStr());
 
-
-  bool data_received = transaction->getDirection() == sitetosite::RECEIVE && (current_code == sitetosite::CONFIRM_TRANSACTION || current_code == sitetosite::TRANSACTION_FINISHED);
+  bool data_received = transaction->getDirection() == sitetosite::RECEIVE && (current_code_ == sitetosite::CONFIRM_TRANSACTION || current_code_ == sitetosite::TRANSACTION_FINISHED);
 
   int code = sitetosite::UNRECOGNIZED_RESPONSE_CODE;
   // In case transaction was used to actually transmit data (conditions are a bit different for send and receive to detect this),
@@ -255,26 +274,22 @@ void HttpSiteToSiteClient::closeTransaction(const utils::Identifier &transaction
   } else {
     std::string directon = transaction->getDirection() == sitetosite::RECEIVE ? "Receive" : "Send";
     logger_->log_error("Transaction {} to be closed is in unexpected state. Direction: {}, tranfers: {}, bytes: {}, state: {}",
-        transactionID.to_string(), directon, transaction->total_transfers_, transaction->_bytes, magic_enum::enum_underlying(transaction->getState()));
+        transaction_id.to_string(), directon, transaction->total_transfers_, transaction->_bytes, magic_enum::enum_underlying(transaction->getState()));
   }
 
   std::stringstream uri;
   std::string dir_str = transaction->getDirection() == sitetosite::SEND ? "input-ports" : "output-ports";
 
-  uri << getBaseURI() << "data-transfer/" << dir_str << "/" << getPortId().to_string() << "/transactions/" << transactionID.to_string() << "?responseCode=" << code;
+  uri << getBaseURI() << "data-transfer/" << dir_str << "/" << getPortId().to_string() << "/transactions/" << transaction_id.to_string() << "?responseCode=" << code;
 
   if (code == sitetosite::CONFIRM_TRANSACTION && data_received) {
     uri << "&checksum=" << transaction->getCRC();
   }
 
-  auto client = create_http_client(uri.str(), http::HttpRequestMethod::DELETE);
-
+  auto client = createHttpClient(uri.str(), http::HttpRequestMethod::DELETE);
   client->setRequestHeader(PROTOCOL_VERSION_HEADER, "1");
-
   client->setConnectionTimeout(std::chrono::milliseconds(5000));
-
   client->setRequestHeader("Accept", "application/json");
-
   client->submit();
 
   logger_->log_debug("Received {} response code from delete", client->getResponseCode());
@@ -289,14 +304,13 @@ void HttpSiteToSiteClient::closeTransaction(const utils::Identifier &transaction
   }
 
   transaction->closed_ = true;
-
   transaction->current_transfers_--;
 }
 
-void HttpSiteToSiteClient::deleteTransaction(const utils::Identifier& transactionID) {
-  closeTransaction(transactionID);
+void HttpSiteToSiteClient::deleteTransaction(const utils::Identifier& transaction_id) {
+  closeTransaction(transaction_id);
 
-  SiteToSiteClient::deleteTransaction(transactionID);
+  SiteToSiteClient::deleteTransaction(transaction_id);
 }
 
 REGISTER_RESOURCE_AS(HttpSiteToSiteClient, InternalResource, ("HttpSiteToSiteClient", "HttpProtocol"));

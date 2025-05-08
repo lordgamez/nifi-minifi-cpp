@@ -174,7 +174,7 @@ void run_variance(const std::string& test_file_location, const std::string& url,
     assertStr << "Site2Site delete transaction " << transaction_id;
     REQUIRE(LogTestController::getInstance().contains(assertStr.str()));
   } else {
-    assertStr << "Site2Site transaction " << transaction_id << " peer unknown respond code 254";
+    assertStr << "Site2Site transaction " << transaction_id << " peer unknown response code 254";
     REQUIRE(LogTestController::getInstance().contains(assertStr.str()));
   }
   LogTestController::getInstance().reset();
