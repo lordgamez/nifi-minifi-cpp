@@ -46,31 +46,33 @@
 
 namespace org::apache::nifi::minifi::sitetosite {
 
-
-// RawSiteToSiteClient Class
 class RawSiteToSiteClient : public sitetosite::SiteToSiteClient {
  public:
-  // HandShakeProperty Str
   static const char *HandShakePropertyStr[MAX_HANDSHAKE_PROPERTY];
 
-  RawSiteToSiteClient(std::unique_ptr<SiteToSitePeer> peer) { // NOLINT
+  explicit RawSiteToSiteClient(std::unique_ptr<SiteToSitePeer> peer) {
     peer_ = std::move(peer);
-    _batchSize = 0;
-    _batchCount = 0;
-    _batchDuration = std::chrono::seconds(0);
-    _batchSendNanos = std::chrono::seconds(5);
-    _timeout = std::chrono::seconds(30);
-    _supportedVersion[0] = 5;
-    _supportedVersion[1] = 4;
-    _supportedVersion[2] = 3;
-    _supportedVersion[3] = 2;
-    _supportedVersion[4] = 1;
-    _currentVersion = _supportedVersion[0];
-    _currentVersionIndex = 0;
-    _supportedCodecVersion[0] = 1;
-    _currentCodecVersion = _supportedCodecVersion[0];
-    _currentCodecVersionIndex = 0;
+    batch_size_ = 0;
+    batch_count_ = 0;
+    batch_duration_ = std::chrono::seconds(0);
+    batch_send_nanos_ = std::chrono::seconds(5);
+    timeout_ = std::chrono::seconds(30);
+    supported_version_[0] = 5;
+    supported_version_[1] = 4;
+    supported_version_[2] = 3;
+    supported_version_[3] = 2;
+    supported_version_[4] = 1;
+    current_version_ = supported_version_[0];
+    current_version_index_ = 0;
+    supported_codec_version_[0] = 1;
+    current_codec_version_ = supported_codec_version_[0];
+    current_codec_version_index_ = 0;
   }
+
+  RawSiteToSiteClient(const RawSiteToSiteClient &parent) = delete;
+  RawSiteToSiteClient &operator=(const RawSiteToSiteClient &parent) = delete;
+  RawSiteToSiteClient(RawSiteToSiteClient &&parent) = delete;
+  RawSiteToSiteClient &operator=(RawSiteToSiteClient &&parent) = delete;
 
   ~RawSiteToSiteClient() override {
     tearDown();
@@ -79,19 +81,19 @@ class RawSiteToSiteClient : public sitetosite::SiteToSiteClient {
  public:
   // setBatchSize
   void setBatchSize(uint64_t size) {
-    _batchSize = size;
+    batch_size_ = size;
   }
   // setBatchCount
   void setBatchCount(uint64_t count) {
-    _batchCount = count;
+    batch_count_ = count;
   }
   // setBatchDuration
   void setBatchDuration(std::chrono::milliseconds duration) {
-    _batchDuration = duration;
+    batch_duration_ = duration;
   }
   // setTimeout
   void setTimeout(std::chrono::milliseconds time) {
-    _timeout = time;
+    timeout_ = time;
     if (peer_)
       peer_->setTimeout(time);
   }
@@ -101,7 +103,7 @@ class RawSiteToSiteClient : public sitetosite::SiteToSiteClient {
    * @returns timeout
    */
   std::chrono::milliseconds getTimeout() const {
-    return _timeout;
+    return timeout_;
   }
 
   // getResourceName
@@ -158,19 +160,17 @@ class RawSiteToSiteClient : public sitetosite::SiteToSiteClient {
   // Logger
   std::shared_ptr<core::logging::Logger> logger_ = core::logging::LoggerFactory<RawSiteToSiteClient>::getLogger();
   // Batch Count
-  std::atomic<uint64_t> _batchCount;
+  std::atomic<uint64_t> batch_count_;
   // Batch Size
-  std::atomic<uint64_t> _batchSize;
+  std::atomic<uint64_t> batch_size_;
   // Batch Duration in msec
-  std::atomic<std::chrono::milliseconds> _batchDuration;
+  std::atomic<std::chrono::milliseconds> batch_duration_;
   // Timeout in msec
-  std::atomic<std::chrono::milliseconds> _timeout;
+  std::atomic<std::chrono::milliseconds> timeout_;
 
   // commsIdentifier
   utils::Identifier _commsIdentifier;
 
-  RawSiteToSiteClient(const RawSiteToSiteClient &parent);
-  RawSiteToSiteClient &operator=(const RawSiteToSiteClient &parent);
   static std::shared_ptr<utils::IdGenerator> id_generator_;
 };
 
