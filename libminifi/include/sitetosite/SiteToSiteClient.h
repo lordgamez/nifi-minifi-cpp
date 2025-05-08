@@ -230,17 +230,17 @@ class SiteToSiteClient : public core::ConnectableImpl {
   std::map<utils::Identifier, std::shared_ptr<Transaction>> known_transactions_;
 
   // BATCH_SEND_NANOS
-  std::chrono::nanoseconds _batchSendNanos = std::chrono::seconds(5);
+  std::chrono::nanoseconds batch_send_nanos_ = std::chrono::seconds(5);
 
   /***
    * versioning
    */
-  uint32_t _supportedVersion[5] = {5, 4, 3, 2, 1};
-  int _currentVersionIndex{0};
-  uint32_t _currentVersion{_supportedVersion[_currentVersionIndex]};
-  uint32_t _supportedCodecVersion[1] = {1};
-  int _currentCodecVersionIndex{0};
-  uint32_t _currentCodecVersion{_supportedCodecVersion[_currentCodecVersionIndex]};
+  uint32_t supported_version_[5] = {5, 4, 3, 2, 1};
+  int current_version_index_{0};
+  uint32_t current_version_{supported_version_[current_version_index_]};
+  uint32_t supported_codec_version_[1] = {1};
+  int current_codec_version_index_{0};
+  uint32_t current_codec_version_{supported_codec_version_[current_codec_version_index_]};
 
   std::shared_ptr<minifi::controllers::SSLContextService> ssl_context_service_;
 

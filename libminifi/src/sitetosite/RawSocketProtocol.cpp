@@ -106,7 +106,7 @@ bool RawSiteToSiteClient::initiateResourceNegotiation() {
     return false;
   }
 
-  logger_->log_debug("Negotiate protocol version with destination port {} current version {}", port_id_.to_string(), _currentVersion);
+  logger_->log_debug("Negotiate protocol version with destination port {} current version {}", port_id_.to_string(), current_version_);
 
   {
     const auto ret = peer_->write(getResourceName());
@@ -119,7 +119,7 @@ bool RawSiteToSiteClient::initiateResourceNegotiation() {
   }
 
   {
-    const auto ret = peer_->write(_currentVersion);
+    const auto ret = peer_->write(current_version_);
     if (ret == 0 || io::isError(ret)) {
       logger_->log_debug("result of writing version is {}", ret);
       return false;
@@ -151,10 +151,10 @@ bool RawSiteToSiteClient::initiateResourceNegotiation() {
 
       logger_->log_info("Site2Site Server Response asked for a different protocol version {}", serverVersion);
 
-      for (unsigned int i = (_currentVersionIndex + 1); i < sizeof(_supportedVersion) / sizeof(uint32_t); i++) {
-        if (serverVersion >= _supportedVersion[i]) {
-          _currentVersion = _supportedVersion[i];
-          _currentVersionIndex = gsl::narrow<int>(i);
+      for (unsigned int i = (current_version_index_ + 1); i < sizeof(supported_version_) / sizeof(uint32_t); i++) {
+        if (serverVersion >= supported_version_[i]) {
+          current_version_ = supported_version_[i];
+          current_version_index_ = gsl::narrow<int>(i);
           return initiateResourceNegotiation();
         }
       }
@@ -179,7 +179,7 @@ bool RawSiteToSiteClient::initiateCodecResourceNegotiation() {
     return false;
   }
 
-  logger_->log_trace("Negotiate Codec version with destination port {} current version {}", port_id_.to_string(), _currentCodecVersion);
+  logger_->log_trace("Negotiate Codec version with destination port {} current version {}", port_id_.to_string(), current_codec_version_);
 
   {
     const auto ret = peer_->write(getCodecResourceName());
@@ -190,7 +190,7 @@ bool RawSiteToSiteClient::initiateCodecResourceNegotiation() {
   }
 
   {
-    const auto ret = peer_->write(_currentCodecVersion);
+    const auto ret = peer_->write(current_codec_version_);
     if (ret == 0 || io::isError(ret)) {
       logger_->log_debug("result of _currentCodecVersion is {}", ret);
       return false;
@@ -219,10 +219,10 @@ bool RawSiteToSiteClient::initiateCodecResourceNegotiation() {
       }
       logger_->log_info("Site2Site Server Response asked for a different protocol version ", serverVersion);
 
-      for (unsigned int i = (_currentCodecVersionIndex + 1); i < sizeof(_supportedCodecVersion) / sizeof(uint32_t); i++) {
-        if (serverVersion >= _supportedCodecVersion[i]) {
-          _currentCodecVersion = _supportedCodecVersion[i];
-          _currentCodecVersionIndex = gsl::narrow<int>(i);
+      for (unsigned int i = (current_codec_version_index_ + 1); i < sizeof(supported_codec_version_) / sizeof(uint32_t); i++) {
+        if (serverVersion >= supported_codec_version_[i]) {
+          current_codec_version_ = supported_codec_version_[i];
+          current_codec_version_index_ = gsl::narrow<int>(i);
           return initiateCodecResourceNegotiation();
         }
       }
@@ -258,17 +258,17 @@ bool RawSiteToSiteClient::handShake() {
   std::map<std::string, std::string> properties;
   properties[HandShakePropertyStr[GZIP]] = "false";
   properties[HandShakePropertyStr[PORT_IDENTIFIER]] = port_id_.to_string();
-  properties[HandShakePropertyStr[REQUEST_EXPIRATION_MILLIS]] = std::to_string(_timeout.load().count());
-  if (_currentVersion >= 5) {
-    if (_batchCount > 0)
-      properties[HandShakePropertyStr[BATCH_COUNT]] = std::to_string(_batchCount);
-    if (_batchSize > 0)
-      properties[HandShakePropertyStr[BATCH_SIZE]] = std::to_string(_batchSize);
-    if (_batchDuration.load() > 0ms)
-      properties[HandShakePropertyStr[BATCH_DURATION]] = std::to_string(_batchDuration.load().count());
+  properties[HandShakePropertyStr[REQUEST_EXPIRATION_MILLIS]] = std::to_string(timeout_.load().count());
+  if (current_version_ >= 5) {
+    if (batch_count_ > 0)
+      properties[HandShakePropertyStr[BATCH_COUNT]] = std::to_string(batch_count_);
+    if (batch_size_ > 0)
+      properties[HandShakePropertyStr[BATCH_SIZE]] = std::to_string(batch_size_);
+    if (batch_duration_.load() > 0ms)
+      properties[HandShakePropertyStr[BATCH_DURATION]] = std::to_string(batch_duration_.load().count());
   }
 
-  if (_currentVersion >= 3) {
+  if (current_version_ >= 3) {
     const auto ret = peer_->write(peer_->getURL());
     if (ret == 0 || io::isError(ret)) {
       return false;

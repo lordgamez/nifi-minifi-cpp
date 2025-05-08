@@ -151,7 +151,7 @@ bool SiteToSiteClient::transferFlowFiles(core::ProcessContext& context, core::Pr
       session.remove(flow);
 
       std::chrono::nanoseconds transfer_duration = std::chrono::high_resolution_clock::now() - transaction_started_at;
-      if (transfer_duration > _batchSendNanos)
+      if (transfer_duration > batch_send_nanos_)
         break;
 
       flow = session.get();
@@ -266,7 +266,7 @@ bool SiteToSiteClient::confirm(const utils::Identifier& transactionID) {
     // we've sent a FINISH_TRANSACTION. Now we'll wait for the peer to send a 'Confirm Transaction' response
     if (code == CONFIRM_TRANSACTION) {
       logger_->log_debug("Site2Site transaction {} peer confirm transaction with CRC {}", transactionID.to_string(), message);
-      if (this->_currentVersion > 3) {
+      if (this->current_version_ > 3) {
         uint64_t crcValue = transaction->getCRC();
         std::string crc = std::to_string(crcValue);
         if (message == crc) {
