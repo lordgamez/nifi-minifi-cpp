@@ -110,7 +110,7 @@ TEST_CASE("TestSiteToSiteVerifySend", "[S2S]") {
   // Create the transaction
   std::string payload = "Test MiNiFi payload";
   std::shared_ptr<minifi::sitetosite::Transaction> transaction;
-  transaction = protocol.createTransaction(minifi::sitetosite::SEND);
+  transaction = protocol.createTransaction(minifi::sitetosite::TransferDirection::SEND);
   REQUIRE(transaction);
   auto transactionID = transaction->getUUID();
   collector_ptr->get_next_client_response();
@@ -222,7 +222,7 @@ TEST_CASE("Test receiving data through site to site ", "[S2S]") {
   collector_ptr->get_next_client_response();  // codec version
 
   std::shared_ptr<minifi::sitetosite::Transaction> transaction;
-  transaction = protocol.createTransaction(minifi::sitetosite::RECEIVE);
+  transaction = protocol.createTransaction(minifi::sitetosite::TransferDirection::RECEIVE);
   REQUIRE(transaction);
   auto transactionID = transaction->getUUID();
   collector_ptr->get_next_client_response();

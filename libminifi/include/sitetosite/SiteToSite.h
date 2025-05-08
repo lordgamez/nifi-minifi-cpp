@@ -31,27 +31,24 @@
 #include "utils/Export.h"
 
 namespace org::apache::nifi::minifi::sitetosite {
-#if defined(__GNUC__) || defined(__GNUG__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-variable"
-#endif
 
-// Resource Negotiated Status Code
-#define RESOURCE_OK 20
-#define DIFFERENT_RESOURCE_VERSION 21
-#define NEGOTIATED_ABORT 255
-// ! Max attributes
-#define MAX_NUM_ATTRIBUTES 25000
+enum class ResourceNegotiationStatusCode : uint8_t {
+  RESOURCE_OK = 20,
+  DIFFERENT_RESOURCE_VERSION = 21,
+  NEGOTIATED_ABORT = 255
+};
 
-// Respond Code Sequence Pattern
-static const uint8_t CODE_SEQUENCE_VALUE_1 = (uint8_t) 'R';
-static const uint8_t CODE_SEQUENCE_VALUE_2 = (uint8_t) 'C';
+static constexpr uint32_t MAX_NUM_ATTRIBUTES = 25000;
+
+// Response Code Sequence Pattern
+static constexpr uint8_t CODE_SEQUENCE_VALUE_1 = static_cast<uint8_t>('R');
+static constexpr uint8_t CODE_SEQUENCE_VALUE_2 = static_cast<uint8_t>('C');
 
 /**
  * Enumeration of Properties that can be used for the Site-to-Site Socket
  * Protocol.
  */
-typedef enum {
+enum class HandshakeProperty {
   /**
    * Boolean value indicating whether or not the contents of a FlowFile should
    * be GZipped when transferred.
@@ -87,95 +84,44 @@ typedef enum {
    */
   BATCH_DURATION,
   MAX_HANDSHAKE_PROPERTY
-} HandshakeProperty;
+};
 
-typedef enum {
+enum class ClientType {
   RAW,
   HTTP
-} CLIENT_TYPE;
+};
 
-/**
- * An enumeration for specifying the direction in which data should be
- * transferred between a client and a remote NiFi instance.
- */
-typedef enum {
-  /**
-   * * The client is to send data to the remote instance.
-   * */
+enum class TransferDirection {
   SEND,
-  /**
-   * * The client is to receive data from the remote instance.
-   * */
   RECEIVE
-} TransferDirection;
+};
 
-// Peer State
-typedef enum {
-  /**
-   * * IDLE
-   * */
+enum class PeerState {
   IDLE = 0,
-  /**
-   * * Socket Established
-   * */
   ESTABLISHED,
-  /**
-   * * HandShake Done
-   * */
   HANDSHAKED,
-  /**
-   * * After CodeDec Completion
-   * */
   READY
-} PeerState;
+};
 
-// Transaction State
-typedef enum {
-  /**
-   * * Transaction has been started but no data has been sent or received.
-   * */
+enum class TransactionState {
   TRANSACTION_STARTED,
-  /**
-   * * Transaction has been started and data has been sent or received.
-   * */
   DATA_EXCHANGED,
-  /**
-   * * Data that has been transferred has been confirmed via its CRC.
-   * * Transaction is ready to be completed.
-   * */
   TRANSACTION_CONFIRMED,
-  /**
-   * * Transaction has been successfully completed.
-   * */
   TRANSACTION_COMPLETED,
-  /**
-   * * The Transaction has been canceled.
-   * */
   TRANSACTION_CANCELED,
-
-  /**
-   * * Transaction has been successfully closed.
-   * */
   TRANSACTION_CLOSED,
-  /**
-   * * The Transaction ended in an error.
-   * */
   TRANSACTION_ERROR
-} TransactionState;
+};
 
-// Request Type
-typedef enum {
+enum class RequestType {
   NEGOTIATE_FLOWFILE_CODEC = 0,
   REQUEST_PEER_LIST,
   SEND_FLOWFILES,
   RECEIVE_FLOWFILES,
-  SHUTDOWN,
-  MAX_REQUEST_TYPE
-} RequestType;
+  SHUTDOWN
+};
 
-
-// Respond Code
-typedef enum {
+enum class ResponseCode {
   RESERVED = 0,
   // ResponseCode, so that we can indicate a 0 followed by some other bytes
 
@@ -205,24 +151,37 @@ typedef enum {
   ABORT = 250,
   UNRECOGNIZED_RESPONSE_CODE = 254,
   END_OF_STREAM = 255
-} ResponseCode;
-
-// Respond Code Class
-typedef struct {
-  ResponseCode code;
-  const char *description;
-  bool hasDescription;
-} RespondCodeContext;
-
-
-
-// Request Type Str
-class SiteToSiteRequest {
- public:
-  MINIFIAPI static const char *RequestTypeStr[MAX_REQUEST_TYPE];
-  MINIFIAPI static RespondCodeContext respondCodeContext[21];
 };
 
+struct ResponseCodeContext {
+  ResponseCode code;
+  const std::string_view description;
+  bool hasDescription;
+};
+
+static constexpr std::array<ResponseCodeContext, 21> respond_code_contexts = {{
+  { ResponseCode::RESERVED, "Reserved for Future Use", false },
+  { ResponseCode::PROPERTIES_OK, "Properties OK", false },
+  { ResponseCode::UNKNOWN_PROPERTY_NAME, "Unknown Property Name", true },
+  { ResponseCode::ILLEGAL_PROPERTY_VALUE, "Illegal Property Value", true },
+  { ResponseCode::MISSING_PROPERTY, "Missing Property", true },
+  { ResponseCode::CONTINUE_TRANSACTION, "Continue Transaction", false },
+  { ResponseCode::FINISH_TRANSACTION, "Finish Transaction", false },
+  { ResponseCode::CONFIRM_TRANSACTION, "Confirm Transaction", true },
+  { ResponseCode::TRANSACTION_FINISHED, "Transaction Finished", false },
+  { ResponseCode::TRANSACTION_FINISHED_BUT_DESTINATION_FULL, "Transaction Finished But Destination is Full", false },
+  { ResponseCode::CANCEL_TRANSACTION, "Cancel Transaction", true },
+  { ResponseCode::BAD_CHECKSUM, "Bad Checksum", false },
+  { ResponseCode::MORE_DATA, "More Data Exists", false },
+  { ResponseCode::NO_MORE_DATA, "No More Data Exists", false },
+  { ResponseCode::UNKNOWN_PORT, "Unknown Port", false },
+  { ResponseCode::PORT_NOT_IN_VALID_STATE, "Port Not in a Valid State", true },
+  { ResponseCode::PORTS_DESTINATION_FULL, "Port's Destination is Full", false },
+  { ResponseCode::UNAUTHORIZED, "User Not Authorized", true },
+  { ResponseCode::ABORT, "Abort", true },
+  { ResponseCode::UNRECOGNIZED_RESPONSE_CODE, "Unrecognized Response Code", false },
+  { ResponseCode::END_OF_STREAM, "End of Stream", false }
+}};
 
 // Transaction Class
 class Transaction {
@@ -235,7 +194,7 @@ class Transaction {
       : closed_(false),
         crcStream(std::move(stream)),
         uuid_(id_generator_->generate()) {
-    _state = TRANSACTION_STARTED;
+    _state = TransactionState::TRANSACTION_STARTED;
     _direction = direction;
     _dataAvailable = false;
     current_transfers_ = 0;
@@ -301,7 +260,6 @@ class Transaction {
   // Number of content bytes
   uint64_t _bytes;
 
-  // Transaction State
   TransactionState _state;
 
   bool closed_;
@@ -324,7 +282,7 @@ class Transaction {
 
 class SiteToSiteClientConfiguration {
  public:
-  SiteToSiteClientConfiguration(const utils::Identifier &port_id, std::string host, uint16_t port, const std::string &ifc, CLIENT_TYPE type = RAW)
+  SiteToSiteClientConfiguration(const utils::Identifier &port_id, std::string host, uint16_t port, const std::string &ifc, ClientType type = ClientType::RAW)
       : port_id_(port_id),
         host_(std::move(host)),
         port_(port),
@@ -335,7 +293,7 @@ class SiteToSiteClientConfiguration {
 
   SiteToSiteClientConfiguration(const SiteToSiteClientConfiguration &other) = delete;
 
-  CLIENT_TYPE getClientType() const {
+  ClientType getClientType() const {
     return client_type_;
   }
 
@@ -386,7 +344,7 @@ class SiteToSiteClientConfiguration {
   std::string host_;
   uint16_t port_;
 
-  CLIENT_TYPE client_type_;
+  ClientType client_type_;
 
   std::string local_network_interface_;
 
@@ -398,8 +356,5 @@ class SiteToSiteClientConfiguration {
 
   http::HTTPProxy proxy_;
 };
-#if defined(__GNUC__) || defined(__GNUG__)
-#pragma GCC diagnostic pop
-#endif
 
 }  // namespace org::apache::nifi::minifi::sitetosite

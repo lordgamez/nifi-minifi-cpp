@@ -33,21 +33,21 @@
 
 namespace org::apache::nifi::minifi::sitetosite {
 
-class HttpSiteToSiteClient : public sitetosite::SiteToSiteClient {
+class HttpSiteToSiteClient : public SiteToSiteClient {
   static constexpr char const* PROTOCOL_VERSION_HEADER = "x-nifi-site-to-site-protocol-version";
 
  public:
   explicit HttpSiteToSiteClient(std::string /*name*/, const utils::Identifier& /*uuid*/ = {})
       : SiteToSiteClient(),
-        current_code_(sitetosite::UNRECOGNIZED_RESPONSE_CODE) {
-    peer_state_ = sitetosite::READY;
+        current_code_(ResponseCode::UNRECOGNIZED_RESPONSE_CODE) {
+    peer_state_ = PeerState::READY;
   }
 
-  explicit HttpSiteToSiteClient(std::unique_ptr<sitetosite::SiteToSitePeer> peer)
+  explicit HttpSiteToSiteClient(std::unique_ptr<SiteToSitePeer> peer)
       : SiteToSiteClient(),
-        current_code_(sitetosite::UNRECOGNIZED_RESPONSE_CODE) {
+        current_code_(ResponseCode::UNRECOGNIZED_RESPONSE_CODE) {
     peer_ = std::move(peer);
-    peer_state_ = sitetosite::READY;
+    peer_state_ = PeerState::READY;
   }
   ~HttpSiteToSiteClient() override = default;
 
@@ -55,11 +55,11 @@ class HttpSiteToSiteClient : public sitetosite::SiteToSiteClient {
   MINIFIAPI static constexpr bool SupportsDynamicProperties = false;
   MINIFIAPI static constexpr bool SupportsDynamicRelationships = false;
 
-  void setPeer(std::unique_ptr<sitetosite::SiteToSitePeer> peer) override {
+  void setPeer(std::unique_ptr<SiteToSitePeer> peer) override {
     peer_ = std::move(peer);
   }
 
-  bool getPeerList(std::vector<sitetosite::PeerStatus> &peers) override;
+  bool getPeerList(std::vector<PeerStatus> &peers) override;
 
   /**
    * Establish the protocol connection. Not needed for the HTTP connection, so we simply
@@ -69,7 +69,7 @@ class HttpSiteToSiteClient : public sitetosite::SiteToSiteClient {
     return true;
   }
 
-  std::shared_ptr<sitetosite::Transaction> createTransaction(sitetosite::TransferDirection direction) override;
+  std::shared_ptr<Transaction> createTransaction(TransferDirection direction) override;
 
   //! Transfer string for the process session
   bool transmitPayload(core::ProcessContext& context, core::ProcessSession& session, const std::string &payload,
@@ -78,14 +78,14 @@ class HttpSiteToSiteClient : public sitetosite::SiteToSiteClient {
 
  protected:
   void closeTransaction(const utils::Identifier &transaction_id);
-  int readResponse(const std::shared_ptr<sitetosite::Transaction> &transaction, sitetosite::ResponseCode &code, std::string &message) override;
-  int writeResponse(const std::shared_ptr<sitetosite::Transaction> &transaction, sitetosite::ResponseCode code, const std::string& message) override;
+  int readResponse(const std::shared_ptr<Transaction> &transaction, ResponseCode &code, std::string &message) override;
+  int writeResponse(const std::shared_ptr<Transaction> &transaction, ResponseCode code, const std::string& message) override;
 
   /**
    * Bootstrapping is not really required for the HTTP Site To Site so we will set the peer state and return true.
    */
   bool bootstrap() override {
-    peer_state_ = sitetosite::READY;
+    peer_state_ = PeerState::READY;
     return true;
   }
 
@@ -112,7 +112,7 @@ class HttpSiteToSiteClient : public sitetosite::SiteToSiteClient {
   std::unique_ptr<minifi::http::HTTPClient> createHttpClient(const std::string &uri, http::HttpRequestMethod method);
 
  private:
-  sitetosite::ResponseCode current_code_;
+  ResponseCode current_code_;
   std::shared_ptr<core::logging::Logger> logger_ = core::logging::LoggerFactory<HttpSiteToSiteClient>::getLogger();
 
   HttpSiteToSiteClient(const HttpSiteToSiteClient &parent);

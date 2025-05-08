@@ -48,8 +48,6 @@ namespace org::apache::nifi::minifi::sitetosite {
 
 class RawSiteToSiteClient : public sitetosite::SiteToSiteClient {
  public:
-  static const char *HandShakePropertyStr[MAX_HANDSHAKE_PROPERTY];
-
   explicit RawSiteToSiteClient(std::unique_ptr<SiteToSitePeer> peer) {
     peer_ = std::move(peer);
     batch_size_ = 0;
@@ -135,7 +133,7 @@ class RawSiteToSiteClient : public sitetosite::SiteToSiteClient {
   // write respond
   virtual int writeRespond(const std::shared_ptr<Transaction> &transaction, ResponseCode code, const std::string& message);
   // getRespondCodeContext
-  RespondCodeContext *getRespondCodeContext(ResponseCode code) override {
+  const ResponseCodeContext *getRespondCodeContext(ResponseCode code) override {
     return SiteToSiteClient::getRespondCodeContext(code);
   }
 

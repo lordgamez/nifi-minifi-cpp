@@ -69,13 +69,13 @@ class SiteToSiteClient : public core::ConnectableImpl {
   virtual std::shared_ptr<Transaction> createTransaction(TransferDirection direction) = 0;
   virtual bool transfer(TransferDirection direction, core::ProcessContext& context, core::ProcessSession& session) {
 #ifndef WIN32
-    if (__builtin_expect(direction == SEND, 1)) {
+    if (__builtin_expect(direction == TransferDirection::SEND, 1)) {
       return transferFlowFiles(context, session);
     } else {
       return receiveFlowFiles(context, session);
     }
 #else
-    if (direction == SEND) {
+    if (direction == TransferDirection::SEND) {
       return transferFlowFiles(context, session);
     } else {
       return receiveFlowFiles(context, session);
@@ -203,8 +203,8 @@ class SiteToSiteClient : public core::ConnectableImpl {
   // write respond
   virtual int writeResponse(const std::shared_ptr<Transaction> &transaction, ResponseCode code, const std::string& message);
   // getRespondCodeContext
-  virtual RespondCodeContext *getRespondCodeContext(ResponseCode code) {
-    for (auto & i : SiteToSiteRequest::respondCodeContext) {
+  virtual const ResponseCodeContext* getRespondCodeContext(ResponseCode code) {
+    for (const auto& i : respond_code_contexts) {
       if (i.code == code) {
         return &i;
       }

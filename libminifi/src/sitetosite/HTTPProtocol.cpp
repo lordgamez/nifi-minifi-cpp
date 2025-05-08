@@ -80,7 +80,7 @@ std::optional<std::vector<PeerStatus>> parsePeerStatuses(const std::shared_ptr<c
 
         // host name and port are required.
         if (!IsNullOrEmpty(hostname) && port > 0) {
-          sitetosite::PeerStatus status(id, hostname, port, flowFileCount, true);
+          PeerStatus status(id, hostname, port, flowFileCount, true);
           peer_statuses.push_back(std::move(status));
         } else {
           logger->log_debug("hostname empty or port is zero. hostname: {}, port: {}", hostname, port);
@@ -100,8 +100,8 @@ std::optional<std::vector<PeerStatus>> parsePeerStatuses(const std::shared_ptr<c
 }
 }  // namespace
 
-std::shared_ptr<sitetosite::Transaction> HttpSiteToSiteClient::createTransaction(sitetosite::TransferDirection direction) {
-  std::string dir_str = direction == sitetosite::SEND ? "input-ports" : "output-ports";
+std::shared_ptr<Transaction> HttpSiteToSiteClient::createTransaction(TransferDirection direction) {
+  std::string dir_str = direction == TransferDirection::SEND ? "input-ports" : "output-ports";
   std::stringstream uri;
   uri << getBaseURI() << "data-transfer/" << dir_str << "/" << getPortId().to_string() << "/transactions";
   auto client = createHttpClient(uri.str(), http::HttpRequestMethod::POST);
@@ -125,7 +125,7 @@ std::shared_ptr<sitetosite::Transaction> HttpSiteToSiteClient::createTransaction
       if (IsNullOrEmpty(url)) {
         logger_->log_debug("Location is empty");
       } else {
-        org::apache::nifi::minifi::io::CRCStream<sitetosite::SiteToSitePeer> crcstream(gsl::make_not_null(peer_.get()));
+        org::apache::nifi::minifi::io::CRCStream<SiteToSitePeer> crcstream(gsl::make_not_null(peer_.get()));
         auto transaction = std::make_shared<HttpTransaction>(direction, std::move(crcstream));
         transaction->initialize(this, url);
         auto transactionId = parseTransactionId(url);
@@ -133,7 +133,7 @@ std::shared_ptr<sitetosite::Transaction> HttpSiteToSiteClient::createTransaction
           return nullptr;
         transaction->setTransactionId(transactionId.value());
         std::shared_ptr<minifi::http::HTTPClient> transaction_client;
-        if (transaction->getDirection() == sitetosite::SEND) {
+        if (transaction->getDirection() == TransferDirection::SEND) {
           transaction_client = openConnectionForSending(transaction);
         } else {
           transaction_client = openConnectionForReceive(transaction);
@@ -157,83 +157,83 @@ std::shared_ptr<sitetosite::Transaction> HttpSiteToSiteClient::createTransaction
   return nullptr;
 }
 
-int HttpSiteToSiteClient::readResponse(const std::shared_ptr<sitetosite::Transaction> &transaction, sitetosite::ResponseCode &code, std::string &message) {
-  if (current_code_ == sitetosite::FINISH_TRANSACTION) {
-    if (transaction->getDirection() == sitetosite::SEND) {
+int HttpSiteToSiteClient::readResponse(const std::shared_ptr<Transaction> &transaction, ResponseCode &code, std::string &message) {
+  if (current_code_ == ResponseCode::FINISH_TRANSACTION) {
+    if (transaction->getDirection() == TransferDirection::SEND) {
       auto stream = dynamic_cast<http::HttpStream*>(peer_->getStream());
       if (!stream)
         throw std::runtime_error("Invalid HTTPStream");
       stream->close();
       auto client = stream->getClient();
       if (client->getResponseCode() == 202) {
-        code = sitetosite::CONFIRM_TRANSACTION;
+        code = ResponseCode::CONFIRM_TRANSACTION;
         message = std::string(client->getResponseBody().data(), client->getResponseBody().size());
       } else {
         logger_->log_debug("Received response code {}", client->getResponseCode());
-        code = sitetosite::UNRECOGNIZED_RESPONSE_CODE;
+        code = ResponseCode::UNRECOGNIZED_RESPONSE_CODE;
       }
       return 1;
     } else {
       return 1;
     }
-  } else if (transaction->getDirection() == sitetosite::RECEIVE) {
-    if (transaction->getState() == sitetosite::TRANSACTION_STARTED || transaction->getState() == sitetosite::DATA_EXCHANGED) {
-      if (current_code_ == sitetosite::CONFIRM_TRANSACTION && transaction->getState() == sitetosite::DATA_EXCHANGED) {
+  } else if (transaction->getDirection() == TransferDirection::RECEIVE) {
+    if (transaction->getState() == TransactionState::TRANSACTION_STARTED || transaction->getState() == TransactionState::DATA_EXCHANGED) {
+      if (current_code_ == ResponseCode::CONFIRM_TRANSACTION && transaction->getState() == TransactionState::DATA_EXCHANGED) {
         auto stream = dynamic_cast<http::HttpStream*>(peer_->getStream());
         if (!stream->isFinished()) {
           logger_->log_debug("confirm read for {}, but not finished ", transaction->getUUIDStr());
           if (stream->waitForDataAvailable()) {
-            code = sitetosite::CONTINUE_TRANSACTION;
+            code = ResponseCode::CONTINUE_TRANSACTION;
             return 1;
           }
         }
 
-        code = sitetosite::CONFIRM_TRANSACTION;
+        code = ResponseCode::CONFIRM_TRANSACTION;
       } else {
         auto stream = dynamic_cast<http::HttpStream*>(peer_->getStream());
         if (stream->isFinished()) {
           logger_->log_debug("Finished {} ", transaction->getUUIDStr());
-          code = sitetosite::FINISH_TRANSACTION;
-          current_code_ = sitetosite::FINISH_TRANSACTION;
+          code = ResponseCode::FINISH_TRANSACTION;
+          current_code_ = ResponseCode::FINISH_TRANSACTION;
         } else {
           if (stream->waitForDataAvailable()) {
             logger_->log_debug("data is available, so continuing transaction  {} ", transaction->getUUIDStr());
-            code = sitetosite::CONTINUE_TRANSACTION;
+            code = ResponseCode::CONTINUE_TRANSACTION;
           } else {
             logger_->log_debug("No data available for transaction {} ", transaction->getUUIDStr());
-            code = sitetosite::FINISH_TRANSACTION;
-            current_code_ = sitetosite::FINISH_TRANSACTION;
+            code = ResponseCode::FINISH_TRANSACTION;
+            current_code_ = ResponseCode::FINISH_TRANSACTION;
           }
         }
       }
-    } else if (transaction->getState() == sitetosite::TRANSACTION_CONFIRMED) {
+    } else if (transaction->getState() == TransactionState::TRANSACTION_CONFIRMED) {
       closeTransaction(transaction->getUUID());
-      code = sitetosite::CONFIRM_TRANSACTION;
+      code = ResponseCode::CONFIRM_TRANSACTION;
     }
 
     return 1;
-  } else if (transaction->getState() == sitetosite::TRANSACTION_CONFIRMED) {
+  } else if (transaction->getState() == TransactionState::TRANSACTION_CONFIRMED) {
     closeTransaction(transaction->getUUID());
-    code = sitetosite::TRANSACTION_FINISHED;
+    code = ResponseCode::TRANSACTION_FINISHED;
 
     return 1;
   }
   return SiteToSiteClient::readResponse(transaction, code, message);
 }
 
-int HttpSiteToSiteClient::writeResponse(const std::shared_ptr<sitetosite::Transaction> &transaction, sitetosite::ResponseCode code, const std::string& message) {
+int HttpSiteToSiteClient::writeResponse(const std::shared_ptr<Transaction> &transaction, ResponseCode code, const std::string& message) {
   current_code_ = code;
-  if (code == sitetosite::CONFIRM_TRANSACTION || code == sitetosite::FINISH_TRANSACTION) {
+  if (code == ResponseCode::CONFIRM_TRANSACTION || code == ResponseCode::FINISH_TRANSACTION) {
     return 1;
 
-  } else if (code == sitetosite::CONTINUE_TRANSACTION) {
+  } else if (code == ResponseCode::CONTINUE_TRANSACTION) {
     logger_->log_debug("Continuing HTTP transaction");
     return 1;
   }
   return SiteToSiteClient::writeResponse(transaction, code, message);
 }
 
-bool HttpSiteToSiteClient::getPeerList(std::vector<sitetosite::PeerStatus> &peers) {
+bool HttpSiteToSiteClient::getPeerList(std::vector<PeerStatus> &peers) {
   std::stringstream uri;
   uri << getBaseURI() << "site-to-site/peers";
 
@@ -299,12 +299,12 @@ bool HttpSiteToSiteClient::transmitPayload(core::ProcessContext&, core::ProcessS
 }
 
 void HttpSiteToSiteClient::tearDown() {
-  if (peer_state_ >= sitetosite::ESTABLISHED) {
+  if (magic_enum::enum_integer(peer_state_) >= magic_enum::enum_integer(PeerState::ESTABLISHED)) {
     logger_->log_debug("Site2Site Protocol tearDown");
   }
   known_transactions_.clear();
   peer_->close();
-  peer_state_ = sitetosite::IDLE;
+  peer_state_ = PeerState::IDLE;
 }
 
 void HttpSiteToSiteClient::closeTransaction(const utils::Identifier &transaction_id) {
@@ -320,29 +320,29 @@ void HttpSiteToSiteClient::closeTransaction(const utils::Identifier &transaction
 
   logger_->log_trace("Site to Site closing transaction {}", transaction->getUUIDStr());
 
-  bool data_received = transaction->getDirection() == sitetosite::RECEIVE && (current_code_ == sitetosite::CONFIRM_TRANSACTION || current_code_ == sitetosite::TRANSACTION_FINISHED);
+  bool data_received = transaction->getDirection() == TransferDirection::RECEIVE && (current_code_ == ResponseCode::CONFIRM_TRANSACTION || current_code_ == ResponseCode::TRANSACTION_FINISHED);
 
-  int code = sitetosite::UNRECOGNIZED_RESPONSE_CODE;
+  auto code = ResponseCode::UNRECOGNIZED_RESPONSE_CODE;
   // In case transaction was used to actually transmit data (conditions are a bit different for send and receive to detect this),
   // it has to be confirmed before closing.
   // In case no data was transmitted, there is nothing to confirm, so the transaction can be cancelled without confirming it.
   // Confirm means matching CRC checksum of data at both sides.
-  if (transaction->getState() == sitetosite::TRANSACTION_CONFIRMED || data_received) {
-    code = sitetosite::CONFIRM_TRANSACTION;
+  if (transaction->getState() == TransactionState::TRANSACTION_CONFIRMED || data_received) {
+    code = ResponseCode::CONFIRM_TRANSACTION;
   } else if (transaction->current_transfers_ == 0 && !transaction->isDataAvailable()) {
-    code = sitetosite::CANCEL_TRANSACTION;
+    code = ResponseCode::CANCEL_TRANSACTION;
   } else {
-    std::string directon = transaction->getDirection() == sitetosite::RECEIVE ? "Receive" : "Send";
+    std::string directon = transaction->getDirection() == TransferDirection::RECEIVE ? "Receive" : "Send";
     logger_->log_error("Transaction {} to be closed is in unexpected state. Direction: {}, tranfers: {}, bytes: {}, state: {}",
         transaction_id.to_string(), directon, transaction->total_transfers_, transaction->_bytes, magic_enum::enum_underlying(transaction->getState()));
   }
 
   std::stringstream uri;
-  std::string dir_str = transaction->getDirection() == sitetosite::SEND ? "input-ports" : "output-ports";
+  std::string dir_str = transaction->getDirection() == TransferDirection::SEND ? "input-ports" : "output-ports";
 
-  uri << getBaseURI() << "data-transfer/" << dir_str << "/" << getPortId().to_string() << "/transactions/" << transaction_id.to_string() << "?responseCode=" << code;
+  uri << getBaseURI() << "data-transfer/" << dir_str << "/" << getPortId().to_string() << "/transactions/" << transaction_id.to_string() << "?responseCode=" << magic_enum::enum_integer(code);
 
-  if (code == sitetosite::CONFIRM_TRANSACTION && data_received) {
+  if (code == ResponseCode::CONFIRM_TRANSACTION && data_received) {
     uri << "&checksum=" << transaction->getCRC();
   }
 

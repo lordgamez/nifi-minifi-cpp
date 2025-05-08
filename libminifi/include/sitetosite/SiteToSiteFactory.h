@@ -65,9 +65,9 @@ static std::unique_ptr<SiteToSiteClient> createRawSocket(const SiteToSiteClientC
 static std::unique_ptr<SiteToSiteClient> createClient(const SiteToSiteClientConfiguration &client_configuration) {
   utils::Identifier uuid = client_configuration.getPortId();
   switch (client_configuration.getClientType()) {
-    case RAW:
+    case ClientType::RAW:
       return createRawSocket(client_configuration);
-    case HTTP:
+    case ClientType::HTTP:
       auto http_protocol = core::ClassLoader::getDefaultClassLoader().instantiateRaw("HttpProtocol", "HttpProtocol");
       if (nullptr != http_protocol) {
         auto ptr = std::unique_ptr<SiteToSiteClient>(dynamic_cast<SiteToSiteClient*>(http_protocol));

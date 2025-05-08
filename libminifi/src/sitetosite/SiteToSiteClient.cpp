@@ -49,7 +49,7 @@ int SiteToSiteClient::readResponse(const std::shared_ptr<Transaction>& /*transac
   }
 
   code = static_cast<ResponseCode>(thirdByte);
-  RespondCodeContext *resCode = this->getRespondCodeContext(code);
+  const ResponseCodeContext* resCode = this->getRespondCodeContext(code);
   if (!resCode) {
     return -1;
   }
@@ -76,7 +76,7 @@ void SiteToSiteClient::deleteTransaction(const utils::Identifier& transactionID)
 }
 
 int SiteToSiteClient::writeResponse(const std::shared_ptr<Transaction>& /*transaction*/, ResponseCode code, const std::string& message) {
-  RespondCodeContext *resCode = this->getRespondCodeContext(code);
+  const ResponseCodeContext* resCode = getRespondCodeContext(code);
   if (!resCode) {
     return -1;
   }
@@ -107,19 +107,19 @@ bool SiteToSiteClient::transferFlowFiles(core::ProcessContext& context, core::Pr
     return false;
   }
 
-  if (peer_state_ != READY) {
+  if (peer_state_ != PeerState::READY) {
     if (!bootstrap())
       return false;
   }
 
-  if (peer_state_ != READY) {
+  if (peer_state_ != PeerState::READY) {
     context.yield();
     tearDown();
     throw Exception(SITE2SITE_EXCEPTION, "Can not establish handshake with peer");
   }
 
   // Create the transaction
-  transaction = createTransaction(SEND);
+  transaction = createTransaction(TransferDirection::SEND);
   if (transaction == nullptr) {
     context.yield();
     tearDown();
@@ -193,11 +193,11 @@ bool SiteToSiteClient::confirm(const utils::Identifier& transactionID) {
   int ret = 0;
   std::shared_ptr<Transaction> transaction;
 
-  if (peer_state_ != READY) {
+  if (peer_state_ != PeerState::READY) {
     bootstrap();
   }
 
-  if (peer_state_ != READY) {
+  if (peer_state_ != PeerState::READY) {
     return false;
   }
 
@@ -209,17 +209,17 @@ bool SiteToSiteClient::confirm(const utils::Identifier& transactionID) {
   transaction = it->second;
 
 
-  if (transaction->getState() == TRANSACTION_STARTED && !transaction->isDataAvailable() &&
-      transaction->getDirection() == RECEIVE) {
-    transaction->_state = TRANSACTION_CONFIRMED;
+  if (transaction->getState() == TransactionState::TRANSACTION_STARTED && !transaction->isDataAvailable() &&
+      transaction->getDirection() == TransferDirection::RECEIVE) {
+    transaction->_state = TransactionState::TRANSACTION_CONFIRMED;
     return true;
   }
 
-  if (transaction->getState() != DATA_EXCHANGED) {
+  if (transaction->getState() != TransactionState::DATA_EXCHANGED) {
     return false;
   }
 
-  if (transaction->getDirection() == RECEIVE) {
+  if (transaction->getDirection() == TransferDirection::RECEIVE) {
     if (transaction->isDataAvailable()) {
       return false;
     }
@@ -233,20 +233,20 @@ bool SiteToSiteClient::confirm(const utils::Identifier& transactionID) {
     uint64_t crcValue = transaction->getCRC();
     std::string crc = std::to_string(crcValue);
     logger_->log_debug("Site2Site Receive confirm with CRC {} to transaction {}", crcValue, transactionID.to_string());
-    ret = writeResponse(transaction, CONFIRM_TRANSACTION, crc);
+    ret = writeResponse(transaction, ResponseCode::CONFIRM_TRANSACTION, crc);
     if (ret <= 0)
       return false;
-    ResponseCode code = RESERVED;
+    ResponseCode code = ResponseCode::RESERVED;
     std::string message;
     readResponse(transaction, code, message);
     if (ret <= 0)
       return false;
 
-    if (code == CONFIRM_TRANSACTION) {
+    if (code == ResponseCode::CONFIRM_TRANSACTION) {
       logger_->log_debug("Site2Site transaction {} peer confirm transaction", transactionID.to_string());
-      transaction->_state = TRANSACTION_CONFIRMED;
+      transaction->_state = TransactionState::TRANSACTION_CONFIRMED;
       return true;
-    } else if (code == BAD_CHECKSUM) {
+    } else if (code == ResponseCode::BAD_CHECKSUM) {
       logger_->log_debug("Site2Site transaction {} peer indicate bad checksum", transactionID.to_string());
       return false;
     } else {
@@ -255,37 +255,37 @@ bool SiteToSiteClient::confirm(const utils::Identifier& transactionID) {
     }
   } else {
     logger_->log_debug("Site2Site Send FINISH TRANSACTION for transaction {}", transactionID.to_string());
-    ret = writeResponse(transaction, FINISH_TRANSACTION, "FINISH_TRANSACTION");
+    ret = writeResponse(transaction, ResponseCode::FINISH_TRANSACTION, "FINISH_TRANSACTION");
     if (ret <= 0) {
       return false;
     }
-    ResponseCode code = RESERVED;
+    ResponseCode code = ResponseCode::RESERVED;
     std::string message;
     readResponse(transaction, code, message);
 
     // we've sent a FINISH_TRANSACTION. Now we'll wait for the peer to send a 'Confirm Transaction' response
-    if (code == CONFIRM_TRANSACTION) {
+    if (code == ResponseCode::CONFIRM_TRANSACTION) {
       logger_->log_debug("Site2Site transaction {} peer confirm transaction with CRC {}", transactionID.to_string(), message);
       if (this->current_version_ > 3) {
         uint64_t crcValue = transaction->getCRC();
         std::string crc = std::to_string(crcValue);
         if (message == crc) {
           logger_->log_debug("Site2Site transaction {} CRC matched", transactionID.to_string());
-          ret = writeResponse(transaction, CONFIRM_TRANSACTION, "CONFIRM_TRANSACTION");
+          ret = writeResponse(transaction, ResponseCode::CONFIRM_TRANSACTION, "CONFIRM_TRANSACTION");
           if (ret <= 0)
             return false;
-          transaction->_state = TRANSACTION_CONFIRMED;
+          transaction->_state = TransactionState::TRANSACTION_CONFIRMED;
           return true;
         } else {
           logger_->log_debug("Site2Site transaction {} CRC not matched {}", transactionID.to_string(), crc);
-          writeResponse(transaction, BAD_CHECKSUM, "BAD_CHECKSUM");
+          writeResponse(transaction, ResponseCode::BAD_CHECKSUM, "BAD_CHECKSUM");
           return false;
         }
       }
-      ret = writeResponse(transaction, CONFIRM_TRANSACTION, "CONFIRM_TRANSACTION");
+      ret = writeResponse(transaction, ResponseCode::CONFIRM_TRANSACTION, "CONFIRM_TRANSACTION");
       if (ret <= 0)
         return false;
-      transaction->_state = TRANSACTION_CONFIRMED;
+      transaction->_state = TransactionState::TRANSACTION_CONFIRMED;
       return true;
     } else {
       logger_->log_debug("Site2Site transaction {} peer unknown response code {}", transactionID.to_string(), magic_enum::enum_underlying(code));
@@ -298,7 +298,7 @@ bool SiteToSiteClient::confirm(const utils::Identifier& transactionID) {
 void SiteToSiteClient::cancel(const utils::Identifier& transactionID) {
   std::shared_ptr<Transaction> transaction = nullptr;
 
-  if (peer_state_ != READY) {
+  if (peer_state_ != PeerState::READY) {
     return;
   }
 
@@ -310,12 +310,12 @@ void SiteToSiteClient::cancel(const utils::Identifier& transactionID) {
     transaction = it->second;
   }
 
-  if (transaction->getState() == TRANSACTION_CANCELED || transaction->getState() == TRANSACTION_COMPLETED || transaction->getState() == TRANSACTION_ERROR) {
+  if (transaction->getState() == TransactionState::TRANSACTION_CANCELED || transaction->getState() == TransactionState::TRANSACTION_COMPLETED || transaction->getState() == TransactionState::TRANSACTION_ERROR) {
     return;
   }
 
-  this->writeResponse(transaction, CANCEL_TRANSACTION, "Cancel");
-  transaction->_state = TRANSACTION_CANCELED;
+  this->writeResponse(transaction, ResponseCode::CANCEL_TRANSACTION, "Cancel");
+  transaction->_state = TransactionState::TRANSACTION_CANCELED;
 
   tearDown();
 }
@@ -331,7 +331,7 @@ void SiteToSiteClient::error(const utils::Identifier& transactionID) {
     transaction = it->second;
   }
 
-  transaction->_state = TRANSACTION_ERROR;
+  transaction->_state = TransactionState::TRANSACTION_ERROR;
   tearDown();
 }
 
@@ -340,11 +340,11 @@ bool SiteToSiteClient::complete(core::ProcessContext& context, const utils::Iden
   int ret = 0;
   std::shared_ptr<Transaction> transaction = nullptr;
 
-  if (peer_state_ != READY) {
+  if (peer_state_ != PeerState::READY) {
     bootstrap();
   }
 
-  if (peer_state_ != READY) {
+  if (peer_state_ != PeerState::READY) {
     return false;
   }
 
@@ -356,25 +356,25 @@ bool SiteToSiteClient::complete(core::ProcessContext& context, const utils::Iden
     transaction = it->second;
   }
 
-  if (transaction->total_transfers_ > 0 && transaction->getState() != TRANSACTION_CONFIRMED) {
+  if (transaction->total_transfers_ > 0 && transaction->getState() != TransactionState::TRANSACTION_CONFIRMED) {
     return false;
   }
-  if (transaction->getDirection() == RECEIVE) {
+  if (transaction->getDirection() == TransferDirection::RECEIVE) {
     if (transaction->current_transfers_ == 0) {
-      transaction->_state = TRANSACTION_COMPLETED;
+      transaction->_state = TransactionState::TRANSACTION_COMPLETED;
       return true;
     } else {
       logger_->log_debug("Site2Site transaction {} receive finished", transactionID.to_string());
-      ret = this->writeResponse(transaction, TRANSACTION_FINISHED, "Finished");
+      ret = this->writeResponse(transaction, ResponseCode::TRANSACTION_FINISHED, "Finished");
       if (ret <= 0) {
         return false;
       } else {
-        transaction->_state = TRANSACTION_COMPLETED;
+        transaction->_state = TransactionState::TRANSACTION_COMPLETED;
         return true;
       }
     }
   } else {
-    ResponseCode code = RESERVED;
+    ResponseCode code = ResponseCode::RESERVED;
     std::string message;
 
     ret = readResponse(transaction, code, message);
@@ -382,11 +382,11 @@ bool SiteToSiteClient::complete(core::ProcessContext& context, const utils::Iden
     if (ret <= 0)
       return false;
 
-    if (code == TRANSACTION_FINISHED || code == TRANSACTION_FINISHED_BUT_DESTINATION_FULL) {
+    if (code == ResponseCode::TRANSACTION_FINISHED || code == ResponseCode::TRANSACTION_FINISHED_BUT_DESTINATION_FULL) {
       logger_->log_info("Site2Site transaction {} peer finished transaction", transactionID.to_string());
-      transaction->_state = TRANSACTION_COMPLETED;
+      transaction->_state = TransactionState::TRANSACTION_COMPLETED;
 
-      if (code == TRANSACTION_FINISHED_BUT_DESTINATION_FULL) {
+      if (code == ResponseCode::TRANSACTION_FINISHED_BUT_DESTINATION_FULL) {
         logger_->log_info("Site2Site transaction {} reported destination full, yielding", transactionID.to_string());
         context.yield();
       }
@@ -399,11 +399,11 @@ bool SiteToSiteClient::complete(core::ProcessContext& context, const utils::Iden
 }
 
 int16_t SiteToSiteClient::send(const utils::Identifier& transactionID, DataPacket* packet, const std::shared_ptr<core::FlowFile> &flowFile, core::ProcessSession* session) {
-  if (peer_state_ != READY) {
+  if (peer_state_ != PeerState::READY) {
     bootstrap();
   }
 
-  if (peer_state_ != READY) {
+  if (peer_state_ != PeerState::READY) {
     return -1;
   }
 
@@ -413,18 +413,18 @@ int16_t SiteToSiteClient::send(const utils::Identifier& transactionID, DataPacke
   }
   std::shared_ptr<Transaction> transaction = it->second;
 
-  if (transaction->getState() != TRANSACTION_STARTED && transaction->getState() != DATA_EXCHANGED) {
+  if (transaction->getState() != TransactionState::TRANSACTION_STARTED && transaction->getState() != TransactionState::DATA_EXCHANGED) {
     logger_->log_warn("Site2Site transaction {} is not at started or exchanged state", transactionID.to_string());
     return -1;
   }
 
-  if (transaction->getDirection() != SEND) {
+  if (transaction->getDirection() != TransferDirection::SEND) {
     logger_->log_warn("Site2Site transaction {} direction is wrong", transactionID.to_string());
     return -1;
   }
 
   if (transaction->current_transfers_ > 0) {
-    const auto ret = writeResponse(transaction, CONTINUE_TRANSACTION, "CONTINUE_TRANSACTION");
+    const auto ret = writeResponse(transaction, ResponseCode::CONTINUE_TRANSACTION, "CONTINUE_TRANSACTION");
     if (ret <= 0) {
       return -1;
     }
@@ -514,7 +514,7 @@ int16_t SiteToSiteClient::send(const utils::Identifier& transactionID, DataPacke
 
   transaction->current_transfers_++;
   transaction->total_transfers_++;
-  transaction->_state = DATA_EXCHANGED;
+  transaction->_state = TransactionState::DATA_EXCHANGED;
   transaction->_bytes += len;
 
   logger_->log_info("Site to Site transaction {} sent flow {} flow records, with total size {}", transactionID.to_string(), transaction->total_transfers_, transaction->_bytes);
@@ -525,11 +525,11 @@ int16_t SiteToSiteClient::send(const utils::Identifier& transactionID, DataPacke
 bool SiteToSiteClient::receive(const utils::Identifier& transactionID, DataPacket *packet, bool &eof) {
   std::shared_ptr<Transaction> transaction;
 
-  if (peer_state_ != READY) {
+  if (peer_state_ != PeerState::READY) {
     bootstrap();
   }
 
-  if (peer_state_ != READY) {
+  if (peer_state_ != PeerState::READY) {
     return false;
   }
 
@@ -541,12 +541,12 @@ bool SiteToSiteClient::receive(const utils::Identifier& transactionID, DataPacke
 
   transaction = it->second;
 
-  if (transaction->getState() != TRANSACTION_STARTED && transaction->getState() != DATA_EXCHANGED) {
+  if (transaction->getState() != TransactionState::TRANSACTION_STARTED && transaction->getState() != TransactionState::DATA_EXCHANGED) {
     logger_->log_warn("Site2Site transaction {} is not at started or exchanged state", transactionID.to_string());
     return false;
   }
 
-  if (transaction->getDirection() != RECEIVE) {
+  if (transaction->getDirection() != TransferDirection::RECEIVE) {
     logger_->log_warn("Site2Site transaction {} direction is wrong", transactionID.to_string());
     return false;
   }
@@ -558,16 +558,16 @@ bool SiteToSiteClient::receive(const utils::Identifier& transactionID, DataPacke
 
   if (transaction->current_transfers_ > 0) {
     // if we already has transfer before, check to see whether another one is available
-    ResponseCode code = RESERVED;
+    ResponseCode code = ResponseCode::RESERVED;
     std::string message;
 
     if (readResponse(transaction, code, message) <= 0) {
       return false;
     }
-    if (code == CONTINUE_TRANSACTION) {
+    if (code == ResponseCode::CONTINUE_TRANSACTION) {
       logger_->log_debug("Site2Site transaction {} peer indicate continue transaction", transactionID.to_string());
       transaction->_dataAvailable = true;
-    } else if (code == FINISH_TRANSACTION) {
+    } else if (code == ResponseCode::FINISH_TRANSACTION) {
       logger_->log_debug("Site2Site transaction {} peer indicate finish transaction", transactionID.to_string());
       transaction->_dataAvailable = false;
       eof = true;
@@ -632,7 +632,7 @@ bool SiteToSiteClient::receive(const utils::Identifier& transactionID, DataPacke
     eof = true;
     return true;
   }
-  transaction->_state = DATA_EXCHANGED;
+  transaction->_state = TransactionState::DATA_EXCHANGED;
   transaction->_bytes += len;
 
   logger_->log_info("Site to Site transaction {} received flow record {}, total length {}, added {}",
@@ -646,20 +646,20 @@ bool SiteToSiteClient::receiveFlowFiles(core::ProcessContext& context, core::Pro
   int transfers = 0;
   std::shared_ptr<Transaction> transaction = nullptr;
 
-  if (peer_state_ != READY) {
+  if (peer_state_ != PeerState::READY) {
     if (!bootstrap()) {
       return false;
     }
   }
 
-  if (peer_state_ != READY) {
+  if (peer_state_ != PeerState::READY) {
     context.yield();
     tearDown();
     throw Exception(SITE2SITE_EXCEPTION, "Can not establish handshake with peer");
   }
 
   // Create the transaction
-  transaction = createTransaction(RECEIVE);
+  transaction = createTransaction(TransferDirection::RECEIVE);
 
   if (transaction == nullptr) {
     context.yield();

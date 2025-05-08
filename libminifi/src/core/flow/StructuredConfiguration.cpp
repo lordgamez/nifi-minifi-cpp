@@ -538,7 +538,7 @@ void StructuredConfiguration::parseRemoteProcessGroup(const Node& rpg_node_seq, 
     auto inputPorts = currRpgNode[schema_.rpg_input_ports];
     if (inputPorts && inputPorts.isSequence()) {
       for (const auto& currPort : inputPorts) {
-        parseRPGPort(currPort, group.get(), sitetosite::SEND);
+        parseRPGPort(currPort, group.get(), sitetosite::TransferDirection::SEND);
       }  // for node
     }
     auto outputPorts = currRpgNode[schema_.rpg_output_ports];
@@ -546,7 +546,7 @@ void StructuredConfiguration::parseRemoteProcessGroup(const Node& rpg_node_seq, 
       for (const auto& currPort : outputPorts) {
         logger_->log_debug("Got a current port, iterating...");
 
-        parseRPGPort(currPort, group.get(), sitetosite::RECEIVE);
+        parseRPGPort(currPort, group.get(), sitetosite::TransferDirection::RECEIVE);
       }  // for node
     }
     parentGroup->addProcessGroup(std::move(group));

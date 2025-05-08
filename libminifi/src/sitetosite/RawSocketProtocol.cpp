@@ -36,44 +36,8 @@ namespace org::apache::nifi::minifi::sitetosite {
 std::shared_ptr<utils::IdGenerator> RawSiteToSiteClient::id_generator_ = utils::IdGenerator::getIdGenerator();
 std::shared_ptr<utils::IdGenerator> Transaction::id_generator_ = utils::IdGenerator::getIdGenerator();
 
-const char *RawSiteToSiteClient::HandShakePropertyStr[MAX_HANDSHAKE_PROPERTY] = {  // NOLINT(cppcoreguidelines-avoid-c-arrays)
-/**
- * Boolean value indicating whether or not the contents of a FlowFile should
- * be GZipped when transferred.
- */
-"GZIP",
-/**
- * The unique identifier of the port to communicate with
- */
-"PORT_IDENTIFIER",
-/**
- * Indicates the number of milliseconds after the request was made that the
- * client will wait for a response. If no response has been received by the
- * time this value expires, the server can move on without attempting to
- * service the request because the client will have already disconnected.
- */
-"REQUEST_EXPIRATION_MILLIS",
-/**
- * The preferred number of FlowFiles that the server should send to the
- * client when pulling data. This property was introduced in version 5 of
- * the protocol.
- */
-"BATCH_COUNT",
-/**
- * The preferred number of bytes that the server should send to the client
- * when pulling data. This property was introduced in version 5 of the
- * protocol.
- */
-"BATCH_SIZE",
-/**
- * The preferred amount of time that the server should send data to the
- * client when pulling data. This property was introduced in version 5 of
- * the protocol. Value is in milliseconds.
- */
-"BATCH_DURATION" };
-
 bool RawSiteToSiteClient::establish() {
-  if (peer_state_ != IDLE) {
+  if (peer_state_ != PeerState::IDLE) {
     logger_->log_error("Site2Site peer state is not idle while try to establish");
     return false;
   }
@@ -94,14 +58,14 @@ bool RawSiteToSiteClient::establish() {
   }
 
   logger_->log_debug("Site2Site socket established");
-  peer_state_ = ESTABLISHED;
+  peer_state_ = PeerState::ESTABLISHED;
 
   return true;
 }
 
 bool RawSiteToSiteClient::initiateResourceNegotiation() {
   // Negotiate the version
-  if (peer_state_ != IDLE) {
+  if (peer_state_ != PeerState::IDLE) {
     logger_->log_error("Site2Site peer state is not idle while initiateResourceNegotiation");
     return false;
   }
@@ -136,11 +100,11 @@ bool RawSiteToSiteClient::initiateResourceNegotiation() {
   }
   logger_->log_debug("status code is {}", statusCode);
   switch (statusCode) {
-    case RESOURCE_OK: {
+    case magic_enum::enum_integer(ResourceNegotiationStatusCode::RESOURCE_OK): {
       logger_->log_debug("Site2Site Protocol Negotiate protocol version OK");
       return true;
     }
-    case DIFFERENT_RESOURCE_VERSION: {
+    case magic_enum::enum_integer(ResourceNegotiationStatusCode::DIFFERENT_RESOURCE_VERSION): {
       uint32_t serverVersion = 0;
       {
         const auto ret = peer_->read(serverVersion);
@@ -161,7 +125,7 @@ bool RawSiteToSiteClient::initiateResourceNegotiation() {
       logger_->log_error("Site2Site Negotiate protocol failed to find a common version with server");
       return false;
     }
-    case NEGOTIATED_ABORT: {
+    case magic_enum::enum_integer(ResourceNegotiationStatusCode::NEGOTIATED_ABORT): {
       logger_->log_error("Site2Site Negotiate protocol response ABORT");
       return false;
     }
@@ -174,7 +138,7 @@ bool RawSiteToSiteClient::initiateResourceNegotiation() {
 
 bool RawSiteToSiteClient::initiateCodecResourceNegotiation() {
   // Negotiate the version
-  if (peer_state_ != HANDSHAKED) {
+  if (peer_state_ != PeerState::HANDSHAKED) {
     logger_->log_error("Site2Site peer state is not handshaked while initiateCodecResourceNegotiation");
     return false;
   }
@@ -205,11 +169,11 @@ bool RawSiteToSiteClient::initiateCodecResourceNegotiation() {
     }
   }
   switch (statusCode) {
-    case RESOURCE_OK: {
+    case magic_enum::enum_integer(ResourceNegotiationStatusCode::RESOURCE_OK): {
       logger_->log_trace("Site2Site Codec Negotiate version OK");
       return true;
     }
-    case DIFFERENT_RESOURCE_VERSION: {
+    case magic_enum::enum_integer(ResourceNegotiationStatusCode::DIFFERENT_RESOURCE_VERSION): {
       uint32_t serverVersion = 0;
       {
         const auto ret = peer_->read(serverVersion);
@@ -229,7 +193,7 @@ bool RawSiteToSiteClient::initiateCodecResourceNegotiation() {
       logger_->log_error("Site2Site Negotiate codec failed to find a common version with server");
       return false;
     }
-    case NEGOTIATED_ABORT: {
+    case magic_enum::enum_integer(ResourceNegotiationStatusCode::NEGOTIATED_ABORT): {
       logger_->log_error("Site2Site Codec Negotiate response ABORT");
       return false;
     }
@@ -241,7 +205,7 @@ bool RawSiteToSiteClient::initiateCodecResourceNegotiation() {
 }
 
 bool RawSiteToSiteClient::handShake() {
-  if (peer_state_ != ESTABLISHED) {
+  if (peer_state_ != PeerState::ESTABLISHED) {
     logger_->log_error("Site2Site peer state is not established while handshake");
     return false;
   }
@@ -256,16 +220,16 @@ bool RawSiteToSiteClient::handShake() {
   }
 
   std::map<std::string, std::string> properties;
-  properties[HandShakePropertyStr[GZIP]] = "false";
-  properties[HandShakePropertyStr[PORT_IDENTIFIER]] = port_id_.to_string();
-  properties[HandShakePropertyStr[REQUEST_EXPIRATION_MILLIS]] = std::to_string(timeout_.load().count());
+  properties[std::string(magic_enum::enum_name(HandshakeProperty::GZIP))] = "false";
+  properties[std::string(magic_enum::enum_name(HandshakeProperty::PORT_IDENTIFIER))] = port_id_.to_string();
+  properties[std::string(magic_enum::enum_name(HandshakeProperty::REQUEST_EXPIRATION_MILLIS))] = std::to_string(timeout_.load().count());
   if (current_version_ >= 5) {
     if (batch_count_ > 0)
-      properties[HandShakePropertyStr[BATCH_COUNT]] = std::to_string(batch_count_);
+      properties[std::string(magic_enum::enum_name(HandshakeProperty::BATCH_COUNT))] = std::to_string(batch_count_);
     if (batch_size_ > 0)
-      properties[HandShakePropertyStr[BATCH_SIZE]] = std::to_string(batch_size_);
+      properties[std::string(magic_enum::enum_name(HandshakeProperty::BATCH_SIZE))] = std::to_string(batch_size_);
     if (batch_duration_.load() > 0ms)
-      properties[HandShakePropertyStr[BATCH_DURATION]] = std::to_string(batch_duration_.load().count());
+      properties[std::string(magic_enum::enum_name(HandshakeProperty::BATCH_DURATION))] = std::to_string(batch_duration_.load().count());
   }
 
   if (current_version_ >= 3) {
@@ -300,7 +264,7 @@ bool RawSiteToSiteClient::handShake() {
     logger_->log_debug("Site2Site Protocol Send handshake properties {} {}", it->first, it->second);
   }
 
-  ResponseCode code = RESERVED;
+  ResponseCode code = ResponseCode::RESERVED;
   std::string message;
 
   {
@@ -315,20 +279,20 @@ bool RawSiteToSiteClient::handShake() {
   };
 
   switch (code) {
-    case PROPERTIES_OK:
+    case ResponseCode::PROPERTIES_OK:
       logger_->log_debug("Site2Site HandShake Completed");
-      peer_state_ = HANDSHAKED;
+      peer_state_ = PeerState::HANDSHAKED;
       return true;
-    case PORT_NOT_IN_VALID_STATE:
+    case ResponseCode::PORT_NOT_IN_VALID_STATE:
       logPortStateError("in invalid state");
       return false;
-    case UNKNOWN_PORT:
+    case ResponseCode::UNKNOWN_PORT:
       logPortStateError("an unknown port");
       return false;
-    case PORTS_DESTINATION_FULL:
+    case ResponseCode::PORTS_DESTINATION_FULL:
       logPortStateError("full");
       return false;
-    case UNAUTHORIZED:
+    case ResponseCode::UNAUTHORIZED:
       logger_->log_error("Site2Site HandShake on port {} failed: UNAUTHORIZED", port_id_.to_string());
       return false;
     default:
@@ -338,20 +302,20 @@ bool RawSiteToSiteClient::handShake() {
 }
 
 void RawSiteToSiteClient::tearDown() {
-  if (peer_state_ >= ESTABLISHED) {
+  if (magic_enum::enum_integer(peer_state_) >= magic_enum::enum_integer(PeerState::ESTABLISHED)) {
     logger_->log_trace("Site2Site Protocol tearDown");
     // need to write shutdown request
-    writeRequestType(SHUTDOWN);
+    writeRequestType(RequestType::SHUTDOWN);
   }
 
   known_transactions_.clear();
   peer_->close();
-  peer_state_ = IDLE;
+  peer_state_ = PeerState::IDLE;
 }
 
 bool RawSiteToSiteClient::getPeerList(std::vector<PeerStatus> &peers) {
   if (establish() && handShake()) {
-    if (writeRequestType(REQUEST_PEER_LIST) <= 0) {
+    if (writeRequestType(RequestType::REQUEST_PEER_LIST) <= 0) {
       tearDown();
       return false;
     }
@@ -411,10 +375,7 @@ bool RawSiteToSiteClient::getPeerList(std::vector<PeerStatus> &peers) {
 }
 
   int RawSiteToSiteClient::writeRequestType(RequestType type) {
-    if (type >= MAX_REQUEST_TYPE)
-      return -1;
-
-    const auto write_result = peer_->write(SiteToSiteRequest::RequestTypeStr[type]);
+    const auto write_result = peer_->write(std::string{magic_enum::enum_name(type)});
     return io::isError(write_result) ? -1 : gsl::narrow<int>(write_result);
   }
 
@@ -422,12 +383,13 @@ bool RawSiteToSiteClient::getPeerList(std::vector<PeerStatus> &peers) {
     std::string requestTypeStr;
 
     const auto ret = peer_->read(requestTypeStr);
-    if (ret == 0 || io::isError(ret))
+    if (ret == 0 || io::isError(ret)) {
       return static_cast<int>(ret);
+    }
 
-    for (int i = NEGOTIATE_FLOWFILE_CODEC; i <= SHUTDOWN; i++) {
-      if (SiteToSiteRequest::RequestTypeStr[i] == requestTypeStr) {
-        type = static_cast<RequestType>(i);
+    for (const auto& current_type : magic_enum::enum_values<RequestType>()) {
+      if (std::string{magic_enum::enum_name(current_type)} == requestTypeStr) {
+        type = current_type;
         return static_cast<int>(ret);
       }
     }
@@ -444,14 +406,14 @@ int RawSiteToSiteClient::writeRespond(const std::shared_ptr<Transaction> &transa
 }
 
 bool RawSiteToSiteClient::negotiateCodec() {
-  if (peer_state_ != HANDSHAKED) {
+  if (peer_state_ != PeerState::HANDSHAKED) {
     logger_->log_error("Site2Site peer state is not handshaked while negotiate codec");
     return false;
   }
 
   logger_->log_trace("Site2Site Protocol Negotiate Codec with destination port {}", port_id_.to_string());
 
-  int status = writeRequestType(NEGOTIATE_FLOWFILE_CODEC);
+  int status = writeRequestType(RequestType::NEGOTIATE_FLOWFILE_CODEC);
 
   if (status <= 0) {
     return false;
@@ -466,13 +428,13 @@ bool RawSiteToSiteClient::negotiateCodec() {
   }
 
   logger_->log_trace("Site2Site Codec Completed and move to READY state for data transfer");
-  peer_state_ = READY;
+  peer_state_ = PeerState::READY;
 
   return true;
 }
 
 bool RawSiteToSiteClient::bootstrap() {
-  if (peer_state_ == READY)
+  if (peer_state_ == PeerState::READY)
     return true;
 
   tearDown();
@@ -492,22 +454,22 @@ std::shared_ptr<Transaction> RawSiteToSiteClient::createTransaction(TransferDire
   bool dataAvailable = false;
   std::shared_ptr<Transaction> transaction = nullptr;
 
-  if (peer_state_ != READY) {
+  if (peer_state_ != PeerState::READY) {
     bootstrap();
   }
 
-  if (peer_state_ != READY) {
+  if (peer_state_ != PeerState::READY) {
     return transaction;
   }
 
-  if (direction == RECEIVE) {
-    ret = writeRequestType(RECEIVE_FLOWFILES);
+  if (direction == TransferDirection::RECEIVE) {
+    ret = writeRequestType(RequestType::RECEIVE_FLOWFILES);
 
     if (ret <= 0) {
       return transaction;
     }
 
-    ResponseCode code = RESERVED;
+    ResponseCode code = ResponseCode::RESERVED;
     std::string message;
 
     ret = readRespond(nullptr, code, message);
@@ -518,7 +480,7 @@ std::shared_ptr<Transaction> RawSiteToSiteClient::createTransaction(TransferDire
 
     org::apache::nifi::minifi::io::CRCStream<SiteToSitePeer> crcstream(gsl::make_not_null(peer_.get()));
     switch (code) {
-      case MORE_DATA:
+      case ResponseCode::MORE_DATA:
         dataAvailable = true;
         logger_->log_trace("Site2Site peer indicates that data is available");
         transaction = std::make_shared<Transaction>(direction, std::move(crcstream));
@@ -526,7 +488,7 @@ std::shared_ptr<Transaction> RawSiteToSiteClient::createTransaction(TransferDire
         transaction->setDataAvailable(dataAvailable);
         logger_->log_trace("Site2Site create transaction {}", transaction->getUUIDStr());
         return transaction;
-      case NO_MORE_DATA:
+      case ResponseCode::NO_MORE_DATA:
         dataAvailable = false;
         logger_->log_trace("Site2Site peer indicates that no data is available");
         transaction = std::make_shared<Transaction>(direction, std::move(crcstream));
@@ -539,7 +501,7 @@ std::shared_ptr<Transaction> RawSiteToSiteClient::createTransaction(TransferDire
         return nullptr;
     }
   } else {
-    ret = writeRequestType(SEND_FLOWFILES);
+    ret = writeRequestType(RequestType::SEND_FLOWFILES);
 
     if (ret <= 0) {
       return nullptr;
@@ -560,20 +522,20 @@ bool RawSiteToSiteClient::transmitPayload(core::ProcessContext& context, core::P
   if (payload.length() <= 0)
     return false;
 
-  if (peer_state_ != READY) {
+  if (peer_state_ != PeerState::READY) {
     if (!bootstrap()) {
       return false;
     }
   }
 
-  if (peer_state_ != READY) {
+  if (peer_state_ != PeerState::READY) {
     context.yield();
     tearDown();
     throw Exception(SITE2SITE_EXCEPTION, "Can not establish handshake with peer");
   }
 
   // Create the transaction
-  transaction = createTransaction(SEND);
+  transaction = createTransaction(TransferDirection::SEND);
 
   if (transaction == nullptr) {
     context.yield();
