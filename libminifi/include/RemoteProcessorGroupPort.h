@@ -80,13 +80,13 @@ class RemoteProcessorGroupPort : public core::ProcessorImpl {
   RemoteProcessorGroupPort(std::string_view name, std::string url, std::shared_ptr<Configure> configure, const utils::Identifier &uuid = {})
       : core::ProcessorImpl(name, uuid),
         configure_(std::move(configure)),
-        direction_(sitetosite::SEND),
+        direction_(sitetosite::TransferDirection::SEND),
         transmitting_(false),
         timeout_(0),
         bypass_rest_api_(false),
         ssl_service(nullptr),
         logger_(core::logging::LoggerFactory<RemoteProcessorGroupPort>::getLogger(uuid)) {
-    client_type_ = sitetosite::CLIENT_TYPE::RAW;
+    client_type_ = sitetosite::ClientType::RAW;
     protocol_uuid_ = uuid;
     site2site_secure_ = false;
     peer_index_ = -1;
@@ -139,7 +139,7 @@ class RemoteProcessorGroupPort : public core::ProcessorImpl {
 
   void setDirection(sitetosite::TransferDirection direction) {
     direction_ = direction;
-    if (direction_ == sitetosite::RECEIVE)
+    if (direction_ == sitetosite::TransferDirection::RECEIVE)
       this->setTriggerWhenEmpty(true);
   }
 
@@ -194,7 +194,7 @@ class RemoteProcessorGroupPort : public core::ProcessorImpl {
   void notifyStop() override;
 
   void enableHTTP() {
-    client_type_ = sitetosite::HTTP;
+    client_type_ = sitetosite::ClientType::HTTP;
   }
 
  protected:
@@ -238,7 +238,7 @@ class RemoteProcessorGroupPort : public core::ProcessorImpl {
 
   bool bypass_rest_api_;
 
-  sitetosite::CLIENT_TYPE client_type_;
+  sitetosite::ClientType client_type_;
 
   // Remote Site2Site Info
   bool site2site_secure_;
