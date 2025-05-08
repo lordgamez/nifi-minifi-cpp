@@ -324,8 +324,10 @@ class Transaction {
 
 class SiteToSiteClientConfiguration {
  public:
-  SiteToSiteClientConfiguration(const std::shared_ptr<Peer> &peer, const std::string &ifc, CLIENT_TYPE type = RAW)
-      : peer_(peer),
+  SiteToSiteClientConfiguration(const utils::Identifier &port_id, std::string host, uint16_t port, const std::string &ifc, CLIENT_TYPE type = RAW)
+      : port_id_(port_id),
+        host_(std::move(host)),
+        port_(port),
         local_network_interface_(ifc),
         ssl_service_(nullptr) {
     client_type_ = type;
@@ -337,8 +339,16 @@ class SiteToSiteClientConfiguration {
     return client_type_;
   }
 
-  const std::shared_ptr<Peer> &getPeer() const {
-    return peer_;
+  const utils::Identifier& getPortId() const {
+    return port_id_;
+  }
+
+  const std::string& getHost() const {
+    return host_;
+  }
+
+  uint16_t getPort() const {
+    return port_;
   }
 
   void setSecurityContext(const std::shared_ptr<controllers::SSLContextService> &ssl_service) {
@@ -372,7 +382,9 @@ class SiteToSiteClientConfiguration {
   }
 
  protected:
-  std::shared_ptr<Peer> peer_;
+  utils::Identifier port_id_;
+  std::string host_;
+  uint16_t port_;
 
   CLIENT_TYPE client_type_;
 

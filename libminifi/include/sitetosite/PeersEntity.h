@@ -55,33 +55,11 @@ class PeersEntity {
         for (const auto &peer : root["peers"].GetArray()) {
           std::string hostname;
           int port = 0, flowFileCount = 0;
-          bool secure = false;
 
           if (peer.HasMember("hostname") && peer["hostname"].IsString() &&
               peer.HasMember("port") && peer["port"].IsNumber()) {
             hostname = peer["hostname"].GetString();
             port = peer["port"].GetInt();
-          }
-
-          if (peer.HasMember("secure")) {
-            if (peer["secure"].IsBool()) {
-              secure = peer["secure"].GetBool();
-            } else if (peer["secure"].IsString()) {
-              std::string secureStr = peer["secure"].GetString();
-
-              if (utils::string::equalsIgnoreCase(secureStr, "true")) {
-                secure = true;
-              } else if (utils::string::equalsIgnoreCase(secureStr, "false")) {
-                secure = false;
-              } else {
-                const auto err = utils::string::join_pack("could not parse secure string ", secureStr);
-                logger->log_error("{}", err);
-                throw std::logic_error{err};
-              }
-            } else {
-              logger->log_warn("Invalid value type for secure, assuming false (rapidjson type id {})",
-                  magic_enum::enum_underlying(peer["secure"].GetType()));
-            }
           }
 
           if (peer.HasMember("flowFileCount")) {
@@ -94,7 +72,7 @@ class PeersEntity {
 
           // host name and port are required.
           if (!IsNullOrEmpty(hostname) && port > 0) {
-            sitetosite::PeerStatus status(std::make_shared<sitetosite::Peer>(id, hostname, port, secure), flowFileCount, true);
+            sitetosite::PeerStatus status(id, hostname, port, flowFileCount, true);
             peer_statuses.push_back(std::move(status));
           } else {
             logger->log_debug("hostname empty or port is zero. hostname: {}, port: {}", hostname, port);

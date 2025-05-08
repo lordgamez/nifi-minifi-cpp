@@ -31,7 +31,26 @@
 
 namespace org::apache::nifi::minifi::sitetosite {
 
-bool SiteToSitePeer::Open() {
+bool SiteToSitePeer::isYield(const std::string& port_id) const {
+  std::lock_guard<std::mutex> lock(mutex_);
+  auto it = yield_expiration_port_id_map_.find(port_id);
+  if (it != yield_expiration_port_id_map_.end()) {
+    auto yieldExpiration = it->second;
+    return (yieldExpiration >= std::chrono::system_clock::now());
+  } else {
+    return false;
+  }
+}
+
+void SiteToSitePeer::clearYield(const std::string& port_id) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  auto it = yield_expiration_port_id_map_.find(port_id);
+  if (it != yield_expiration_port_id_map_.end()) {
+    yield_expiration_port_id_map_.erase(port_id);
+  }
+}
+
+bool SiteToSitePeer::open() {
   if (IsNullOrEmpty(host_))
     return false;
 
@@ -50,13 +69,14 @@ bool SiteToSitePeer::Open() {
   if (stream_->initialize() < 0)
     return false;
 
-  const auto data_size = sizeof MAGIC_BYTES;
-  return stream_->write(reinterpret_cast<const uint8_t *>(MAGIC_BYTES), data_size) == data_size;
+  const auto data_size = MAGIC_BYTES.size();
+  return stream_->write(reinterpret_cast<const uint8_t *>(MAGIC_BYTES.data()), data_size) == data_size;
 }
 
-void SiteToSitePeer::Close() {
-  if (stream_ != nullptr)
+void SiteToSitePeer::close() {
+  if (stream_ != nullptr) {
     stream_->close();
+  }
 }
 
 }  // namespace org::apache::nifi::minifi::sitetosite

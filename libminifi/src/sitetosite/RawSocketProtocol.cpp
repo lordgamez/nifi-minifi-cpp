@@ -78,7 +78,7 @@ bool RawSiteToSiteClient::establish() {
     return false;
   }
 
-  bool ret = peer_->Open();
+  bool ret = peer_->open();
 
   if (!ret) {
     logger_->log_error("Site2Site peer socket open failed");
@@ -345,7 +345,7 @@ void RawSiteToSiteClient::tearDown() {
   }
 
   known_transactions_.clear();
-  peer_->Close();
+  peer_->close();
   peer_state_ = IDLE;
 }
 
@@ -398,7 +398,7 @@ bool RawSiteToSiteClient::getPeerList(std::vector<PeerStatus> &peers) {
           return false;
         }
       }
-      peers.push_back(PeerStatus{std::make_shared<Peer>(port_id_, host, gsl::narrow<uint16_t>(port), secure != 0), count, true});
+      peers.push_back(PeerStatus(port_id_, host, gsl::narrow<uint16_t>(port), count, true));
       logger_->log_trace("Site2Site Peer host {} port {} Secure {}", host, port, std::to_string(secure));
     }
 
