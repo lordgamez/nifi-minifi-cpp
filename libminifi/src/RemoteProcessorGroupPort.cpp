@@ -62,8 +62,7 @@ std::unique_ptr<sitetosite::SiteToSiteClient> RemoteProcessorGroupPort::getNextP
             host = org::apache::nifi::minifi::utils::net::getMyHostName();
           }
 #endif
-          sitetosite::SiteToSiteClientConfiguration config(std::make_shared<sitetosite::Peer>(protocol_uuid_, host, rpg.port_, ssl_service != nullptr), this->getInterface(),
-                                                           client_type_);
+          sitetosite::SiteToSiteClientConfiguration config(protocol_uuid_, host, rpg.port_, getInterface(), client_type_);
           config.setHTTPProxy(this->proxy_);
           config.setIdleTimeout(idle_timeout_);
           nextProtocol = sitetosite::createClient(config);
@@ -71,7 +70,8 @@ std::unique_ptr<sitetosite::SiteToSiteClient> RemoteProcessorGroupPort::getNextP
       } else if (peer_index_ >= 0) {
         std::lock_guard<std::mutex> lock(peer_mutex_);
         logger_->log_debug("Creating client from peer {}", peer_index_.load());
-        sitetosite::SiteToSiteClientConfiguration config(peers_[this->peer_index_].getPeer(), local_network_interface_, client_type_);
+        auto& peer_status = peers_[this->peer_index_];
+        sitetosite::SiteToSiteClientConfiguration config(peer_status.getPortId(), peer_status.getHost(), peer_status.getPort(), local_network_interface_, client_type_);
         config.setSecurityContext(ssl_service);
         peer_index_++;
         if (peer_index_ >= static_cast<int>(peers_.size())) {
@@ -146,7 +146,8 @@ void RemoteProcessorGroupPort::onSchedule(core::ProcessContext& context, core::P
       count = max_concurrent_tasks_;
     for (uint32_t i = 0; i < count; i++) {
       std::unique_ptr<sitetosite::SiteToSiteClient> nextProtocol = nullptr;
-      sitetosite::SiteToSiteClientConfiguration config(peers_[this->peer_index_].getPeer(), this->getInterface(), client_type_);
+      auto peer_status = peers_[this->peer_index_];
+      sitetosite::SiteToSiteClientConfiguration config(peer_status.getPortId(), peer_status.getHost(), peer_status.getPort(), getInterface(), client_type_);
       config.setSecurityContext(ssl_service);
       peer_index_++;
       if (peer_index_ >= static_cast<int>(peers_.size())) {
@@ -334,13 +335,12 @@ void RemoteProcessorGroupPort::refreshPeerList() {
     return;
   }
 
-  this->peers_.clear();
+  peers_.clear();
 
   std::unique_ptr<sitetosite::SiteToSiteClient> protocol;
-  sitetosite::SiteToSiteClientConfiguration config(std::make_shared<sitetosite::Peer>(protocol_uuid_, connection.first, connection.second, ssl_service != nullptr),
-                                                   this->getInterface(), client_type_);
+  sitetosite::SiteToSiteClientConfiguration config(protocol_uuid_, connection.first, connection.second, getInterface(), client_type_);
   config.setSecurityContext(ssl_service);
-  config.setHTTPProxy(this->proxy_);
+  config.setHTTPProxy(proxy_);
   config.setIdleTimeout(idle_timeout_);
   protocol = sitetosite::createClient(config);
 

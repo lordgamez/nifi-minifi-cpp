@@ -243,7 +243,7 @@ void HttpSiteToSiteClient::tearDown() {
     logger_->log_debug("Site2Site Protocol tearDown");
   }
   known_transactions_.clear();
-  peer_->Close();
+  peer_->close();
   peer_state_ = sitetosite::IDLE;
 }
 
