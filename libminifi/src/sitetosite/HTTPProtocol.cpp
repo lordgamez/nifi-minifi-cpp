@@ -23,13 +23,17 @@
 #include <thread>
 #include <iostream>
 #include <vector>
+#include <optional>
 
-#include "sitetosite/PeersEntity.h"
 #include "io/CRCStream.h"
 #include "sitetosite/Peer.h"
 #include "io/validation.h"
 #include "core/Resource.h"
 #include "utils/StringUtils.h"
+#include "Exception.h"
+
+#include "rapidjson/document.h"
+#include "rapidjson/error/en.h"
 
 #undef DELETE  // macro on windows
 
@@ -38,6 +42,61 @@ namespace org::apache::nifi::minifi::sitetosite {
 namespace {
 std::optional<utils::Identifier> parseTransactionId(const std::string &uri) {
   return utils::Identifier::parse(utils::string::partAfterLastOccurrenceOf(uri, '/'));
+}
+
+std::optional<std::vector<PeerStatus>> parsePeerStatuses(const std::shared_ptr<core::logging::Logger> &logger, const std::string &entity, const utils::Identifier &id) {
+  try {
+    std::vector<PeerStatus> peer_statuses;
+    rapidjson::Document root;
+    rapidjson::ParseResult ok = root.Parse(entity.c_str());
+
+    if (!ok) {
+        std::stringstream ss;
+        ss << "Failed to parse archive lens stack from JSON string with reason: "
+           << rapidjson::GetParseError_En(ok.Code())
+           << " at offset " << ok.Offset();
+
+        throw Exception(ExceptionType::GENERAL_EXCEPTION, ss.str());
+    }
+
+    if (root.HasMember("peers") && root["peers"].IsArray() && root["peers"].Size() > 0) {
+      for (const auto &peer : root["peers"].GetArray()) {
+        std::string hostname;
+        int port = 0, flowFileCount = 0;
+
+        if (peer.HasMember("hostname") && peer["hostname"].IsString() &&
+            peer.HasMember("port") && peer["port"].IsNumber()) {
+          hostname = peer["hostname"].GetString();
+          port = peer["port"].GetInt();
+        }
+
+        if (peer.HasMember("flowFileCount")) {
+          if (peer["flowFileCount"].IsNumber()) {
+            flowFileCount = gsl::narrow<int>(peer["flowFileCount"].GetInt64());
+          } else {
+            logger->log_debug("Could not parse flowFileCount, so we're going to continue without it");
+          }
+        }
+
+        // host name and port are required.
+        if (!IsNullOrEmpty(hostname) && port > 0) {
+          sitetosite::PeerStatus status(id, hostname, port, flowFileCount, true);
+          peer_statuses.push_back(std::move(status));
+        } else {
+          logger->log_debug("hostname empty or port is zero. hostname: {}, port: {}", hostname, port);
+        }
+      }
+    } else {
+      logger->log_debug("Peers is either not a member or is empty. String to analyze: {}", entity);
+    }
+    return peer_statuses;
+  } catch (Exception &exception) {
+    logger->log_debug("Caught Exception {}", exception.what());
+    return std::nullopt;
+  } catch (...) {
+    logger->log_debug("General exception occurred");
+    return std::nullopt;
+  }
 }
 }  // namespace
 
@@ -185,7 +244,8 @@ bool HttpSiteToSiteClient::getPeerList(std::vector<sitetosite::PeerStatus> &peer
   client->submit();
 
   if (client->getResponseCode() == 200) {
-    if (sitetosite::PeersEntity::parse(logger_, std::string(client->getResponseBody().data(), client->getResponseBody().size()), port_id_, peers)) {
+    if (auto result = parsePeerStatuses(logger_, std::string(client->getResponseBody().data(), client->getResponseBody().size()), port_id_)) {
+      peers = *result;
       return true;
     }
   }
