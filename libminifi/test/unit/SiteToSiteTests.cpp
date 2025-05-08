@@ -49,7 +49,7 @@ void sunny_path_bootstrap(const std::unique_ptr<SiteToSiteResponder>& collector)
   resp_code.insert(resp_code.begin(), a);
   collector->push_response(resp_code);
 
-  // Handshake respond code
+  // Handshake response code
   resp_code = "R";
   collector->push_response(resp_code);
   resp_code = "C";

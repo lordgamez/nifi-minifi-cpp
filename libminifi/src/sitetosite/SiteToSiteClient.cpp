@@ -26,7 +26,7 @@
 
 namespace org::apache::nifi::minifi::sitetosite {
 
-int SiteToSiteClient::readResponse(const std::shared_ptr<Transaction>& /*transaction*/, RespondCode &code, std::string &message) {
+int SiteToSiteClient::readResponse(const std::shared_ptr<Transaction>& /*transaction*/, ResponseCode &code, std::string &message) {
   uint8_t firstByte = 0;
   {
     const auto ret = peer_->read(firstByte);
@@ -48,7 +48,7 @@ int SiteToSiteClient::readResponse(const std::shared_ptr<Transaction>& /*transac
       return static_cast<int>(ret);
   }
 
-  code = static_cast<RespondCode>(thirdByte);
+  code = static_cast<ResponseCode>(thirdByte);
   RespondCodeContext *resCode = this->getRespondCodeContext(code);
   if (!resCode) {
     return -1;
@@ -75,7 +75,7 @@ void SiteToSiteClient::deleteTransaction(const utils::Identifier& transactionID)
   known_transactions_.erase(transactionID);
 }
 
-int SiteToSiteClient::writeResponse(const std::shared_ptr<Transaction>& /*transaction*/, RespondCode code, const std::string& message) {
+int SiteToSiteClient::writeResponse(const std::shared_ptr<Transaction>& /*transaction*/, ResponseCode code, const std::string& message) {
   RespondCodeContext *resCode = this->getRespondCodeContext(code);
   if (!resCode) {
     return -1;
@@ -236,7 +236,7 @@ bool SiteToSiteClient::confirm(const utils::Identifier& transactionID) {
     ret = writeResponse(transaction, CONFIRM_TRANSACTION, crc);
     if (ret <= 0)
       return false;
-    RespondCode code = RESERVED;
+    ResponseCode code = RESERVED;
     std::string message;
     readResponse(transaction, code, message);
     if (ret <= 0)
@@ -259,7 +259,7 @@ bool SiteToSiteClient::confirm(const utils::Identifier& transactionID) {
     if (ret <= 0) {
       return false;
     }
-    RespondCode code = RESERVED;
+    ResponseCode code = RESERVED;
     std::string message;
     readResponse(transaction, code, message);
 
@@ -288,7 +288,7 @@ bool SiteToSiteClient::confirm(const utils::Identifier& transactionID) {
       transaction->_state = TRANSACTION_CONFIRMED;
       return true;
     } else {
-      logger_->log_debug("Site2Site transaction {} peer unknown respond code {}", transactionID.to_string(), magic_enum::enum_underlying(code));
+      logger_->log_debug("Site2Site transaction {} peer unknown response code {}", transactionID.to_string(), magic_enum::enum_underlying(code));
       return false;
     }
     return false;
@@ -374,7 +374,7 @@ bool SiteToSiteClient::complete(core::ProcessContext& context, const utils::Iden
       }
     }
   } else {
-    RespondCode code = RESERVED;
+    ResponseCode code = RESERVED;
     std::string message;
 
     ret = readResponse(transaction, code, message);
@@ -392,7 +392,7 @@ bool SiteToSiteClient::complete(core::ProcessContext& context, const utils::Iden
       }
       return true;
     } else {
-      logger_->log_warn("Site2Site transaction {} peer unexpected respond code {}: {}", transactionID.to_string(), magic_enum::enum_underlying(code), magic_enum::enum_name(code));
+      logger_->log_warn("Site2Site transaction {} peer unexpected response code {}: {}", transactionID.to_string(), magic_enum::enum_underlying(code), magic_enum::enum_name(code));
       return false;
     }
   }
@@ -558,7 +558,7 @@ bool SiteToSiteClient::receive(const utils::Identifier& transactionID, DataPacke
 
   if (transaction->current_transfers_ > 0) {
     // if we already has transfer before, check to see whether another one is available
-    RespondCode code = RESERVED;
+    ResponseCode code = RESERVED;
     std::string message;
 
     if (readResponse(transaction, code, message) <= 0) {
@@ -573,7 +573,7 @@ bool SiteToSiteClient::receive(const utils::Identifier& transactionID, DataPacke
       eof = true;
       return true;
     } else {
-      logger_->log_debug("Site2Site transaction {} peer indicate wrong respond code {}", transactionID.to_string(), magic_enum::enum_underlying(code));
+      logger_->log_debug("Site2Site transaction {} peer indicate wrong response code {}", transactionID.to_string(), magic_enum::enum_underlying(code));
       return false;
     }
   }

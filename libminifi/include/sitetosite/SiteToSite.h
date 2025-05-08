@@ -205,11 +205,11 @@ typedef enum {
   ABORT = 250,
   UNRECOGNIZED_RESPONSE_CODE = 254,
   END_OF_STREAM = 255
-}RespondCode;
+} ResponseCode;
 
 // Respond Code Class
 typedef struct {
-  RespondCode code;
+  ResponseCode code;
   const char *description;
   bool hasDescription;
 } RespondCodeContext;
