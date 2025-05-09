@@ -34,7 +34,7 @@ class HttpTransaction : public sitetosite::Transaction {
       : Transaction(direction, std::move(stream)) {}
 
   ~HttpTransaction() {
-    if (auto stream = dynamic_cast<http::HttpStream*>(dynamic_cast<sitetosite::SiteToSitePeer*>(crcStream.getstream())->getStream())) {
+    if (auto stream = dynamic_cast<http::HttpStream*>(dynamic_cast<sitetosite::SiteToSitePeer*>(crc_stream_.getstream())->getStream())) {
       stream->forceClose();
     }
   }

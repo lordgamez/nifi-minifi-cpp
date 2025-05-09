@@ -167,7 +167,7 @@ bool SiteToSiteClient::transferFlowFiles(core::ProcessContext& context, core::Pr
     if (!complete(context, transactionID)) {
       throw Exception(SITE2SITE_EXCEPTION, "Complete Failed for " + transactionID.to_string());
     }
-    logger_->log_debug("Site2Site transaction {} successfully sent flow record {}, content bytes {}", transactionID.to_string(), transaction->total_transfers_, transaction->_bytes);
+    logger_->log_debug("Site2Site transaction {} successfully sent flow record {}, content bytes {}", transactionID.to_string(), transaction->getCurrentTransfers(), transaction->getBytes());
   } catch (std::exception &exception) {
     if (transaction)
       deleteTransaction(transactionID);
@@ -211,7 +211,7 @@ bool SiteToSiteClient::confirm(const utils::Identifier& transactionID) {
 
   if (transaction->getState() == TransactionState::TRANSACTION_STARTED && !transaction->isDataAvailable() &&
       transaction->getDirection() == TransferDirection::RECEIVE) {
-    transaction->_state = TransactionState::TRANSACTION_CONFIRMED;
+    transaction->setState(TransactionState::TRANSACTION_CONFIRMED);
     return true;
   }
 
@@ -244,7 +244,7 @@ bool SiteToSiteClient::confirm(const utils::Identifier& transactionID) {
 
     if (code == ResponseCode::CONFIRM_TRANSACTION) {
       logger_->log_debug("Site2Site transaction {} peer confirm transaction", transactionID.to_string());
-      transaction->_state = TransactionState::TRANSACTION_CONFIRMED;
+      transaction->setState(TransactionState::TRANSACTION_CONFIRMED);
       return true;
     } else if (code == ResponseCode::BAD_CHECKSUM) {
       logger_->log_debug("Site2Site transaction {} peer indicate bad checksum", transactionID.to_string());
@@ -274,7 +274,7 @@ bool SiteToSiteClient::confirm(const utils::Identifier& transactionID) {
           ret = writeResponse(transaction, ResponseCode::CONFIRM_TRANSACTION, "CONFIRM_TRANSACTION");
           if (ret <= 0)
             return false;
-          transaction->_state = TransactionState::TRANSACTION_CONFIRMED;
+          transaction->setState(TransactionState::TRANSACTION_CONFIRMED);
           return true;
         } else {
           logger_->log_debug("Site2Site transaction {} CRC not matched {}", transactionID.to_string(), crc);
@@ -285,7 +285,7 @@ bool SiteToSiteClient::confirm(const utils::Identifier& transactionID) {
       ret = writeResponse(transaction, ResponseCode::CONFIRM_TRANSACTION, "CONFIRM_TRANSACTION");
       if (ret <= 0)
         return false;
-      transaction->_state = TransactionState::TRANSACTION_CONFIRMED;
+      transaction->setState(TransactionState::TRANSACTION_CONFIRMED);
       return true;
     } else {
       logger_->log_debug("Site2Site transaction {} peer unknown response code {}", transactionID.to_string(), magic_enum::enum_underlying(code));
@@ -315,7 +315,7 @@ void SiteToSiteClient::cancel(const utils::Identifier& transactionID) {
   }
 
   this->writeResponse(transaction, ResponseCode::CANCEL_TRANSACTION, "Cancel");
-  transaction->_state = TransactionState::TRANSACTION_CANCELED;
+  transaction->setState(TransactionState::TRANSACTION_CANCELED);
 
   tearDown();
 }
@@ -331,7 +331,7 @@ void SiteToSiteClient::error(const utils::Identifier& transactionID) {
     transaction = it->second;
   }
 
-  transaction->_state = TransactionState::TRANSACTION_ERROR;
+  transaction->setState(TransactionState::TRANSACTION_ERROR);
   tearDown();
 }
 
@@ -356,12 +356,12 @@ bool SiteToSiteClient::complete(core::ProcessContext& context, const utils::Iden
     transaction = it->second;
   }
 
-  if (transaction->total_transfers_ > 0 && transaction->getState() != TransactionState::TRANSACTION_CONFIRMED) {
+  if (transaction->getTotalTransfers() > 0 && transaction->getState() != TransactionState::TRANSACTION_CONFIRMED) {
     return false;
   }
   if (transaction->getDirection() == TransferDirection::RECEIVE) {
-    if (transaction->current_transfers_ == 0) {
-      transaction->_state = TransactionState::TRANSACTION_COMPLETED;
+    if (transaction->getCurrentTransfers() == 0) {
+      transaction->setState(TransactionState::TRANSACTION_COMPLETED);
       return true;
     } else {
       logger_->log_debug("Site2Site transaction {} receive finished", transactionID.to_string());
@@ -369,7 +369,7 @@ bool SiteToSiteClient::complete(core::ProcessContext& context, const utils::Iden
       if (ret <= 0) {
         return false;
       } else {
-        transaction->_state = TransactionState::TRANSACTION_COMPLETED;
+        transaction->setState(TransactionState::TRANSACTION_COMPLETED);
         return true;
       }
     }
@@ -384,7 +384,7 @@ bool SiteToSiteClient::complete(core::ProcessContext& context, const utils::Iden
 
     if (code == ResponseCode::TRANSACTION_FINISHED || code == ResponseCode::TRANSACTION_FINISHED_BUT_DESTINATION_FULL) {
       logger_->log_info("Site2Site transaction {} peer finished transaction", transactionID.to_string());
-      transaction->_state = TransactionState::TRANSACTION_COMPLETED;
+      transaction->setState(TransactionState::TRANSACTION_COMPLETED);
 
       if (code == ResponseCode::TRANSACTION_FINISHED_BUT_DESTINATION_FULL) {
         logger_->log_info("Site2Site transaction {} reported destination full, yielding", transactionID.to_string());
@@ -423,7 +423,7 @@ int16_t SiteToSiteClient::send(const utils::Identifier& transactionID, DataPacke
     return -1;
   }
 
-  if (transaction->current_transfers_ > 0) {
+  if (transaction->getCurrentTransfers() > 0) {
     const auto ret = writeResponse(transaction, ResponseCode::CONTINUE_TRANSACTION, "CONTINUE_TRANSACTION");
     if (ret <= 0) {
       return -1;
@@ -512,12 +512,12 @@ int16_t SiteToSiteClient::send(const utils::Identifier& transactionID, DataPacke
     }
   }
 
-  transaction->current_transfers_++;
-  transaction->total_transfers_++;
-  transaction->_state = TransactionState::DATA_EXCHANGED;
-  transaction->_bytes += len;
+  transaction->incrementCurrentTransfers();
+  transaction->incrementTotalTransfers();
+  transaction->setState(TransactionState::DATA_EXCHANGED);
+  transaction->addBytes(len);
 
-  logger_->log_info("Site to Site transaction {} sent flow {} flow records, with total size {}", transactionID.to_string(), transaction->total_transfers_, transaction->_bytes);
+  logger_->log_info("Site to Site transaction {} sent flow {} flow records, with total size {}", transactionID.to_string(), transaction->getTotalTransfers(), transaction->getBytes());
 
   return 0;
 }
@@ -556,7 +556,7 @@ bool SiteToSiteClient::receive(const utils::Identifier& transactionID, DataPacke
     return true;
   }
 
-  if (transaction->current_transfers_ > 0) {
+  if (transaction->getCurrentTransfers() > 0) {
     // if we already has transfer before, check to see whether another one is available
     ResponseCode code = ResponseCode::RESERVED;
     std::string message;
@@ -566,10 +566,10 @@ bool SiteToSiteClient::receive(const utils::Identifier& transactionID, DataPacke
     }
     if (code == ResponseCode::CONTINUE_TRANSACTION) {
       logger_->log_debug("Site2Site transaction {} peer indicate continue transaction", transactionID.to_string());
-      transaction->_dataAvailable = true;
+      transaction->setDataAvailable(true);
     } else if (code == ResponseCode::FINISH_TRANSACTION) {
       logger_->log_debug("Site2Site transaction {} peer indicate finish transaction", transactionID.to_string());
-      transaction->_dataAvailable = false;
+      transaction->setDataAvailable(false);
       eof = true;
       return true;
     } else {
@@ -624,19 +624,19 @@ bool SiteToSiteClient::receive(const utils::Identifier& transactionID, DataPacke
 
   packet->_size = len;
   if (len > 0 || numAttributes > 0) {
-    transaction->current_transfers_++;
-    transaction->total_transfers_++;
+    transaction->incrementCurrentTransfers();
+    transaction->incrementTotalTransfers();
   } else {
     logger_->log_warn("Site2Site transaction {} empty flow file without attribute", transactionID.to_string());
-    transaction->_dataAvailable = false;
+    transaction->setDataAvailable(false);
     eof = true;
     return true;
   }
-  transaction->_state = TransactionState::DATA_EXCHANGED;
-  transaction->_bytes += len;
+  transaction->setState(TransactionState::DATA_EXCHANGED);
+  transaction->addBytes(len);
 
   logger_->log_info("Site to Site transaction {} received flow record {}, total length {}, added {}",
-      transactionID.to_string(), transaction->total_transfers_, transaction->_bytes, len);
+      transactionID.to_string(), transaction->getTotalTransfers(), transaction->getBytes(), len);
 
   return true;
 }

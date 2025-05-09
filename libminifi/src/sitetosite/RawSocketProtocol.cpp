@@ -34,7 +34,6 @@ using namespace std::literals::chrono_literals;
 namespace org::apache::nifi::minifi::sitetosite {
 
 std::shared_ptr<utils::IdGenerator> RawSiteToSiteClient::id_generator_ = utils::IdGenerator::getIdGenerator();
-std::shared_ptr<utils::IdGenerator> Transaction::id_generator_ = utils::IdGenerator::getIdGenerator();
 
 bool RawSiteToSiteClient::establish() {
   if (peer_state_ != PeerState::IDLE) {
@@ -210,7 +209,7 @@ bool RawSiteToSiteClient::handShake() {
     return false;
   }
   logger_->log_debug("Site2Site Protocol Perform hand shake with destination port {}", port_id_.to_string());
-  _commsIdentifier = id_generator_->generate();
+  _commsIdentifier = utils::IdGenerator::getIdGenerator()->generate();
 
   {
     const auto ret = peer_->write(_commsIdentifier);
@@ -560,7 +559,7 @@ bool RawSiteToSiteClient::transmitPayload(core::ProcessContext& context, core::P
     if (!complete(context, transactionID)) {
       throw Exception(SITE2SITE_EXCEPTION, "Complete Failed in transaction " + transactionID.to_string());
     }
-    logger_->log_info("Site2Site transaction {} successfully send flow record {} content bytes {}", transactionID.to_string(), transaction->current_transfers_, transaction->_bytes);
+    logger_->log_info("Site2Site transaction {} successfully send flow record {} content bytes {}", transactionID.to_string(), transaction->getCurrentTransfers(), transaction->getBytes());
   } catch (std::exception &exception) {
     if (transaction)
       deleteTransaction(transactionID);

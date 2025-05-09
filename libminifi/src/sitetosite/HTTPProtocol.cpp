@@ -314,7 +314,7 @@ void HttpSiteToSiteClient::closeTransaction(const utils::Identifier &transaction
   }
 
   auto transaction = it->second;
-  if (transaction->closed_) {
+  if (transaction->isClosed()) {
     return;
   }
 
@@ -329,12 +329,12 @@ void HttpSiteToSiteClient::closeTransaction(const utils::Identifier &transaction
   // Confirm means matching CRC checksum of data at both sides.
   if (transaction->getState() == TransactionState::TRANSACTION_CONFIRMED || data_received) {
     code = ResponseCode::CONFIRM_TRANSACTION;
-  } else if (transaction->current_transfers_ == 0 && !transaction->isDataAvailable()) {
+  } else if (transaction->getCurrentTransfers() == 0 && !transaction->isDataAvailable()) {
     code = ResponseCode::CANCEL_TRANSACTION;
   } else {
     std::string directon = transaction->getDirection() == TransferDirection::RECEIVE ? "Receive" : "Send";
     logger_->log_error("Transaction {} to be closed is in unexpected state. Direction: {}, tranfers: {}, bytes: {}, state: {}",
-        transaction_id.to_string(), directon, transaction->total_transfers_, transaction->_bytes, magic_enum::enum_underlying(transaction->getState()));
+        transaction_id.to_string(), directon, transaction->getTotalTransfers(), transaction->getBytes(), magic_enum::enum_underlying(transaction->getState()));
   }
 
   std::stringstream uri;
@@ -363,8 +363,8 @@ void HttpSiteToSiteClient::closeTransaction(const utils::Identifier &transaction
     throw Exception(SITE2SITE_EXCEPTION, message.str());
   }
 
-  transaction->closed_ = true;
-  transaction->current_transfers_--;
+  transaction->close();
+  transaction->decrementCurrentTransfers();
 }
 
 void HttpSiteToSiteClient::deleteTransaction(const utils::Identifier& transaction_id) {
