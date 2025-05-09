@@ -183,27 +183,22 @@ static constexpr std::array<ResponseCodeContext, 21> respond_code_contexts = {{
   { ResponseCode::END_OF_STREAM, "End of Stream", false }
 }};
 
-// Transaction Class
 class Transaction {
  public:
-  // Constructor
-  /*!
-   * Create a new transaction
-   */
   explicit Transaction(TransferDirection direction, org::apache::nifi::minifi::io::CRCStream<SiteToSitePeer> &&stream)
       : closed_(false),
-        crcStream(std::move(stream)),
-        uuid_(id_generator_->generate()) {
-    _state = TransactionState::TRANSACTION_STARTED;
-    _direction = direction;
-    _dataAvailable = false;
+        crc_stream_(std::move(stream)),
+        uuid_(utils::IdGenerator::getIdGenerator()->generate()) {
+    state_ = TransactionState::TRANSACTION_STARTED;
+    direction_ = direction;
+    data_available_ = false;
     current_transfers_ = 0;
     total_transfers_ = 0;
-    _bytes = 0;
+    bytes_ = 0;
   }
-  // Destructor
+
   virtual ~Transaction() = default;
-  // getUUIDStr
+
   utils::SmallString<36> getUUIDStr() const {
     return uuid_.to_string();
   }
@@ -213,71 +208,94 @@ class Transaction {
   }
 
   void setTransactionId(const utils::Identifier& id) {
-    setUUID(id);
-  }
-
-  void setUUID(const utils::Identifier &id) {
     uuid_ = id;
   }
 
-  // getState
-  TransactionState getState() {
-    return _state;
-  }
-  // isDataAvailable
-  bool isDataAvailable() {
-    return _dataAvailable;
-  }
-  // setDataAvailable()
-  void setDataAvailable(bool value) {
-    _dataAvailable = value;
-  }
-  // getDirection
-  TransferDirection getDirection() {
-    return _direction;
-  }
-  // getCRC
-  uint64_t getCRC() {
-    return crcStream.getCRC();
-  }
-  // updateCRC
-  void updateCRC(uint8_t *buffer, uint32_t length) {
-    crcStream.updateCRC(buffer, length);
+  void setState(TransactionState state) {
+    state_ = state;
   }
 
-  org::apache::nifi::minifi::io::CRCStream<SiteToSitePeer> &getStream() {
-    return crcStream;
+  TransactionState getState() const {
+    return state_;
+  }
+
+  bool isDataAvailable() const {
+    return data_available_;
+  }
+
+  void setDataAvailable(bool value) {
+    data_available_ = value;
+  }
+
+  TransferDirection getDirection() const {
+    return direction_;
+  }
+
+  uint64_t getCRC() const {
+    return crc_stream_.getCRC();
+  }
+
+  void updateCRC(uint8_t *buffer, uint32_t length) {
+    crc_stream_.updateCRC(buffer, length);
+  }
+
+  org::apache::nifi::minifi::io::CRCStream<SiteToSitePeer>& getStream() {
+    return crc_stream_;
+  }
+
+  uint64_t getCurrentTransfers() const {
+    return current_transfers_;
+  }
+
+  uint64_t getTotalTransfers() const {
+    return total_transfers_;
+  }
+
+  uint64_t getBytes() const {
+    return bytes_;
+  }
+
+  void addBytes(uint64_t bytes) {
+    bytes_ += bytes;
+  }
+
+  void incrementCurrentTransfers() {
+    current_transfers_++;
+  }
+
+  void decrementCurrentTransfers() {
+    if (current_transfers_ > 0) {
+      current_transfers_--;
+    }
+  }
+
+  void incrementTotalTransfers() {
+    total_transfers_++;
+  }
+
+  bool isClosed() const {
+    return closed_;
+  }
+
+  void close() {
+    closed_ = true;
   }
 
   Transaction(const Transaction &parent) = delete;
   Transaction &operator=(const Transaction &parent) = delete;
 
-  // Number of current transfers
-  int current_transfers_;
-  // number of total seen transfers
-  int total_transfers_;
-
-  // Number of content bytes
-  uint64_t _bytes;
-
-  TransactionState _state;
-
-  bool closed_;
-
-  // Whether received data is available
-  bool _dataAvailable;
-
  protected:
-  org::apache::nifi::minifi::io::CRCStream<SiteToSitePeer> crcStream;
+  uint64_t current_transfers_;
+  uint64_t total_transfers_;
+  uint64_t bytes_;
+  TransactionState state_;
+  bool closed_;
+  bool data_available_;
+  org::apache::nifi::minifi::io::CRCStream<SiteToSitePeer> crc_stream_;
 
  private:
-  // Transaction Direction
-  TransferDirection _direction;
-
-  // A global unique identifier
+  TransferDirection direction_;
   utils::Identifier uuid_;
-
-  MINIFIAPI static std::shared_ptr<utils::IdGenerator> id_generator_;
 };
 
 class SiteToSiteClientConfiguration {
@@ -292,6 +310,10 @@ class SiteToSiteClientConfiguration {
   }
 
   SiteToSiteClientConfiguration(const SiteToSiteClientConfiguration &other) = delete;
+  SiteToSiteClientConfiguration &operator=(const SiteToSiteClientConfiguration &other) = delete;
+  SiteToSiteClientConfiguration(SiteToSiteClientConfiguration &&other) = delete;
+  SiteToSiteClientConfiguration &operator=(SiteToSiteClientConfiguration &&other) = delete;
+  ~SiteToSiteClientConfiguration() = default;
 
   ClientType getClientType() const {
     return client_type_;
@@ -325,35 +347,30 @@ class SiteToSiteClientConfiguration {
     return idle_timeout_;
   }
 
-  // setInterface
   void setInterface(std::string &ifc) {
     local_network_interface_ = ifc;
   }
+
   std::string getInterface() const {
     return local_network_interface_;
   }
+
   void setHTTPProxy(const http::HTTPProxy &proxy) {
     proxy_ = proxy;
   }
+
   http::HTTPProxy getHTTPProxy() const {
-    return this->proxy_;
+    return proxy_;
   }
 
- protected:
+ private:
   utils::Identifier port_id_;
   std::string host_;
   uint16_t port_;
-
   ClientType client_type_;
-
   std::string local_network_interface_;
-
   std::chrono::milliseconds idle_timeout_{15000};
-
-  // secore comms
-
   std::shared_ptr<controllers::SSLContextService> ssl_service_;
-
   http::HTTPProxy proxy_;
 };
 
