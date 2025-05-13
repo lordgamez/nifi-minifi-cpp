@@ -531,8 +531,7 @@ bool RawSiteToSiteClient::transmitPayload(core::ProcessContext& context, core::P
   try {
     DataPacket packet(transaction, attributes, payload);
 
-    int16_t resp = send(transactionID, &packet, nullptr, &session);
-    if (resp == -1) {
+    if (!send(transactionID, &packet, nullptr, &session)) {
       throw Exception(SITE2SITE_EXCEPTION, "Send Failed in transaction " + transactionID.to_string());
     }
     logger_->log_info("Site2Site transaction {} sent bytes length", transactionID.to_string(), payload.length());

@@ -38,6 +38,10 @@ namespace org::apache::nifi::minifi::sitetosite {
 
 struct DataPacket {
  public:
+  DataPacket(std::shared_ptr<Transaction> transaction, const std::string &payload)
+      : transaction{std::move(transaction)},
+        payload{payload} {
+  }
   DataPacket(std::shared_ptr<Transaction> transaction, std::map<std::string, std::string> attributes, const std::string &payload)
       : attributes{std::move(attributes)},
         transaction{std::move(transaction)},
@@ -86,7 +90,8 @@ class SiteToSiteClient : public core::ConnectableImpl {
 
   bool transferFlowFiles(core::ProcessContext& context, core::ProcessSession& session);
   bool receiveFlowFiles(core::ProcessContext& context, core::ProcessSession& session);
-  bool receive(const utils::Identifier &transactionID, DataPacket *packet, bool &eof);
+  bool receive(const utils::Identifier &transaction_id, DataPacket *packet, bool &eof);
+  bool send(const utils::Identifier& transaction_id, DataPacket* packet, const std::shared_ptr<core::FlowFile>& flow_file, core::ProcessSession* session);
 
   void setPortId(utils::Identifier &id) {
     port_id_ = id;
@@ -115,8 +120,6 @@ class SiteToSiteClient : public core::ConnectableImpl {
     return true;
   }
 
-  int16_t send(const utils::Identifier& transactionID, DataPacket* packet, const std::shared_ptr<core::FlowFile>& flowFile, core::ProcessSession* session);
-
   void setSSLContextService(const std::shared_ptr<minifi::controllers::SSLContextService> &context_service) {
     ssl_context_service_ = context_service;
   }
@@ -128,10 +131,15 @@ class SiteToSiteClient : public core::ConnectableImpl {
   virtual bool writeResponse(const std::shared_ptr<Transaction> &transaction, const SiteToSiteResponse& response);
   virtual const ResponseCodeContext* getRespondCodeContext(ResponseCode code);
 
-  void cancel(const utils::Identifier &transactionID);
-  bool complete(core::ProcessContext& context, const utils::Identifier &transactionID);
-  void error(const utils::Identifier &transactionID);
-  bool confirm(const utils::Identifier &transactionID);
+  void cancel(const utils::Identifier &transaction_id);
+  bool complete(core::ProcessContext& context, const utils::Identifier &transaction_id);
+  void error(const utils::Identifier &transaction_id);
+  bool confirm(const utils::Identifier &transaction_id);
+
+  bool confirmReceive(const std::shared_ptr<Transaction>& transaction, const utils::Identifier& transaction_id);
+  bool confirmSend(const std::shared_ptr<Transaction>& transaction, const utils::Identifier& transaction_id);
+  bool completeReceive(const std::shared_ptr<Transaction>& transaction, const utils::Identifier& transaction_id);
+  bool completeSend(const std::shared_ptr<Transaction>& transaction, const utils::Identifier& transaction_id, core::ProcessContext& context);
 
   PeerState peer_state_{PeerState::IDLE};
   utils::Identifier port_id_;

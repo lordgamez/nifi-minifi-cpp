@@ -117,7 +117,7 @@ TEST_CASE("TestSiteToSiteVerifySend", "[S2S]") {
   REQUIRE(collector_ptr->get_next_client_response() == "SEND_FLOWFILES");
   std::map<std::string, std::string> attributes;
   minifi::sitetosite::DataPacket packet(transaction, attributes, payload);
-  REQUIRE(protocol.send(transactionID, &packet, nullptr, nullptr) == 0);
+  REQUIRE(protocol.send(transactionID, &packet, nullptr, nullptr));
   collector_ptr->get_next_client_response();
   collector_ptr->get_next_client_response();
   std::string rx_payload = collector_ptr->get_next_client_response();
