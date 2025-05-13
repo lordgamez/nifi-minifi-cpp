@@ -59,7 +59,7 @@ class HttpSiteToSiteClient : public SiteToSiteClient {
     peer_ = std::move(peer);
   }
 
-  bool getPeerList(std::vector<PeerStatus> &peers) override;
+  std::optional<std::vector<PeerStatus>> getPeerList() override;
 
   /**
    * Establish the protocol connection. Not needed for the HTTP connection, so we simply
@@ -72,8 +72,7 @@ class HttpSiteToSiteClient : public SiteToSiteClient {
   std::shared_ptr<Transaction> createTransaction(TransferDirection direction) override;
 
   //! Transfer string for the process session
-  bool transmitPayload(core::ProcessContext& context, core::ProcessSession& session, const std::string &payload,
-                               std::map<std::string, std::string> attributes) override;
+  bool transmitPayload(core::ProcessContext& context, core::ProcessSession& session, const std::string &payload, const std::map<std::string, std::string>& attributes) override;
   void deleteTransaction(const utils::Identifier& transaction_id) override;
 
  protected:

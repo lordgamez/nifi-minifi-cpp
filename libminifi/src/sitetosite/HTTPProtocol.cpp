@@ -231,7 +231,7 @@ bool HttpSiteToSiteClient::writeResponse(const std::shared_ptr<Transaction> &tra
   return SiteToSiteClient::writeResponse(transaction, response);
 }
 
-bool HttpSiteToSiteClient::getPeerList(std::vector<PeerStatus> &peers) {
+std::optional<std::vector<PeerStatus>> HttpSiteToSiteClient::getPeerList() {
   std::stringstream uri;
   uri << getBaseURI() << "site-to-site/peers";
 
@@ -242,12 +242,9 @@ bool HttpSiteToSiteClient::getPeerList(std::vector<PeerStatus> &peers) {
   client->submit();
 
   if (client->getResponseCode() == 200) {
-    if (auto result = parsePeerStatuses(logger_, std::string(client->getResponseBody().data(), client->getResponseBody().size()), port_id_)) {
-      peers = *result;
-      return true;
-    }
+    return parsePeerStatuses(logger_, std::string(client->getResponseBody().data(), client->getResponseBody().size()), port_id_);
   }
-  return false;
+  return std::nullopt;
 }
 
 std::shared_ptr<minifi::http::HTTPClient> HttpSiteToSiteClient::openConnectionForSending(const std::shared_ptr<HttpTransaction> &transaction) {
@@ -291,8 +288,7 @@ std::unique_ptr<minifi::http::HTTPClient> HttpSiteToSiteClient::createHttpClient
   return http_client_;
 }
 
-bool HttpSiteToSiteClient::transmitPayload(core::ProcessContext&, core::ProcessSession&, const std::string& /*payload*/,
-                                           std::map<std::string, std::string> /*attributes*/) {
+bool HttpSiteToSiteClient::transmitPayload(core::ProcessContext&, core::ProcessSession&, const std::string& /*payload*/, const std::map<std::string, std::string>& /*attributes*/) {
   return false;
 }
 

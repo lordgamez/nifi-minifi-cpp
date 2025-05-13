@@ -64,13 +64,17 @@ class SiteToSiteClient : public core::ConnectableImpl {
       : core::ConnectableImpl("SitetoSiteClient") {
   }
 
+  explicit SiteToSiteClient(std::unique_ptr<SiteToSitePeer> peer)
+      : core::ConnectableImpl("SitetoSiteClient"),
+        peer_(std::move(peer)) {
+  }
+
   ~SiteToSiteClient() override = default;
 
-  virtual bool getPeerList(std::vector<PeerStatus> &peers) = 0;
+  virtual std::optional<std::vector<PeerStatus>> getPeerList() = 0;
   virtual bool establish() = 0;
   virtual std::shared_ptr<Transaction> createTransaction(TransferDirection direction) = 0;
-  virtual bool transmitPayload(core::ProcessContext& context, core::ProcessSession& session, const std::string &payload,
-    std::map<std::string, std::string> attributes) = 0;
+  virtual bool transmitPayload(core::ProcessContext& context, core::ProcessSession& session, const std::string &payload, const std::map<std::string, std::string>& attributes) = 0;
 
   virtual void setPeer(std::unique_ptr<SiteToSitePeer> peer) {
     peer_ = std::move(peer);
@@ -147,12 +151,12 @@ class SiteToSiteClient : public core::ConnectableImpl {
   std::unique_ptr<SiteToSitePeer> peer_;
   std::atomic<bool> running_{false};
   std::map<utils::Identifier, std::shared_ptr<Transaction>> known_transactions_;
-  std::chrono::nanoseconds batch_send_nanos_ = std::chrono::seconds(5);
+  std::chrono::nanoseconds batch_send_nanos_{5s};
 
-  uint32_t supported_version_[5] = {5, 4, 3, 2, 1};
+  std::array<uint32_t, 5> supported_version_ = {5, 4, 3, 2, 1};
   uint32_t current_version_index_{0};
   uint32_t current_version_{supported_version_[current_version_index_]};
-  uint32_t supported_codec_version_[1] = {1};
+  std::array<uint32_t, 1> supported_codec_version_ = {1};
   uint32_t current_codec_version_index_{0};
   uint32_t current_codec_version_{supported_codec_version_[current_codec_version_index_]};
 

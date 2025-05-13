@@ -44,27 +44,13 @@
 #include "SiteToSiteClient.h"
 #include "utils/Id.h"
 
+using namespace std::literals::chrono_literals;
+
 namespace org::apache::nifi::minifi::sitetosite {
 
-class RawSiteToSiteClient : public sitetosite::SiteToSiteClient {
+class RawSiteToSiteClient : public SiteToSiteClient {
  public:
-  explicit RawSiteToSiteClient(std::unique_ptr<SiteToSitePeer> peer) {
-    peer_ = std::move(peer);
-    batch_size_ = 0;
-    batch_count_ = 0;
-    batch_duration_ = std::chrono::seconds(0);
-    batch_send_nanos_ = std::chrono::seconds(5);
-    timeout_ = std::chrono::seconds(30);
-    supported_version_[0] = 5;
-    supported_version_[1] = 4;
-    supported_version_[2] = 3;
-    supported_version_[3] = 2;
-    supported_version_[4] = 1;
-    current_version_ = supported_version_[0];
-    current_version_index_ = 0;
-    supported_codec_version_[0] = 1;
-    current_codec_version_ = supported_codec_version_[0];
-    current_codec_version_index_ = 0;
+  explicit RawSiteToSiteClient(std::unique_ptr<SiteToSitePeer> peer) : SiteToSiteClient(std::move(peer)) {
   }
 
   RawSiteToSiteClient(const RawSiteToSiteClient &parent) = delete;
@@ -77,90 +63,60 @@ class RawSiteToSiteClient : public sitetosite::SiteToSiteClient {
   }
 
  public:
-  // setBatchSize
+  // TODO: set these from site to site client configuration
   void setBatchSize(uint64_t size) {
     batch_size_ = size;
   }
-  // setBatchCount
+
   void setBatchCount(uint64_t count) {
     batch_count_ = count;
   }
-  // setBatchDuration
+
   void setBatchDuration(std::chrono::milliseconds duration) {
     batch_duration_ = duration;
   }
-  // setTimeout
+
   void setTimeout(std::chrono::milliseconds time) {
     timeout_ = time;
-    if (peer_)
+    if (peer_) {
       peer_->setTimeout(time);
+    }
   }
 
-  /**
-   * Provides a reference to the time out
-   * @returns timeout
-   */
   std::chrono::milliseconds getTimeout() const {
     return timeout_;
   }
 
-  // getResourceName
   std::string getResourceName() {
     return "SocketFlowFileProtocol";
   }
-  // getCodecResourceName
+
   std::string getCodecResourceName() {
     return "StandardFlowFileCodec";
   }
 
-  // get peerList
-  bool getPeerList(std::vector<PeerStatus> &peer) override;
-  // negotiateCodec
-  virtual bool negotiateCodec();
-  // initiateResourceNegotiation
-  virtual bool initiateResourceNegotiation();
-  // initiateCodecResourceNegotiation
-  virtual bool initiateCodecResourceNegotiation();
-  // tearDown
-  void tearDown() override;
-  // write Request Type
-  virtual int writeRequestType(RequestType type);
-  // read Request Type
-  virtual int readRequestType(RequestType &type);
-
-  // Creation of a new transaction, return the transaction ID if success,
-  // Return NULL when any error occurs
+  std::optional<std::vector<PeerStatus>> getPeerList() override;
   std::shared_ptr<Transaction> createTransaction(TransferDirection direction) override;
-
-  //! Transfer string for the process session
-  bool transmitPayload(core::ProcessContext& context, core::ProcessSession& session, const std::string &payload,
-      std::map<std::string, std::string> attributes) override;
-
-  // bootstrap the protocol to the ready for transaction state by going through the state machine
+  bool transmitPayload(core::ProcessContext& context, core::ProcessSession& session, const std::string &payload, const std::map<std::string, std::string>& attributes) override;
   bool bootstrap() override;
 
  protected:
-  // establish
   bool establish() override;
-  // handShake
-  virtual bool handShake();
+  void tearDown() override;
 
  private:
-  // Logger
+  bool handShake();
+  bool negotiateCodec();
+  bool initiateResourceNegotiation();
+  bool initiateCodecResourceNegotiation();
+  int64_t writeRequestType(RequestType type);
+
   std::shared_ptr<core::logging::Logger> logger_ = core::logging::LoggerFactory<RawSiteToSiteClient>::getLogger();
-  // Batch Count
-  std::atomic<uint64_t> batch_count_;
-  // Batch Size
-  std::atomic<uint64_t> batch_size_;
-  // Batch Duration in msec
-  std::atomic<std::chrono::milliseconds> batch_duration_;
-  // Timeout in msec
-  std::atomic<std::chrono::milliseconds> timeout_;
-
-  // commsIdentifier
-  utils::Identifier _commsIdentifier;
-
-  static std::shared_ptr<utils::IdGenerator> id_generator_;
+  std::atomic<uint64_t> batch_count_{0};
+  std::atomic<uint64_t> batch_size_{0};
+  std::atomic<std::chrono::milliseconds> batch_duration_{0s};
+  std::atomic<std::chrono::milliseconds> timeout_{30s};
+  utils::Identifier comms_identifier_;
 };
 
 }  // namespace org::apache::nifi::minifi::sitetosite

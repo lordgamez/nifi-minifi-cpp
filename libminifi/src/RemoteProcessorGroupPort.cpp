@@ -344,8 +344,11 @@ void RemoteProcessorGroupPort::refreshPeerList() {
   config.setIdleTimeout(idle_timeout_);
   protocol = sitetosite::createClient(config);
 
-  if (protocol)
-    protocol->getPeerList(peers_);
+  if (protocol) {
+    if (auto peers = protocol->getPeerList()) {
+      peers_ = *peers;
+    }
+  }
 
   logger_->log_info("Have {} peers", peers_.size());
 
