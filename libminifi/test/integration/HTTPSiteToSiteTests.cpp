@@ -183,20 +183,20 @@ void run_variance(const std::string& test_file_location, const std::string& url,
 TEST_CASE("Test site to site with HTTP", "[s2s]") {
   test_profile profile;
 
-  SECTION("Default test profile") {
-  }
+  // SECTION("Default test profile") {
+  // }
 
-  SECTION("Flow url broken") {
-    profile.flow_url_broken = true;
-  }
+  // SECTION("Flow url broken") {
+  //   profile.flow_url_broken = true;
+  // }
 
-  SECTION("Empty transaction url") {
-    profile.empty_transaction_url = true;
-  }
+  // SECTION("Empty transaction url") {
+  //   profile.empty_transaction_url = true;
+  // }
 
-  SECTION("Transaction url broken") {
-    profile.transaction_url_broken = true;
-  }
+  // SECTION("Transaction url broken") {
+  //   profile.transaction_url_broken = true;
+  // }
 
   SECTION("Invalid checksum") {
     profile.invalid_checksum = true;

@@ -26,76 +26,76 @@
 
 namespace org::apache::nifi::minifi::sitetosite {
 
-int SiteToSiteClient::readResponse(const std::shared_ptr<Transaction>& /*transaction*/, ResponseCode &code, std::string &message) {
-  uint8_t firstByte = 0;
-  {
-    const auto ret = peer_->read(firstByte);
-    if (ret == 0 || io::isError(ret) || firstByte != CODE_SEQUENCE_VALUE_1)
-      return -1;
+std::optional<SiteToSiteResponse> SiteToSiteClient::readResponse(const std::shared_ptr<Transaction>& /*transaction*/) {
+  uint8_t result_byte = 0;
+  if (const auto ret = peer_->read(result_byte); ret == 0 || io::isError(ret) || result_byte != CODE_SEQUENCE_VALUE_1) {
+    logger_->log_error("Site2Site read response failed: invalid code sequence 1 value");
+    return std::nullopt;
   }
 
-  uint8_t secondByte = 0;
-  {
-    const auto ret = peer_->read(secondByte);
-    if (ret == 0 || io::isError(ret) || secondByte != CODE_SEQUENCE_VALUE_2)
-      return -1;
+  if (const auto ret = peer_->read(result_byte); ret == 0 || io::isError(ret) || result_byte != CODE_SEQUENCE_VALUE_2) {
+    logger_->log_error("Site2Site read response failed: invalid code sequence 2 value");
+    return std::nullopt;
   }
 
-  uint8_t thirdByte = 0;
-  {
-    const auto ret = peer_->read(thirdByte);
-    if (ret == 0 || io::isError(ret))
-      return static_cast<int>(ret);
+  if (const auto ret = peer_->read(result_byte); ret == 0 || io::isError(ret)) {
+    logger_->log_error("Site2Site read response failed: failed to read response code");
+    return std::nullopt;
   }
 
-  code = static_cast<ResponseCode>(thirdByte);
-  const ResponseCodeContext* resCode = this->getRespondCodeContext(code);
-  if (!resCode) {
-    return -1;
+  SiteToSiteResponse response;
+  if (auto code = magic_enum::enum_cast<ResponseCode>(result_byte)) {
+    response.code = *code;
+  } else {
+    logger_->log_error("Site2Site read response failed: invalid response code");
+    return std::nullopt;
   }
-  if (resCode->hasDescription) {
-    const auto ret = peer_->read(message);
-    if (ret == 0 || io::isError(ret))
-      return -1;
+
+  const ResponseCodeContext* response_code_context = getRespondCodeContext(response.code);
+  if (!response_code_context) {
+    logger_->log_error("Site2Site read response failed: invalid response code context");
+    return std::nullopt;
   }
-  return gsl::narrow<int>(3 + message.size());
+  if (response_code_context->has_description) {
+    if (const auto ret = peer_->read(response.message); ret == 0 || io::isError(ret)) {
+      logger_->log_error("Site2Site read response failed: failed to read response message");
+      return std::nullopt;
+    }
+  }
+  return response;
 }
 
-void SiteToSiteClient::deleteTransaction(const utils::Identifier& transactionID) {
+void SiteToSiteClient::deleteTransaction(const utils::Identifier& transaction_id) {
   std::shared_ptr<Transaction> transaction;
 
-  auto it = this->known_transactions_.find(transactionID);
+  auto it = known_transactions_.find(transaction_id);
   if (it == known_transactions_.end()) {
+    logger_->log_warn("Site2Site transaction id '{}' not found for delete", transaction_id.to_string());
     return;
   } else {
     transaction = it->second;
   }
 
   logger_->log_debug("Site2Site delete transaction {}", transaction->getUUIDStr());
-  known_transactions_.erase(transactionID);
+  known_transactions_.erase(transaction_id);
 }
 
-int SiteToSiteClient::writeResponse(const std::shared_ptr<Transaction>& /*transaction*/, ResponseCode code, const std::string& message) {
-  const ResponseCodeContext* resCode = getRespondCodeContext(code);
-  if (!resCode) {
-    return -1;
+bool SiteToSiteClient::writeResponse(const std::shared_ptr<Transaction>& /*transaction*/, const SiteToSiteResponse& response) {
+  const ResponseCodeContext* response_code_context = getRespondCodeContext(response.code);
+  if (!response_code_context) {
+    return false;
   }
 
-  {
-    const std::array<uint8_t, 3> codeSeq = { CODE_SEQUENCE_VALUE_1, CODE_SEQUENCE_VALUE_2, static_cast<uint8_t>(code) };
-    const auto ret = peer_->write(codeSeq.data(), 3);
-    if (ret != 3)
-      return -1;
+  const std::array<uint8_t, 3> code_sequence = { CODE_SEQUENCE_VALUE_1, CODE_SEQUENCE_VALUE_2, magic_enum::enum_underlying(response.code) };
+  const auto ret = peer_->write(code_sequence.data(), 3);
+  if (ret != 3) {
+    return false;
   }
 
-  if (resCode->hasDescription) {
-    const auto ret = peer_->write(message);
-    if (io::isError(ret)) return -1;
-    if (ret == 0) return 0;
-    return 3 + gsl::narrow<int>(ret);
-  } else {
-    return 3;
+  if (response_code_context->has_description) {
+    return !(io::isError(peer_->write(response.message)));
   }
+  return true;
 }
 
 bool SiteToSiteClient::transferFlowFiles(core::ProcessContext& context, core::ProcessSession& session) {
@@ -190,7 +190,6 @@ bool SiteToSiteClient::transferFlowFiles(core::ProcessContext& context, core::Pr
 }
 
 bool SiteToSiteClient::confirm(const utils::Identifier& transactionID) {
-  int ret = 0;
   std::shared_ptr<Transaction> transaction;
 
   if (peer_state_ != PeerState::READY) {
@@ -233,62 +232,61 @@ bool SiteToSiteClient::confirm(const utils::Identifier& transactionID) {
     uint64_t crcValue = transaction->getCRC();
     std::string crc = std::to_string(crcValue);
     logger_->log_debug("Site2Site Receive confirm with CRC {} to transaction {}", crcValue, transactionID.to_string());
-    ret = writeResponse(transaction, ResponseCode::CONFIRM_TRANSACTION, crc);
-    if (ret <= 0)
+    if (!writeResponse(transaction, {ResponseCode::CONFIRM_TRANSACTION, crc})) {
       return false;
-    ResponseCode code = ResponseCode::RESERVED;
-    std::string message;
-    readResponse(transaction, code, message);
-    if (ret <= 0)
+    }
+
+    auto response = readResponse(transaction);
+    if (!response)
       return false;
 
-    if (code == ResponseCode::CONFIRM_TRANSACTION) {
+    if (response->code == ResponseCode::CONFIRM_TRANSACTION) {
       logger_->log_debug("Site2Site transaction {} peer confirm transaction", transactionID.to_string());
       transaction->setState(TransactionState::TRANSACTION_CONFIRMED);
       return true;
-    } else if (code == ResponseCode::BAD_CHECKSUM) {
+    } else if (response->code == ResponseCode::BAD_CHECKSUM) {
       logger_->log_debug("Site2Site transaction {} peer indicate bad checksum", transactionID.to_string());
       return false;
     } else {
-      logger_->log_debug("Site2Site transaction {} peer unknown response code {}", transactionID.to_string(), magic_enum::enum_underlying(code));
+      logger_->log_debug("Site2Site transaction {} peer unknown response code {}", transactionID.to_string(), magic_enum::enum_underlying(response->code));
       return false;
     }
   } else {
     logger_->log_debug("Site2Site Send FINISH TRANSACTION for transaction {}", transactionID.to_string());
-    ret = writeResponse(transaction, ResponseCode::FINISH_TRANSACTION, "FINISH_TRANSACTION");
-    if (ret <= 0) {
+    if (!writeResponse(transaction, {ResponseCode::FINISH_TRANSACTION, "FINISH_TRANSACTION"})) {
       return false;
     }
-    ResponseCode code = ResponseCode::RESERVED;
-    std::string message;
-    readResponse(transaction, code, message);
+
+    auto response = readResponse(transaction);
+    if (!response)
+      return false;
 
     // we've sent a FINISH_TRANSACTION. Now we'll wait for the peer to send a 'Confirm Transaction' response
-    if (code == ResponseCode::CONFIRM_TRANSACTION) {
-      logger_->log_debug("Site2Site transaction {} peer confirm transaction with CRC {}", transactionID.to_string(), message);
+    if (response->code == ResponseCode::CONFIRM_TRANSACTION) {
+      logger_->log_debug("Site2Site transaction {} peer confirm transaction with CRC {}", transactionID.to_string(), response->message);
       if (this->current_version_ > 3) {
         uint64_t crcValue = transaction->getCRC();
         std::string crc = std::to_string(crcValue);
-        if (message == crc) {
+        if (response->message == crc) {
           logger_->log_debug("Site2Site transaction {} CRC matched", transactionID.to_string());
-          ret = writeResponse(transaction, ResponseCode::CONFIRM_TRANSACTION, "CONFIRM_TRANSACTION");
-          if (ret <= 0)
+          if (!writeResponse(transaction, {ResponseCode::CONFIRM_TRANSACTION, "CONFIRM_TRANSACTION"})) {
             return false;
+          }
           transaction->setState(TransactionState::TRANSACTION_CONFIRMED);
           return true;
         } else {
           logger_->log_debug("Site2Site transaction {} CRC not matched {}", transactionID.to_string(), crc);
-          writeResponse(transaction, ResponseCode::BAD_CHECKSUM, "BAD_CHECKSUM");
+          writeResponse(transaction, {ResponseCode::BAD_CHECKSUM, "BAD_CHECKSUM"});
           return false;
         }
       }
-      ret = writeResponse(transaction, ResponseCode::CONFIRM_TRANSACTION, "CONFIRM_TRANSACTION");
-      if (ret <= 0)
+      if (!writeResponse(transaction, {ResponseCode::CONFIRM_TRANSACTION, "CONFIRM_TRANSACTION"})) {
         return false;
+      }
       transaction->setState(TransactionState::TRANSACTION_CONFIRMED);
       return true;
     } else {
-      logger_->log_debug("Site2Site transaction {} peer unknown response code {}", transactionID.to_string(), magic_enum::enum_underlying(code));
+      logger_->log_debug("Site2Site transaction {} peer unknown response code {}", transactionID.to_string(), magic_enum::enum_underlying(response->code));
       return false;
     }
     return false;
@@ -314,7 +312,7 @@ void SiteToSiteClient::cancel(const utils::Identifier& transactionID) {
     return;
   }
 
-  this->writeResponse(transaction, ResponseCode::CANCEL_TRANSACTION, "Cancel");
+  writeResponse(transaction, {ResponseCode::CANCEL_TRANSACTION, "Cancel"});
   transaction->setState(TransactionState::TRANSACTION_CANCELED);
 
   tearDown();
@@ -337,7 +335,6 @@ void SiteToSiteClient::error(const utils::Identifier& transactionID) {
 
 // Complete the transaction
 bool SiteToSiteClient::complete(core::ProcessContext& context, const utils::Identifier& transactionID) {
-  int ret = 0;
   std::shared_ptr<Transaction> transaction = nullptr;
 
   if (peer_state_ != PeerState::READY) {
@@ -365,8 +362,7 @@ bool SiteToSiteClient::complete(core::ProcessContext& context, const utils::Iden
       return true;
     } else {
       logger_->log_debug("Site2Site transaction {} receive finished", transactionID.to_string());
-      ret = this->writeResponse(transaction, ResponseCode::TRANSACTION_FINISHED, "Finished");
-      if (ret <= 0) {
+      if (!writeResponse(transaction, {ResponseCode::TRANSACTION_FINISHED, "Finished"})) {
         return false;
       } else {
         transaction->setState(TransactionState::TRANSACTION_COMPLETED);
@@ -374,25 +370,22 @@ bool SiteToSiteClient::complete(core::ProcessContext& context, const utils::Iden
       }
     }
   } else {
-    ResponseCode code = ResponseCode::RESERVED;
-    std::string message;
-
-    ret = readResponse(transaction, code, message);
-
-    if (ret <= 0)
+    auto response = readResponse(transaction);
+    if (!response) {
       return false;
+    }
 
-    if (code == ResponseCode::TRANSACTION_FINISHED || code == ResponseCode::TRANSACTION_FINISHED_BUT_DESTINATION_FULL) {
+    if (response->code == ResponseCode::TRANSACTION_FINISHED || response->code == ResponseCode::TRANSACTION_FINISHED_BUT_DESTINATION_FULL) {
       logger_->log_info("Site2Site transaction {} peer finished transaction", transactionID.to_string());
       transaction->setState(TransactionState::TRANSACTION_COMPLETED);
 
-      if (code == ResponseCode::TRANSACTION_FINISHED_BUT_DESTINATION_FULL) {
+      if (response->code == ResponseCode::TRANSACTION_FINISHED_BUT_DESTINATION_FULL) {
         logger_->log_info("Site2Site transaction {} reported destination full, yielding", transactionID.to_string());
         context.yield();
       }
       return true;
     } else {
-      logger_->log_warn("Site2Site transaction {} peer unexpected response code {}: {}", transactionID.to_string(), magic_enum::enum_underlying(code), magic_enum::enum_name(code));
+      logger_->log_warn("Site2Site transaction {} peer unexpected response code {}: {}", transactionID.to_string(), magic_enum::enum_underlying(response->code), magic_enum::enum_name(response->code));
       return false;
     }
   }
@@ -424,8 +417,7 @@ int16_t SiteToSiteClient::send(const utils::Identifier& transactionID, DataPacke
   }
 
   if (transaction->getCurrentTransfers() > 0) {
-    const auto ret = writeResponse(transaction, ResponseCode::CONTINUE_TRANSACTION, "CONTINUE_TRANSACTION");
-    if (ret <= 0) {
+    if (!writeResponse(transaction, {ResponseCode::CONTINUE_TRANSACTION, "CONTINUE_TRANSACTION"})) {
       return -1;
     }
   }
@@ -558,22 +550,20 @@ bool SiteToSiteClient::receive(const utils::Identifier& transactionID, DataPacke
 
   if (transaction->getCurrentTransfers() > 0) {
     // if we already has transfer before, check to see whether another one is available
-    ResponseCode code = ResponseCode::RESERVED;
-    std::string message;
-
-    if (readResponse(transaction, code, message) <= 0) {
+    auto response = readResponse(transaction);
+    if (!response) {
       return false;
     }
-    if (code == ResponseCode::CONTINUE_TRANSACTION) {
+    if (response->code == ResponseCode::CONTINUE_TRANSACTION) {
       logger_->log_debug("Site2Site transaction {} peer indicate continue transaction", transactionID.to_string());
       transaction->setDataAvailable(true);
-    } else if (code == ResponseCode::FINISH_TRANSACTION) {
+    } else if (response->code == ResponseCode::FINISH_TRANSACTION) {
       logger_->log_debug("Site2Site transaction {} peer indicate finish transaction", transactionID.to_string());
       transaction->setDataAvailable(false);
       eof = true;
       return true;
     } else {
-      logger_->log_debug("Site2Site transaction {} peer indicate wrong response code {}", transactionID.to_string(), magic_enum::enum_underlying(code));
+      logger_->log_debug("Site2Site transaction {} peer indicate wrong response code {}", transactionID.to_string(), magic_enum::enum_underlying(response->code));
       return false;
     }
   }
@@ -766,10 +756,11 @@ bool SiteToSiteClient::receiveFlowFiles(core::ProcessContext& context, core::Pro
 }
 
 const ResponseCodeContext* SiteToSiteClient::getRespondCodeContext(ResponseCode code) {
-  for (const auto& i : respond_code_contexts) {
-    if (i.code == code) {
-      return &i;
-    }
+  auto it = std::find_if(respond_code_contexts.begin(), respond_code_contexts.end(), [code](const ResponseCodeContext& context) {
+    return context.code == code;
+  });
+  if (it != respond_code_contexts.end()) {
+    return &(*it);
   }
   return nullptr;
 }

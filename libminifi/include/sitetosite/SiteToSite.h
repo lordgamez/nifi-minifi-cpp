@@ -121,7 +121,7 @@ enum class RequestType {
   SHUTDOWN
 };
 
-enum class ResponseCode {
+enum class ResponseCode : uint8_t {
   RESERVED = 0,
   // ResponseCode, so that we can indicate a 0 followed by some other bytes
 
@@ -154,9 +154,9 @@ enum class ResponseCode {
 };
 
 struct ResponseCodeContext {
-  ResponseCode code;
+  ResponseCode code = ResponseCode::UNRECOGNIZED_RESPONSE_CODE;
   const std::string_view description;
-  bool hasDescription;
+  bool has_description = false;
 };
 
 static constexpr std::array<ResponseCodeContext, 21> respond_code_contexts = {{

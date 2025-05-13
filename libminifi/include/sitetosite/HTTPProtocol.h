@@ -78,8 +78,8 @@ class HttpSiteToSiteClient : public SiteToSiteClient {
 
  protected:
   void closeTransaction(const utils::Identifier &transaction_id);
-  int readResponse(const std::shared_ptr<Transaction> &transaction, ResponseCode &code, std::string &message) override;
-  int writeResponse(const std::shared_ptr<Transaction> &transaction, ResponseCode code, const std::string& message) override;
+  std::optional<SiteToSiteResponse> readResponse(const std::shared_ptr<Transaction> &transaction) override;
+  bool writeResponse(const std::shared_ptr<Transaction> &transaction, const SiteToSiteResponse& response) override;
 
   /**
    * Bootstrapping is not really required for the HTTP Site To Site so we will set the peer state and return true.

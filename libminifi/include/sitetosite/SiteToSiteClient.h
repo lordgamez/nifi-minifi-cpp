@@ -25,6 +25,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <optional>
 
 #include "Peer.h"
 #include "SiteToSite.h"
@@ -46,6 +47,11 @@ struct DataPacket {
   uint64_t size{0};
   std::shared_ptr<Transaction> transaction;
   const std::string& payload;
+};
+
+struct SiteToSiteResponse {
+  ResponseCode code = ResponseCode::UNRECOGNIZED_RESPONSE_CODE;
+  std::string message;
 };
 
 class SiteToSiteClient : public core::ConnectableImpl {
@@ -117,9 +123,9 @@ class SiteToSiteClient : public core::ConnectableImpl {
 
  protected:
   virtual void tearDown() = 0;
-  virtual void deleteTransaction(const utils::Identifier &transactionID);
-  virtual int readResponse(const std::shared_ptr<Transaction> &transaction, ResponseCode &code, std::string &message);
-  virtual int writeResponse(const std::shared_ptr<Transaction> &transaction, ResponseCode code, const std::string& message);
+  virtual void deleteTransaction(const utils::Identifier &transaction_id);
+  virtual std::optional<SiteToSiteResponse> readResponse(const std::shared_ptr<Transaction> &transaction);
+  virtual bool writeResponse(const std::shared_ptr<Transaction> &transaction, const SiteToSiteResponse& response);
   virtual const ResponseCodeContext* getRespondCodeContext(ResponseCode code);
 
   void cancel(const utils::Identifier &transactionID);

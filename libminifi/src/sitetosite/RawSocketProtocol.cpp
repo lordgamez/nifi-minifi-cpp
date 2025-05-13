@@ -99,11 +99,11 @@ bool RawSiteToSiteClient::initiateResourceNegotiation() {
   }
   logger_->log_debug("status code is {}", statusCode);
   switch (statusCode) {
-    case magic_enum::enum_integer(ResourceNegotiationStatusCode::RESOURCE_OK): {
+    case magic_enum::enum_underlying(ResourceNegotiationStatusCode::RESOURCE_OK): {
       logger_->log_debug("Site2Site Protocol Negotiate protocol version OK");
       return true;
     }
-    case magic_enum::enum_integer(ResourceNegotiationStatusCode::DIFFERENT_RESOURCE_VERSION): {
+    case magic_enum::enum_underlying(ResourceNegotiationStatusCode::DIFFERENT_RESOURCE_VERSION): {
       uint32_t serverVersion = 0;
       {
         const auto ret = peer_->read(serverVersion);
@@ -124,7 +124,7 @@ bool RawSiteToSiteClient::initiateResourceNegotiation() {
       logger_->log_error("Site2Site Negotiate protocol failed to find a common version with server");
       return false;
     }
-    case magic_enum::enum_integer(ResourceNegotiationStatusCode::NEGOTIATED_ABORT): {
+    case magic_enum::enum_underlying(ResourceNegotiationStatusCode::NEGOTIATED_ABORT): {
       logger_->log_error("Site2Site Negotiate protocol response ABORT");
       return false;
     }
@@ -168,11 +168,11 @@ bool RawSiteToSiteClient::initiateCodecResourceNegotiation() {
     }
   }
   switch (statusCode) {
-    case magic_enum::enum_integer(ResourceNegotiationStatusCode::RESOURCE_OK): {
+    case magic_enum::enum_underlying(ResourceNegotiationStatusCode::RESOURCE_OK): {
       logger_->log_trace("Site2Site Codec Negotiate version OK");
       return true;
     }
-    case magic_enum::enum_integer(ResourceNegotiationStatusCode::DIFFERENT_RESOURCE_VERSION): {
+    case magic_enum::enum_underlying(ResourceNegotiationStatusCode::DIFFERENT_RESOURCE_VERSION): {
       uint32_t serverVersion = 0;
       {
         const auto ret = peer_->read(serverVersion);
@@ -192,7 +192,7 @@ bool RawSiteToSiteClient::initiateCodecResourceNegotiation() {
       logger_->log_error("Site2Site Negotiate codec failed to find a common version with server");
       return false;
     }
-    case magic_enum::enum_integer(ResourceNegotiationStatusCode::NEGOTIATED_ABORT): {
+    case magic_enum::enum_underlying(ResourceNegotiationStatusCode::NEGOTIATED_ABORT): {
       logger_->log_error("Site2Site Codec Negotiate response ABORT");
       return false;
     }
@@ -263,21 +263,17 @@ bool RawSiteToSiteClient::handShake() {
     logger_->log_debug("Site2Site Protocol Send handshake properties {} {}", it->first, it->second);
   }
 
-  ResponseCode code = ResponseCode::RESERVED;
-  std::string message;
 
-  {
-    const auto ret = readRespond(nullptr, code, message);
-    if (ret <= 0) {
-      return false;
-    }
+  const auto response = readResponse(nullptr);
+  if (!response) {
+    return false;
   }
 
   auto logPortStateError = [this](const std::string& error) {
     logger_->log_error("Site2Site HandShake Failed because destination port, {}, is {}", port_id_.to_string(), error);
   };
 
-  switch (code) {
+  switch (response->code) {
     case ResponseCode::PROPERTIES_OK:
       logger_->log_debug("Site2Site HandShake Completed");
       peer_state_ = PeerState::HANDSHAKED;
@@ -295,13 +291,13 @@ bool RawSiteToSiteClient::handShake() {
       logger_->log_error("Site2Site HandShake on port {} failed: UNAUTHORIZED", port_id_.to_string());
       return false;
     default:
-      logger_->log_error("Site2Site HandShake on port {} failed: unknown response code {}", port_id_.to_string(), magic_enum::enum_underlying(code));
+      logger_->log_error("Site2Site HandShake on port {} failed: unknown response code {}", port_id_.to_string(), magic_enum::enum_underlying(response->code));
       return false;
   }
 }
 
 void RawSiteToSiteClient::tearDown() {
-  if (magic_enum::enum_integer(peer_state_) >= magic_enum::enum_integer(PeerState::ESTABLISHED)) {
+  if (magic_enum::enum_underlying(peer_state_) >= magic_enum::enum_underlying(PeerState::ESTABLISHED)) {
     logger_->log_trace("Site2Site Protocol tearDown");
     // need to write shutdown request
     writeRequestType(RequestType::SHUTDOWN);
@@ -373,35 +369,27 @@ bool RawSiteToSiteClient::getPeerList(std::vector<PeerStatus> &peers) {
   }
 }
 
-  int RawSiteToSiteClient::writeRequestType(RequestType type) {
-    const auto write_result = peer_->write(std::string{magic_enum::enum_name(type)});
-    return io::isError(write_result) ? -1 : gsl::narrow<int>(write_result);
-  }
-
-  int RawSiteToSiteClient::readRequestType(RequestType &type) {
-    std::string requestTypeStr;
-
-    const auto ret = peer_->read(requestTypeStr);
-    if (ret == 0 || io::isError(ret)) {
-      return static_cast<int>(ret);
-    }
-
-    for (const auto& current_type : magic_enum::enum_values<RequestType>()) {
-      if (std::string{magic_enum::enum_name(current_type)} == requestTypeStr) {
-        type = current_type;
-        return static_cast<int>(ret);
-      }
-    }
-
-    return -1;
-  }
-
-int RawSiteToSiteClient::readRespond(const std::shared_ptr<Transaction> &transaction, ResponseCode &code, std::string &message) {
-  return readResponse(transaction, code, message);
+int RawSiteToSiteClient::writeRequestType(RequestType type) {
+  const auto write_result = peer_->write(std::string{magic_enum::enum_name(type)});
+  return io::isError(write_result) ? -1 : gsl::narrow<int>(write_result);
 }
 
-int RawSiteToSiteClient::writeRespond(const std::shared_ptr<Transaction> &transaction, ResponseCode code, const std::string& message) {
-  return writeResponse(transaction, code, message);
+int RawSiteToSiteClient::readRequestType(RequestType &type) {
+  std::string requestTypeStr;
+
+  const auto ret = peer_->read(requestTypeStr);
+  if (ret == 0 || io::isError(ret)) {
+    return static_cast<int>(ret);
+  }
+
+  for (const auto& current_type : magic_enum::enum_values<RequestType>()) {
+    if (std::string{magic_enum::enum_name(current_type)} == requestTypeStr) {
+      type = current_type;
+      return static_cast<int>(ret);
+    }
+  }
+
+  return -1;
 }
 
 bool RawSiteToSiteClient::negotiateCodec() {
@@ -468,17 +456,13 @@ std::shared_ptr<Transaction> RawSiteToSiteClient::createTransaction(TransferDire
       return transaction;
     }
 
-    ResponseCode code = ResponseCode::RESERVED;
-    std::string message;
-
-    ret = readRespond(nullptr, code, message);
-
-    if (ret <= 0) {
+    auto response = readResponse(nullptr);
+    if (!response) {
       return transaction;
     }
 
     org::apache::nifi::minifi::io::CRCStream<SiteToSitePeer> crcstream(gsl::make_not_null(peer_.get()));
-    switch (code) {
+    switch (response->code) {
       case ResponseCode::MORE_DATA:
         dataAvailable = true;
         logger_->log_trace("Site2Site peer indicates that data is available");
@@ -496,7 +480,7 @@ std::shared_ptr<Transaction> RawSiteToSiteClient::createTransaction(TransferDire
         logger_->log_trace("Site2Site create transaction {}", transaction->getUUIDStr());
         return transaction;
       default:
-        logger_->log_warn("Site2Site got unexpected response {} when asking for data", magic_enum::enum_underlying(code));
+        logger_->log_warn("Site2Site got unexpected response {} when asking for data", magic_enum::enum_underlying(response->code));
         return nullptr;
     }
   } else {

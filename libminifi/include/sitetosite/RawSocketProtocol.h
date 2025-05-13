@@ -128,15 +128,6 @@ class RawSiteToSiteClient : public sitetosite::SiteToSiteClient {
   // read Request Type
   virtual int readRequestType(RequestType &type);
 
-  // read Respond
-  virtual int readRespond(const std::shared_ptr<Transaction> &transaction, ResponseCode &code, std::string &message);
-  // write respond
-  virtual int writeRespond(const std::shared_ptr<Transaction> &transaction, ResponseCode code, const std::string& message);
-  // getRespondCodeContext
-  const ResponseCodeContext *getRespondCodeContext(ResponseCode code) override {
-    return SiteToSiteClient::getRespondCodeContext(code);
-  }
-
   // Creation of a new transaction, return the transaction ID if success,
   // Return NULL when any error occurs
   std::shared_ptr<Transaction> createTransaction(TransferDirection direction) override;
