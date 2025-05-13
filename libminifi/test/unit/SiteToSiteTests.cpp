@@ -116,8 +116,7 @@ TEST_CASE("TestSiteToSiteVerifySend", "[S2S]") {
   collector_ptr->get_next_client_response();
   REQUIRE(collector_ptr->get_next_client_response() == "SEND_FLOWFILES");
   std::map<std::string, std::string> attributes;
-  std::shared_ptr<logging::Logger> logger = nullptr;
-  minifi::sitetosite::DataPacket packet(logger, transaction, attributes, payload);
+  minifi::sitetosite::DataPacket packet(transaction, attributes, payload);
   REQUIRE(protocol.send(transactionID, &packet, nullptr, nullptr) == 0);
   collector_ptr->get_next_client_response();
   collector_ptr->get_next_client_response();
@@ -228,8 +227,7 @@ TEST_CASE("Test receiving data through site to site ", "[S2S]") {
   collector_ptr->get_next_client_response();
   REQUIRE(collector_ptr->get_next_client_response() == "RECEIVE_FLOWFILES");
   std::map<std::string, std::string> attributes;
-  std::shared_ptr<logging::Logger> logger = nullptr;
-  minifi::sitetosite::DataPacket packet(logger, transaction, attributes, "");
+  minifi::sitetosite::DataPacket packet(transaction, attributes, "");
   bool eof = false;
   REQUIRE(protocol.receive(transactionID, &packet, eof));
 }

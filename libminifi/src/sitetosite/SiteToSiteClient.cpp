@@ -134,7 +134,7 @@ bool SiteToSiteClient::transferFlowFiles(core::ProcessContext& context, core::Pr
     while (continueTransaction) {
       auto start_time = std::chrono::steady_clock::now();
       std::string payload;
-      DataPacket packet(getLogger(), transaction, flow->getAttributes(), payload);
+      DataPacket packet(transaction, flow->getAttributes(), payload);
 
       int16_t resp = send(transactionID, &packet, flow, &session);
       if (resp == -1) {
@@ -431,14 +431,14 @@ int16_t SiteToSiteClient::send(const utils::Identifier& transactionID, DataPacke
   }
   // start to read the packet
   {
-    const auto numAttributes = gsl::narrow<uint32_t>(packet->_attributes.size());
+    const auto numAttributes = gsl::narrow<uint32_t>(packet->attributes.size());
     const auto ret = transaction->getStream().write(numAttributes);
     if (ret != 4) {
       return -1;
     }
   }
 
-  for (const auto& attribute : packet->_attributes) {
+  for (const auto& attribute : packet->attributes) {
     {
       const auto ret = transaction->getStream().write(attribute.first, true);
       if (ret == 0 || io::isError(ret)) {
@@ -472,24 +472,24 @@ int16_t SiteToSiteClient::send(const utils::Identifier& transactionID, DataPacke
     }
     if (flowFile->getSize() > 0) {
       session->read(flowFile, [packet](const std::shared_ptr<io::InputStream>& input_stream) -> int64_t {
-        const auto result = internal::pipe(*input_stream, packet->transaction_->getStream());
+        const auto result = internal::pipe(*input_stream, packet->transaction->getStream());
         if (result == -1) return -1;
-        packet->_size = gsl::narrow<size_t>(result);
+        packet->size = gsl::narrow<size_t>(result);
         return result;
       });
-      if (flowFile->getSize() != packet->_size) {
-        logger_->log_debug("Mismatched sizes {} {}", flowFile->getSize(), packet->_size);
+      if (flowFile->getSize() != packet->size) {
+        logger_->log_debug("Mismatched sizes {} {}", flowFile->getSize(), packet->size);
         return -2;
       }
     }
-    if (packet->payload_.length() == 0 && len == 0) {
+    if (packet->payload.length() == 0 && len == 0) {
       if (flowFile->getResourceClaim() == nullptr)
         logger_->log_trace("no claim");
       else
         logger_->log_trace("Flowfile empty {}", flowFile->getResourceClaim()->getContentFullPath());
     }
-  } else if (packet->payload_.length() > 0) {
-    len = packet->payload_.length();
+  } else if (packet->payload.length() > 0) {
+    len = packet->payload.length();
     {
       const auto ret = transaction->getStream().write(len);
       if (ret != 8) {
@@ -497,13 +497,13 @@ int16_t SiteToSiteClient::send(const utils::Identifier& transactionID, DataPacke
       }
     }
     {
-      const auto ret = transaction->getStream().write(reinterpret_cast<const uint8_t*>(packet->payload_.c_str()), gsl::narrow<size_t>(len));
+      const auto ret = transaction->getStream().write(reinterpret_cast<const uint8_t*>(packet->payload.c_str()), gsl::narrow<size_t>(len));
       if (ret != gsl::narrow<size_t>(len)) {
         logger_->log_debug("Failed to write payload size!");
         return -1;
       }
     }
-    packet->_size += len;
+    packet->size += len;
   } else if (flowFile && !flowfile_has_content) {
     const auto ret = transaction->getStream().write(len);  // Indicate zero length
     if (ret != 8) {
@@ -610,7 +610,7 @@ bool SiteToSiteClient::receive(const utils::Identifier& transactionID, DataPacke
         return false;
       }
     }
-    packet->_attributes[key] = value;
+    packet->attributes[key] = value;
     logger_->log_debug("Site2Site transaction {} receives attribute key {} value {}", transactionID.to_string(), key, value);
   }
 
@@ -622,7 +622,7 @@ bool SiteToSiteClient::receive(const utils::Identifier& transactionID, DataPacke
     }
   }
 
-  packet->_size = len;
+  packet->size = len;
   if (len > 0 || numAttributes > 0) {
     transaction->incrementCurrentTransfers();
     transaction->incrementTotalTransfers();
@@ -674,7 +674,7 @@ bool SiteToSiteClient::receiveFlowFiles(core::ProcessContext& context, core::Pro
       std::map<std::string, std::string> empty;
       auto start_time = std::chrono::steady_clock::now();
       std::string payload;
-      DataPacket packet(getLogger(), transaction, empty, payload);
+      DataPacket packet(transaction, empty, payload);
       bool eof = false;
 
       if (!receive(transactionID, &packet, eof)) {
@@ -691,20 +691,20 @@ bool SiteToSiteClient::receiveFlowFiles(core::ProcessContext& context, core::Pro
       }
       std::map<std::string, std::string>::iterator it;
       std::string sourceIdentifier;
-      for (it = packet._attributes.begin(); it != packet._attributes.end(); it++) {
+      for (it = packet.attributes.begin(); it != packet.attributes.end(); it++) {
         if (it->first == core::SpecialFlowAttribute::UUID)
           sourceIdentifier = it->second;
         flowFile->addAttribute(it->first, it->second);
       }
 
-      if (packet._size > 0) {
+      if (packet.size > 0) {
         session.write(flowFile, [&packet](const std::shared_ptr<io::OutputStream>& output_stream) -> int64_t {
-          uint64_t len = packet._size;
+          uint64_t len = packet.size;
           uint64_t total = 0;
           std::array<std::byte, utils::configuration::DEFAULT_BUFFER_SIZE> buffer{};
           while (len > 0) {
             const auto size = std::min(len, uint64_t{utils::configuration::DEFAULT_BUFFER_SIZE});
-            const auto ret = packet.transaction_->getStream().read(std::as_writable_bytes(std::span(buffer).subspan(0, size)));
+            const auto ret = packet.transaction->getStream().read(std::as_writable_bytes(std::span(buffer).subspan(0, size)));
             if (ret != size) {
               return -1;
             }
@@ -714,12 +714,12 @@ bool SiteToSiteClient::receiveFlowFiles(core::ProcessContext& context, core::Pro
           }
           return gsl::narrow<int64_t>(len);
         });
-        if (flowFile->getSize() != packet._size) {
+        if (flowFile->getSize() != packet.size) {
           std::stringstream message;
-          message << "Receive size not correct, expected to send " << flowFile->getSize() << " bytes, but actually sent " << packet._size;
+          message << "Receive size not correct, expected to send " << flowFile->getSize() << " bytes, but actually sent " << packet.size;
           throw Exception(SITE2SITE_EXCEPTION, message.str());
         } else {
-          logger_->log_debug("received {} with expected {}", flowFile->getSize(), packet._size);
+          logger_->log_debug("received {} with expected {}", flowFile->getSize(), packet.size);
         }
       }
       core::Relationship relation{"", ""};  // undefined relationship
@@ -729,7 +729,7 @@ bool SiteToSiteClient::receiveFlowFiles(core::ProcessContext& context, core::Pro
       session.getProvenanceReporter()->receive(*flowFile, transitUri, sourceIdentifier, details, std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time));
       session.transfer(flowFile, relation);
       // receive the transfer for the flow record
-      bytes += packet._size;
+      bytes += packet.size;
       transfers++;
     }  // while true
 
@@ -764,4 +764,14 @@ bool SiteToSiteClient::receiveFlowFiles(core::ProcessContext& context, core::Pro
   deleteTransaction(transactionID);
   return true;
 }
+
+const ResponseCodeContext* SiteToSiteClient::getRespondCodeContext(ResponseCode code) {
+  for (const auto& i : respond_code_contexts) {
+    if (i.code == code) {
+      return &i;
+    }
+  }
+  return nullptr;
+}
+
 }  // namespace org::apache::nifi::minifi::sitetosite

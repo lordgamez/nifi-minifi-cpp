@@ -545,7 +545,7 @@ bool RawSiteToSiteClient::transmitPayload(core::ProcessContext& context, core::P
   utils::Identifier transactionID = transaction->getUUID();
 
   try {
-    DataPacket packet(getLogger(), transaction, attributes, payload);
+    DataPacket packet(transaction, attributes, payload);
 
     int16_t resp = send(transactionID, &packet, nullptr, &session);
     if (resp == -1) {
