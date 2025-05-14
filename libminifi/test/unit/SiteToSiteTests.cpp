@@ -72,6 +72,9 @@ TEST_CASE("TestSiteToSiteVerifySend", "[S2S]") {
   auto peer = std::make_unique<minifi::sitetosite::SiteToSitePeer>(std::move(collector), "fake_host", 65433, "");
 
   minifi::sitetosite::RawSiteToSiteClient protocol(std::move(peer));
+  protocol.setUseCompression(true);
+  protocol.setBatchDuration(std::chrono::milliseconds(100));
+  protocol.setBatchCount(5);
 
   utils::Identifier fakeUUID = utils::Identifier::parse("C56A4180-65AA-42EC-A945-5FD21DEC0538").value();
 
@@ -89,9 +92,17 @@ TEST_CASE("TestSiteToSiteVerifySend", "[S2S]") {
   REQUIRE(collector_ptr->get_next_client_response() == "nifi://fake_host:65433");
   collector_ptr->get_next_client_response();
   collector_ptr->get_next_client_response();
+  REQUIRE(collector_ptr->get_next_client_response() == "BATCH_COUNT");
+  collector_ptr->get_next_client_response();
+  REQUIRE(collector_ptr->get_next_client_response() == "5");
+  collector_ptr->get_next_client_response();
+  REQUIRE(collector_ptr->get_next_client_response() == "BATCH_DURATION");
+  collector_ptr->get_next_client_response();
+  REQUIRE(collector_ptr->get_next_client_response() == "100");
+  collector_ptr->get_next_client_response();
   REQUIRE(collector_ptr->get_next_client_response() == "GZIP");
   collector_ptr->get_next_client_response();
-  REQUIRE(collector_ptr->get_next_client_response() == "false");
+  REQUIRE(collector_ptr->get_next_client_response() == "true");
   collector_ptr->get_next_client_response();
   REQUIRE(collector_ptr->get_next_client_response() == "PORT_IDENTIFIER");
   collector_ptr->get_next_client_response();

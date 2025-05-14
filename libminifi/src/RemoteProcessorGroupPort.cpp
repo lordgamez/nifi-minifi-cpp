@@ -61,36 +61,36 @@ void RemoteProcessorGroupPort::setURL(std::string val) {
   }
 }
 
+std::unique_ptr<sitetosite::SiteToSiteClient> RemoteProcessorGroupPort::initializeProtocol(sitetosite::SiteToSiteClientConfiguration& config) {
+  config.setSecurityContext(ssl_service_);
+  config.setHTTPProxy(proxy_);
+  config.setIdleTimeout(idle_timeout_);
+  config.setUseCompression(use_compression_);
+  if (batch_count_) {
+    config.setBatchCount(batch_count_.value());
+  }
+  if (batch_size_) {
+    config.setBatchSize(batch_size_.value());
+  }
+  if (batch_duration_) {
+    config.setBatchDuration(batch_duration_.value());
+  }
+  return sitetosite::createClient(config);
+}
+
 std::unique_ptr<sitetosite::SiteToSiteClient> RemoteProcessorGroupPort::getNextProtocol() {
   std::unique_ptr<sitetosite::SiteToSiteClient> nextProtocol = nullptr;
   if (!available_protocols_.try_dequeue(nextProtocol)) {
-    if (bypass_rest_api_) {
-      if (!nifi_instances_.empty()) {
-        auto rpg = nifi_instances_.front();
-        auto host = rpg.host_;
-#ifdef WIN32
-        if ("localhost" == host) {
-          host = org::apache::nifi::minifi::utils::net::getMyHostName();
-        }
-#endif
-        sitetosite::SiteToSiteClientConfiguration config(protocol_uuid_, host, rpg.port_, getInterface(), client_type_);
-        config.setHTTPProxy(proxy_);
-        config.setIdleTimeout(idle_timeout_);
-        nextProtocol = sitetosite::createClient(config);
-      }
-    } else if (peer_index_ >= 0) {
+    if (peer_index_ >= 0) {
       std::lock_guard<std::mutex> lock(peer_mutex_);
       logger_->log_debug("Creating client from peer {}", peer_index_.load());
       auto& peer_status = peers_[peer_index_];
       sitetosite::SiteToSiteClientConfiguration config(peer_status.getPortId(), peer_status.getHost(), peer_status.getPort(), local_network_interface_, client_type_);
-      config.setSecurityContext(ssl_service);
       peer_index_++;
       if (peer_index_ >= static_cast<int>(peers_.size())) {
         peer_index_ = 0;
       }
-      config.setHTTPProxy(proxy_);
-      config.setIdleTimeout(idle_timeout_);
-      nextProtocol = sitetosite::createClient(config);
+      nextProtocol = initializeProtocol(config);
     } else {
       logger_->log_debug("Refreshing the peer list since there are none configured.");
       refreshPeerList();
@@ -132,12 +132,12 @@ void RemoteProcessorGroupPort::onSchedule(core::ProcessContext& context, core::P
 
   std::shared_ptr<core::controller::ControllerService> service = context.getControllerService(*context_name, getUUID());
   if (nullptr != service) {
-    ssl_service = std::dynamic_pointer_cast<minifi::controllers::SSLContextService>(service);
+    ssl_service_ = std::dynamic_pointer_cast<minifi::controllers::SSLContextService>(service);
   } else {
     std::string secureStr;
     if (configure_->get(Configure::nifi_remote_input_secure, secureStr) && utils::string::toBool(secureStr).value_or(false)) {
-      ssl_service = std::make_shared<minifi::controllers::SSLContextServiceImpl>(RPG_SSL_CONTEXT_SERVICE_NAME, configure_);
-      ssl_service->onEnable();
+      ssl_service_ = std::make_shared<minifi::controllers::SSLContextServiceImpl>(RPG_SSL_CONTEXT_SERVICE_NAME, configure_);
+      ssl_service_->onEnable();
     }
   }
 
@@ -155,18 +155,14 @@ void RemoteProcessorGroupPort::onSchedule(core::ProcessContext& context, core::P
     if (max_concurrent_tasks_ > count)
       count = max_concurrent_tasks_;
     for (uint32_t i = 0; i < count; i++) {
-      std::unique_ptr<sitetosite::SiteToSiteClient> nextProtocol = nullptr;
       auto peer_status = peers_[peer_index_];
       sitetosite::SiteToSiteClientConfiguration config(peer_status.getPortId(), peer_status.getHost(), peer_status.getPort(), getInterface(), client_type_);
-      config.setSecurityContext(ssl_service);
       peer_index_++;
       if (peer_index_ >= static_cast<int>(peers_.size())) {
         peer_index_ = 0;
       }
       logger_->log_trace("Creating client");
-      config.setHTTPProxy(proxy_);
-      config.setIdleTimeout(idle_timeout_);
-      nextProtocol = sitetosite::createClient(config);
+      auto nextProtocol = initializeProtocol(config);
       logger_->log_trace("Created client, moving into available protocols");
       returnProtocol(std::move(nextProtocol));
     }
@@ -218,10 +214,7 @@ void RemoteProcessorGroupPort::onTrigger(core::ProcessContext& context, core::Pr
 
     returnProtocol(std::move(protocol_));
     return;
-  } catch (const minifi::Exception &) {
-    context.yield();
-    session.rollback();
-  } catch (...) {
+  } catch (const std::exception&) {
     context.yield();
     session.rollback();
   }
@@ -268,7 +261,7 @@ std::pair<std::string, int> RemoteProcessorGroupPort::refreshRemoteSite2SiteInfo
         return std::make_pair("", -1);
       }
       client = std::unique_ptr<http::BaseHTTPClient>(dynamic_cast<http::BaseHTTPClient*>(client_ptr));
-      client->initialize(http::HttpRequestMethod::GET, loginUrl.str(), ssl_service);
+      client->initialize(http::HttpRequestMethod::GET, loginUrl.str(), ssl_service_);
       // use a connection timeout. if this times out we will simply attempt re-connection
       // so no need for configuration parameter that isn't already defined in Processor
       client->setConnectionTimeout(10s);
@@ -285,9 +278,9 @@ std::pair<std::string, int> RemoteProcessorGroupPort::refreshRemoteSite2SiteInfo
       logger_->log_error("Could not locate HTTPClient. You do not have cURL support, defaulting to base configuration!");
       return std::make_pair("", -1);
     }
-    int siteTosite_port_ = -1;
+    int siteTosite_port = -1;
     client = std::unique_ptr<http::BaseHTTPClient>(dynamic_cast<http::BaseHTTPClient*>(client_ptr));
-    client->initialize(http::HttpRequestMethod::GET, fullUrl.str(), ssl_service);
+    client->initialize(http::HttpRequestMethod::GET, fullUrl.str(), ssl_service_);
     // use a connection timeout. if this times out we will simply attempt re-connection
     // so no need for configuration parameter that isn't already defined in Processor
     client->setConnectionTimeout(10s);
@@ -311,22 +304,23 @@ std::pair<std::string, int> RemoteProcessorGroupPort::refreshRemoteSite2SiteInfo
         if (ok && doc.IsObject() && !doc.ObjectEmpty()) {
           rapidjson::Value::MemberIterator itr = doc.FindMember("controller");
 
+          bool site2site_secure = false;
           if (itr != doc.MemberEnd() && itr->value.IsObject()) {
             rapidjson::Value controllerValue = itr->value.GetObject();
             rapidjson::Value::ConstMemberIterator end_itr = controllerValue.MemberEnd();
             rapidjson::Value::ConstMemberIterator port_itr = controllerValue.FindMember("remoteSiteListeningPort");
             rapidjson::Value::ConstMemberIterator secure_itr = controllerValue.FindMember("siteToSiteSecure");
+            site2site_secure = secure_itr != end_itr && secure_itr->value.IsBool() ? secure_itr->value.GetBool() : false;
 
-            if (client_type_ == sitetosite::ClientType::RAW && port_itr != end_itr && port_itr->value.IsNumber())
-              siteTosite_port_ = port_itr->value.GetInt();
-            else
-              siteTosite_port_ = nifi_port;
-
-            if (secure_itr != end_itr && secure_itr->value.IsBool())
-              site2site_secure_ = secure_itr->value.GetBool();
+            if (client_type_ == sitetosite::ClientType::RAW && port_itr != end_itr && port_itr->value.IsNumber()) {
+              siteTosite_port = port_itr->value.GetInt();
+            } else {
+              siteTosite_port = nifi_port;
+            }
           }
-          logger_->log_debug("process group remote site2site port {}, is secure {}", siteTosite_port_, site2site_secure_);
-          return std::make_pair(host, siteTosite_port_);
+
+          logger_->log_debug("process group remote site2site port {}, is secure {}", siteTosite_port, site2site_secure);
+          return std::make_pair(host, siteTosite_port);
         }
       } else {
         logger_->log_error("Cannot output body to content for ProcessGroup::refreshRemoteSite2SiteInfo: received HTTP code {} from {}", client->getResponseCode(), fullUrl.str());
@@ -349,10 +343,7 @@ void RemoteProcessorGroupPort::refreshPeerList() {
 
   std::unique_ptr<sitetosite::SiteToSiteClient> protocol;
   sitetosite::SiteToSiteClientConfiguration config(protocol_uuid_, connection.first, connection.second, getInterface(), client_type_);
-  config.setSecurityContext(ssl_service);
-  config.setHTTPProxy(proxy_);
-  config.setIdleTimeout(idle_timeout_);
-  protocol = sitetosite::createClient(config);
+  protocol = initializeProtocol(config);
 
   if (protocol) {
     if (auto peers = protocol->getPeerList()) {

@@ -82,13 +82,10 @@ class RemoteProcessorGroupPort : public core::ProcessorImpl {
         configure_(std::move(configure)),
         direction_(sitetosite::TransferDirection::SEND),
         transmitting_(false),
-        timeout_(0),
-        bypass_rest_api_(false),
-        ssl_service(nullptr),
+        ssl_service_(nullptr),
         logger_(core::logging::LoggerFactory<RemoteProcessorGroupPort>::getLogger(uuid)) {
     client_type_ = sitetosite::ClientType::RAW;
     protocol_uuid_ = uuid;
-    site2site_secure_ = false;
     peer_index_ = -1;
     // REST API port and host
     setURL(std::move(url));
@@ -143,10 +140,6 @@ class RemoteProcessorGroupPort : public core::ProcessorImpl {
       this->setTriggerWhenEmpty(true);
   }
 
-  void setTimeout(uint64_t timeout) {
-    timeout_ = timeout;
-  }
-
   void setTransmitting(bool val) {
     transmitting_ = val;
   }
@@ -181,6 +174,38 @@ class RemoteProcessorGroupPort : public core::ProcessorImpl {
     client_type_ = sitetosite::ClientType::HTTP;
   }
 
+  void setUseCompression(bool use_compression) {
+    use_compression_ = use_compression;
+  }
+
+  bool getUseCompression() const {
+    return use_compression_;
+  }
+
+  void setBatchCount(uint64_t count) {
+    batch_count_ = count;
+  }
+
+  std::optional<uint64_t> getBatchCount() const {
+    return batch_count_;
+  }
+
+  void setBatchSize(uint64_t size) {
+    batch_size_ = size;
+  }
+
+  std::optional<uint64_t> getBatchSize() const {
+    return batch_size_;
+  }
+
+  void setBatchDuration(std::chrono::milliseconds duration) {
+    batch_duration_ = duration;
+  }
+
+  std::optional<std::chrono::milliseconds> getBatchDuration() const {
+    return batch_duration_;
+  }
+
  protected:
   std::unique_ptr<sitetosite::SiteToSiteClient> getNextProtocol();
   void returnProtocol(std::unique_ptr<sitetosite::SiteToSiteClient> protocol);
@@ -189,23 +214,26 @@ class RemoteProcessorGroupPort : public core::ProcessorImpl {
   std::shared_ptr<Configure> configure_;
   sitetosite::TransferDirection direction_;
   std::atomic<bool> transmitting_;
-  uint64_t timeout_;
   std::string local_network_interface_;
   utils::Identifier protocol_uuid_;
   std::chrono::milliseconds idle_timeout_ = std::chrono::seconds(15);
   std::vector<RPG> nifi_instances_;
   http::HTTPProxy proxy_;
-  bool bypass_rest_api_;
   sitetosite::ClientType client_type_;
-  bool site2site_secure_;
   std::vector<sitetosite::PeerStatus> peers_;
   std::atomic<int64_t> peer_index_;
   std::mutex peer_mutex_;
   std::string rest_user_name_;
   std::string rest_password_;
-  std::shared_ptr<controllers::SSLContextService> ssl_service;
+  std::shared_ptr<controllers::SSLContextService> ssl_service_;
+  bool use_compression_{false};
+  std::optional<uint64_t> batch_count_;
+  std::optional<uint64_t> batch_size_;
+  std::optional<std::chrono::milliseconds> batch_duration_;
 
  private:
+  std::unique_ptr<sitetosite::SiteToSiteClient> initializeProtocol(sitetosite::SiteToSiteClientConfiguration& config);
+
   std::shared_ptr<core::logging::Logger> logger_;
   static const char* RPG_SSL_CONTEXT_SERVICE_NAME;
 };

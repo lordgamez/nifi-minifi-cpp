@@ -444,16 +444,15 @@ Remote Process Groups:
   proxy password: ''
   local network interface: ''
   Input Ports:
-  - id: aca664f8-0158-1000-a139-92485891d349
-    name: test2
-    comment: ''
-    max concurrent tasks: 1
-    use compression: false
   - id: ac0e798c-0158-1000-0588-cda9b944e011
-    name: test
+    name: AmazingInputPort
     comment: ''
     max concurrent tasks: 1
-    use compression: false
+    use compression: true
+    batch size:
+      size: 10 B
+      count: 3
+      duration: 5 sec
   Output Ports: []
 NiFi Properties Overrides: {}
       )";
@@ -483,6 +482,14 @@ NiFi Properties Overrides: {}
     REQUIRE(it.second->getSource());
     REQUIRE(0s == it.second->getFlowExpirationDuration());
   }
+
+  auto* port = dynamic_cast<minifi::RemoteProcessorGroupPort*>(rootFlowConfig->findProcessorByName("AmazingInputPort"));
+  REQUIRE(port);
+  CHECK(port->getUUIDStr() == "ac0e798c-0158-1000-0588-cda9b944e011");
+  CHECK(port->getUseCompression() == true);
+  CHECK(port->getBatchSize().value() == 10);
+  CHECK(port->getBatchCount().value() == 3);
+  CHECK(port->getBatchDuration().value() == std::chrono::seconds(5));
 }
 
 TEST_CASE("Test Dynamic Unsupported", "[YamlConfigurationDynamicUnsupported]") {

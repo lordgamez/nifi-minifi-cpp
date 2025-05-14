@@ -729,9 +729,41 @@ void StructuredConfiguration::parseRPGPort(const Node& port_node, core::ProcessG
   auto port = std::make_unique<minifi::RemoteProcessorGroupPort>(
           nameStr, parent->getURL(), this->configuration_, uuid);
   port->setDirection(direction);
-  port->setTimeout(parent->getTimeout());
   port->setTransmitting(true);
   port->setYieldPeriodMsec(parent->getYieldPeriodMsec());
+
+  if (isFieldPresent(port_node, schema_.rpg_port_use_compression[0])) {
+    auto use_compression = port_node[schema_.rpg_port_use_compression].getBool().value_or(false);
+    logger_->log_debug("parseRPGPort: use compression => [{}]", use_compression);
+    port->setUseCompression(use_compression);
+  }
+
+  if (isFieldPresent(port_node, schema_.rpg_port_batch_size[0])) {
+    if (isFieldPresent(port_node[schema_.rpg_port_batch_size[0]], schema_.rpg_port_batch_size_count[0])) {
+      auto batch_count_str = port_node[schema_.rpg_port_batch_size[0]][schema_.rpg_port_batch_size_count[0]].getIntegerAsString().value();
+      if (auto batch_count = parsing::parseIntegral<uint64_t>(batch_count_str); batch_count) {
+        logger_->log_debug("parseRPGPort: batch count => [{}]", *batch_count);
+        port->setBatchCount(*batch_count);
+      }
+    }
+
+    if (isFieldPresent(port_node[schema_.rpg_port_batch_size[0]], schema_.rpg_port_batch_size_size[0])) {
+      auto batch_size_str = port_node[schema_.rpg_port_batch_size[0]][schema_.rpg_port_batch_size_size[0]].getIntegerAsString().value();
+      if (auto batch_size = parsing::parseDataSize(batch_size_str); batch_size) {
+        logger_->log_debug("parseRPGPort: batch size => [{}]", *batch_size);
+        port->setBatchSize(*batch_size);
+      }
+    }
+
+    if (isFieldPresent(port_node[schema_.rpg_port_batch_size[0]], schema_.rpg_port_batch_size_duration[0])) {
+      auto batch_duration_str = port_node[schema_.rpg_port_batch_size[0]][schema_.rpg_port_batch_size_duration[0]].getIntegerAsString().value();
+      if (auto batch_duration = parsing::parseDuration(batch_duration_str); batch_duration) {
+        logger_->log_debug("parseRPGPort: batch size => [{}]", *batch_duration);
+        port->setBatchDuration(*batch_duration);
+      }
+    }
+  }
+
   port->initialize();
   if (!parent->getInterface().empty())
     port->setInterface(parent->getInterface());

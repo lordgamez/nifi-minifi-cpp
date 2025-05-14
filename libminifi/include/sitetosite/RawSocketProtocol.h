@@ -63,19 +63,6 @@ class RawSiteToSiteClient : public SiteToSiteClient {
   }
 
  public:
-  // TODO: set these from site to site client configuration
-  void setBatchSize(uint64_t size) {
-    batch_size_ = size;
-  }
-
-  void setBatchCount(uint64_t count) {
-    batch_count_ = count;
-  }
-
-  void setBatchDuration(std::chrono::milliseconds duration) {
-    batch_duration_ = duration;
-  }
-
   void setTimeout(std::chrono::milliseconds time) {
     timeout_ = time;
     if (peer_) {
@@ -112,9 +99,6 @@ class RawSiteToSiteClient : public SiteToSiteClient {
   int64_t writeRequestType(RequestType type);
 
   std::shared_ptr<core::logging::Logger> logger_ = core::logging::LoggerFactory<RawSiteToSiteClient>::getLogger();
-  std::atomic<uint64_t> batch_count_{0};
-  std::atomic<uint64_t> batch_size_{0};
-  std::atomic<std::chrono::milliseconds> batch_duration_{0s};
   std::atomic<std::chrono::milliseconds> timeout_{30s};
   utils::Identifier comms_identifier_;
 };

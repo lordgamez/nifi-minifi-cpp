@@ -34,9 +34,14 @@
 namespace org::apache::nifi::minifi::sitetosite {
 
 class HttpSiteToSiteClient : public SiteToSiteClient {
-  static constexpr char const* PROTOCOL_VERSION_HEADER = "x-nifi-site-to-site-protocol-version";
-
  public:
+  static constexpr char const* PROTOCOL_VERSION_HEADER = "x-nifi-site-to-site-protocol-version";
+  static constexpr char const* HANDSHAKE_PROPERTY_USE_COMPRESSION = "x-nifi-site-to-site-use-compression";
+  static constexpr char const* HANDSHAKE_PROPERTY_REQUEST_EXPIRATION = "x-nifi-site-to-site-request-expiration";
+  static constexpr char const* HANDSHAKE_PROPERTY_BATCH_COUNT = "x-nifi-site-to-site-batch-count";
+  static constexpr char const* HANDSHAKE_PROPERTY_BATCH_SIZE = "x-nifi-site-to-site-batch-size";
+  static constexpr char const* HANDSHAKE_PROPERTY_BATCH_DURATION = "x-nifi-site-to-site-batch-duration";
+
   explicit HttpSiteToSiteClient(std::string /*name*/, const utils::Identifier& /*uuid*/ = {})
       : SiteToSiteClient(),
         current_code_(ResponseCode::UNRECOGNIZED_RESPONSE_CODE) {
@@ -90,6 +95,8 @@ class HttpSiteToSiteClient : public SiteToSiteClient {
   std::unique_ptr<minifi::http::HTTPClient> createHttpClient(const std::string &uri, http::HttpRequestMethod method);
 
  private:
+  void setSiteToSiteHeaders(minifi::http::HTTPClient& client);
+
   ResponseCode current_code_;
   std::shared_ptr<core::logging::Logger> logger_ = core::logging::LoggerFactory<HttpSiteToSiteClient>::getLogger();
 

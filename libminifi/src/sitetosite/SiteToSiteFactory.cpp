@@ -63,6 +63,16 @@ std::unique_ptr<SiteToSiteClient> createClient(const SiteToSiteClientConfigurati
         ptr->setPortId(uuid);
         ptr->setPeer(std::move(peer));
         ptr->setIdleTimeout(client_configuration.getIdleTimeout());
+        ptr->setUseCompression(client_configuration.getUseCompression());
+        if (client_configuration.getBatchCount()) {
+          ptr->setBatchCount(client_configuration.getBatchCount().value());
+        }
+        if (client_configuration.getBatchSize()) {
+          ptr->setBatchSize(client_configuration.getBatchSize().value());
+        }
+        if (client_configuration.getBatchDuration()) {
+          ptr->setBatchDuration(client_configuration.getBatchDuration().value());
+        }
         return ptr;
       }
       return nullptr;

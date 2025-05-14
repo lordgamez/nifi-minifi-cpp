@@ -363,6 +363,38 @@ class SiteToSiteClientConfiguration {
     return proxy_;
   }
 
+  void setUseCompression(bool use_compression) {
+    use_compression_ = use_compression;
+  }
+
+  bool getUseCompression() const {
+    return use_compression_;
+  }
+
+  void setBatchCount(uint64_t count) {
+    batch_count_ = count;
+  }
+
+  std::optional<uint64_t> getBatchCount() const {
+    return batch_count_;
+  }
+
+  void setBatchSize(uint64_t size) {
+    batch_size_ = size;
+  }
+
+  std::optional<uint64_t> getBatchSize() const {
+    return batch_size_;
+  }
+
+  void setBatchDuration(std::chrono::milliseconds duration) {
+    batch_duration_ = duration;
+  }
+
+  std::optional<std::chrono::milliseconds> getBatchDuration() const {
+    return batch_duration_;
+  }
+
  private:
   utils::Identifier port_id_;
   std::string host_;
@@ -372,6 +404,10 @@ class SiteToSiteClientConfiguration {
   std::chrono::milliseconds idle_timeout_{15000};
   std::shared_ptr<controllers::SSLContextService> ssl_service_;
   http::HTTPProxy proxy_;
+  bool use_compression_{false};
+  std::optional<uint64_t> batch_count_;
+  std::optional<uint64_t> batch_size_;
+  std::optional<std::chrono::milliseconds> batch_duration_;
 };
 
 }  // namespace org::apache::nifi::minifi::sitetosite

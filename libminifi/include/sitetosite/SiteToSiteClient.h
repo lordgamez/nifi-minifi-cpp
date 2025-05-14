@@ -128,6 +128,22 @@ class SiteToSiteClient : public core::ConnectableImpl {
     ssl_context_service_ = context_service;
   }
 
+  void setUseCompression(bool use_compression) {
+    use_compression_ = use_compression;
+  }
+
+  void setBatchSize(uint64_t size) {
+    batch_size_ = size;
+  }
+
+  void setBatchCount(uint64_t count) {
+    batch_count_ = count;
+  }
+
+  void setBatchDuration(std::chrono::milliseconds duration) {
+    batch_duration_ = duration;
+  }
+
  protected:
   virtual void tearDown() = 0;
   virtual void deleteTransaction(const utils::Identifier &transaction_id);
@@ -161,6 +177,11 @@ class SiteToSiteClient : public core::ConnectableImpl {
   uint32_t current_codec_version_{supported_codec_version_[current_codec_version_index_]};
 
   std::shared_ptr<minifi::controllers::SSLContextService> ssl_context_service_;
+
+  std::atomic_bool use_compression_{false};
+  std::atomic<uint64_t> batch_count_{0};
+  std::atomic<uint64_t> batch_size_{0};
+  std::atomic<std::chrono::milliseconds> batch_duration_{0s};
 
  private:
   std::shared_ptr<core::logging::Logger> logger_{core::logging::LoggerFactory<SiteToSiteClient>::getLogger()};

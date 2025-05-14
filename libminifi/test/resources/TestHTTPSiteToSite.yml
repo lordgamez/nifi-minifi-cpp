@@ -75,7 +75,11 @@ Remote Processing Groups:
           - id: 471deef6-2a6e-4a7d-912a-81cc17e3a204
             name: From Node A
             max concurrent tasks: 1
-            use compression: false
+            use compression: true
+            batch size:
+              count: 5
+              size: 100 B
+              duration: 30 sec
             Properties: # Deviates from spec and will later be removed when this is autonegotiated
                 Port UUID: 471deef6-2a6e-4a7d-912a-81cc17e3a204
                 Port: 8082
@@ -84,7 +88,11 @@ Remote Processing Groups:
           - id: 471deef6-2a6e-4a7d-912a-81cc17e3a203
             name: To Node A
             max concurrent tasks: 1
-            use compression: false
+            use compression: true
+            batch size:
+              count: 5
+              size: 100 B
+              duration: 30 sec
             Properties: # Deviates from spec and will later be removed when this is autonegotiated
                 Port UUID: 471deef6-2a6e-4a7d-912a-81cc17e3a203
                 Port: 8082

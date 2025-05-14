@@ -196,16 +196,19 @@ bool RawSiteToSiteClient::handShake() {
   }
 
   std::map<std::string, std::string> properties;
-  properties[std::string(magic_enum::enum_name(HandshakeProperty::GZIP))] = "false";
+  properties[std::string(magic_enum::enum_name(HandshakeProperty::GZIP))] = use_compression_ ? "true" : "false";
   properties[std::string(magic_enum::enum_name(HandshakeProperty::PORT_IDENTIFIER))] = port_id_.to_string();
   properties[std::string(magic_enum::enum_name(HandshakeProperty::REQUEST_EXPIRATION_MILLIS))] = std::to_string(timeout_.load().count());
   if (current_version_ >= 5) {
-    if (batch_count_ > 0)
+    if (batch_count_ > 0) {
       properties[std::string(magic_enum::enum_name(HandshakeProperty::BATCH_COUNT))] = std::to_string(batch_count_);
-    if (batch_size_ > 0)
+    }
+    if (batch_size_ > 0) {
       properties[std::string(magic_enum::enum_name(HandshakeProperty::BATCH_SIZE))] = std::to_string(batch_size_);
-    if (batch_duration_.load() > 0ms)
+    }
+    if (batch_duration_.load() > 0ms) {
       properties[std::string(magic_enum::enum_name(HandshakeProperty::BATCH_DURATION))] = std::to_string(batch_duration_.load().count());
+    }
   }
 
   if (current_version_ >= 3) {

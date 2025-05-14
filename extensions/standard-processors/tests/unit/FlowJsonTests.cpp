@@ -963,7 +963,13 @@ TEST_CASE("NiFi flow json can use alternative targetUris field") {
         "identifier": "00000000-0000-0000-0000-000000000003",
         "name": "AmazingInputPort",
         "targetId": "00000000-0000-0000-0000-000000000005",
-        "concurrentlySchedulableTaskCount": 7
+        "concurrentlySchedulableTaskCount": 7,
+        "useCompression": true,
+        "batchSize": {
+          "size": "10 B",
+          "count": "3",
+          "duration": "5 sec"
+        }
       }]
     }],
     "parameterContextName": "my-context"
@@ -989,7 +995,13 @@ TEST_CASE("NiFi flow json can use alternative targetUris field") {
         "identifier": "00000000-0000-0000-0000-000000000003",
         "name": "AmazingInputPort",
         "targetId": "00000000-0000-0000-0000-000000000005",
-        "concurrentlySchedulableTaskCount": 7
+        "concurrentlySchedulableTaskCount": 7,
+        "useCompression": true,
+        "batchSize": {
+          "size": "10 B",
+          "count": "3",
+          "duration": "5 sec"
+        }
       }]
     }],
     "parameterContextName": "my-context"
@@ -1016,7 +1028,13 @@ TEST_CASE("NiFi flow json can use alternative targetUris field") {
         "identifier": "00000000-0000-0000-0000-000000000003",
         "name": "AmazingInputPort",
         "targetId": "00000000-0000-0000-0000-000000000005",
-        "concurrentlySchedulableTaskCount": 7
+        "concurrentlySchedulableTaskCount": 7,
+        "useCompression": true,
+        "batchSize": {
+          "size": "10 B",
+          "count": "3",
+          "duration": "5 sec"
+        }
       }]
     }],
     "parameterContextName": "my-context"
@@ -1033,6 +1051,10 @@ TEST_CASE("NiFi flow json can use alternative targetUris field") {
   REQUIRE(port);
   CHECK(port->getUUIDStr() == "00000000-0000-0000-0000-000000000003");
   CHECK(port->getMaxConcurrentTasks() == 7);
+  CHECK(port->getUseCompression() == true);
+  CHECK(port->getBatchSize().value() == 10);
+  CHECK(port->getBatchCount().value() == 3);
+  CHECK(port->getBatchDuration().value() == std::chrono::seconds(5));
   if (target_uri_valid) {
     CHECK(port->getInstances().size() == 1);
     CHECK(port->getInstances().front().host_ == "localhost");

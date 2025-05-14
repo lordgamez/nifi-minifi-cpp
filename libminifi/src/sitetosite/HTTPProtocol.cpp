@@ -102,7 +102,7 @@ std::shared_ptr<Transaction> HttpSiteToSiteClient::createTransaction(TransferDir
   std::stringstream uri;
   uri << getBaseURI() << "data-transfer/" << dir_str << "/" << getPortId().to_string() << "/transactions";
   auto client = createHttpClient(uri.str(), http::HttpRequestMethod::POST);
-  client->setRequestHeader(PROTOCOL_VERSION_HEADER, "1");
+  setSiteToSiteHeaders(*client);
   client->setConnectionTimeout(std::chrono::milliseconds(5000));
   client->setContentType("application/json");
   client->setRequestHeader("Accept", "application/json");
@@ -138,7 +138,7 @@ std::shared_ptr<Transaction> HttpSiteToSiteClient::createTransaction(TransferDir
           // 201 tells us that data is available. 200 would mean that nothing is available.
         }
 
-        transaction_client->setRequestHeader(PROTOCOL_VERSION_HEADER, "1");
+        setSiteToSiteHeaders(*transaction_client);
         peer_->setStream(std::unique_ptr<io::BaseStream>(new http::HttpStream(transaction_client)));
         logger_->log_debug("Created transaction id -{}-", transaction->getUUID().to_string());
         known_transactions_[transaction->getUUID()] = transaction;
@@ -234,7 +234,7 @@ std::optional<std::vector<PeerStatus>> HttpSiteToSiteClient::getPeerList() {
 
   auto client = createHttpClient(uri.str(), http::HttpRequestMethod::GET);
 
-  client->setRequestHeader(PROTOCOL_VERSION_HEADER, "1");
+  setSiteToSiteHeaders(*client);
 
   client->submit();
 
@@ -338,7 +338,7 @@ void HttpSiteToSiteClient::closeTransaction(const utils::Identifier &transaction
   }
 
   auto client = createHttpClient(uri.str(), http::HttpRequestMethod::DELETE);
-  client->setRequestHeader(PROTOCOL_VERSION_HEADER, "1");
+  setSiteToSiteHeaders(*client);
   client->setConnectionTimeout(std::chrono::milliseconds(5000));
   client->setRequestHeader("Accept", "application/json");
   client->submit();
@@ -362,6 +362,20 @@ void HttpSiteToSiteClient::deleteTransaction(const utils::Identifier& transactio
   closeTransaction(transaction_id);
 
   SiteToSiteClient::deleteTransaction(transaction_id);
+}
+
+void HttpSiteToSiteClient::setSiteToSiteHeaders(minifi::http::HTTPClient& client) {
+  client.setRequestHeader(PROTOCOL_VERSION_HEADER, "1");
+  client.setRequestHeader(HANDSHAKE_PROPERTY_USE_COMPRESSION, use_compression_ ? "true" : "false");
+  if (batch_count_ > 0) {
+    client.setRequestHeader(HANDSHAKE_PROPERTY_BATCH_COUNT, std::to_string(batch_count_));
+  }
+  if (batch_size_ > 0) {
+    client.setRequestHeader(HANDSHAKE_PROPERTY_BATCH_SIZE, std::to_string(batch_size_));
+  }
+  if (batch_duration_.load() > std::chrono::milliseconds(0)) {
+    client.setRequestHeader(HANDSHAKE_PROPERTY_BATCH_DURATION, std::to_string(batch_duration_.load().count()));
+  }
 }
 
 REGISTER_RESOURCE_AS(HttpSiteToSiteClient, InternalResource, ("HttpSiteToSiteClient", "HttpProtocol"));
