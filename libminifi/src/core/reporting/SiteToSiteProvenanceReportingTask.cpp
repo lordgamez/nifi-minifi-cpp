@@ -170,7 +170,7 @@ void SiteToSiteProvenanceReportingTask::onTrigger(core::ProcessContext& context,
     return;
   }
 
-  auto protocol_ = getNextProtocol(true);
+  auto protocol_ = getNextProtocol();
 
   if (!protocol_) {
     context.yield();

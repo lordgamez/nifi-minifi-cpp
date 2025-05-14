@@ -51,7 +51,7 @@ namespace org::apache::nifi::minifi {
 class RPGLatch {
  public:
   RPGLatch(bool increment = true) { // NOLINT
-    static std::atomic<int> latch_count(0);
+    static std::atomic<int64_t> latch_count(0);
     count = &latch_count;
     if (increment)
       count++;
@@ -61,17 +61,17 @@ class RPGLatch {
     count--;
   }
 
-  int getCount() {
+  int64_t getCount() {
     return *count;
   }
 
  private:
-  std::atomic<int> *count;
+  std::atomic<int64_t> *count;
 };
 
 struct RPG {
   std::string host_;
-  int port_;
+  int64_t port_;
   std::string protocol_;
 };
 
@@ -159,38 +159,22 @@ class RemoteProcessorGroupPort : public core::ProcessorImpl {
     return local_network_interface_;
   }
 
-  /**
-   * Sets the url. Supports a CSV
-   */
-  void setURL(std::string val) {
-    auto urls = utils::string::split(val, ",");
-    for (const auto& url : urls) {
-      http::URL parsed_url{utils::string::trim(url)};
-      if (parsed_url.isValid()) {
-        logger_->log_debug("Parsed RPG URL '{}' -> '{}'", url, parsed_url.hostPort());
-        nifi_instances_.push_back({parsed_url.host(), parsed_url.port(), parsed_url.protocol()});
-      } else {
-        logger_->log_error("Could not parse RPG URL '{}'", url);
-      }
-    }
-  }
+  void setURL(std::string val);
 
   std::vector<RPG> getInstances() const {
     return nifi_instances_;
   }
 
   void setHTTPProxy(const http::HTTPProxy &proxy) {
-    this->proxy_ = proxy;
+    proxy_ = proxy;
   }
+
   http::HTTPProxy getHTTPProxy() {
-    return this->proxy_;
+    return proxy_;
   }
-  // refresh remoteSite2SiteInfo via nifi rest api
+
   std::pair<std::string, int> refreshRemoteSite2SiteInfo();
-
-  // refresh site2site peer list
   void refreshPeerList();
-
   void notifyStop() override;
 
   void enableHTTP() {
@@ -198,56 +182,27 @@ class RemoteProcessorGroupPort : public core::ProcessorImpl {
   }
 
  protected:
-  /**
-   * Non static in case anything is loaded when this object is re-scheduled
-   */
-  bool is_http_disabled() {
-    auto ptr = core::ClassLoader::getDefaultClassLoader().instantiateRaw("HTTPClient", "HTTPClient");
-    if (ptr != nullptr) {
-      delete ptr;
-      return false;
-    } else {
-      return true;
-    }
-  }
-
-  std::unique_ptr<sitetosite::SiteToSiteClient> getNextProtocol(bool create);
+  std::unique_ptr<sitetosite::SiteToSiteClient> getNextProtocol();
   void returnProtocol(std::unique_ptr<sitetosite::SiteToSiteClient> protocol);
 
   moodycamel::ConcurrentQueue<std::unique_ptr<sitetosite::SiteToSiteClient>> available_protocols_;
-
   std::shared_ptr<Configure> configure_;
-  // Transaction Direction
   sitetosite::TransferDirection direction_;
-  // Transmitting
   std::atomic<bool> transmitting_;
-  // timeout
   uint64_t timeout_;
-  // local network interface
   std::string local_network_interface_;
-
   utils::Identifier protocol_uuid_;
-
   std::chrono::milliseconds idle_timeout_ = std::chrono::seconds(15);
-
-  // rest API end point info
-  std::vector<struct RPG> nifi_instances_;
-
-  // http proxy
+  std::vector<RPG> nifi_instances_;
   http::HTTPProxy proxy_;
-
   bool bypass_rest_api_;
-
   sitetosite::ClientType client_type_;
-
-  // Remote Site2Site Info
   bool site2site_secure_;
   std::vector<sitetosite::PeerStatus> peers_;
-  std::atomic<int> peer_index_;
+  std::atomic<int64_t> peer_index_;
   std::mutex peer_mutex_;
   std::string rest_user_name_;
   std::string rest_password_;
-
   std::shared_ptr<controllers::SSLContextService> ssl_service;
 
  private:

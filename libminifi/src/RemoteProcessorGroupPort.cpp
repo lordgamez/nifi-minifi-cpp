@@ -48,42 +48,52 @@ namespace org::apache::nifi::minifi {
 
 const char *RemoteProcessorGroupPort::RPG_SSL_CONTEXT_SERVICE_NAME = "RemoteProcessorGroupPortSSLContextService";
 
-std::unique_ptr<sitetosite::SiteToSiteClient> RemoteProcessorGroupPort::getNextProtocol(bool create = true) {
+void RemoteProcessorGroupPort::setURL(std::string val) {
+  auto urls = utils::string::split(val, ",");
+  for (const auto& url : urls) {
+    http::URL parsed_url{utils::string::trim(url)};
+    if (parsed_url.isValid()) {
+      logger_->log_debug("Parsed RPG URL '{}' -> '{}'", url, parsed_url.hostPort());
+      nifi_instances_.push_back({parsed_url.host(), parsed_url.port(), parsed_url.protocol()});
+    } else {
+      logger_->log_error("Could not parse RPG URL '{}'", url);
+    }
+  }
+}
+
+std::unique_ptr<sitetosite::SiteToSiteClient> RemoteProcessorGroupPort::getNextProtocol() {
   std::unique_ptr<sitetosite::SiteToSiteClient> nextProtocol = nullptr;
   if (!available_protocols_.try_dequeue(nextProtocol)) {
-    if (create) {
-      // create
-      if (bypass_rest_api_) {
-        if (!nifi_instances_.empty()) {
-          auto rpg = nifi_instances_.front();
-          auto host = rpg.host_;
+    if (bypass_rest_api_) {
+      if (!nifi_instances_.empty()) {
+        auto rpg = nifi_instances_.front();
+        auto host = rpg.host_;
 #ifdef WIN32
-          if ("localhost" == host) {
-            host = org::apache::nifi::minifi::utils::net::getMyHostName();
-          }
+        if ("localhost" == host) {
+          host = org::apache::nifi::minifi::utils::net::getMyHostName();
+        }
 #endif
-          sitetosite::SiteToSiteClientConfiguration config(protocol_uuid_, host, rpg.port_, getInterface(), client_type_);
-          config.setHTTPProxy(this->proxy_);
-          config.setIdleTimeout(idle_timeout_);
-          nextProtocol = sitetosite::createClient(config);
-        }
-      } else if (peer_index_ >= 0) {
-        std::lock_guard<std::mutex> lock(peer_mutex_);
-        logger_->log_debug("Creating client from peer {}", peer_index_.load());
-        auto& peer_status = peers_[this->peer_index_];
-        sitetosite::SiteToSiteClientConfiguration config(peer_status.getPortId(), peer_status.getHost(), peer_status.getPort(), local_network_interface_, client_type_);
-        config.setSecurityContext(ssl_service);
-        peer_index_++;
-        if (peer_index_ >= static_cast<int>(peers_.size())) {
-          peer_index_ = 0;
-        }
-        config.setHTTPProxy(this->proxy_);
+        sitetosite::SiteToSiteClientConfiguration config(protocol_uuid_, host, rpg.port_, getInterface(), client_type_);
+        config.setHTTPProxy(proxy_);
         config.setIdleTimeout(idle_timeout_);
         nextProtocol = sitetosite::createClient(config);
-      } else {
-        logger_->log_debug("Refreshing the peer list since there are none configured.");
-        refreshPeerList();
       }
+    } else if (peer_index_ >= 0) {
+      std::lock_guard<std::mutex> lock(peer_mutex_);
+      logger_->log_debug("Creating client from peer {}", peer_index_.load());
+      auto& peer_status = peers_[peer_index_];
+      sitetosite::SiteToSiteClientConfiguration config(peer_status.getPortId(), peer_status.getHost(), peer_status.getPort(), local_network_interface_, client_type_);
+      config.setSecurityContext(ssl_service);
+      peer_index_++;
+      if (peer_index_ >= static_cast<int>(peers_.size())) {
+        peer_index_ = 0;
+      }
+      config.setHTTPProxy(proxy_);
+      config.setIdleTimeout(idle_timeout_);
+      nextProtocol = sitetosite::createClient(config);
+    } else {
+      logger_->log_debug("Refreshing the peer list since there are none configured.");
+      refreshPeerList();
     }
   }
   logger_->log_debug("Obtained protocol from available_protocols_");
@@ -146,7 +156,7 @@ void RemoteProcessorGroupPort::onSchedule(core::ProcessContext& context, core::P
       count = max_concurrent_tasks_;
     for (uint32_t i = 0; i < count; i++) {
       std::unique_ptr<sitetosite::SiteToSiteClient> nextProtocol = nullptr;
-      auto peer_status = peers_[this->peer_index_];
+      auto peer_status = peers_[peer_index_];
       sitetosite::SiteToSiteClientConfiguration config(peer_status.getPortId(), peer_status.getHost(), peer_status.getPort(), getInterface(), client_type_);
       config.setSecurityContext(ssl_service);
       peer_index_++;
@@ -154,7 +164,7 @@ void RemoteProcessorGroupPort::onSchedule(core::ProcessContext& context, core::P
         peer_index_ = 0;
       }
       logger_->log_trace("Creating client");
-      config.setHTTPProxy(this->proxy_);
+      config.setHTTPProxy(proxy_);
       config.setIdleTimeout(idle_timeout_);
       nextProtocol = sitetosite::createClient(config);
       logger_->log_trace("Created client, moving into available protocols");
@@ -238,8 +248,8 @@ std::pair<std::string, int> RemoteProcessorGroupPort::refreshRemoteSite2SiteInfo
     }
     fullUrl << "/nifi-api/site-to-site";
 
-    configure_->get(Configure::nifi_rest_api_user_name, this->rest_user_name_);
-    configure_->get(Configure::nifi_rest_api_password, this->rest_password_);
+    configure_->get(Configure::nifi_rest_api_user_name, rest_user_name_);
+    configure_->get(Configure::nifi_rest_api_password, rest_password_);
 
     std::string token;
     std::unique_ptr<http::BaseHTTPClient> client;
@@ -264,7 +274,7 @@ std::pair<std::string, int> RemoteProcessorGroupPort::refreshRemoteSite2SiteInfo
       client->setConnectionTimeout(10s);
       client->setReadTimeout(idle_timeout_);
 
-      token = http::get_token(client.get(), this->rest_user_name_, this->rest_password_);
+      token = http::get_token(client.get(), rest_user_name_, rest_password_);
       logger_->log_debug("Token from NiFi REST Api endpoint {},  {}", loginUrl.str(), token);
       if (token.empty())
         return std::make_pair("", -1);
@@ -313,7 +323,7 @@ std::pair<std::string, int> RemoteProcessorGroupPort::refreshRemoteSite2SiteInfo
               siteTosite_port_ = nifi_port;
 
             if (secure_itr != end_itr && secure_itr->value.IsBool())
-              this->site2site_secure_ = secure_itr->value.GetBool();
+              site2site_secure_ = secure_itr->value.GetBool();
           }
           logger_->log_debug("process group remote site2site port {}, is secure {}", siteTosite_port_, site2site_secure_);
           return std::make_pair(host, siteTosite_port_);

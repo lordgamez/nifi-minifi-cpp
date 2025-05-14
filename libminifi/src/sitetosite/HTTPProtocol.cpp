@@ -93,9 +93,6 @@ std::optional<std::vector<PeerStatus>> parsePeerStatuses(const std::shared_ptr<c
   } catch (Exception &exception) {
     logger->log_debug("Caught Exception {}", exception.what());
     return std::nullopt;
-  } catch (...) {
-    logger->log_debug("General exception occurred");
-    return std::nullopt;
   }
 }
 }  // namespace

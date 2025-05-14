@@ -61,17 +61,12 @@ class HttpSiteToSiteClient : public SiteToSiteClient {
 
   std::optional<std::vector<PeerStatus>> getPeerList() override;
 
-  /**
-   * Establish the protocol connection. Not needed for the HTTP connection, so we simply
-   * return true.
-   */
   bool establish() override {
     return true;
   }
 
   std::shared_ptr<Transaction> createTransaction(TransferDirection direction) override;
 
-  //! Transfer string for the process session
   bool transmitPayload(core::ProcessContext& context, core::ProcessSession& session, const std::string &payload, const std::map<std::string, std::string>& attributes) override;
   void deleteTransaction(const utils::Identifier& transaction_id) override;
 
@@ -80,28 +75,12 @@ class HttpSiteToSiteClient : public SiteToSiteClient {
   std::optional<SiteToSiteResponse> readResponse(const std::shared_ptr<Transaction> &transaction) override;
   bool writeResponse(const std::shared_ptr<Transaction> &transaction, const SiteToSiteResponse& response) override;
 
-  /**
-   * Bootstrapping is not really required for the HTTP Site To Site so we will set the peer state and return true.
-   */
   bool bootstrap() override {
     peer_state_ = PeerState::READY;
     return true;
   }
 
-  /**
-   * Creates a connection for sending, returning an HTTP client that is structured and configured
-   * to receive flow files.
-   * @param transaction transaction against which we are performing our sends
-   * @return HTTP Client shared pointer.
-   */
   std::shared_ptr<minifi::http::HTTPClient> openConnectionForSending(const std::shared_ptr<HttpTransaction> &transaction);
-
-  /**
-   * Creates a connection for receiving, returning an HTTP client that is structured and configured
-   * to receive flow files.
-   * @param transaction transaction against which we are performing our reads
-   * @return HTTP Client shared pointer.
-   */
   std::shared_ptr<minifi::http::HTTPClient> openConnectionForReceive(const std::shared_ptr<HttpTransaction> &transaction);
 
   std::string getBaseURI();
