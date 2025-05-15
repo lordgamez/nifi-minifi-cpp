@@ -29,21 +29,29 @@
 #include "unit/Catch.h"
 #include "unit/SiteToSiteHelper.h"
 
-#define FMT_DEFAULT fmt_lower
+namespace org::apache::nifi::minifi::test {
 
-TEST_CASE("TestSetPortId", "[S2S]") {
-  auto peer = std::make_unique<minifi::sitetosite::SiteToSitePeer>(std::make_unique<org::apache::nifi::minifi::io::BufferStream>(), "fake_host", 65433, "");
+class RawSiteToSiteClientTestAccessor {
+ public:
+  static bool bootstrap(sitetosite::RawSiteToSiteClient& client) {
+    return client.bootstrap();
+  }
 
-  minifi::sitetosite::RawSiteToSiteClient protocol(std::move(peer));
+  static std::shared_ptr<sitetosite::Transaction> createTransaction(sitetosite::RawSiteToSiteClient& client, sitetosite::TransferDirection direction) {
+    return client.createTransaction(direction);
+  }
 
-  utils::Identifier fakeUUID = utils::Identifier::parse("c56a4180-65aa-42ec-a945-5fd21dec0538").value();
+  static bool send(sitetosite::RawSiteToSiteClient& client, const minifi::utils::Identifier& transaction_id, sitetosite::DataPacket* packet, const std::shared_ptr<core::FlowFile> &flow_file,
+      core::ProcessSession* session) {
+    return client.send(transaction_id, packet, flow_file, session);
+  }
 
-  protocol.setPortId(fakeUUID);
+  static bool receive(sitetosite::RawSiteToSiteClient& client, const minifi::utils::Identifier& transaction_id, sitetosite::DataPacket *packet, bool &eof) {
+    return client.receive(transaction_id, packet, eof);
+  }
+};
 
-  REQUIRE(fakeUUID == protocol.getPortId());
-}
-
-void sunny_path_bootstrap(const std::unique_ptr<SiteToSiteResponder>& collector) {
+void sunnyPathBootstrap(const std::unique_ptr<SiteToSiteResponder>& collector) {
   char a = 0x14;  // RESOURCE_OK
   std::string resp_code;
   resp_code.insert(resp_code.begin(), a);
@@ -63,25 +71,33 @@ void sunny_path_bootstrap(const std::unique_ptr<SiteToSiteResponder>& collector)
   collector->push_response(resp_code);
 }
 
+TEST_CASE("TestSetPortId", "[S2S]") {
+  auto peer = std::make_unique<sitetosite::SiteToSitePeer>(std::make_unique<org::apache::nifi::minifi::io::BufferStream>(), "fake_host", 65433, "");
+  sitetosite::RawSiteToSiteClient protocol(std::move(peer));
+  auto fakeUUID = minifi::utils::Identifier::parse("c56a4180-65aa-42ec-a945-5fd21dec0538").value();
+  protocol.setPortId(fakeUUID);
+  REQUIRE(fakeUUID == protocol.getPortId());
+}
+
 TEST_CASE("TestSiteToSiteVerifySend", "[S2S]") {
   auto collector = std::make_unique<SiteToSiteResponder>();
   auto collector_ptr = collector.get();
 
-  sunny_path_bootstrap(collector);
+  sunnyPathBootstrap(collector);
 
-  auto peer = std::make_unique<minifi::sitetosite::SiteToSitePeer>(std::move(collector), "fake_host", 65433, "");
+  auto peer = std::make_unique<sitetosite::SiteToSitePeer>(std::move(collector), "fake_host", 65433, "");
 
-  minifi::sitetosite::RawSiteToSiteClient protocol(std::move(peer));
+  sitetosite::RawSiteToSiteClient protocol(std::move(peer));
   protocol.setUseCompression(true);
   protocol.setBatchDuration(std::chrono::milliseconds(100));
   protocol.setBatchCount(5);
   protocol.setTimeout(std::chrono::milliseconds(20000));
 
-  utils::Identifier fakeUUID = utils::Identifier::parse("C56A4180-65AA-42EC-A945-5FD21DEC0538").value();
+  auto fakeUUID = minifi::utils::Identifier::parse("C56A4180-65AA-42EC-A945-5FD21DEC0538").value();
 
   protocol.setPortId(fakeUUID);
 
-  REQUIRE(true == protocol.bootstrap());
+  REQUIRE(true == RawSiteToSiteClientTestAccessor::bootstrap(protocol));
 
   REQUIRE(collector_ptr->get_next_client_response() == "NiFi");
   collector_ptr->get_next_client_response();
@@ -107,7 +123,7 @@ TEST_CASE("TestSiteToSiteVerifySend", "[S2S]") {
   collector_ptr->get_next_client_response();
   REQUIRE(collector_ptr->get_next_client_response() == "PORT_IDENTIFIER");
   collector_ptr->get_next_client_response();
-  REQUIRE(utils::string::equalsIgnoreCase(collector_ptr->get_next_client_response(), "c56a4180-65aa-42ec-a945-5fd21dec0538"));
+  REQUIRE(minifi::utils::string::equalsIgnoreCase(collector_ptr->get_next_client_response(), "c56a4180-65aa-42ec-a945-5fd21dec0538"));
   collector_ptr->get_next_client_response();
   REQUIRE(collector_ptr->get_next_client_response() == "REQUEST_EXPIRATION_MILLIS");
   collector_ptr->get_next_client_response();
@@ -121,15 +137,15 @@ TEST_CASE("TestSiteToSiteVerifySend", "[S2S]") {
   // start to send the stuff
   // Create the transaction
   std::string payload = "Test MiNiFi payload";
-  std::shared_ptr<minifi::sitetosite::Transaction> transaction;
-  transaction = protocol.createTransaction(minifi::sitetosite::TransferDirection::SEND);
+  std::shared_ptr<sitetosite::Transaction> transaction;
+  transaction = RawSiteToSiteClientTestAccessor::createTransaction(protocol, sitetosite::TransferDirection::SEND);
   REQUIRE(transaction);
   auto transactionID = transaction->getUUID();
   collector_ptr->get_next_client_response();
   REQUIRE(collector_ptr->get_next_client_response() == "SEND_FLOWFILES");
   std::map<std::string, std::string> attributes;
-  minifi::sitetosite::DataPacket packet(transaction, attributes, payload);
-  REQUIRE(protocol.send(transactionID, &packet, nullptr, nullptr));
+  sitetosite::DataPacket packet(transaction, attributes, payload);
+  REQUIRE(RawSiteToSiteClientTestAccessor::send(protocol, transactionID, &packet, nullptr, nullptr));
   collector_ptr->get_next_client_response();
   collector_ptr->get_next_client_response();
   std::string rx_payload = collector_ptr->get_next_client_response();
@@ -145,26 +161,26 @@ TEST_CASE("TestSiteToSiteVerifyNegotiationFail", "[S2S]") {
   collector->push_response(resp_code);
   collector->push_response(resp_code);
 
-  auto peer = std::make_unique<minifi::sitetosite::SiteToSitePeer>(std::move(collector), "fake_host", 65433, "");
+  auto peer = std::make_unique<sitetosite::SiteToSitePeer>(std::move(collector), "fake_host", 65433, "");
 
-  minifi::sitetosite::RawSiteToSiteClient protocol(std::move(peer));
+  sitetosite::RawSiteToSiteClient protocol(std::move(peer));
 
   std::string uuid_str = "C56A4180-65AA-42EC-A945-5FD21DEC0538";
 
-  utils::Identifier fakeUUID;
+  minifi::utils::Identifier fakeUUID;
 
   fakeUUID = uuid_str;
 
   protocol.setPortId(fakeUUID);
 
-  REQUIRE(false == protocol.bootstrap());
+  REQUIRE(false == RawSiteToSiteClientTestAccessor::bootstrap(protocol));
 }
 
 TEST_CASE("Test receiving data through site to site ", "[S2S]") {
   auto collector = std::make_unique<SiteToSiteResponder>();
   auto collector_ptr = collector.get();
 
-  sunny_path_bootstrap(collector);
+  sunnyPathBootstrap(collector);
   collector->push_response("R");
   collector->push_response("C");
   auto addChar = [&collector](char ch) {
@@ -195,15 +211,15 @@ TEST_CASE("Test receiving data through site to site ", "[S2S]") {
   addInt64(4);  // payload length
   collector->push_response("data");
 
-  auto peer = std::make_unique<minifi::sitetosite::SiteToSitePeer>(std::move(collector), "fake_host", 65433, "");
+  auto peer = std::make_unique<sitetosite::SiteToSitePeer>(std::move(collector), "fake_host", 65433, "");
 
-  minifi::sitetosite::RawSiteToSiteClient protocol(std::move(peer));
+  sitetosite::RawSiteToSiteClient protocol(std::move(peer));
 
-  utils::Identifier fakeUUID = utils::Identifier::parse("C56A4180-65AA-42EC-A945-5FD21DEC0538").value();
+  minifi::utils::Identifier fakeUUID = minifi::utils::Identifier::parse("C56A4180-65AA-42EC-A945-5FD21DEC0538").value();
 
   protocol.setPortId(fakeUUID);
 
-  REQUIRE(true == protocol.bootstrap());
+  REQUIRE(true == RawSiteToSiteClientTestAccessor::bootstrap(protocol));
 
   REQUIRE(collector_ptr->get_next_client_response() == "NiFi");
   collector_ptr->get_next_client_response();
@@ -221,7 +237,7 @@ TEST_CASE("Test receiving data through site to site ", "[S2S]") {
   collector_ptr->get_next_client_response();
   REQUIRE(collector_ptr->get_next_client_response() == "PORT_IDENTIFIER");
   collector_ptr->get_next_client_response();
-  REQUIRE(utils::string::equalsIgnoreCase(collector_ptr->get_next_client_response(), "c56a4180-65aa-42ec-a945-5fd21dec0538"));
+  REQUIRE(minifi::utils::string::equalsIgnoreCase(collector_ptr->get_next_client_response(), "c56a4180-65aa-42ec-a945-5fd21dec0538"));
   collector_ptr->get_next_client_response();
   REQUIRE(collector_ptr->get_next_client_response() == "REQUEST_EXPIRATION_MILLIS");
   collector_ptr->get_next_client_response();
@@ -232,14 +248,16 @@ TEST_CASE("Test receiving data through site to site ", "[S2S]") {
   REQUIRE(collector_ptr->get_next_client_response() == "StandardFlowFileCodec");
   collector_ptr->get_next_client_response();  // codec version
 
-  std::shared_ptr<minifi::sitetosite::Transaction> transaction;
-  transaction = protocol.createTransaction(minifi::sitetosite::TransferDirection::RECEIVE);
+  std::shared_ptr<sitetosite::Transaction> transaction;
+  transaction = RawSiteToSiteClientTestAccessor::createTransaction(protocol, sitetosite::TransferDirection::RECEIVE);
   REQUIRE(transaction);
   auto transactionID = transaction->getUUID();
   collector_ptr->get_next_client_response();
   REQUIRE(collector_ptr->get_next_client_response() == "RECEIVE_FLOWFILES");
   std::map<std::string, std::string> attributes;
-  minifi::sitetosite::DataPacket packet(transaction, attributes, "");
+  sitetosite::DataPacket packet(transaction, attributes, "");
   bool eof = false;
-  REQUIRE(protocol.receive(transactionID, &packet, eof));
+  REQUIRE(RawSiteToSiteClientTestAccessor::receive(protocol, transactionID, &packet, eof));
 }
+
+}  // namespace org::apache::nifi::minifi::test

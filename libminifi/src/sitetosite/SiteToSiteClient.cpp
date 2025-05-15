@@ -242,7 +242,7 @@ bool SiteToSiteClient::confirmSend(const std::shared_ptr<Transaction>& transacti
       writeResponse(transaction, {ResponseCode::BAD_CHECKSUM, "BAD_CHECKSUM"});
       return false;
     }
-  } else{
+  } else {
     if (!writeResponse(transaction, {ResponseCode::CONFIRM_TRANSACTION, "CONFIRM_TRANSACTION"})) {
       return false;
     }
@@ -295,7 +295,8 @@ void SiteToSiteClient::cancel(const utils::Identifier& transaction_id) {
   }
 
   auto transaction = it->second;
-  if (transaction->getState() == TransactionState::TRANSACTION_CANCELED || transaction->getState() == TransactionState::TRANSACTION_COMPLETED || transaction->getState() == TransactionState::TRANSACTION_ERROR) {
+  if (transaction->getState() == TransactionState::TRANSACTION_CANCELED || transaction->getState() == TransactionState::TRANSACTION_COMPLETED ||
+      transaction->getState() == TransactionState::TRANSACTION_ERROR) {
     logger_->log_debug("Site2Site transaction {} already canceled or completed or in error state", transaction_id.to_string());
     return;
   }

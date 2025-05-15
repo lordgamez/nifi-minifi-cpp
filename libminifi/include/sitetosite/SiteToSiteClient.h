@@ -72,16 +72,10 @@ class SiteToSiteClient : public core::ConnectableImpl {
   ~SiteToSiteClient() override = default;
 
   virtual std::optional<std::vector<PeerStatus>> getPeerList() = 0;
-  virtual bool establish() = 0;
-  virtual std::shared_ptr<Transaction> createTransaction(TransferDirection direction) = 0;
   virtual bool transmitPayload(core::ProcessContext& context, core::ProcessSession& session, const std::string &payload, const std::map<std::string, std::string>& attributes) = 0;
 
-  virtual void setPeer(std::unique_ptr<SiteToSitePeer> peer) {
+  void setPeer(std::unique_ptr<SiteToSitePeer> peer) {
     peer_ = std::move(peer);
-  }
-
-  virtual bool bootstrap() {
-    return true;
   }
 
   bool transfer(TransferDirection direction, core::ProcessContext& context, core::ProcessSession& session) {
@@ -91,11 +85,6 @@ class SiteToSiteClient : public core::ConnectableImpl {
       return receiveFlowFiles(context, session);
     }
   }
-
-  bool transferFlowFiles(core::ProcessContext& context, core::ProcessSession& session);
-  bool receiveFlowFiles(core::ProcessContext& context, core::ProcessSession& session);
-  bool receive(const utils::Identifier &transaction_id, DataPacket *packet, bool &eof);
-  bool send(const utils::Identifier& transaction_id, DataPacket* packet, const std::shared_ptr<core::FlowFile>& flow_file, core::ProcessSession* session);
 
   void setPortId(utils::Identifier &id) {
     port_id_ = id;
@@ -149,12 +138,20 @@ class SiteToSiteClient : public core::ConnectableImpl {
   }
 
  protected:
+  virtual bool bootstrap() = 0;
+  virtual bool establish() = 0;
+  virtual std::shared_ptr<Transaction> createTransaction(TransferDirection direction) = 0;
   virtual void tearDown() = 0;
+
   virtual void deleteTransaction(const utils::Identifier &transaction_id);
   virtual std::optional<SiteToSiteResponse> readResponse(const std::shared_ptr<Transaction> &transaction);
   virtual bool writeResponse(const std::shared_ptr<Transaction> &transaction, const SiteToSiteResponse& response);
   virtual const ResponseCodeContext* getRespondCodeContext(ResponseCode code);
 
+  bool transferFlowFiles(core::ProcessContext& context, core::ProcessSession& session);
+  bool receiveFlowFiles(core::ProcessContext& context, core::ProcessSession& session);
+  bool receive(const utils::Identifier &transaction_id, DataPacket *packet, bool &eof);
+  bool send(const utils::Identifier& transaction_id, DataPacket* packet, const std::shared_ptr<core::FlowFile>& flow_file, core::ProcessSession* session);
   void cancel(const utils::Identifier &transaction_id);
   bool complete(core::ProcessContext& context, const utils::Identifier &transaction_id);
   void error(const utils::Identifier &transaction_id);

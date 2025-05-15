@@ -331,7 +331,8 @@ void HttpSiteToSiteClient::closeTransaction(const utils::Identifier &transaction
   std::stringstream uri;
   std::string dir_str = transaction->getDirection() == TransferDirection::SEND ? "input-ports" : "output-ports";
 
-  uri << getBaseURI() << "data-transfer/" << dir_str << "/" << getPortId().to_string() << "/transactions/" << transaction_id.to_string() << "?responseCode=" << std::to_string(magic_enum::enum_underlying(code));
+  uri << getBaseURI() << "data-transfer/" << dir_str << "/" << getPortId().to_string() << "/transactions/" << transaction_id.to_string() <<
+    "?responseCode=" << std::to_string(magic_enum::enum_underlying(code));
 
   if (code == ResponseCode::CONFIRM_TRANSACTION && data_received) {
     uri << "&checksum=" << transaction->getCRC();

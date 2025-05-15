@@ -46,7 +46,13 @@
 
 using namespace std::literals::chrono_literals;
 
-namespace org::apache::nifi::minifi::sitetosite {
+namespace org::apache::nifi::minifi {
+
+namespace test {
+class RawSiteToSiteClientTestAccessor;
+}
+
+namespace sitetosite {
 
 class RawSiteToSiteClient : public SiteToSiteClient {
  public:
@@ -84,12 +90,13 @@ class RawSiteToSiteClient : public SiteToSiteClient {
   }
 
   std::optional<std::vector<PeerStatus>> getPeerList() override;
-  std::shared_ptr<Transaction> createTransaction(TransferDirection direction) override;
   bool transmitPayload(core::ProcessContext& context, core::ProcessSession& session, const std::string &payload, const std::map<std::string, std::string>& attributes) override;
-  bool bootstrap() override;
 
  protected:
+  friend class test::RawSiteToSiteClientTestAccessor;
+  bool bootstrap() override;
   bool establish() override;
+  std::shared_ptr<Transaction> createTransaction(TransferDirection direction) override;
   void tearDown() override;
 
  private:
@@ -103,4 +110,5 @@ class RawSiteToSiteClient : public SiteToSiteClient {
   utils::Identifier comms_identifier_;
 };
 
-}  // namespace org::apache::nifi::minifi::sitetosite
+}  // namespace sitetosite
+}  // namespace org::apache::nifi::minifi

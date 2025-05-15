@@ -60,30 +60,24 @@ class HttpSiteToSiteClient : public SiteToSiteClient {
   MINIFIAPI static constexpr bool SupportsDynamicProperties = false;
   MINIFIAPI static constexpr bool SupportsDynamicRelationships = false;
 
-  void setPeer(std::unique_ptr<SiteToSitePeer> peer) override {
-    peer_ = std::move(peer);
-  }
-
   std::optional<std::vector<PeerStatus>> getPeerList() override;
+  bool transmitPayload(core::ProcessContext& context, core::ProcessSession& session, const std::string &payload, const std::map<std::string, std::string>& attributes) override;
+
+ protected:
+  bool bootstrap() override {
+    peer_state_ = PeerState::READY;
+    return true;
+  }
 
   bool establish() override {
     return true;
   }
 
-  std::shared_ptr<Transaction> createTransaction(TransferDirection direction) override;
-
-  bool transmitPayload(core::ProcessContext& context, core::ProcessSession& session, const std::string &payload, const std::map<std::string, std::string>& attributes) override;
-  void deleteTransaction(const utils::Identifier& transaction_id) override;
-
- protected:
   void closeTransaction(const utils::Identifier &transaction_id);
   std::optional<SiteToSiteResponse> readResponse(const std::shared_ptr<Transaction> &transaction) override;
   bool writeResponse(const std::shared_ptr<Transaction> &transaction, const SiteToSiteResponse& response) override;
-
-  bool bootstrap() override {
-    peer_state_ = PeerState::READY;
-    return true;
-  }
+  std::shared_ptr<Transaction> createTransaction(TransferDirection direction) override;
+  void deleteTransaction(const utils::Identifier& transaction_id) override;
 
   std::shared_ptr<minifi::http::HTTPClient> openConnectionForSending(const std::shared_ptr<HttpTransaction> &transaction);
   std::shared_ptr<minifi::http::HTTPClient> openConnectionForReceive(const std::shared_ptr<HttpTransaction> &transaction);
