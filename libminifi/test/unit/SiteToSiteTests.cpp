@@ -75,6 +75,7 @@ TEST_CASE("TestSiteToSiteVerifySend", "[S2S]") {
   protocol.setUseCompression(true);
   protocol.setBatchDuration(std::chrono::milliseconds(100));
   protocol.setBatchCount(5);
+  protocol.setTimeout(std::chrono::milliseconds(20000));
 
   utils::Identifier fakeUUID = utils::Identifier::parse("C56A4180-65AA-42EC-A945-5FD21DEC0538").value();
 
@@ -110,7 +111,7 @@ TEST_CASE("TestSiteToSiteVerifySend", "[S2S]") {
   collector_ptr->get_next_client_response();
   REQUIRE(collector_ptr->get_next_client_response() == "REQUEST_EXPIRATION_MILLIS");
   collector_ptr->get_next_client_response();
-  REQUIRE(collector_ptr->get_next_client_response() == "30000");
+  REQUIRE(collector_ptr->get_next_client_response() == "20000");
   collector_ptr->get_next_client_response();
   REQUIRE(collector_ptr->get_next_client_response() == "NEGOTIATE_FLOWFILE_CODEC");
   collector_ptr->get_next_client_response();

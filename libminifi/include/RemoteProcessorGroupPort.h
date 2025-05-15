@@ -140,6 +140,10 @@ class RemoteProcessorGroupPort : public core::ProcessorImpl {
       this->setTriggerWhenEmpty(true);
   }
 
+  void setTimeout(std::chrono::milliseconds timeout) {
+    timeout_ = timeout;
+  }
+
   void setTransmitting(bool val) {
     transmitting_ = val;
   }
@@ -214,6 +218,7 @@ class RemoteProcessorGroupPort : public core::ProcessorImpl {
   std::shared_ptr<Configure> configure_;
   sitetosite::TransferDirection direction_;
   std::atomic<bool> transmitting_;
+  std::optional<std::chrono::milliseconds> timeout_;
   std::string local_network_interface_;
   utils::Identifier protocol_uuid_;
   std::chrono::milliseconds idle_timeout_ = std::chrono::seconds(15);

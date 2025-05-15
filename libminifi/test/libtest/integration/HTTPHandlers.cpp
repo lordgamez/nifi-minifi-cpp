@@ -99,6 +99,7 @@ bool TransactionResponder::handlePost(CivetServer* /*server*/, struct mg_connect
   std::unordered_map<std::string, std::string> expected_headers {
     {std::string{minifi::sitetosite::HttpSiteToSiteClient::PROTOCOL_VERSION_HEADER}, "1"},
     {std::string{minifi::sitetosite::HttpSiteToSiteClient::HANDSHAKE_PROPERTY_USE_COMPRESSION}, "true"},
+    {std::string{minifi::sitetosite::HttpSiteToSiteClient::HANDSHAKE_PROPERTY_REQUEST_EXPIRATION}, "20000"},
     {std::string{minifi::sitetosite::HttpSiteToSiteClient::HANDSHAKE_PROPERTY_BATCH_COUNT}, "5"},
     {std::string{minifi::sitetosite::HttpSiteToSiteClient::HANDSHAKE_PROPERTY_BATCH_SIZE}, "100"},
     {std::string{minifi::sitetosite::HttpSiteToSiteClient::HANDSHAKE_PROPERTY_BATCH_DURATION}, "30000"}

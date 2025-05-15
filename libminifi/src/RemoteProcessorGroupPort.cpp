@@ -66,15 +66,11 @@ std::unique_ptr<sitetosite::SiteToSiteClient> RemoteProcessorGroupPort::initiali
   config.setHTTPProxy(proxy_);
   config.setIdleTimeout(idle_timeout_);
   config.setUseCompression(use_compression_);
-  if (batch_count_) {
-    config.setBatchCount(batch_count_.value());
-  }
-  if (batch_size_) {
-    config.setBatchSize(batch_size_.value());
-  }
-  if (batch_duration_) {
-    config.setBatchDuration(batch_duration_.value());
-  }
+  config.setBatchCount(batch_count_);
+  config.setBatchSize(batch_size_);
+  config.setBatchDuration(batch_duration_);
+  config.setTimeout(timeout_);
+
   return sitetosite::createClient(config);
 }
 

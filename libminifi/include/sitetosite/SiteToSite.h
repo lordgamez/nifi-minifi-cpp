@@ -371,7 +371,7 @@ class SiteToSiteClientConfiguration {
     return use_compression_;
   }
 
-  void setBatchCount(uint64_t count) {
+  void setBatchCount(std::optional<uint64_t> count) {
     batch_count_ = count;
   }
 
@@ -379,7 +379,7 @@ class SiteToSiteClientConfiguration {
     return batch_count_;
   }
 
-  void setBatchSize(uint64_t size) {
+  void setBatchSize(std::optional<uint64_t> size) {
     batch_size_ = size;
   }
 
@@ -387,12 +387,20 @@ class SiteToSiteClientConfiguration {
     return batch_size_;
   }
 
-  void setBatchDuration(std::chrono::milliseconds duration) {
+  void setBatchDuration(std::optional<std::chrono::milliseconds> duration) {
     batch_duration_ = duration;
   }
 
   std::optional<std::chrono::milliseconds> getBatchDuration() const {
     return batch_duration_;
+  }
+
+  void setTimeout(std::optional<std::chrono::milliseconds> timeout) {
+    timeout_ = timeout;
+  }
+
+  std::optional<std::chrono::milliseconds> getTimeout() const {
+    return timeout_;
   }
 
  private:
@@ -408,6 +416,7 @@ class SiteToSiteClientConfiguration {
   std::optional<uint64_t> batch_count_;
   std::optional<uint64_t> batch_size_;
   std::optional<std::chrono::milliseconds> batch_duration_;
+  std::optional<std::chrono::milliseconds> timeout_;
 };
 
 }  // namespace org::apache::nifi::minifi::sitetosite

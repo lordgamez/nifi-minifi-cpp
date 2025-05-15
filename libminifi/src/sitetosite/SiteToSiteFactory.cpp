@@ -34,6 +34,23 @@ std::unique_ptr<SiteToSitePeer> createStreamingPeer(const SiteToSiteClientConfig
   return peer;
 }
 
+void setCommonConfigurationOptions(SiteToSiteClient& client, const SiteToSiteClientConfiguration &client_configuration) {
+  client.setSSLContextService(client_configuration.getSecurityContext());
+  client.setUseCompression(client_configuration.getUseCompression());
+  if (client_configuration.getBatchCount()) {
+    client.setBatchCount(client_configuration.getBatchCount().value());
+  }
+  if (client_configuration.getBatchSize()) {
+    client.setBatchSize(client_configuration.getBatchSize().value());
+  }
+  if (client_configuration.getBatchDuration()) {
+    client.setBatchDuration(client_configuration.getBatchDuration().value());
+  }
+  if (client_configuration.getTimeout()) {
+    client.setTimeout(client_configuration.getTimeout().value());
+  }
+}
+
 std::unique_ptr<SiteToSiteClient> createRawSocket(const SiteToSiteClientConfiguration &client_configuration) {
   utils::Identifier uuid = client_configuration.getPortId();
   auto rsptr = createStreamingPeer(client_configuration);
@@ -42,7 +59,7 @@ std::unique_ptr<SiteToSiteClient> createRawSocket(const SiteToSiteClientConfigur
   }
   auto ptr = std::make_unique<RawSiteToSiteClient>(std::move(rsptr));
   ptr->setPortId(uuid);
-  ptr->setSSLContextService(client_configuration.getSecurityContext());
+  setCommonConfigurationOptions(*ptr, client_configuration);
   return ptr;
 }
 }  // namespace
@@ -56,23 +73,13 @@ std::unique_ptr<SiteToSiteClient> createClient(const SiteToSiteClientConfigurati
       auto http_protocol = core::ClassLoader::getDefaultClassLoader().instantiateRaw("HttpProtocol", "HttpProtocol");
       if (nullptr != http_protocol) {
         auto ptr = std::unique_ptr<SiteToSiteClient>(dynamic_cast<SiteToSiteClient*>(http_protocol));
-        ptr->setSSLContextService(client_configuration.getSecurityContext());
         auto peer = std::make_unique<SiteToSitePeer>(client_configuration.getHost(), client_configuration.getPort(), client_configuration.getInterface());
         peer->setHTTPProxy(client_configuration.getHTTPProxy());
 
         ptr->setPortId(uuid);
         ptr->setPeer(std::move(peer));
         ptr->setIdleTimeout(client_configuration.getIdleTimeout());
-        ptr->setUseCompression(client_configuration.getUseCompression());
-        if (client_configuration.getBatchCount()) {
-          ptr->setBatchCount(client_configuration.getBatchCount().value());
-        }
-        if (client_configuration.getBatchSize()) {
-          ptr->setBatchSize(client_configuration.getBatchSize().value());
-        }
-        if (client_configuration.getBatchDuration()) {
-          ptr->setBatchDuration(client_configuration.getBatchDuration().value());
-        }
+        setCommonConfigurationOptions(*ptr, client_configuration);
         return ptr;
       }
       return nullptr;

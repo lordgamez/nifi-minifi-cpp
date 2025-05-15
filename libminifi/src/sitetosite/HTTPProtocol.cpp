@@ -367,6 +367,9 @@ void HttpSiteToSiteClient::deleteTransaction(const utils::Identifier& transactio
 void HttpSiteToSiteClient::setSiteToSiteHeaders(minifi::http::HTTPClient& client) {
   client.setRequestHeader(PROTOCOL_VERSION_HEADER, "1");
   client.setRequestHeader(HANDSHAKE_PROPERTY_USE_COMPRESSION, use_compression_ ? "true" : "false");
+  if (timeout_.load() > 0ms) {
+    client.setRequestHeader(HANDSHAKE_PROPERTY_REQUEST_EXPIRATION, std::to_string(timeout_.load().count()));
+  }
   if (batch_count_ > 0) {
     client.setRequestHeader(HANDSHAKE_PROPERTY_BATCH_COUNT, std::to_string(batch_count_));
   }

@@ -144,6 +144,10 @@ class SiteToSiteClient : public core::ConnectableImpl {
     batch_duration_ = duration;
   }
 
+  virtual void setTimeout(std::chrono::milliseconds timeout) {
+    timeout_ = timeout;
+  }
+
  protected:
   virtual void tearDown() = 0;
   virtual void deleteTransaction(const utils::Identifier &transaction_id);
@@ -182,6 +186,7 @@ class SiteToSiteClient : public core::ConnectableImpl {
   std::atomic<uint64_t> batch_count_{0};
   std::atomic<uint64_t> batch_size_{0};
   std::atomic<std::chrono::milliseconds> batch_duration_{0s};
+  std::atomic<std::chrono::milliseconds> timeout_{0s};
 
  private:
   std::shared_ptr<core::logging::Logger> logger_{core::logging::LoggerFactory<SiteToSiteClient>::getLogger()};

@@ -51,6 +51,7 @@ namespace org::apache::nifi::minifi::sitetosite {
 class RawSiteToSiteClient : public SiteToSiteClient {
  public:
   explicit RawSiteToSiteClient(std::unique_ptr<SiteToSitePeer> peer) : SiteToSiteClient(std::move(peer)) {
+    timeout_ = 30s;
   }
 
   RawSiteToSiteClient(const RawSiteToSiteClient &parent) = delete;
@@ -63,7 +64,7 @@ class RawSiteToSiteClient : public SiteToSiteClient {
   }
 
  public:
-  void setTimeout(std::chrono::milliseconds time) {
+  void setTimeout(std::chrono::milliseconds time) override {
     timeout_ = time;
     if (peer_) {
       peer_->setTimeout(time);
@@ -99,7 +100,6 @@ class RawSiteToSiteClient : public SiteToSiteClient {
   int64_t writeRequestType(RequestType type);
 
   std::shared_ptr<core::logging::Logger> logger_ = core::logging::LoggerFactory<RawSiteToSiteClient>::getLogger();
-  std::atomic<std::chrono::milliseconds> timeout_{30s};
   utils::Identifier comms_identifier_;
 };
 

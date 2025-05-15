@@ -250,7 +250,7 @@ class SiteToSitePeer : public org::apache::nifi::minifi::io::BaseStreamImpl {
   std::string host_;
   uint16_t port_ = -1;
   std::string url_;
-  std::atomic<std::chrono::milliseconds> timeout_{};
+  std::atomic<std::chrono::milliseconds> timeout_{30s};
   io::NetworkInterface local_network_interface_;
   http::HTTPProxy proxy_;
   std::atomic<std::chrono::milliseconds> yield_period_msec_{};
