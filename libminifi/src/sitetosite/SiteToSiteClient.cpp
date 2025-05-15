@@ -143,11 +143,11 @@ bool SiteToSiteClient::transferFlowFiles(core::ProcessContext& context, core::Pr
       session.remove(flow);
 
       std::chrono::nanoseconds transfer_duration = std::chrono::high_resolution_clock::now() - transaction_started_at;
-      if (transfer_duration > batch_send_nanos_)
+      if (transfer_duration > batch_send_nanos_) {
         break;
+      }
 
       flow = session.get();
-
       if (!flow) {
         break;
       }
