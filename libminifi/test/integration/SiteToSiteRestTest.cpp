@@ -92,7 +92,7 @@ class SiteToSiteTestHarness : public HTTPIntegrationBase {
     } else {
       REQUIRE(verifyLogLinePresenceInPollTime(std::chrono::milliseconds(wait_time_), "process group remote site2site port 10001, is secure false"));
     }
-    REQUIRE(verifyLogLinePresenceInPollTime(std::chrono::milliseconds(wait_time_), "ProcessGroup::refreshRemoteSite2SiteInfo -- curl_easy_perform() failed "));
+    REQUIRE(verifyLogLinePresenceInPollTime(std::chrono::milliseconds(wait_time_), "ProcessGroup::refreshRemoteSiteToSiteInfo -- curl_easy_perform() failed "));
   }
 
  protected:

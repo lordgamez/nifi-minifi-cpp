@@ -165,9 +165,9 @@ TEST_CASE("NiFi flow json format is correctly parsed") {
   CHECK(port->getUUIDStr() == "00000000-0000-0000-0000-000000000003");
   CHECK(port->getMaxConcurrentTasks() == 7);
   CHECK(port->getInstances().size() == 1);
-  CHECK(port->getInstances().front().host_ == "localhost");
-  CHECK(port->getInstances().front().port_ == 8090);
-  CHECK(port->getInstances().front().protocol_ == "https://");
+  CHECK(port->getInstances().front().host == "localhost");
+  CHECK(port->getInstances().front().port == 8090);
+  CHECK(port->getInstances().front().protocol == "https://");
   CHECK(port->getProperty("Port UUID") == "00000000-0000-0000-0000-000000000005");
 
   // verify connection
@@ -1057,9 +1057,9 @@ TEST_CASE("NiFi flow json can use alternative targetUris field") {
   CHECK(port->getBatchDuration().value() == std::chrono::seconds(5));
   if (target_uri_valid) {
     CHECK(port->getInstances().size() == 1);
-    CHECK(port->getInstances().front().host_ == "localhost");
-    CHECK(port->getInstances().front().port_ == 8090);
-    CHECK(port->getInstances().front().protocol_ == "https://");
+    CHECK(port->getInstances().front().host == "localhost");
+    CHECK(port->getInstances().front().port == 8090);
+    CHECK(port->getInstances().front().protocol == "https://");
   } else {
     CHECK(port->getInstances().empty());
   }

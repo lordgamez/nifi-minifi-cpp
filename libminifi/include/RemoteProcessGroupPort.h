@@ -70,9 +70,9 @@ class RPGLatch {
 };
 
 struct RPG {
-  std::string host_;
-  int64_t port_;
-  std::string protocol_;
+  std::string host;
+  int port;
+  std::string protocol;
 };
 
 class RemoteProcessGroupPort : public core::ProcessorImpl {
@@ -82,11 +82,10 @@ class RemoteProcessGroupPort : public core::ProcessorImpl {
         configure_(std::move(configure)),
         direction_(sitetosite::TransferDirection::SEND),
         transmitting_(false),
-        ssl_service_(nullptr),
+        protocol_uuid_(uuid),
+        client_type_(sitetosite::ClientType::RAW),
+        peer_index_(-1),
         logger_(core::logging::LoggerFactory<RemoteProcessGroupPort>::getLogger(uuid)) {
-    client_type_ = sitetosite::ClientType::RAW;
-    protocol_uuid_ = uuid;
-    peer_index_ = -1;
     // REST API port and host
     setURL(std::move(url));
   }
@@ -119,7 +118,6 @@ class RemoteProcessGroupPort : public core::ProcessorImpl {
       idleTimeout
   });
 
-
   MINIFIAPI static constexpr auto DefaultRelationship = core::RelationshipDefinition{"", ""};
   MINIFIAPI static constexpr auto Relationships = std::array{DefaultRelationship};
 
@@ -136,8 +134,11 @@ class RemoteProcessGroupPort : public core::ProcessorImpl {
 
   void setDirection(sitetosite::TransferDirection direction) {
     direction_ = direction;
-    if (direction_ == sitetosite::TransferDirection::RECEIVE)
-      this->setTriggerWhenEmpty(true);
+    if (direction_ == sitetosite::TransferDirection::RECEIVE) {
+      setTriggerWhenEmpty(true);
+    } else {
+      setTriggerWhenEmpty(false);
+    }
   }
 
   void setTimeout(std::chrono::milliseconds timeout) {
@@ -170,8 +171,6 @@ class RemoteProcessGroupPort : public core::ProcessorImpl {
     return proxy_;
   }
 
-  std::pair<std::string, int> refreshRemoteSite2SiteInfo();
-  void refreshPeerList();
   void notifyStop() override;
 
   void enableHTTP() {
@@ -211,6 +210,8 @@ class RemoteProcessGroupPort : public core::ProcessorImpl {
   }
 
  protected:
+  std::optional<std::pair<std::string, uint16_t>> refreshRemoteSiteToSiteInfo();
+  void refreshPeerList();
   std::unique_ptr<sitetosite::SiteToSiteClient> getNextProtocol();
   void returnProtocol(std::unique_ptr<sitetosite::SiteToSiteClient> protocol);
 
@@ -221,15 +222,13 @@ class RemoteProcessGroupPort : public core::ProcessorImpl {
   std::optional<std::chrono::milliseconds> timeout_;
   std::string local_network_interface_;
   utils::Identifier protocol_uuid_;
-  std::chrono::milliseconds idle_timeout_ = std::chrono::seconds(15);
+  std::chrono::milliseconds idle_timeout_ = 15s;
   std::vector<RPG> nifi_instances_;
   http::HTTPProxy proxy_;
   sitetosite::ClientType client_type_;
   std::vector<sitetosite::PeerStatus> peers_;
   std::atomic<int64_t> peer_index_;
   std::mutex peer_mutex_;
-  std::string rest_user_name_;
-  std::string rest_password_;
   std::shared_ptr<controllers::SSLContextService> ssl_service_;
   bool use_compression_{false};
   std::optional<uint64_t> batch_count_;
@@ -237,7 +236,10 @@ class RemoteProcessGroupPort : public core::ProcessorImpl {
   std::optional<std::chrono::milliseconds> batch_duration_;
 
  private:
-  std::unique_ptr<sitetosite::SiteToSiteClient> initializeProtocol(sitetosite::SiteToSiteClientConfiguration& config);
+  std::unique_ptr<sitetosite::SiteToSiteClient> initializeProtocol(sitetosite::SiteToSiteClientConfiguration& config) const;
+  std::optional<std::string> getRestApiToken(const RPG& nifi) const;
+  std::optional<std::pair<std::string, uint16_t>> parseSiteToSiteDataFromControllerConfig(const RPG& nifi, const std::string& controller) const;
+  std::optional<std::pair<std::string, uint16_t>> tryRefreshSiteToSiteInstance(RPG nifi) const;
 
   std::shared_ptr<core::logging::Logger> logger_;
   static const char* RPG_SSL_CONTEXT_SERVICE_NAME;

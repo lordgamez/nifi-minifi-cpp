@@ -46,6 +46,19 @@ using namespace std::literals::chrono_literals;
 
 namespace org::apache::nifi::minifi {
 
+namespace {
+std::string buildFullSiteToSiteUrl(const RPG& nifi) {
+  std::stringstream full_url;
+  full_url << nifi.protocol << nifi.host;
+  // don't append port if it is 0 ( undefined )
+  if (nifi.port > 0) {
+    full_url << ":" << std::to_string(nifi.port);
+  }
+  full_url << "/nifi-api/site-to-site";
+  return full_url.str();
+}
+}  // namespace
+
 const char *RemoteProcessGroupPort::RPG_SSL_CONTEXT_SERVICE_NAME = "RemoteProcessGroupPortSSLContextService";
 
 void RemoteProcessGroupPort::setURL(std::string val) {
@@ -61,7 +74,7 @@ void RemoteProcessGroupPort::setURL(std::string val) {
   }
 }
 
-std::unique_ptr<sitetosite::SiteToSiteClient> RemoteProcessGroupPort::initializeProtocol(sitetosite::SiteToSiteClientConfiguration& config) {
+std::unique_ptr<sitetosite::SiteToSiteClient> RemoteProcessGroupPort::initializeProtocol(sitetosite::SiteToSiteClientConfiguration& config) const {
   config.setSecurityContext(ssl_service_);
   config.setHTTPProxy(proxy_);
   config.setIdleTimeout(idle_timeout_);
@@ -186,151 +199,162 @@ void RemoteProcessGroupPort::onTrigger(core::ProcessContext& context, core::Proc
     return;
   }
 
-  RPGLatch count;
-
-  std::string value;
-
   logger_->log_trace("On trigger {}", getUUIDStr());
 
-  std::unique_ptr<sitetosite::SiteToSiteClient> protocol_ = nullptr;
   try {
     logger_->log_trace("get protocol in on trigger");
-    protocol_ = getNextProtocol();
+    auto protocol = getNextProtocol();
 
-    if (!protocol_) {
+    if (!protocol) {
       logger_->log_info("no protocol, yielding");
       context.yield();
       return;
     }
 
-    if (!protocol_->transfer(direction_, context, session)) {
+    if (!protocol->transfer(direction_, context, session)) {
       logger_->log_warn("protocol transmission failed, yielding");
       context.yield();
     }
 
-    returnProtocol(std::move(protocol_));
-    return;
+    returnProtocol(std::move(protocol));
   } catch (const std::exception&) {
     context.yield();
     session.rollback();
   }
 }
 
-std::pair<std::string, int> RemoteProcessGroupPort::refreshRemoteSite2SiteInfo() {
-  if (nifi_instances_.empty())
-    return std::make_pair("", -1);
+std::optional<std::string> RemoteProcessGroupPort::getRestApiToken(const RPG& nifi) const {
+  std::string rest_user_name;
+  configure_->get(Configure::nifi_rest_api_user_name, rest_user_name);
+  if (rest_user_name.empty()) {
+    return std::nullopt;
+  }
+
+  std::string rest_password;
+  configure_->get(Configure::nifi_rest_api_password, rest_password);
+
+  std::stringstream login_url;
+  login_url << nifi.protocol << nifi.host;
+  // don't append port if it is 0 ( undefined )
+  if (nifi.port > 0) {
+    login_url << ":" << std::to_string(nifi.port);
+  }
+  login_url << "/nifi-api/access/token";
+
+  auto client_ptr = core::ClassLoader::getDefaultClassLoader().instantiateRaw("HTTPClient", "HTTPClient");
+  if (nullptr == client_ptr) {
+    logger_->log_error("Could not locate HTTPClient. You do not have cURL support!");
+    return std::nullopt;
+  }
+  auto client = std::unique_ptr<http::BaseHTTPClient>(dynamic_cast<http::BaseHTTPClient*>(client_ptr));
+  client->initialize(http::HttpRequestMethod::GET, login_url.str(), ssl_service_);
+  // use a connection timeout. if this times out we will simply attempt re-connection
+  // so no need for configuration parameter that isn't already defined in Processor
+  client->setConnectionTimeout(10s);
+  client->setReadTimeout(idle_timeout_);
+
+  auto token = http::get_token(client.get(), rest_user_name, rest_password);
+  logger_->log_debug("Token from NiFi REST Api endpoint {},  {}", login_url.str(), token);
+  return token;
+}
+
+std::optional<std::pair<std::string, uint16_t>> RemoteProcessGroupPort::parseSiteToSiteDataFromControllerConfig(const RPG& nifi, const std::string& controller) const {
+  rapidjson::Document doc;
+  rapidjson::ParseResult ok = doc.Parse(controller.c_str());
+
+  if (!ok || !doc.IsObject() || doc.ObjectEmpty()) {
+    return std::nullopt;
+  }
+
+  rapidjson::Value::MemberIterator itr = doc.FindMember("controller");
+
+  if (itr == doc.MemberEnd() || !itr->value.IsObject()) {
+    return std::nullopt;
+  }
+
+  rapidjson::Value controllerValue = itr->value.GetObject();
+  rapidjson::Value::ConstMemberIterator end_itr = controllerValue.MemberEnd();
+  rapidjson::Value::ConstMemberIterator port_itr = controllerValue.FindMember("remoteSiteListeningPort");
+  rapidjson::Value::ConstMemberIterator secure_itr = controllerValue.FindMember("siteToSiteSecure");
+  bool site_to_site_secure = secure_itr != end_itr && secure_itr->value.IsBool() ? secure_itr->value.GetBool() : false;
+
+  uint16_t site_to_site_port = 0;
+  if (client_type_ == sitetosite::ClientType::RAW && port_itr != end_itr && port_itr->value.IsNumber()) {
+    site_to_site_port = port_itr->value.GetInt();
+  } else {
+    site_to_site_port = nifi.port;
+  }
+
+  logger_->log_debug("process group remote site2site port {}, is secure {}", site_to_site_port, site_to_site_secure);
+  return std::make_pair(nifi.host, site_to_site_port);
+}
+
+std::optional<std::pair<std::string, uint16_t>> RemoteProcessGroupPort::tryRefreshSiteToSiteInstance(RPG nifi) const {
+#ifdef WIN32
+  if ("localhost" == nifi.host) {
+    nifi.host = org::apache::nifi::minifi::utils::net::getMyHostName();
+  }
+#endif
+  auto token = getRestApiToken(nifi);
+  if (token && token->empty()) {
+    return std::nullopt;
+  }
+
+  auto client_ptr = core::ClassLoader::getDefaultClassLoader().instantiateRaw("HTTPClient", "HTTPClient");
+  if (nullptr == client_ptr) {
+    logger_->log_error("Could not locate HTTPClient. You do not have cURL support, defaulting to base configuration!");
+    return std::nullopt;
+  }
+
+  auto client = std::unique_ptr<http::BaseHTTPClient>(dynamic_cast<http::BaseHTTPClient*>(client_ptr));
+  auto full_url  = buildFullSiteToSiteUrl(nifi);
+  client->initialize(http::HttpRequestMethod::GET, full_url, ssl_service_);
+  // use a connection timeout. if this times out we will simply attempt re-connection
+  // so no need for configuration parameter that isn't already defined in Processor
+  client->setConnectionTimeout(10s);
+  client->setReadTimeout(idle_timeout_);
+  if (!proxy_.host.empty()) {
+    client->setHTTPProxy(proxy_);
+  }
+  if (token) {
+    client->setRequestHeader("Authorization", *token);
+  }
+
+  client->setVerbose(false);
+
+  if (!client->submit() || client->getResponseCode() != 200) {
+    logger_->log_error("ProcessGroup::refreshRemoteSiteToSiteInfo -- curl_easy_perform() failed , response code {}\n", client->getResponseCode());
+    return std::nullopt;
+  }
+
+  const std::vector<char> &response_body = client->getResponseBody();
+  if (response_body.empty()) {
+    logger_->log_error("Cannot output body to content for ProcessGroup::refreshRemoteSiteToSiteInfo: received HTTP code {} from {}", client->getResponseCode(), full_url);
+    return std::nullopt;
+  }
+
+  std::string controller = std::string(response_body.begin(), response_body.end());
+  logger_->log_trace("controller config {}", controller);
+  return parseSiteToSiteDataFromControllerConfig(nifi, controller);
+}
+
+std::optional<std::pair<std::string, uint16_t>> RemoteProcessGroupPort::refreshRemoteSiteToSiteInfo() {
+  if (nifi_instances_.empty()) {
+    return std::nullopt;
+  }
 
   for (const auto& nifi : nifi_instances_) {
-    std::string host = nifi.host_;
-#ifdef WIN32
-    if ("localhost" == host) {
-      host = org::apache::nifi::minifi::utils::net::getMyHostName();
-    }
-#endif
-    std::string protocol = nifi.protocol_;
-    int nifi_port = nifi.port_;
-    std::stringstream fullUrl;
-    fullUrl << protocol << host;
-    // don't append port if it is 0 ( undefined )
-    if (nifi_port > 0) {
-      fullUrl << ":" << std::to_string(nifi_port);
-    }
-    fullUrl << "/nifi-api/site-to-site";
-
-    configure_->get(Configure::nifi_rest_api_user_name, rest_user_name_);
-    configure_->get(Configure::nifi_rest_api_password, rest_password_);
-
-    std::string token;
-    std::unique_ptr<http::BaseHTTPClient> client;
-    if (!rest_user_name_.empty()) {
-      std::stringstream loginUrl;
-      loginUrl << protocol << host;
-      // don't append port if it is 0 ( undefined )
-      if (nifi_port > 0) {
-        loginUrl << ":" << std::to_string(nifi_port);
-      }
-      loginUrl << "/nifi-api/access/token";
-
-      auto client_ptr = core::ClassLoader::getDefaultClassLoader().instantiateRaw("HTTPClient", "HTTPClient");
-      if (nullptr == client_ptr) {
-        logger_->log_error("Could not locate HTTPClient. You do not have cURL support!");
-        return std::make_pair("", -1);
-      }
-      client = std::unique_ptr<http::BaseHTTPClient>(dynamic_cast<http::BaseHTTPClient*>(client_ptr));
-      client->initialize(http::HttpRequestMethod::GET, loginUrl.str(), ssl_service_);
-      // use a connection timeout. if this times out we will simply attempt re-connection
-      // so no need for configuration parameter that isn't already defined in Processor
-      client->setConnectionTimeout(10s);
-      client->setReadTimeout(idle_timeout_);
-
-      token = http::get_token(client.get(), rest_user_name_, rest_password_);
-      logger_->log_debug("Token from NiFi REST Api endpoint {},  {}", loginUrl.str(), token);
-      if (token.empty())
-        return std::make_pair("", -1);
-    }
-
-    auto client_ptr = core::ClassLoader::getDefaultClassLoader().instantiateRaw("HTTPClient", "HTTPClient");
-    if (nullptr == client_ptr) {
-      logger_->log_error("Could not locate HTTPClient. You do not have cURL support, defaulting to base configuration!");
-      return std::make_pair("", -1);
-    }
-    int siteTosite_port = -1;
-    client = std::unique_ptr<http::BaseHTTPClient>(dynamic_cast<http::BaseHTTPClient*>(client_ptr));
-    client->initialize(http::HttpRequestMethod::GET, fullUrl.str(), ssl_service_);
-    // use a connection timeout. if this times out we will simply attempt re-connection
-    // so no need for configuration parameter that isn't already defined in Processor
-    client->setConnectionTimeout(10s);
-    client->setReadTimeout(idle_timeout_);
-    if (!proxy_.host.empty()) {
-      client->setHTTPProxy(proxy_);
-    }
-    if (!token.empty())
-      client->setRequestHeader("Authorization", token);
-
-    client->setVerbose(false);
-
-    if (client->submit() && client->getResponseCode() == 200) {
-      const std::vector<char> &response_body = client->getResponseBody();
-      if (!response_body.empty()) {
-        std::string controller = std::string(response_body.begin(), response_body.end());
-        logger_->log_trace("controller config {}", controller);
-        rapidjson::Document doc;
-        rapidjson::ParseResult ok = doc.Parse(controller.c_str());
-
-        if (ok && doc.IsObject() && !doc.ObjectEmpty()) {
-          rapidjson::Value::MemberIterator itr = doc.FindMember("controller");
-
-          bool site2site_secure = false;
-          if (itr != doc.MemberEnd() && itr->value.IsObject()) {
-            rapidjson::Value controllerValue = itr->value.GetObject();
-            rapidjson::Value::ConstMemberIterator end_itr = controllerValue.MemberEnd();
-            rapidjson::Value::ConstMemberIterator port_itr = controllerValue.FindMember("remoteSiteListeningPort");
-            rapidjson::Value::ConstMemberIterator secure_itr = controllerValue.FindMember("siteToSiteSecure");
-            site2site_secure = secure_itr != end_itr && secure_itr->value.IsBool() ? secure_itr->value.GetBool() : false;
-
-            if (client_type_ == sitetosite::ClientType::RAW && port_itr != end_itr && port_itr->value.IsNumber()) {
-              siteTosite_port = port_itr->value.GetInt();
-            } else {
-              siteTosite_port = nifi_port;
-            }
-          }
-
-          logger_->log_debug("process group remote site2site port {}, is secure {}", siteTosite_port, site2site_secure);
-          return std::make_pair(host, siteTosite_port);
-        }
-      } else {
-        logger_->log_error("Cannot output body to content for ProcessGroup::refreshRemoteSite2SiteInfo: received HTTP code {} from {}", client->getResponseCode(), fullUrl.str());
-      }
-    } else {
-      logger_->log_error("ProcessGroup::refreshRemoteSite2SiteInfo -- curl_easy_perform() failed , response code {}\n", client->getResponseCode());
+    auto result = tryRefreshSiteToSiteInstance(nifi);
+    if (result) {
+      return *result;
     }
   }
-  return std::make_pair("", -1);
+  return std::nullopt;
 }
 
 void RemoteProcessGroupPort::refreshPeerList() {
-  auto connection = refreshRemoteSite2SiteInfo();
-  if (connection.second == -1) {
+  auto connection = refreshRemoteSiteToSiteInfo();
+  if (!connection) {
     logger_->log_debug("No port configured");
     return;
   }
@@ -338,7 +362,7 @@ void RemoteProcessGroupPort::refreshPeerList() {
   peers_.clear();
 
   std::unique_ptr<sitetosite::SiteToSiteClient> protocol;
-  sitetosite::SiteToSiteClientConfiguration config(protocol_uuid_, connection.first, connection.second, getInterface(), client_type_);
+  sitetosite::SiteToSiteClientConfiguration config(protocol_uuid_, connection->first, connection->second, getInterface(), client_type_);
   protocol = initializeProtocol(config);
 
   if (protocol) {
@@ -349,8 +373,9 @@ void RemoteProcessGroupPort::refreshPeerList() {
 
   logger_->log_info("Have {} peers", peers_.size());
 
-  if (!peers_.empty())
+  if (!peers_.empty()) {
     peer_index_ = 0;
+  }
 }
 
 }  // namespace org::apache::nifi::minifi
