@@ -1,6 +1,6 @@
 /**
- * @file RemoteProcessorGroupPort.cpp
- * RemoteProcessorGroupPort class implementation
+ * @file RemoteProcessGroupPort.cpp
+ * RemoteProcessGroupPort class implementation
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -18,7 +18,7 @@
  * limitations under the License.
  */
 
-#include "RemoteProcessorGroupPort.h"
+#include "RemoteProcessGroupPort.h"
 
 #include <memory>
 #include <iostream>
@@ -46,9 +46,9 @@ using namespace std::literals::chrono_literals;
 
 namespace org::apache::nifi::minifi {
 
-const char *RemoteProcessorGroupPort::RPG_SSL_CONTEXT_SERVICE_NAME = "RemoteProcessorGroupPortSSLContextService";
+const char *RemoteProcessGroupPort::RPG_SSL_CONTEXT_SERVICE_NAME = "RemoteProcessGroupPortSSLContextService";
 
-void RemoteProcessorGroupPort::setURL(std::string val) {
+void RemoteProcessGroupPort::setURL(std::string val) {
   auto urls = utils::string::split(val, ",");
   for (const auto& url : urls) {
     http::URL parsed_url{utils::string::trim(url)};
@@ -61,7 +61,7 @@ void RemoteProcessorGroupPort::setURL(std::string val) {
   }
 }
 
-std::unique_ptr<sitetosite::SiteToSiteClient> RemoteProcessorGroupPort::initializeProtocol(sitetosite::SiteToSiteClientConfiguration& config) {
+std::unique_ptr<sitetosite::SiteToSiteClient> RemoteProcessGroupPort::initializeProtocol(sitetosite::SiteToSiteClientConfiguration& config) {
   config.setSecurityContext(ssl_service_);
   config.setHTTPProxy(proxy_);
   config.setIdleTimeout(idle_timeout_);
@@ -74,7 +74,7 @@ std::unique_ptr<sitetosite::SiteToSiteClient> RemoteProcessorGroupPort::initiali
   return sitetosite::createClient(config);
 }
 
-std::unique_ptr<sitetosite::SiteToSiteClient> RemoteProcessorGroupPort::getNextProtocol() {
+std::unique_ptr<sitetosite::SiteToSiteClient> RemoteProcessGroupPort::getNextProtocol() {
   std::unique_ptr<sitetosite::SiteToSiteClient> nextProtocol = nullptr;
   if (!available_protocols_.try_dequeue(nextProtocol)) {
     if (peer_index_ >= 0) {
@@ -96,7 +96,7 @@ std::unique_ptr<sitetosite::SiteToSiteClient> RemoteProcessorGroupPort::getNextP
   return nextProtocol;
 }
 
-void RemoteProcessorGroupPort::returnProtocol(std::unique_ptr<sitetosite::SiteToSiteClient> return_protocol) {
+void RemoteProcessGroupPort::returnProtocol(std::unique_ptr<sitetosite::SiteToSiteClient> return_protocol) {
   auto count = peers_.size();
   if (max_concurrent_tasks_ > count)
     count = max_concurrent_tasks_;
@@ -109,14 +109,14 @@ void RemoteProcessorGroupPort::returnProtocol(std::unique_ptr<sitetosite::SiteTo
   available_protocols_.enqueue(std::move(return_protocol));
 }
 
-void RemoteProcessorGroupPort::initialize() {
+void RemoteProcessGroupPort::initialize() {
   setSupportedProperties(Properties);
   setSupportedRelationships(Relationships);
 
   logger_->log_trace("Finished initialization");
 }
 
-void RemoteProcessorGroupPort::onSchedule(core::ProcessContext& context, core::ProcessSessionFactory&) {
+void RemoteProcessGroupPort::onSchedule(core::ProcessContext& context, core::ProcessSessionFactory&) {
   if (auto protocol_uuid = context.getProperty(portUUID)) {
     protocol_uuid_ = *protocol_uuid;
   }
@@ -168,7 +168,7 @@ void RemoteProcessorGroupPort::onSchedule(core::ProcessContext& context, core::P
   }
 }
 
-void RemoteProcessorGroupPort::notifyStop() {
+void RemoteProcessGroupPort::notifyStop() {
   transmitting_ = false;
   RPGLatch count(false);  // we're just a monitor
   // we use the latch
@@ -180,7 +180,7 @@ void RemoteProcessorGroupPort::notifyStop() {
   }
 }
 
-void RemoteProcessorGroupPort::onTrigger(core::ProcessContext& context, core::ProcessSession& session) {
+void RemoteProcessGroupPort::onTrigger(core::ProcessContext& context, core::ProcessSession& session) {
   logger_->log_trace("On trigger {}", getUUIDStr());
   if (!transmitting_) {
     return;
@@ -216,7 +216,7 @@ void RemoteProcessorGroupPort::onTrigger(core::ProcessContext& context, core::Pr
   }
 }
 
-std::pair<std::string, int> RemoteProcessorGroupPort::refreshRemoteSite2SiteInfo() {
+std::pair<std::string, int> RemoteProcessGroupPort::refreshRemoteSite2SiteInfo() {
   if (nifi_instances_.empty())
     return std::make_pair("", -1);
 
@@ -328,7 +328,7 @@ std::pair<std::string, int> RemoteProcessorGroupPort::refreshRemoteSite2SiteInfo
   return std::make_pair("", -1);
 }
 
-void RemoteProcessorGroupPort::refreshPeerList() {
+void RemoteProcessGroupPort::refreshPeerList() {
   auto connection = refreshRemoteSite2SiteInfo();
   if (connection.second == -1) {
     logger_->log_debug("No port configured");

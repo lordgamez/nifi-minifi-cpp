@@ -1,6 +1,6 @@
 /**
- * @file RemoteProcessorGroupPort.h
- * RemoteProcessorGroupPort class declaration
+ * @file RemoteProcessGroupPort.h
+ * RemoteProcessGroupPort class declaration
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -75,22 +75,22 @@ struct RPG {
   std::string protocol_;
 };
 
-class RemoteProcessorGroupPort : public core::ProcessorImpl {
+class RemoteProcessGroupPort : public core::ProcessorImpl {
  public:
-  RemoteProcessorGroupPort(std::string_view name, std::string url, std::shared_ptr<Configure> configure, const utils::Identifier &uuid = {})
+  RemoteProcessGroupPort(std::string_view name, std::string url, std::shared_ptr<Configure> configure, const utils::Identifier &uuid = {})
       : core::ProcessorImpl(name, uuid),
         configure_(std::move(configure)),
         direction_(sitetosite::TransferDirection::SEND),
         transmitting_(false),
         ssl_service_(nullptr),
-        logger_(core::logging::LoggerFactory<RemoteProcessorGroupPort>::getLogger(uuid)) {
+        logger_(core::logging::LoggerFactory<RemoteProcessGroupPort>::getLogger(uuid)) {
     client_type_ = sitetosite::ClientType::RAW;
     protocol_uuid_ = uuid;
     peer_index_ = -1;
     // REST API port and host
     setURL(std::move(url));
   }
-  virtual ~RemoteProcessorGroupPort() = default;
+  virtual ~RemoteProcessGroupPort() = default;
 
   MINIFIAPI static constexpr auto hostName = core::PropertyDefinitionBuilder<>::createProperty("Host Name")
       .withDescription("Remote Host Name.")

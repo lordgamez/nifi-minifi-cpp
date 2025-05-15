@@ -726,7 +726,7 @@ void StructuredConfiguration::parseRPGPort(const Node& port_node, core::ProcessG
     "This is a UUID of the format XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX.");
   uuid = portId;
 
-  auto port = std::make_unique<minifi::RemoteProcessorGroupPort>(
+  auto port = std::make_unique<minifi::RemoteProcessGroupPort>(
           nameStr, parent->getURL(), this->configuration_, uuid);
   port->setDirection(direction);
   port->setTimeout(std::chrono::milliseconds(parent->getTimeout()));
@@ -779,7 +779,7 @@ void StructuredConfiguration::parseRPGPort(const Node& port_node, core::ProcessG
   if (const Node propertiesNode = port_node[schema_.rpg_port_properties]) {
     parsePropertiesNode(propertiesNode, *port, nameStr, nullptr);
   } else {
-    parsePropertyNodeElement(std::string(minifi::RemoteProcessorGroupPort::portUUID.name), port_node[schema_.rpg_port_target_id], *port, nullptr);
+    parsePropertyNodeElement(std::string(minifi::RemoteProcessGroupPort::portUUID.name), port_node[schema_.rpg_port_target_id], *port, nullptr);
     validateComponentProperties(*port, nameStr, port_node.getPath());
   }
 

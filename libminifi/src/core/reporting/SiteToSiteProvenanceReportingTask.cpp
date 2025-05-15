@@ -47,7 +47,7 @@ namespace org::apache::nifi::minifi::core::reporting {
 const char *SiteToSiteProvenanceReportingTask::ProvenanceAppStr = "MiNiFi Flow";
 
 void SiteToSiteProvenanceReportingTask::initialize() {
-  RemoteProcessorGroupPort::initialize();
+  RemoteProcessGroupPort::initialize();
 }
 
 void setJsonStr(const std::string& key, const std::string& value, rapidjson::Value& parent, rapidjson::Document::AllocatorType& alloc) { // NOLINT

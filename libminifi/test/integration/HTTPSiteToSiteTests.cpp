@@ -24,7 +24,7 @@
 #include "processors/InvokeHTTP.h"
 #include "unit/TestBase.h"
 #include "FlowController.h"
-#include "RemoteProcessorGroupPort.h"
+#include "RemoteProcessGroupPort.h"
 #include "core/ConfigurableComponentImpl.h"
 #include "integration/HTTPIntegrationBase.h"
 #include "integration/HTTPHandlers.h"
@@ -44,7 +44,7 @@ class SiteToSiteTestHarness : public HTTPIntegrationBase {
   }
 
   void testSetup() override {
-    LogTestController::getInstance().setTrace<minifi::RemoteProcessorGroupPort>();
+    LogTestController::getInstance().setTrace<minifi::RemoteProcessGroupPort>();
     LogTestController::getInstance().setTrace<minifi::sitetosite::HttpSiteToSiteClient>();
     LogTestController::getInstance().setTrace<minifi::sitetosite::SiteToSiteClient>();
     LogTestController::getInstance().setTrace<minifi::http::HTTPClient>();

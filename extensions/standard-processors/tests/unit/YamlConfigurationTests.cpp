@@ -483,7 +483,7 @@ NiFi Properties Overrides: {}
     REQUIRE(0s == it.second->getFlowExpirationDuration());
   }
 
-  auto* port = dynamic_cast<minifi::RemoteProcessorGroupPort*>(rootFlowConfig->findProcessorByName("AmazingInputPort"));
+  auto* port = dynamic_cast<minifi::RemoteProcessGroupPort*>(rootFlowConfig->findProcessorByName("AmazingInputPort"));
   REQUIRE(port);
   CHECK(port->getUUIDStr() == "ac0e798c-0158-1000-0588-cda9b944e011");
   CHECK(port->getUseCompression() == true);

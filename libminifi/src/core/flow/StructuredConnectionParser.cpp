@@ -19,7 +19,7 @@
 #include "core/flow/StructuredConnectionParser.h"
 #include "core/flow/CheckRequiredField.h"
 #include "Funnel.h"
-#include "RemoteProcessorGroupPort.h"
+#include "RemoteProcessGroupPort.h"
 
 namespace org::apache::nifi::minifi::core::flow {
 
@@ -45,8 +45,8 @@ void StructuredConnectionParser::addFunnelOrPortRelationshipToConnection(minifi:
   auto& processor_ref = *processor;
   if (typeid(minifi::Funnel) == typeid(processor_ref)) {
     addNewRelationshipToConnection(minifi::Funnel::Success.name, connection);
-  } else if (typeid(minifi::RemoteProcessorGroupPort) == typeid(processor_ref)) {
-    addNewRelationshipToConnection(minifi::RemoteProcessorGroupPort::DefaultRelationship.name, connection);
+  } else if (typeid(minifi::RemoteProcessGroupPort) == typeid(processor_ref)) {
+    addNewRelationshipToConnection(minifi::RemoteProcessGroupPort::DefaultRelationship.name, connection);
   } else {
     logger_->log_error("Component with id {} is neither funnel nor port", srcUUID.to_string());
   }

@@ -23,7 +23,7 @@
 #include "core/logging/Logger.h"
 #include "FlowController.h"
 #include "CivetServer.h"
-#include "RemoteProcessorGroupPort.h"
+#include "RemoteProcessGroupPort.h"
 #include "core/ConfigurableComponentImpl.h"
 #include "controllers/SSLContextService.h"
 #include "integration/HTTPIntegrationBase.h"
@@ -67,7 +67,7 @@ class SiteToSiteTestHarness : public HTTPIntegrationBase {
   }
 
   void testSetup() override {
-    LogTestController::getInstance().setTrace<minifi::RemoteProcessorGroupPort>();
+    LogTestController::getInstance().setTrace<minifi::RemoteProcessGroupPort>();
     LogTestController::getInstance().setDebug<minifi::http::HTTPClient>();
     LogTestController::getInstance().setTrace<minifi::controllers::SSLContextService>();
     LogTestController::getInstance().setInfo<minifi::FlowController>();

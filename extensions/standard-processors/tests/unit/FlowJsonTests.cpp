@@ -160,7 +160,7 @@ TEST_CASE("NiFi flow json format is correctly parsed") {
   CHECK(funnel->getUUIDStr() == "00000000-0000-0000-0000-000000000010");
 
   // verify RPG input port
-  auto* port = dynamic_cast<minifi::RemoteProcessorGroupPort*>(flow->findProcessorByName("AmazingInputPort"));
+  auto* port = dynamic_cast<minifi::RemoteProcessGroupPort*>(flow->findProcessorByName("AmazingInputPort"));
   REQUIRE(port);
   CHECK(port->getUUIDStr() == "00000000-0000-0000-0000-000000000003");
   CHECK(port->getMaxConcurrentTasks() == 7);
@@ -1047,7 +1047,7 @@ TEST_CASE("NiFi flow json can use alternative targetUris field") {
   REQUIRE(flow);
 
   // verify RPG input port
-  auto* port = dynamic_cast<minifi::RemoteProcessorGroupPort*>(flow->findProcessorByName("AmazingInputPort"));
+  auto* port = dynamic_cast<minifi::RemoteProcessGroupPort*>(flow->findProcessorByName("AmazingInputPort"));
   REQUIRE(port);
   CHECK(port->getUUIDStr() == "00000000-0000-0000-0000-000000000003");
   CHECK(port->getMaxConcurrentTasks() == 7);
