@@ -89,7 +89,6 @@ class PeerStatus {
 
 class SiteToSitePeer : public org::apache::nifi::minifi::io::BaseStreamImpl {
  public:
-  SiteToSitePeer() = default;
   SiteToSitePeer(std::unique_ptr<org::apache::nifi::minifi::io::BaseStream> injected_socket, const std::string& host, uint16_t port, const std::string& ifc)
       : SiteToSitePeer(host, port, ifc) {
     stream_ = std::move(injected_socket);
@@ -103,38 +102,12 @@ class SiteToSitePeer : public org::apache::nifi::minifi::io::BaseStreamImpl {
     timeout_.store(30s);
   }
 
-  explicit SiteToSitePeer(SiteToSitePeer &&ss)
-      : stream_(ss.stream_.release()),
-        host_(std::move(ss.host_)),
-        port_(std::move(ss.port_)),
-        url_(std::move(ss.url_)),
-
-        local_network_interface_(std::move(ss.local_network_interface_)),
-        proxy_(std::move(ss.proxy_)),
-        logger_(std::move(ss.logger_)) {
-    timeout_.store(ss.timeout_);
-    yield_expiration_.store(ss.yield_expiration_);
-  }
-
-  SiteToSitePeer& operator=(SiteToSitePeer&& other) {
-    if (this == &other) {
-      return *this;
-    }
-    stream_ = std::move(other.stream_);
-    host_ = std::move(other.host_);
-    port_ = std::move(other.port_);
-    local_network_interface_ = std::move(other.local_network_interface_);
-    yield_expiration_ = std::chrono::system_clock::time_point();
-    timeout_ = std::chrono::seconds(30);
-    url_ = "nifi://" + host_ + ":" + std::to_string(port_);
-
-    return *this;
-  }
-
+  SiteToSitePeer(SiteToSitePeer &&ss) = delete;
+  SiteToSitePeer& operator=(SiteToSitePeer&& other) = delete;
   SiteToSitePeer(const SiteToSitePeer &parent) = delete;
   SiteToSitePeer &operator=(const SiteToSitePeer &parent) = delete;
 
-  ~SiteToSitePeer() {
+  ~SiteToSitePeer() override {
     close();
   }
 
@@ -243,12 +216,12 @@ class SiteToSitePeer : public org::apache::nifi::minifi::io::BaseStreamImpl {
   }
 
   bool open();
-  void close();
+  void close() override;
 
  private:
   std::unique_ptr<org::apache::nifi::minifi::io::BaseStream> stream_;
   std::string host_;
-  uint16_t port_ = -1;
+  uint16_t port_;
   std::string url_;
   std::atomic<std::chrono::milliseconds> timeout_{30s};
   io::NetworkInterface local_network_interface_;

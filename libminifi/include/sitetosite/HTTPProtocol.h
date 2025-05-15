@@ -54,6 +54,11 @@ class HttpSiteToSiteClient : public SiteToSiteClient {
     peer_ = std::move(peer);
     peer_state_ = PeerState::READY;
   }
+
+  HttpSiteToSiteClient(const HttpSiteToSiteClient&) = delete;
+  HttpSiteToSiteClient(HttpSiteToSiteClient&&) = delete;
+  HttpSiteToSiteClient& operator=(const HttpSiteToSiteClient&) = delete;
+  HttpSiteToSiteClient& operator=(HttpSiteToSiteClient&&) = delete;
   ~HttpSiteToSiteClient() override = default;
 
   MINIFIAPI static constexpr auto Properties = std::array<core::PropertyReference, 0>{};
@@ -73,29 +78,25 @@ class HttpSiteToSiteClient : public SiteToSiteClient {
     return true;
   }
 
-  void closeTransaction(const utils::Identifier &transaction_id);
   std::optional<SiteToSiteResponse> readResponse(const std::shared_ptr<Transaction> &transaction) override;
   bool writeResponse(const std::shared_ptr<Transaction> &transaction, const SiteToSiteResponse& response) override;
   std::shared_ptr<Transaction> createTransaction(TransferDirection direction) override;
   void deleteTransaction(const utils::Identifier& transaction_id) override;
-
-  std::shared_ptr<minifi::http::HTTPClient> openConnectionForSending(const std::shared_ptr<HttpTransaction> &transaction);
-  std::shared_ptr<minifi::http::HTTPClient> openConnectionForReceive(const std::shared_ptr<HttpTransaction> &transaction);
-
-  std::string getBaseURI();
-
   void tearDown() override;
-
-  std::unique_ptr<minifi::http::HTTPClient> createHttpClient(const std::string &uri, http::HttpRequestMethod method);
 
  private:
   void setSiteToSiteHeaders(minifi::http::HTTPClient& client);
+  void closeTransaction(const utils::Identifier &transaction_id);
+  std::shared_ptr<minifi::http::HTTPClient> openConnectionForSending(const std::shared_ptr<HttpTransaction> &transaction);
+  std::shared_ptr<minifi::http::HTTPClient> openConnectionForReceive(const std::shared_ptr<HttpTransaction> &transaction);
+  std::unique_ptr<minifi::http::HTTPClient> createHttpClient(const std::string &uri, http::HttpRequestMethod method);
+  std::string getBaseURI();
+
+  std::optional<SiteToSiteResponse> readResponseForReceiveTransfer(const std::shared_ptr<Transaction>& transaction);
+  std::optional<SiteToSiteResponse> readResponseForSendTransfer(const std::shared_ptr<Transaction>& transaction);
 
   ResponseCode current_code_;
   std::shared_ptr<core::logging::Logger> logger_ = core::logging::LoggerFactory<HttpSiteToSiteClient>::getLogger();
-
-  HttpSiteToSiteClient(const HttpSiteToSiteClient &parent);
-  HttpSiteToSiteClient &operator=(const HttpSiteToSiteClient &parent);
 };
 
 }  // namespace org::apache::nifi::minifi::sitetosite

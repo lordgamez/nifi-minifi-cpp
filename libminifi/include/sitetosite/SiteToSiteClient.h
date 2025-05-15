@@ -86,7 +86,7 @@ class SiteToSiteClient : public core::ConnectableImpl {
     }
   }
 
-  void setPortId(utils::Identifier &id) {
+  void setPortId(const utils::Identifier& id) {
     port_id_ = id;
   }
 

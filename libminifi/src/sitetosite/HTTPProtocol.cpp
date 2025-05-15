@@ -46,51 +46,52 @@ std::optional<utils::Identifier> parseTransactionId(const std::string &uri) {
 
 std::optional<std::vector<PeerStatus>> parsePeerStatuses(const std::shared_ptr<core::logging::Logger> &logger, const std::string &entity, const utils::Identifier &id) {
   try {
-    std::vector<PeerStatus> peer_statuses;
     rapidjson::Document root;
     rapidjson::ParseResult ok = root.Parse(entity.c_str());
-
     if (!ok) {
-        std::stringstream ss;
-        ss << "Failed to parse archive lens stack from JSON string with reason: "
-           << rapidjson::GetParseError_En(ok.Code())
-           << " at offset " << ok.Offset();
+      std::stringstream ss;
+      ss << "Failed to parse archive lens stack from JSON string with reason: "
+          << rapidjson::GetParseError_En(ok.Code())
+          << " at offset " << ok.Offset();
 
-        throw Exception(ExceptionType::GENERAL_EXCEPTION, ss.str());
+      throw Exception(ExceptionType::GENERAL_EXCEPTION, ss.str());
     }
 
-    if (root.HasMember("peers") && root["peers"].IsArray() && root["peers"].Size() > 0) {
-      for (const auto &peer : root["peers"].GetArray()) {
-        std::string hostname;
-        int port = 0, flowFileCount = 0;
+    std::vector<PeerStatus> peer_statuses;
+    if (!root.HasMember("peers") || !root["peers"].IsArray() || root["peers"].Size() <= 0) {
+      logger->log_debug("Peers is either not a member or is empty. String to analyze: {}", entity);
+      return peer_statuses;
+    }
 
-        if (peer.HasMember("hostname") && peer["hostname"].IsString() &&
-            peer.HasMember("port") && peer["port"].IsNumber()) {
-          hostname = peer["hostname"].GetString();
-          port = peer["port"].GetInt();
-        }
+    for (const auto &peer : root["peers"].GetArray()) {
+      std::string hostname;
+      int port = 0;
+      int flow_file_count = 0;
 
-        if (peer.HasMember("flowFileCount")) {
-          if (peer["flowFileCount"].IsNumber()) {
-            flowFileCount = gsl::narrow<int>(peer["flowFileCount"].GetInt64());
-          } else {
-            logger->log_debug("Could not parse flowFileCount, so we're going to continue without it");
-          }
-        }
+      if (peer.HasMember("hostname") && peer["hostname"].IsString() &&
+          peer.HasMember("port") && peer["port"].IsNumber()) {
+        hostname = peer["hostname"].GetString();
+        port = peer["port"].GetInt();
+      }
 
-        // host name and port are required.
-        if (!IsNullOrEmpty(hostname) && port > 0) {
-          PeerStatus status(id, hostname, port, flowFileCount, true);
-          peer_statuses.push_back(std::move(status));
+      if (peer.HasMember("flowFileCount")) {
+        if (peer["flowFileCount"].IsNumber()) {
+          flow_file_count = gsl::narrow<int>(peer["flowFileCount"].GetInt64());
         } else {
-          logger->log_debug("hostname empty or port is zero. hostname: {}, port: {}", hostname, port);
+          logger->log_debug("Could not parse flowFileCount, so we're going to continue without it");
         }
       }
-    } else {
-      logger->log_debug("Peers is either not a member or is empty. String to analyze: {}", entity);
+
+      // host name and port are required.
+      if (!IsNullOrEmpty(hostname) && port > 0) {
+        PeerStatus status(id, hostname, port, flow_file_count, true);
+        peer_statuses.push_back(std::move(status));
+      } else {
+        logger->log_debug("hostname empty or port is zero. hostname: {}, port: {}", hostname, port);
+      }
     }
     return peer_statuses;
-  } catch (Exception &exception) {
+  } catch (const Exception &exception) {
     logger->log_debug("Caught Exception {}", exception.what());
     return std::nullopt;
   }
@@ -109,112 +110,140 @@ std::shared_ptr<Transaction> HttpSiteToSiteClient::createTransaction(TransferDir
   client->setRequestHeader("Transfer-Encoding", "chunked");
   client->setPostFields("");
   client->submit();
-  auto http_stream = dynamic_cast<http::HttpStream*>(peer_->getStream());
-  if (http_stream != nullptr) {
+
+  if (auto http_stream = dynamic_cast<http::HttpStream*>(peer_->getStream())) {
     logger_->log_debug("Closing {}", http_stream->getClientRef()->getURL());
   }
-  if (client->getResponseCode() == 201) {
-    // parse the headers
-    auto intent_name = client->getHeaderValue("x-location-uri-intent");
-    if (utils::string::equalsIgnoreCase(intent_name, "transaction-url")) {
-      auto url = client->getHeaderValue("Location");
 
-      if (IsNullOrEmpty(url)) {
-        logger_->log_debug("Location is empty");
-      } else {
-        org::apache::nifi::minifi::io::CRCStream<SiteToSitePeer> crcstream(gsl::make_not_null(peer_.get()));
-        auto transaction = std::make_shared<HttpTransaction>(direction, std::move(crcstream));
-        transaction->initialize(this, url);
-        auto transactionId = parseTransactionId(url);
-        if (!transactionId)
-          return nullptr;
-        transaction->setTransactionId(transactionId.value());
-        std::shared_ptr<minifi::http::HTTPClient> transaction_client;
-        if (transaction->getDirection() == TransferDirection::SEND) {
-          transaction_client = openConnectionForSending(transaction);
-        } else {
-          transaction_client = openConnectionForReceive(transaction);
-          transaction->setDataAvailable(true);
-          // 201 tells us that data is available. 200 would mean that nothing is available.
-        }
-
-        setSiteToSiteHeaders(*transaction_client);
-        peer_->setStream(std::unique_ptr<io::BaseStream>(new http::HttpStream(transaction_client)));
-        logger_->log_debug("Created transaction id -{}-", transaction->getUUID().to_string());
-        known_transactions_[transaction->getUUID()] = transaction;
-        return transaction;
-      }
-    } else {
-      logger_->log_debug("Could not create transaction, intent is {}", intent_name);
-    }
-  } else {
+  if (client->getResponseCode() != 201) {
     peer_->setStream(nullptr);
     logger_->log_debug("Could not create transaction, received {}", client->getResponseCode());
+    return nullptr;
   }
-  return nullptr;
+  // parse the headers
+  auto intent_name = client->getHeaderValue("x-location-uri-intent");
+  if (!utils::string::equalsIgnoreCase(intent_name, "transaction-url")) {
+    logger_->log_debug("Could not create transaction, intent is {}", intent_name);
+    return nullptr;
+  }
+
+  auto url = client->getHeaderValue("Location");
+  if (IsNullOrEmpty(url)) {
+    logger_->log_debug("Location is empty");
+    return nullptr;
+  }
+
+  org::apache::nifi::minifi::io::CRCStream<SiteToSitePeer> crcstream(gsl::make_not_null(peer_.get()));
+  auto transaction = std::make_shared<HttpTransaction>(direction, std::move(crcstream));
+  transaction->initialize(this, url);
+  auto transaction_id = parseTransactionId(url);
+  if (!transaction_id) {
+    logger_->log_debug("Transaction ID is empty");
+    return nullptr;
+  }
+  transaction->setTransactionId(transaction_id.value());
+  std::shared_ptr<minifi::http::HTTPClient> transaction_client;
+  if (transaction->getDirection() == TransferDirection::SEND) {
+    transaction_client = openConnectionForSending(transaction);
+  } else {
+    transaction_client = openConnectionForReceive(transaction);
+    transaction->setDataAvailable(true);
+    // 201 tells us that data is available. 200 would mean that nothing is available.
+  }
+
+  setSiteToSiteHeaders(*transaction_client);
+  peer_->setStream(std::unique_ptr<io::BaseStream>(new http::HttpStream(transaction_client)));
+  logger_->log_debug("Created transaction id -{}-", transaction->getUUID().to_string());
+  known_transactions_[transaction->getUUID()] = transaction;
+  return transaction;
 }
 
-std::optional<SiteToSiteResponse> HttpSiteToSiteClient::readResponse(const std::shared_ptr<Transaction> &transaction) {
+std::optional<SiteToSiteResponse> HttpSiteToSiteClient::readResponseForReceiveTransfer(const std::shared_ptr<Transaction>& transaction) {
   SiteToSiteResponse response;
   if (current_code_ == ResponseCode::FINISH_TRANSACTION) {
-    if (transaction->getDirection() == TransferDirection::SEND) {
-      auto stream = dynamic_cast<http::HttpStream*>(peer_->getStream());
-      if (!stream)
-        throw std::runtime_error("Invalid HTTPStream");
-      stream->close();
-      auto client = stream->getClient();
-      if (client->getResponseCode() == 202) {
-        response.code = ResponseCode::CONFIRM_TRANSACTION;
-        response.message = std::string(client->getResponseBody().data(), client->getResponseBody().size());
-      } else {
-        logger_->log_debug("Received response code {}", client->getResponseCode());
-        response.code = ResponseCode::UNRECOGNIZED_RESPONSE_CODE;
-      }
-    }
-    return response;
-  } else if (transaction->getDirection() == TransferDirection::RECEIVE) {
-    if (transaction->getState() == TransactionState::TRANSACTION_STARTED || transaction->getState() == TransactionState::DATA_EXCHANGED) {
-      if (current_code_ == ResponseCode::CONFIRM_TRANSACTION && transaction->getState() == TransactionState::DATA_EXCHANGED) {
-        auto stream = dynamic_cast<http::HttpStream*>(peer_->getStream());
-        if (!stream->isFinished()) {
-          logger_->log_debug("confirm read for {}, but not finished ", transaction->getUUIDStr());
-          if (stream->waitForDataAvailable()) {
-            response.code = ResponseCode::CONTINUE_TRANSACTION;
-            return response;
-          }
-        }
-
-        response.code = ResponseCode::CONFIRM_TRANSACTION;
-      } else {
-        auto stream = dynamic_cast<http::HttpStream*>(peer_->getStream());
-        if (stream->isFinished()) {
-          logger_->log_debug("Finished {} ", transaction->getUUIDStr());
-          response.code = ResponseCode::FINISH_TRANSACTION;
-          current_code_ = ResponseCode::FINISH_TRANSACTION;
-        } else {
-          if (stream->waitForDataAvailable()) {
-            logger_->log_debug("data is available, so continuing transaction  {} ", transaction->getUUIDStr());
-            response.code = ResponseCode::CONTINUE_TRANSACTION;
-          } else {
-            logger_->log_debug("No data available for transaction {} ", transaction->getUUIDStr());
-            response.code = ResponseCode::FINISH_TRANSACTION;
-            current_code_ = ResponseCode::FINISH_TRANSACTION;
-          }
-        }
-      }
-    } else if (transaction->getState() == TransactionState::TRANSACTION_CONFIRMED) {
-      closeTransaction(transaction->getUUID());
-      response.code = ResponseCode::CONFIRM_TRANSACTION;
-    }
-
-    return response;
-  } else if (transaction->getState() == TransactionState::TRANSACTION_CONFIRMED) {
-    closeTransaction(transaction->getUUID());
-    response.code = ResponseCode::TRANSACTION_FINISHED;
-
     return response;
   }
+
+  if (transaction->getState() == TransactionState::TRANSACTION_STARTED || transaction->getState() == TransactionState::DATA_EXCHANGED) {
+    if (current_code_ == ResponseCode::CONFIRM_TRANSACTION && transaction->getState() == TransactionState::DATA_EXCHANGED) {
+      auto stream = dynamic_cast<http::HttpStream*>(peer_->getStream());
+      if (!stream->isFinished()) {
+        logger_->log_debug("confirm read for {}, but not finished ", transaction->getUUIDStr());
+        if (stream->waitForDataAvailable()) {
+          response.code = ResponseCode::CONTINUE_TRANSACTION;
+          return response;
+        }
+      }
+
+      response.code = ResponseCode::CONFIRM_TRANSACTION;
+      return response;
+    }
+
+    auto stream = dynamic_cast<http::HttpStream*>(peer_->getStream());
+    if (stream->isFinished()) {
+      logger_->log_debug("Finished {} ", transaction->getUUIDStr());
+      response.code = ResponseCode::FINISH_TRANSACTION;
+      current_code_ = ResponseCode::FINISH_TRANSACTION;
+      return response;
+    }
+
+    if (stream->waitForDataAvailable()) {
+      logger_->log_debug("data is available, so continuing transaction  {} ", transaction->getUUIDStr());
+      response.code = ResponseCode::CONTINUE_TRANSACTION;
+      return response;
+    }
+
+    logger_->log_debug("No data available for transaction {} ", transaction->getUUIDStr());
+    response.code = ResponseCode::FINISH_TRANSACTION;
+    current_code_ = ResponseCode::FINISH_TRANSACTION;
+    return response;
+  }
+
+  if (transaction->getState() == TransactionState::TRANSACTION_CONFIRMED) {
+    closeTransaction(transaction->getUUID());
+    response.code = ResponseCode::CONFIRM_TRANSACTION;
+    return response;
+  }
+
+  return response;
+}
+
+std::optional<SiteToSiteResponse> HttpSiteToSiteClient::readResponseForSendTransfer(const std::shared_ptr<Transaction>& transaction) {
+  SiteToSiteResponse response;
+  if (current_code_ == ResponseCode::FINISH_TRANSACTION) {
+    auto stream = dynamic_cast<http::HttpStream*>(peer_->getStream());
+    if (!stream) {
+      throw std::runtime_error("Invalid HTTPStream");
+    }
+
+    stream->close();
+    auto client = stream->getClient();
+    if (client->getResponseCode() == 202) {
+      response.code = ResponseCode::CONFIRM_TRANSACTION;
+      response.message = std::string(client->getResponseBody().data(), client->getResponseBody().size());
+      return response;
+    }
+
+    logger_->log_debug("Received response code {}", client->getResponseCode());
+    response.code = ResponseCode::UNRECOGNIZED_RESPONSE_CODE;
+    return response;
+  }
+
+  if (transaction->getState() == TransactionState::TRANSACTION_CONFIRMED) {
+    closeTransaction(transaction->getUUID());
+    response.code = ResponseCode::TRANSACTION_FINISHED;
+    return response;
+  }
+
   return SiteToSiteClient::readResponse(transaction);
+}
+
+std::optional<SiteToSiteResponse> HttpSiteToSiteClient::readResponse(const std::shared_ptr<Transaction>& transaction) {
+  if (transaction->getDirection() == TransferDirection::RECEIVE) {
+    return readResponseForReceiveTransfer(transaction);
+  }
+
+  return readResponseForSendTransfer(transaction);
 }
 
 bool HttpSiteToSiteClient::writeResponse(const std::shared_ptr<Transaction> &transaction, const SiteToSiteResponse& response) {

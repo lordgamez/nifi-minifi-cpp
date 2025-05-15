@@ -189,10 +189,10 @@ TEST_CASE("Test receiving data through site to site ", "[S2S]") {
   const uint32_t number_of_attributes = 1;
   addUInt32(number_of_attributes);
   std::string attribute_key = "attribute_key";
-  addUInt32(attribute_key.size());
+  addUInt32(gsl::narrow<uint32_t>(attribute_key.size()));
   collector->push_response(attribute_key);
   std::string attribute_value = "attribute_value";
-  addUInt32(attribute_value.size());
+  addUInt32(gsl::narrow<uint32_t>(attribute_value.size()));
   collector->push_response("attribute_value");
   auto addUInt64 = [&collector](uint64_t number) {
     std::string result(8, '\0');

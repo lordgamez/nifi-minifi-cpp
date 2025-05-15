@@ -52,37 +52,40 @@ void setCommonConfigurationOptions(SiteToSiteClient& client, const SiteToSiteCli
 }
 
 std::unique_ptr<SiteToSiteClient> createRawSocket(const SiteToSiteClientConfiguration &client_configuration) {
-  utils::Identifier uuid = client_configuration.getPortId();
   auto rsptr = createStreamingPeer(client_configuration);
   if (nullptr == rsptr) {
     return nullptr;
   }
   auto ptr = std::make_unique<RawSiteToSiteClient>(std::move(rsptr));
-  ptr->setPortId(uuid);
+  ptr->setPortId(client_configuration.getPortId());
+  setCommonConfigurationOptions(*ptr, client_configuration);
+  return ptr;
+}
+
+std::unique_ptr<SiteToSiteClient> createHttpSocket(const SiteToSiteClientConfiguration &client_configuration) {
+  auto http_protocol = core::ClassLoader::getDefaultClassLoader().instantiateRaw("HttpProtocol", "HttpProtocol");
+  if (!http_protocol) {
+    return nullptr;
+  }
+
+  auto ptr = std::unique_ptr<SiteToSiteClient>(dynamic_cast<SiteToSiteClient*>(http_protocol));
+  auto peer = std::make_unique<SiteToSitePeer>(client_configuration.getHost(), client_configuration.getPort(), client_configuration.getInterface());
+  peer->setHTTPProxy(client_configuration.getHTTPProxy());
+
+  ptr->setPortId(client_configuration.getPortId());
+  ptr->setPeer(std::move(peer));
+  ptr->setIdleTimeout(client_configuration.getIdleTimeout());
   setCommonConfigurationOptions(*ptr, client_configuration);
   return ptr;
 }
 }  // namespace
 
 std::unique_ptr<SiteToSiteClient> createClient(const SiteToSiteClientConfiguration &client_configuration) {
-  utils::Identifier uuid = client_configuration.getPortId();
   switch (client_configuration.getClientType()) {
     case ClientType::RAW:
       return createRawSocket(client_configuration);
     case ClientType::HTTP:
-      auto http_protocol = core::ClassLoader::getDefaultClassLoader().instantiateRaw("HttpProtocol", "HttpProtocol");
-      if (nullptr != http_protocol) {
-        auto ptr = std::unique_ptr<SiteToSiteClient>(dynamic_cast<SiteToSiteClient*>(http_protocol));
-        auto peer = std::make_unique<SiteToSitePeer>(client_configuration.getHost(), client_configuration.getPort(), client_configuration.getInterface());
-        peer->setHTTPProxy(client_configuration.getHTTPProxy());
-
-        ptr->setPortId(uuid);
-        ptr->setPeer(std::move(peer));
-        ptr->setIdleTimeout(client_configuration.getIdleTimeout());
-        setCommonConfigurationOptions(*ptr, client_configuration);
-        return ptr;
-      }
-      return nullptr;
+      return createHttpSocket(client_configuration);
   }
   return nullptr;
 }

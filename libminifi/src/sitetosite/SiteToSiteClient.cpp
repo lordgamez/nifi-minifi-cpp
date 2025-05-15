@@ -641,16 +641,16 @@ bool SiteToSiteClient::receiveFlowFiles(core::ProcessContext& context, core::Pro
       }
 
       std::string source_identifier;
-      for (auto it = packet.attributes.begin(); it != packet.attributes.end(); it++) {
-        if (it->first == core::SpecialFlowAttribute::UUID)
-          source_identifier = it->second;
-        flow_file->addAttribute(it->first, it->second);
+      for (const auto& [key, value] : packet.attributes) {
+        if (key == core::SpecialFlowAttribute::UUID) {
+          source_identifier = value;
+        }
+        flow_file->addAttribute(key, value);
       }
 
       if (packet.size > 0) {
         session.write(flow_file, [&packet](const std::shared_ptr<io::OutputStream>& output_stream) -> int64_t {
           uint64_t len = packet.size;
-          uint64_t total = 0;
           std::array<std::byte, utils::configuration::DEFAULT_BUFFER_SIZE> buffer{};
           while (len > 0) {
             const auto size = std::min(len, uint64_t{utils::configuration::DEFAULT_BUFFER_SIZE});
@@ -660,7 +660,6 @@ bool SiteToSiteClient::receiveFlowFiles(core::ProcessContext& context, core::Pro
             }
             output_stream->write(std::span(buffer).subspan(0, size));
             len -= size;
-            total += size;
           }
           return true;
         });

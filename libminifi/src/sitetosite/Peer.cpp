@@ -37,9 +37,8 @@ bool SiteToSitePeer::isYield(const std::string& port_id) const {
   if (it != yield_expiration_port_id_map_.end()) {
     auto yieldExpiration = it->second;
     return (yieldExpiration >= std::chrono::system_clock::now());
-  } else {
-    return false;
   }
+  return false;
 }
 
 void SiteToSitePeer::clearYield(const std::string& port_id) {
@@ -51,30 +50,30 @@ void SiteToSitePeer::clearYield(const std::string& port_id) {
 }
 
 bool SiteToSitePeer::open() {
-  if (IsNullOrEmpty(host_))
+  if (IsNullOrEmpty(host_)) {
     return false;
+  }
 
   /**
    * We may override the interface provided to us within the socket in this step; however, this is a
    * known configuration path, and thus we will allow the RPG configuration to override anything provided to us
    * previously by the socket preference.
    */
-  if (!this->local_network_interface_.getInterface().empty()) {
-    auto* socket = dynamic_cast<utils::net::AsioSocketConnection*>(stream_.get());
-    if (nullptr != socket) {
+  if (!local_network_interface_.getInterface().empty()) {
+    if (auto socket = dynamic_cast<utils::net::AsioSocketConnection*>(stream_.get())) {
       socket->setInterface(local_network_interface_.getInterface());
     }
   }
 
-  if (stream_->initialize() < 0)
+  if (stream_->initialize() < 0) {
     return false;
+  }
 
-  const auto data_size = MAGIC_BYTES.size();
-  return stream_->write(reinterpret_cast<const uint8_t *>(MAGIC_BYTES.data()), data_size) == data_size;
+  return stream_->write(reinterpret_cast<const uint8_t *>(MAGIC_BYTES.data()), MAGIC_BYTES.size()) == MAGIC_BYTES.size();
 }
 
 void SiteToSitePeer::close() {
-  if (stream_ != nullptr) {
+  if (stream_) {
     stream_->close();
   }
 }
