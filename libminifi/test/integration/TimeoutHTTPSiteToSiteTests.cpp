@@ -21,7 +21,7 @@
 #include <vector>
 #include <iostream>
 #include <memory>
-#include "sitetosite/HTTPProtocol.h"
+#include "sitetosite/HttpSiteToSiteClient.h"
 #include "processors/InvokeHTTP.h"
 #include "unit/TestBase.h"
 #include "FlowController.h"

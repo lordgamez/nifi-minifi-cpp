@@ -20,7 +20,7 @@
 #include <utility>
 #include <memory>
 
-#include "sitetosite/RawSocketProtocol.h"
+#include "sitetosite/RawSiteToSiteClient.h"
 #include "utils/net/AsioSocketUtils.h"
 #include "core/ClassLoader.h"
 

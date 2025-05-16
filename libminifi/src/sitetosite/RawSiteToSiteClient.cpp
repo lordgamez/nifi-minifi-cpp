@@ -23,7 +23,7 @@
 #include <memory>
 #include <vector>
 
-#include "sitetosite/RawSocketProtocol.h"
+#include "sitetosite/RawSiteToSiteClient.h"
 #include "io/CRCStream.h"
 #include "sitetosite/Peer.h"
 #include "utils/gsl.h"

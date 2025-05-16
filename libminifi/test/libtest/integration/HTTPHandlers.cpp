@@ -29,7 +29,7 @@
 #include "range/v3/view/filter.hpp"
 #include "range/v3/view/view.hpp"
 #include "utils/net/DNS.h"
-#include "sitetosite/HTTPProtocol.h"
+#include "sitetosite/HttpSiteToSiteClient.h"
 #include "utils/StringUtils.h"
 
 namespace org::apache::nifi::minifi::test {

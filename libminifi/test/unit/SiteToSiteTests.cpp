@@ -24,7 +24,7 @@
 
 #include "io/BaseStream.h"
 #include "sitetosite/Peer.h"
-#include "sitetosite/RawSocketProtocol.h"
+#include "sitetosite/RawSiteToSiteClient.h"
 #include "unit/TestBase.h"
 #include "unit/Catch.h"
 #include "unit/SiteToSiteHelper.h"
