@@ -77,18 +77,6 @@ class RawSiteToSiteClient : public SiteToSiteClient {
     }
   }
 
-  std::chrono::milliseconds getTimeout() const {
-    return timeout_;
-  }
-
-  std::string getResourceName() {
-    return "SocketFlowFileProtocol";
-  }
-
-  std::string getCodecResourceName() {
-    return "StandardFlowFileCodec";
-  }
-
   std::optional<std::vector<PeerStatus>> getPeerList() override;
   bool transmitPayload(core::ProcessContext& context, core::ProcessSession& session, const std::string &payload, const std::map<std::string, std::string>& attributes) override;
 
@@ -100,6 +88,9 @@ class RawSiteToSiteClient : public SiteToSiteClient {
   void tearDown() override;
 
  private:
+  static constexpr std::string_view PROTOCOL_RESOURCE_NAME = "SocketFlowFileProtocol";
+  static constexpr std::string_view CODEC_RESOURCE_NAME = "StandardFlowFileCodec";
+
   bool handShake();
   bool negotiateCodec();
   bool initiateResourceNegotiation();

@@ -65,6 +65,15 @@ std::optional<SiteToSiteResponse> SiteToSiteClient::readResponse(const std::shar
   return response;
 }
 
+void SiteToSiteClient::handleTransactionError(const std::shared_ptr<Transaction>& transaction, core::ProcessContext& context, const std::exception& exception) {
+  if (transaction) {
+    deleteTransaction(transaction->getUUID());
+  }
+  context.yield();
+  tearDown();
+  logger_->log_warn("Caught Exception, type: {}, what: {}", typeid(exception).name(), exception.what());
+}
+
 void SiteToSiteClient::deleteTransaction(const utils::Identifier& transaction_id) {
   std::shared_ptr<Transaction> transaction;
 
@@ -161,12 +170,7 @@ bool SiteToSiteClient::transferFlowFiles(core::ProcessContext& context, core::Pr
     }
     logger_->log_debug("Site2Site transaction {} successfully sent flow record {}, content bytes {}", transaction_id.to_string(), transaction->getCurrentTransfers(), transaction->getBytes());
   } catch (const std::exception& exception) {
-    if (transaction) {
-      deleteTransaction(transaction_id);
-    }
-    context.yield();
-    tearDown();
-    logger_->log_debug("Caught Exception during SiteToSiteClient::transferFlowFiles, type: {}, what: {}", typeid(exception).name(), exception.what());
+    handleTransactionError(transaction, context, exception);
     throw;
   }
 
@@ -431,13 +435,17 @@ bool SiteToSiteClient::send(const utils::Identifier& transaction_id, DataPacket*
     logger_->log_debug("Site2Site transaction {} send attribute key {} value {}", transaction_id.to_string(), attribute.first, attribute.second);
   }
 
-  bool flowfile_has_content = (flow_file != nullptr);
-
-  if (flow_file && (flow_file->getResourceClaim() == nullptr || !flow_file->getResourceClaim()->exists())) {
-    auto path = flow_file->getResourceClaim() != nullptr ? flow_file->getResourceClaim()->getContentFullPath() : "nullclaim";
-    logger_->log_debug("Claim {} does not exist for FlowFile {}", path, flow_file->getUUIDStr());
-    flowfile_has_content = false;
-  }
+  bool flowfile_has_content = [&]() {
+    if (!flow_file) {
+      return false;
+    }
+    if (flow_file->getResourceClaim() == nullptr || !flow_file->getResourceClaim()->exists()) {
+      auto path = flow_file->getResourceClaim() != nullptr ? flow_file->getResourceClaim()->getContentFullPath() : "nullclaim";
+      logger_->log_debug("Claim {} does not exist for FlowFile {}", path, flow_file->getUUIDStr());
+      return false;
+    }
+    return true;
+  }();
 
   uint64_t len = 0;
   if (flow_file && flowfile_has_content && session) {
@@ -469,10 +477,11 @@ bool SiteToSiteClient::send(const utils::Identifier& transaction_id, DataPacket*
   } else if (packet->payload.length() > 0) {
     len = packet->payload.length();
     if (const auto ret = transaction->getStream().write(len); ret != 8) {
+      logger_->log_debug("Failed to write payload size!");
       return false;
     }
     if (const auto ret = transaction->getStream().write(reinterpret_cast<const uint8_t*>(packet->payload.c_str()), gsl::narrow<size_t>(len)); ret != gsl::narrow<size_t>(len)) {
-      logger_->log_debug("Failed to write payload size!");
+      logger_->log_debug("Failed to write payload!");
       return false;
     }
     packet->size += len;
@@ -597,6 +606,74 @@ bool SiteToSiteClient::receive(const utils::Identifier& transaction_id, DataPack
   return true;
 }
 
+std::pair<uint64_t, uint64_t> SiteToSiteClient::readFlowFiles(const std::shared_ptr<Transaction>& transaction, core::ProcessSession& session) {
+  uint64_t transfers = 0;
+  uint64_t bytes = 0;
+  utils::Identifier transaction_id = transaction->getUUID();
+  while (true) {
+    auto start_time = std::chrono::steady_clock::now();
+    std::string payload;
+    DataPacket packet(transaction, payload);
+    bool eof = false;
+
+    if (!receive(transaction_id, &packet, eof)) {
+      throw Exception(SITE2SITE_EXCEPTION, "Receive Failed " + transaction_id.to_string());
+    }
+    if (eof) {
+      // transaction done
+      break;
+    }
+
+    auto flow_file = session.create();
+    if (!flow_file) {
+      throw Exception(SITE2SITE_EXCEPTION, "Flow File Creation Failed");
+    }
+
+    std::string source_identifier;
+    for (const auto& [key, value] : packet.attributes) {
+      if (key == core::SpecialFlowAttribute::UUID) {
+        source_identifier = value;
+      }
+      flow_file->addAttribute(key, value);
+    }
+
+    if (packet.size > 0) {
+      session.write(flow_file, [&packet](const std::shared_ptr<io::OutputStream>& output_stream) -> int64_t {
+        uint64_t len = packet.size;
+        std::array<std::byte, utils::configuration::DEFAULT_BUFFER_SIZE> buffer{};
+        while (len > 0) {
+          const auto size = std::min(len, uint64_t{utils::configuration::DEFAULT_BUFFER_SIZE});
+          const auto ret = packet.transaction->getStream().read(std::as_writable_bytes(std::span(buffer).subspan(0, size)));
+          if (ret != size) {
+            return false;
+          }
+          output_stream->write(std::span(buffer).subspan(0, size));
+          len -= size;
+        }
+        return true;
+      });
+      if (flow_file->getSize() != packet.size) {
+        std::stringstream message;
+        message << "Receive size not correct, expected to send " << flow_file->getSize() << " bytes, but actually sent " << packet.size;
+        throw Exception(SITE2SITE_EXCEPTION, message.str());
+      } else {
+        logger_->log_debug("received {} with expected {}", flow_file->getSize(), packet.size);
+      }
+    }
+    core::Relationship relation{"", ""};
+    auto end_time = std::chrono::steady_clock::now();
+    std::string transitUri = peer_->getURL() + "/" + source_identifier;
+    std::string details = "urn:nifi:" + source_identifier + "Remote Host=" + peer_->getHostName();
+    session.getProvenanceReporter()->receive(*flow_file, transitUri, source_identifier, details, std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time));
+    session.transfer(flow_file, relation);
+    // receive the transfer for the flow record
+    bytes += packet.size;
+    transfers++;
+  }
+
+  return {transfers, bytes};
+}
+
 bool SiteToSiteClient::receiveFlowFiles(core::ProcessContext& context, core::ProcessSession& session) {
   if (peer_state_ != PeerState::READY) {
     if (!bootstrap()) {
@@ -619,89 +696,25 @@ bool SiteToSiteClient::receiveFlowFiles(core::ProcessContext& context, core::Pro
 
   utils::Identifier transaction_id = transaction->getUUID();
   try {
-    uint64_t bytes = 0;
-    uint64_t transfers = 0;
-    while (true) {
-      auto start_time = std::chrono::steady_clock::now();
-      std::string payload;
-      DataPacket packet(transaction, payload);
-      bool eof = false;
-
-      if (!receive(transaction_id, &packet, eof)) {
-        throw Exception(SITE2SITE_EXCEPTION, "Receive Failed " + transaction_id.to_string());
-      }
-      if (eof) {
-        // transaction done
-        break;
-      }
-
-      auto flow_file = session.create();
-      if (!flow_file) {
-        throw Exception(SITE2SITE_EXCEPTION, "Flow File Creation Failed");
-      }
-
-      std::string source_identifier;
-      for (const auto& [key, value] : packet.attributes) {
-        if (key == core::SpecialFlowAttribute::UUID) {
-          source_identifier = value;
-        }
-        flow_file->addAttribute(key, value);
-      }
-
-      if (packet.size > 0) {
-        session.write(flow_file, [&packet](const std::shared_ptr<io::OutputStream>& output_stream) -> int64_t {
-          uint64_t len = packet.size;
-          std::array<std::byte, utils::configuration::DEFAULT_BUFFER_SIZE> buffer{};
-          while (len > 0) {
-            const auto size = std::min(len, uint64_t{utils::configuration::DEFAULT_BUFFER_SIZE});
-            const auto ret = packet.transaction->getStream().read(std::as_writable_bytes(std::span(buffer).subspan(0, size)));
-            if (ret != size) {
-              return false;
-            }
-            output_stream->write(std::span(buffer).subspan(0, size));
-            len -= size;
-          }
-          return true;
-        });
-        if (flow_file->getSize() != packet.size) {
-          std::stringstream message;
-          message << "Receive size not correct, expected to send " << flow_file->getSize() << " bytes, but actually sent " << packet.size;
-          throw Exception(SITE2SITE_EXCEPTION, message.str());
-        } else {
-          logger_->log_debug("received {} with expected {}", flow_file->getSize(), packet.size);
-        }
-      }
-      core::Relationship relation{"", ""};
-      auto end_time = std::chrono::steady_clock::now();
-      std::string transitUri = peer_->getURL() + "/" + source_identifier;
-      std::string details = "urn:nifi:" + source_identifier + "Remote Host=" + peer_->getHostName();
-      session.getProvenanceReporter()->receive(*flow_file, transitUri, source_identifier, details, std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time));
-      session.transfer(flow_file, relation);
-      // receive the transfer for the flow record
-      bytes += packet.size;
-      transfers++;
-    }
+    auto [transfers, bytes] = readFlowFiles(transaction, session);
 
     if (transfers > 0 && !confirm(transaction_id)) {
       throw Exception(SITE2SITE_EXCEPTION, "Confirm Transaction Failed");
     }
+
     if (!complete(context, transaction_id)) {
       std::stringstream transaction_str;
       transaction_str << "Complete Transaction " << transaction_id.to_string() << " Failed";
       throw Exception(SITE2SITE_EXCEPTION, transaction_str.str());
     }
+
     logger_->log_info("Site to Site transaction {} received flow record {}, with content size {} bytes", transaction_id.to_string(), transfers, bytes);
     // we yield the receive if we did not get anything
     if (transfers == 0) {
       context.yield();
     }
   } catch (const std::exception& exception) {
-    if (transaction) {
-      deleteTransaction(transaction_id);
-    }
-    context.yield();
-    tearDown();
-    logger_->log_warn("Caught Exception during RawSiteToSiteClient::receiveFlowFiles, type: {}, what: {}", typeid(exception).name(), exception.what());
+    handleTransactionError(transaction, context, exception);
     throw;
   }
 

@@ -88,8 +88,8 @@ std::unique_ptr<sitetosite::SiteToSiteClient> RemoteProcessGroupPort::initialize
 }
 
 std::unique_ptr<sitetosite::SiteToSiteClient> RemoteProcessGroupPort::getNextProtocol() {
-  std::unique_ptr<sitetosite::SiteToSiteClient> nextProtocol = nullptr;
-  if (!available_protocols_.try_dequeue(nextProtocol)) {
+  std::unique_ptr<sitetosite::SiteToSiteClient> next_protocol = nullptr;
+  if (!available_protocols_.try_dequeue(next_protocol)) {
     if (peer_index_ >= 0) {
       std::lock_guard<std::mutex> lock(peer_mutex_);
       logger_->log_debug("Creating client from peer {}", peer_index_.load());
@@ -99,14 +99,14 @@ std::unique_ptr<sitetosite::SiteToSiteClient> RemoteProcessGroupPort::getNextPro
       if (peer_index_ >= static_cast<int>(peers_.size())) {
         peer_index_ = 0;
       }
-      nextProtocol = initializeProtocol(config);
+      next_protocol = initializeProtocol(config);
     } else {
       logger_->log_debug("Refreshing the peer list since there are none configured.");
       refreshPeerList();
     }
   }
   logger_->log_debug("Obtained protocol from available_protocols_");
-  return nextProtocol;
+  return next_protocol;
 }
 
 void RemoteProcessGroupPort::returnProtocol(std::unique_ptr<sitetosite::SiteToSiteClient> return_protocol) {
@@ -171,9 +171,9 @@ void RemoteProcessGroupPort::onSchedule(core::ProcessContext& context, core::Pro
         peer_index_ = 0;
       }
       logger_->log_trace("Creating client");
-      auto nextProtocol = initializeProtocol(config);
+      auto next_protocol = initializeProtocol(config);
       logger_->log_trace("Created client, moving into available protocols");
-      returnProtocol(std::move(nextProtocol));
+      returnProtocol(std::move(next_protocol));
     }
   } else {
     // we don't have any peers
@@ -187,8 +187,8 @@ void RemoteProcessGroupPort::notifyStop() {
   // we use the latch
   while (count.getCount() > 0) {
   }
-  std::unique_ptr<sitetosite::SiteToSiteClient> nextProtocol = nullptr;
-  while (available_protocols_.try_dequeue(nextProtocol)) {
+  std::unique_ptr<sitetosite::SiteToSiteClient> next_protocol = nullptr;
+  while (available_protocols_.try_dequeue(next_protocol)) {
     // clear all protocols now
   }
 }

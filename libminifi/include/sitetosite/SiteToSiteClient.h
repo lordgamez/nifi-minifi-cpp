@@ -106,7 +106,7 @@ class SiteToSiteClient : public core::ConnectableImpl {
   }
 
   bool isRunning() const override {
-    return running_;
+    return true;
   }
 
   bool isWorkAvailable() override {
@@ -146,10 +146,7 @@ class SiteToSiteClient : public core::ConnectableImpl {
   virtual void deleteTransaction(const utils::Identifier &transaction_id);
   virtual std::optional<SiteToSiteResponse> readResponse(const std::shared_ptr<Transaction> &transaction);
   virtual bool writeResponse(const std::shared_ptr<Transaction> &transaction, const SiteToSiteResponse& response);
-  virtual const ResponseCodeContext* getRespondCodeContext(ResponseCode code);
 
-  bool transferFlowFiles(core::ProcessContext& context, core::ProcessSession& session);
-  bool receiveFlowFiles(core::ProcessContext& context, core::ProcessSession& session);
   bool receive(const utils::Identifier &transaction_id, DataPacket *packet, bool &eof);
   bool send(const utils::Identifier& transaction_id, DataPacket* packet, const std::shared_ptr<core::FlowFile>& flow_file, core::ProcessSession* session);
   void cancel(const utils::Identifier &transaction_id);
@@ -157,23 +154,19 @@ class SiteToSiteClient : public core::ConnectableImpl {
   void error(const utils::Identifier &transaction_id);
   bool confirm(const utils::Identifier &transaction_id);
 
-  bool confirmReceive(const std::shared_ptr<Transaction>& transaction, const utils::Identifier& transaction_id);
-  bool confirmSend(const std::shared_ptr<Transaction>& transaction, const utils::Identifier& transaction_id);
-  bool completeReceive(const std::shared_ptr<Transaction>& transaction, const utils::Identifier& transaction_id);
-  bool completeSend(const std::shared_ptr<Transaction>& transaction, const utils::Identifier& transaction_id, core::ProcessContext& context);
+  void handleTransactionError(const std::shared_ptr<Transaction>& transaction, core::ProcessContext& context, const std::exception& exception);
 
   PeerState peer_state_{PeerState::IDLE};
   utils::Identifier port_id_;
   std::chrono::milliseconds idle_timeout_{15000};
   std::unique_ptr<SiteToSitePeer> peer_;
-  std::atomic<bool> running_{false};
   std::map<utils::Identifier, std::shared_ptr<Transaction>> known_transactions_;
   std::chrono::nanoseconds batch_send_nanos_{5s};
 
-  std::array<uint32_t, 5> supported_version_ = {5, 4, 3, 2, 1};
+  const std::vector<uint32_t> supported_version_ = {5, 4, 3, 2, 1};
   uint32_t current_version_index_{0};
   uint32_t current_version_{supported_version_[current_version_index_]};
-  std::array<uint32_t, 1> supported_codec_version_ = {1};
+  const std::vector<uint32_t> supported_codec_version_ = {1};
   uint32_t current_codec_version_index_{0};
   uint32_t current_codec_version_{supported_codec_version_[current_codec_version_index_]};
 
@@ -186,6 +179,18 @@ class SiteToSiteClient : public core::ConnectableImpl {
   std::atomic<std::chrono::milliseconds> timeout_{0s};
 
  private:
+  const ResponseCodeContext* getRespondCodeContext(ResponseCode code);
+  bool transferFlowFiles(core::ProcessContext& context, core::ProcessSession& session);
+  bool receiveFlowFiles(core::ProcessContext& context, core::ProcessSession& session);
+
+  bool confirmReceive(const std::shared_ptr<Transaction>& transaction, const utils::Identifier& transaction_id);
+  bool confirmSend(const std::shared_ptr<Transaction>& transaction, const utils::Identifier& transaction_id);
+  bool completeReceive(const std::shared_ptr<Transaction>& transaction, const utils::Identifier& transaction_id);
+  bool completeSend(const std::shared_ptr<Transaction>& transaction, const utils::Identifier& transaction_id, core::ProcessContext& context);
+
+  std::pair<uint64_t, uint64_t> readFlowFiles(const std::shared_ptr<Transaction>& transaction, core::ProcessSession& session);
+
+  std::string local_network_interface_;
   std::shared_ptr<core::logging::Logger> logger_{core::logging::LoggerFactory<SiteToSiteClient>::getLogger()};
 };
 

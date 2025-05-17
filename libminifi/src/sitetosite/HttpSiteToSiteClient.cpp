@@ -150,6 +150,7 @@ std::shared_ptr<Transaction> HttpSiteToSiteClient::createTransaction(TransferDir
     transaction->setDataAvailable(true);
     // 201 tells us that data is available. 200 would mean that nothing is available.
   }
+  gsl_Assert(transaction_client);
 
   setSiteToSiteHeaders(*transaction_client);
   peer_->setStream(std::unique_ptr<io::BaseStream>(new http::HttpStream(transaction_client)));
@@ -286,8 +287,7 @@ std::shared_ptr<minifi::http::HTTPClient> HttpSiteToSiteClient::openConnectionFo
 std::shared_ptr<minifi::http::HTTPClient> HttpSiteToSiteClient::openConnectionForReceive(const std::shared_ptr<HttpTransaction> &transaction) {
   std::stringstream uri;
   uri << transaction->getTransactionUrl() << "/flow-files";
-  std::shared_ptr<minifi::http::HTTPClient> client = createHttpClient(uri.str(), http::HttpRequestMethod::GET);
-  return client;
+  return createHttpClient(uri.str(), http::HttpRequestMethod::GET);
 }
 
 std::string HttpSiteToSiteClient::getBaseURI() {
@@ -300,7 +300,7 @@ std::string HttpSiteToSiteClient::getBaseURI() {
 }
 
 std::unique_ptr<minifi::http::HTTPClient> HttpSiteToSiteClient::createHttpClient(const std::string &uri, http::HttpRequestMethod method) {
-  std::unique_ptr<minifi::http::HTTPClient> http_client_ = std::make_unique<minifi::http::HTTPClient>(uri, ssl_context_service_);
+  auto http_client_ = std::make_unique<minifi::http::HTTPClient>(uri, ssl_context_service_);
   http_client_->initialize(method, uri, ssl_context_service_);
   if (!peer_->getInterface().empty()) {
     logger_->log_info("HTTP Site2Site bind local network interface {}", peer_->getInterface());

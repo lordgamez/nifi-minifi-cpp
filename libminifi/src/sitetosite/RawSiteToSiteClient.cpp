@@ -33,6 +33,66 @@ using namespace std::literals::chrono_literals;
 
 namespace org::apache::nifi::minifi::sitetosite {
 
+namespace {
+bool negotiateVersion(SiteToSitePeer& peer, const std::string& resource_name, const std::string& negotiation_type, uint32_t& current_version, uint32_t& current_version_index,
+    const std::vector<uint32_t>& supported_versions, const std::shared_ptr<core::logging::Logger>& logger) {
+  if (const auto ret = peer.write(resource_name); ret == 0 || io::isError(ret)) {
+    logger->log_debug("result of writing {} resource name is {}", negotiation_type, ret);
+    return false;
+  }
+
+  if (const auto ret = peer.write(current_version); ret == 0 || io::isError(ret)) {
+    logger->log_debug("result of {} version is {}", negotiation_type, ret);
+    return false;
+  }
+
+  uint8_t status_code_byte = 0;
+  if (const auto ret = peer.read(status_code_byte); ret == 0 || io::isError(ret)) {
+    logger->log_debug("result of writing {} version status code  {}", negotiation_type, ret);
+    return false;
+  }
+
+  auto status_code = magic_enum::enum_cast<ResourceNegotiationStatusCode>(status_code_byte);
+  if (!status_code) {
+    logger->log_error("Negotiate {} response unknown code {}", negotiation_type, status_code_byte);
+    return false;
+  }
+
+  switch (*status_code) {
+    case ResourceNegotiationStatusCode::RESOURCE_OK: {
+      logger->log_debug("Site2Site {} Negotiate version OK", negotiation_type);
+      return true;
+    }
+    case ResourceNegotiationStatusCode::DIFFERENT_RESOURCE_VERSION: {
+      uint32_t server_version = 0;
+      if (const auto ret = peer.read(server_version); ret == 0 || io::isError(ret)) {
+        return false;
+      }
+
+      logger->log_info("Site2Site Server Response asked for a different protocol version ", server_version);
+
+      for (uint32_t i = (current_version_index + 1); i < sizeof(supported_versions) / sizeof(uint32_t); i++) {
+        if (server_version >= supported_versions.at(i)) {
+          current_version = supported_versions.at(i);
+          current_version_index = i;
+          return negotiateVersion(peer, resource_name, negotiation_type, current_version, current_version_index, supported_versions, logger);
+        }
+      }
+      logger->log_error("Site2Site Negotiate {} failed to find a common version with server", negotiation_type);
+      return false;
+    }
+    case ResourceNegotiationStatusCode::NEGOTIATED_ABORT: {
+      logger->log_error("Site2Site Negotiate {} response ABORT", negotiation_type);
+      return false;
+    }
+    default: {
+      logger->log_error("Negotiate {} response unhandled code {}", negotiation_type, magic_enum::enum_name(*status_code));
+      return false;
+    }
+  }
+}
+}  // namespace
+
 bool RawSiteToSiteClient::establish() {
   if (peer_state_ != PeerState::IDLE) {
     logger_->log_error("Site2Site peer state is not idle while try to establish");
@@ -62,61 +122,7 @@ bool RawSiteToSiteClient::initiateResourceNegotiation() {
   }
 
   logger_->log_debug("Negotiate protocol version with destination port {} current version {}", port_id_.to_string(), current_version_);
-  if (const auto ret = peer_->write(getResourceName()); ret == 0 || io::isError(ret)) {
-    logger_->log_debug("result of writing resource name is {}", ret);
-    return false;
-  }
-
-  if (const auto ret = peer_->write(current_version_); ret == 0 || io::isError(ret)) {
-    logger_->log_debug("result of writing version is {}", ret);
-    return false;
-  }
-
-  uint8_t status_code_byte = 0;
-  if (const auto ret = peer_->read(status_code_byte); ret == 0 || io::isError(ret)) {
-    logger_->log_debug("result of writing version status code  {}", ret);
-    return false;
-  }
-
-  auto status_code = magic_enum::enum_cast<ResourceNegotiationStatusCode>(status_code_byte);
-  if (!status_code) {
-    logger_->log_error("Negotiate protocol response unknown code {}", status_code_byte);
-    return false;
-  }
-
-  logger_->log_debug("status code is {}", magic_enum::enum_name(*status_code));
-  switch (*status_code) {
-    case ResourceNegotiationStatusCode::RESOURCE_OK: {
-      logger_->log_debug("Site2Site Protocol Negotiate protocol version OK");
-      return true;
-    }
-    case ResourceNegotiationStatusCode::DIFFERENT_RESOURCE_VERSION: {
-      uint32_t server_version = 0;
-      if (const auto ret = peer_->read(server_version); ret == 0 || io::isError(ret)) {
-        return false;
-      }
-
-      logger_->log_info("Site2Site Server Response asked for a different protocol version {}", server_version);
-
-      for (uint32_t i = (current_version_index_ + 1); i < sizeof(supported_version_) / sizeof(uint32_t); i++) {
-        if (server_version >= supported_version_[i]) {
-          current_version_ = supported_version_[i];
-          current_version_index_ = gsl::narrow<int>(i);
-          return initiateResourceNegotiation();
-        }
-      }
-      logger_->log_error("Site2Site Negotiate protocol failed to find a common version with server");
-      return false;
-    }
-    case ResourceNegotiationStatusCode::NEGOTIATED_ABORT: {
-      logger_->log_error("Site2Site Negotiate protocol response ABORT");
-      return false;
-    }
-    default: {
-      logger_->log_error("Negotiate protocol response unhandled code {}", magic_enum::enum_name(*status_code));
-      return false;
-    }
-  }
+  return negotiateVersion(*peer_, std::string{PROTOCOL_RESOURCE_NAME}, "protocol", current_version_, current_version_index_, supported_version_, logger_);
 }
 
 bool RawSiteToSiteClient::initiateCodecResourceNegotiation() {
@@ -126,60 +132,7 @@ bool RawSiteToSiteClient::initiateCodecResourceNegotiation() {
   }
 
   logger_->log_trace("Negotiate Codec version with destination port {} current version {}", port_id_.to_string(), current_codec_version_);
-
-  if (const auto ret = peer_->write(getCodecResourceName()); ret == 0 || io::isError(ret)) {
-    logger_->log_debug("result of getCodecResourceName is {}", ret);
-    return false;
-  }
-
-  if (const auto ret = peer_->write(current_codec_version_); ret == 0 || io::isError(ret)) {
-    logger_->log_debug("result of _currentCodecVersion is {}", ret);
-    return false;
-  }
-
-  uint8_t status_code_byte = 0;
-  if (const auto ret = peer_->read(status_code_byte); ret == 0 || io::isError(ret)) {
-    return false;
-  }
-
-  auto status_code = magic_enum::enum_cast<ResourceNegotiationStatusCode>(status_code_byte);
-  if (!status_code) {
-    logger_->log_error("Negotiate Codec response unknown code {}", status_code_byte);
-    return false;
-  }
-
-  switch (*status_code) {
-    case ResourceNegotiationStatusCode::RESOURCE_OK: {
-      logger_->log_trace("Site2Site Codec Negotiate version OK");
-      return true;
-    }
-    case ResourceNegotiationStatusCode::DIFFERENT_RESOURCE_VERSION: {
-      uint32_t server_version = 0;
-      if (const auto ret = peer_->read(server_version); ret == 0 || io::isError(ret)) {
-        return false;
-      }
-
-      logger_->log_info("Site2Site Server Response asked for a different protocol version ", server_version);
-
-      for (uint32_t i = (current_codec_version_index_ + 1); i < sizeof(supported_codec_version_) / sizeof(uint32_t); i++) {
-        if (server_version >= supported_codec_version_[i]) {
-          current_codec_version_ = supported_codec_version_[i];
-          current_codec_version_index_ = gsl::narrow<int>(i);
-          return initiateCodecResourceNegotiation();
-        }
-      }
-      logger_->log_error("Site2Site Negotiate codec failed to find a common version with server");
-      return false;
-    }
-    case ResourceNegotiationStatusCode::NEGOTIATED_ABORT: {
-      logger_->log_error("Site2Site Codec Negotiate response ABORT");
-      return false;
-    }
-    default: {
-      logger_->log_error("Negotiate Codec response unhandled code {}", magic_enum::enum_name(*status_code));
-      return false;
-    }
-  }
+  return negotiateVersion(*peer_, std::string{CODEC_RESOURCE_NAME}, "codec", current_codec_version_, current_codec_version_index_, supported_codec_version_, logger_);
 }
 
 bool RawSiteToSiteClient::handShake() {
@@ -466,13 +419,8 @@ bool RawSiteToSiteClient::transmitPayload(core::ProcessContext& context, core::P
       throw Exception(SITE2SITE_EXCEPTION, "Complete Failed in transaction " + transaction_id.to_string());
     }
     logger_->log_info("Site2Site transaction {} successfully send flow record {} content bytes {}", transaction_id.to_string(), transaction->getCurrentTransfers(), transaction->getBytes());
-  } catch (std::exception &exception) {
-    if (transaction) {
-      deleteTransaction(transaction_id);
-    }
-    context.yield();
-    tearDown();
-    logger_->log_debug("Caught Exception during RawSiteToSiteClient::transmitPayload, type: {}, what: {}", typeid(exception).name(), exception.what());
+  } catch (const std::exception &exception) {
+    handleTransactionError(transaction, context, exception);
     throw;
   }
 
