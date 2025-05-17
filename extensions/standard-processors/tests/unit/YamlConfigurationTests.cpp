@@ -221,7 +221,7 @@ Provenance Reporting:
   }
 }
 
-TEST_CASE("Test YAML v3 Invalid Type", "[YamlConfiguration3]") {
+TEST_CASE("Test YAML v3 Invalid Type", "[YamlConfiguration]") {
   ConfigurationTestController test_controller;
 
   core::YamlConfiguration yamlConfig(test_controller.getContext());
@@ -341,7 +341,7 @@ NiFi Properties Overrides: {}
   REQUIRE_THROWS_AS(yamlConfig.getRootFromPayload(TEST_CONFIG_YAML), minifi::Exception);
 }
 
-TEST_CASE("Test YAML v3 Config Processing", "[YamlConfiguration3]") {
+TEST_CASE("Test YAML v3 Config Processing", "[YamlConfiguration]") {
   ConfigurationTestController test_controller;
 
   core::YamlConfiguration yamlConfig(test_controller.getContext());
@@ -435,7 +435,7 @@ Remote Process Groups:
   name: ''
   url: http://localhost:8080/nifi
   comment: ''
-  timeout: 30 sec
+  timeout: 20 sec
   yield period: 10 sec
   transport protocol: RAW
   proxy host: ''
@@ -490,6 +490,7 @@ NiFi Properties Overrides: {}
   CHECK(port->getBatchSize().value() == 10);
   CHECK(port->getBatchCount().value() == 3);
   CHECK(port->getBatchDuration().value() == std::chrono::seconds(5));
+  CHECK(port->getTimeout().value() == std::chrono::seconds(20));
 }
 
 TEST_CASE("Test Dynamic Unsupported", "[YamlConfigurationDynamicUnsupported]") {
@@ -2406,6 +2407,63 @@ Processors:
   } else {
     REQUIRE_NOTHROW(config.getRootFromPayload(CONFIG_YAML));
   }
+}
+
+TEST_CASE("Output port can also be used in RPG", "[YamlConfiguration]") {
+  ConfigurationTestController test_controller;
+
+  core::YamlConfiguration yamlConfig(test_controller.getContext());
+
+  static const std::string TEST_CONFIG_YAML =
+      R"(
+MiNiFi Config Version: 3
+Flow Controller:
+  name: Simple RPG To PutFile
+  comment: ''
+Processors:
+- id: b0c04f28-0158-1000-0000-000000000000
+  name: PutFile
+  class: org.apache.nifi.processors.standard.PutFile
+  max concurrent tasks: 1
+  scheduling strategy: EVENT_DRIVEN
+  auto-terminated relationships list: []
+  Properties: []
+
+Connections:
+- id: b0c0c3cc-0158-1000-0000-000000000000
+  name: ac0e798c-0158-1000-0588-cda9b944e011/success/PutFile
+  source id: ac0e798c-0158-1000-0588-cda9b944e011
+  destination id: b0c04f28-0158-1000-0000-000000000000
+Remote Process Groups:
+- id: b0c09ff0-0158-1000-0000-000000000000
+  name: ''
+  url: http://localhost:8080/nifi
+  comment: ''
+  timeout: 20 sec
+  yield period: 10 sec
+  transport protocol: RAW
+  Output Ports:
+  - id: ac0e798c-0158-1000-0588-cda9b944e011
+    name: AmazingOutputPort
+    max concurrent tasks: 1
+    use compression: true
+    batch size:
+      size: 10 B
+      count: 3
+      duration: 5 sec
+  Input Ports: []
+NiFi Properties Overrides: {}
+      )";
+  std::unique_ptr<core::ProcessGroup> rootFlowConfig = yamlConfig.getRootFromPayload(TEST_CONFIG_YAML);
+
+  auto* port = dynamic_cast<minifi::RemoteProcessGroupPort*>(rootFlowConfig->findProcessorByName("AmazingOutputPort"));
+  REQUIRE(port);
+  CHECK(port->getUUIDStr() == "ac0e798c-0158-1000-0588-cda9b944e011");
+  CHECK(port->getUseCompression() == true);
+  CHECK(port->getBatchSize().value() == 10);
+  CHECK(port->getBatchCount().value() == 3);
+  CHECK(port->getBatchDuration().value() == std::chrono::seconds(5));
+  CHECK(port->getTimeout().value() == std::chrono::seconds(20));
 }
 
 }  // namespace org::apache::nifi::minifi::test

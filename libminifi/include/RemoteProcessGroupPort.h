@@ -145,6 +145,10 @@ class RemoteProcessGroupPort : public core::ProcessorImpl {
     timeout_ = timeout;
   }
 
+  std::optional<std::chrono::milliseconds> getTimeout() const {
+    return timeout_;
+  }
+
   void setTransmitting(bool val) {
     transmitting_ = val;
   }
