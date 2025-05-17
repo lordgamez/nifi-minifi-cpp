@@ -118,7 +118,7 @@ class RemoteProcessGroupPort : public core::ProcessorImpl {
       idleTimeout
   });
 
-  MINIFIAPI static constexpr auto DefaultRelationship = core::RelationshipDefinition{"", ""};
+  MINIFIAPI static constexpr auto DefaultRelationship = core::RelationshipDefinition{"undefined", ""};
   MINIFIAPI static constexpr auto Relationships = std::array{DefaultRelationship};
 
   MINIFIAPI static constexpr bool SupportsDynamicProperties = false;

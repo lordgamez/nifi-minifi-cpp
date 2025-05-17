@@ -239,7 +239,7 @@ def step_impl(context, port_name, rpg_name):
 def step_impl(context, port_name, destination_name):
     destination = context.test.get_node_by_name(destination_name)
     output_port_node = context.test.get_node_by_name(port_name)
-    output_port_node.out_proc.connect({"": destination})
+    output_port_node.out_proc.connect({"undefined": destination})
 
 
 @given("the \"{relationship}\" relationship of the {source_name} is connected to the {destination_name}")

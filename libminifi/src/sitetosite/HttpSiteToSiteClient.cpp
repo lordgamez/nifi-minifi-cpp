@@ -353,7 +353,7 @@ void HttpSiteToSiteClient::closeTransaction(const utils::Identifier &transaction
     code = ResponseCode::CANCEL_TRANSACTION;
   } else {
     std::string directon = transaction->getDirection() == TransferDirection::RECEIVE ? "Receive" : "Send";
-    logger_->log_error("Transaction {} to be closed is in unexpected state. Direction: {}, tranfers: {}, bytes: {}, state: {}",
+    logger_->log_error("Transaction {} to be closed is in unexpected state. Direction: {}, transfers: {}, bytes: {}, state: {}",
         transaction_id.to_string(), directon, transaction->getTotalTransfers(), transaction->getBytes(), magic_enum::enum_underlying(transaction->getState()));
   }
 

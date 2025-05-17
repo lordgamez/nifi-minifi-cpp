@@ -660,7 +660,7 @@ std::pair<uint64_t, uint64_t> SiteToSiteClient::readFlowFiles(const std::shared_
         logger_->log_debug("received {} with expected {}", flow_file->getSize(), packet.size);
       }
     }
-    core::Relationship relation{"", ""};
+    core::Relationship relation{"undefined", ""};
     auto end_time = std::chrono::steady_clock::now();
     std::string transitUri = peer_->getURL() + "/" + source_identifier;
     std::string details = "urn:nifi:" + source_identifier + "Remote Host=" + peer_->getHostName();
