@@ -185,7 +185,7 @@ static constexpr std::array<ResponseCodeContext, 21> respond_code_contexts = {{
 
 class Transaction {
  public:
-  explicit Transaction(TransferDirection direction, org::apache::nifi::minifi::io::CRCStream<SiteToSitePeer> &&stream)
+  explicit Transaction(TransferDirection direction, io::CRCStream<SiteToSitePeer> &&stream)
       : closed_(false),
         crc_stream_(std::move(stream)),
         uuid_(utils::IdGenerator::getIdGenerator()->generate()) {
@@ -239,7 +239,7 @@ class Transaction {
     crc_stream_.updateCRC(buffer, length);
   }
 
-  org::apache::nifi::minifi::io::CRCStream<SiteToSitePeer>& getStream() {
+  io::CRCStream<SiteToSitePeer>& getStream() {
     return crc_stream_;
   }
 
@@ -291,7 +291,7 @@ class Transaction {
   TransactionState state_;
   bool closed_;
   bool data_available_;
-  org::apache::nifi::minifi::io::CRCStream<SiteToSitePeer> crc_stream_;
+  io::CRCStream<SiteToSitePeer> crc_stream_;
 
  private:
   TransferDirection direction_;

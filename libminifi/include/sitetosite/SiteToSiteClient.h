@@ -30,6 +30,7 @@
 #include "SiteToSite.h"
 #include "core/ProcessSession.h"
 #include "core/ProcessContext.h"
+#include "sitetosite/CompressionOutputStream.h"
 
 namespace org::apache::nifi::minifi {
 
@@ -138,7 +139,7 @@ class SiteToSiteClient {
   virtual bool writeResponse(const std::shared_ptr<Transaction> &transaction, const SiteToSiteResponse& response);
 
   bool initializeSend(const std::shared_ptr<Transaction>& transaction);
-  bool writeAttributesInSendTransaction(const std::shared_ptr<Transaction>& transaction, const std::map<std::string, std::string>& attributes);
+  bool writeAttributesInSendTransaction(io::CRCStream<io::OutputStream>& stream, const::std::string& transaction_id_str, const std::map<std::string, std::string>& attributes);
   void finalizeSendTransaction(const std::shared_ptr<Transaction>& transaction, uint64_t sent_bytes);
   bool sendPacket(const DataPacket& packet);
   bool sendFlowFile(const std::shared_ptr<Transaction>& transaction, core::FlowFile& flow_file, core::ProcessSession& session);

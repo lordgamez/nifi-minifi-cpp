@@ -420,23 +420,22 @@ bool SiteToSiteClient::initializeSend(const std::shared_ptr<Transaction>& transa
   return true;
 }
 
-bool SiteToSiteClient::writeAttributesInSendTransaction(const std::shared_ptr<Transaction>& transaction, const std::map<std::string, std::string>& attributes) {
-  auto transaction_id = transaction->getUUID();
-  if (const auto ret = transaction->getStream().write(gsl::narrow<uint32_t>(attributes.size())); ret != 4) {
+bool SiteToSiteClient::writeAttributesInSendTransaction(io::CRCStream<io::OutputStream>& stream, const::std::string& transaction_id_str, const std::map<std::string, std::string>& attributes) {
+  if (const auto ret = stream.write(gsl::narrow<uint32_t>(attributes.size())); ret != 4) {
     logger_->log_error("Failed to write number of attributes!");
     return false;
   }
 
   for (const auto& attribute : attributes) {
-    if (const auto ret = transaction->getStream().write(attribute.first, true); ret == 0 || io::isError(ret)) {
+    if (const auto ret = stream.write(attribute.first, true); ret == 0 || io::isError(ret)) {
       logger_->log_error("Failed to write attribute key {}!", attribute.first);
       return false;
     }
-    if (const auto ret = transaction->getStream().write(attribute.second, true); ret == 0 || io::isError(ret)) {
+    if (const auto ret = stream.write(attribute.second, true); ret == 0 || io::isError(ret)) {
       logger_->log_error("Failed to write attribute value {}!", attribute.second);
       return false;
     }
-    logger_->log_debug("Site2Site transaction {} send attribute key {} value {}", transaction_id.to_string(), attribute.first, attribute.second);
+    logger_->log_debug("Site2Site transaction {} send attribute key {} value {}", transaction_id_str, attribute.first, attribute.second);
   }
 
   return true;
@@ -448,7 +447,7 @@ void SiteToSiteClient::finalizeSendTransaction(const std::shared_ptr<Transaction
   transaction->setState(TransactionState::DATA_EXCHANGED);
   transaction->addBytes(sent_bytes);
 
-  logger_->log_info("Site to Site transaction {} sent flow {} flow records, with total size {}", transaction->getUUID().to_string(), transaction->getTotalTransfers(), transaction->getBytes());
+  logger_->log_info("Site to Site transaction {} sent flow {} flow records, with total size {}", transaction->getUUIDStr(), transaction->getTotalTransfers(), transaction->getBytes());
 }
 
 bool SiteToSiteClient::sendFlowFile(const std::shared_ptr<Transaction>& transaction, core::FlowFile& flow_file, core::ProcessSession& session) {
@@ -456,8 +455,15 @@ bool SiteToSiteClient::sendFlowFile(const std::shared_ptr<Transaction>& transact
     return false;
   }
 
+  std::unique_ptr<CompressionOutputStream> compression_stream;
+  if (use_compression_) {
+    compression_stream = std::make_unique<CompressionOutputStream>(gsl::make_not_null(&transaction->getStream()));
+  }
+  io::OutputStream& out_stream = use_compression_ ?  static_cast<io::OutputStream&>(*compression_stream) : static_cast<io::OutputStream&>(transaction->getStream());
+  io::CRCStream<io::OutputStream> stream(gsl::make_not_null(&out_stream));
+
   auto attributes = flow_file.getAttributes();
-  if (!writeAttributesInSendTransaction(transaction, attributes)) {
+  if (!writeAttributesInSendTransaction(stream, transaction->getUUIDStr(), attributes)) {
     return false;
   }
 
@@ -473,14 +479,14 @@ bool SiteToSiteClient::sendFlowFile(const std::shared_ptr<Transaction>& transact
   uint64_t len = 0;
   if (flowfile_has_content) {
     len = flow_file.getSize();
-    const auto ret = transaction->getStream().write(len);
+    const auto ret = stream.write(len);
     if (ret != 8) {
       logger_->log_debug("Failed to write content size!");
       return false;
     }
     if (flow_file.getSize() > 0) {
-      auto read_result = session.read(flow_file, [&transaction](const std::shared_ptr<io::InputStream>& input_stream) -> int64_t {
-        return internal::pipe(*input_stream, transaction->getStream());
+      auto read_result = session.read(flow_file, [&stream](const std::shared_ptr<io::InputStream>& input_stream) -> int64_t {
+        return internal::pipe(*input_stream, stream);
       });
       if (flow_file.getSize() != gsl::narrow<uint64_t>(read_result)) {
         logger_->log_debug("Mismatched sizes {} {}", flow_file.getSize(), read_result);
@@ -490,11 +496,16 @@ bool SiteToSiteClient::sendFlowFile(const std::shared_ptr<Transaction>& transact
       logger_->log_trace("Flowfile empty {}", flow_file.getResourceClaim()->getContentFullPath());
     }
   } else {
-    const auto ret = transaction->getStream().write(len);  // Indicate zero length
+    const auto ret = stream.write(len);  // Indicate zero length
     if (ret != 8) {
       logger_->log_debug("Failed to write content size (0)!");
       return false;
     }
+  }
+
+  if (compression_stream) {
+    compression_stream->flush();
+    transaction->getStream().setCrc(stream.getCRC());
   }
 
   finalizeSendTransaction(transaction, len);
@@ -506,22 +517,34 @@ bool SiteToSiteClient::sendPacket(const DataPacket& packet) {
     return false;
   }
 
+  std::unique_ptr<CompressionOutputStream> compression_stream;
+  if (use_compression_) {
+    compression_stream = std::make_unique<CompressionOutputStream>(gsl::make_not_null(&packet.transaction->getStream()));
+  }
+  io::OutputStream& out_stream = use_compression_ ?  static_cast<io::OutputStream&>(*compression_stream) : static_cast<io::OutputStream&>(packet.transaction->getStream());
+  io::CRCStream<io::OutputStream> stream(gsl::make_not_null(&out_stream));
+
   auto transaction = packet.transaction;
-  if (!writeAttributesInSendTransaction(transaction, packet.attributes)) {
+  if (!writeAttributesInSendTransaction(stream, transaction->getUUIDStr(), packet.attributes)) {
     return false;
   }
 
   uint64_t len = 0;
   if (packet.payload.length() > 0) {
     len = packet.payload.length();
-    if (const auto ret = transaction->getStream().write(len); ret != 8) {
+    if (const auto ret = stream.write(len); ret != 8) {
       logger_->log_debug("Failed to write payload size!");
       return false;
     }
-    if (const auto ret = transaction->getStream().write(reinterpret_cast<const uint8_t*>(packet.payload.c_str()), gsl::narrow<size_t>(len)); ret != gsl::narrow<size_t>(len)) {
+    if (const auto ret = stream.write(reinterpret_cast<const uint8_t*>(packet.payload.c_str()), gsl::narrow<size_t>(len)); ret != gsl::narrow<size_t>(len)) {
       logger_->log_debug("Failed to write payload!");
       return false;
     }
+  }
+
+  if (compression_stream) {
+    compression_stream->flush();
+    transaction->getStream().setCrc(stream.getCRC());
   }
 
   finalizeSendTransaction(transaction, len);
@@ -534,7 +557,7 @@ bool SiteToSiteClient::readFlowFileHeaderData(const std::shared_ptr<Transaction>
     return false;
   }
 
-  const auto transaction_id_str = transaction->getUUID().to_string();
+  const auto transaction_id_str = transaction->getUUIDStr();
   logger_->log_debug("Site2Site transaction {} receives {} attributes", transaction_id_str, num_attributes);
   for (uint64_t i = 0; i < num_attributes; i++) {
     std::string key;
@@ -569,7 +592,7 @@ std::optional<SiteToSiteClient::ReceiveFlowFileHeaderResult> SiteToSiteClient::r
     return std::nullopt;
   }
 
-  const auto transaction_id_str = transaction->getUUID().to_string();
+  const auto transaction_id_str = transaction->getUUIDStr();
   if (transaction->getState() != TransactionState::TRANSACTION_STARTED && transaction->getState() != TransactionState::DATA_EXCHANGED) {
     logger_->log_warn("Site2Site transaction {} is not at started or exchanged state", transaction_id_str);
     return std::nullopt;
@@ -643,7 +666,7 @@ std::pair<uint64_t, uint64_t> SiteToSiteClient::readFlowFiles(const std::shared_
 
     auto receive_header_result = receiveFlowFileHeader(transaction);
     if (!receive_header_result) {
-      throw Exception(SITE2SITE_EXCEPTION, "Receive Failed " + transaction->getUUID().to_string());
+      throw Exception(SITE2SITE_EXCEPTION, "Receive Failed " + transaction->getUUIDStr());
     }
 
     if (receive_header_result->eof) {

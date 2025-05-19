@@ -182,7 +182,7 @@ class SiteToSitePeer : public org::apache::nifi::minifi::io::BaseStreamImpl {
   bool open();
   void close() override;
 
- private:
+ protected:
   std::unique_ptr<org::apache::nifi::minifi::io::BaseStream> stream_;
   std::string host_;
   uint16_t port_;

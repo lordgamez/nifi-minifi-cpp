@@ -73,15 +73,16 @@ class ZlibCompressStream : public ZlibBaseStream {
   ~ZlibCompressStream() override;
 
   using OutputStream::write;
+
+  using FlushMode = int;
   size_t write(const uint8_t* value, size_t size) override;
+  size_t write(const uint8_t* value, size_t size, FlushMode mode);
 
   void close() override;
 
  protected:
   ZlibCompressStream(gsl::not_null<OutputStream*> output, ZlibCompressionFormat format, int level, std::shared_ptr<core::logging::Logger> logger);
 
-  using FlushMode = int;
-  size_t write(const uint8_t* value, size_t size, FlushMode mode);
 
   std::shared_ptr<core::logging::Logger> logger_;
 };

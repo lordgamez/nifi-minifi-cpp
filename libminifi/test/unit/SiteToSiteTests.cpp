@@ -74,11 +74,12 @@ void initializeMockBootstrapResponses(const std::unique_ptr<SiteToSiteResponder>
   collector->push_response(resp_code);
 }
 
-void verifyBootstrapMessages(sitetosite::RawSiteToSiteClient& protocol, SiteToSiteResponder& collector) {
+void verifyBootstrapMessages(sitetosite::RawSiteToSiteClient& protocol, SiteToSiteResponder& collector, bool use_compression) {
   protocol.setUseCompression(false);
   protocol.setBatchDuration(std::chrono::milliseconds(100));
   protocol.setBatchCount(5);
   protocol.setTimeout(std::chrono::milliseconds(20000));
+  protocol.setUseCompression(use_compression);
 
   minifi::utils::Identifier fake_uuid = minifi::utils::Identifier::parse("C56A4180-65AA-42EC-A945-5FD21DEC0538").value();
   protocol.setPortId(fake_uuid);
@@ -105,7 +106,7 @@ void verifyBootstrapMessages(sitetosite::RawSiteToSiteClient& protocol, SiteToSi
   collector.get_next_client_response();
   REQUIRE(collector.get_next_client_response() == "GZIP");
   collector.get_next_client_response();
-  REQUIRE(collector.get_next_client_response() == "false");
+  REQUIRE(collector.get_next_client_response() == (use_compression ? "true" : "false"));
   collector.get_next_client_response();
   REQUIRE(collector.get_next_client_response() == "PORT_IDENTIFIER");
   collector.get_next_client_response();
@@ -148,14 +149,23 @@ TEST_CASE("TestSiteToSiteVerifySend using data packet", "[S2S]") {
   auto peer = std::make_unique<sitetosite::SiteToSitePeer>(std::move(collector), "fake_host", 65433, "");
   sitetosite::RawSiteToSiteClient protocol(std::move(peer));
 
+  bool use_compression = false;
   std::vector<std::string> expected_responses;
   std::string payload = "Test MiNiFi payload";
 
-  expected_responses.push_back("");  // attribute count 0
-  expected_responses.push_back("");  // payload length
-  expected_responses.push_back(payload);
+  SECTION("Do not use compression") {
+    use_compression = false;
+    expected_responses.push_back("");  // attribute count 0
+    expected_responses.push_back("");  // payload length
+    expected_responses.push_back(payload);
+  }
 
-  verifyBootstrapMessages(protocol, *collector_ptr);
+  SECTION("Use compression") {
+    use_compression = true;
+    expected_responses.push_back("SYNC");
+  }
+
+  verifyBootstrapMessages(protocol, *collector_ptr, use_compression);
 
   // start to send the stuff
   auto transaction = SiteToSiteClientTestAccessor::createTransaction(protocol, sitetosite::TransferDirection::SEND);
@@ -178,20 +188,29 @@ TEST_CASE("TestSiteToSiteVerifySend using flowfile data", "[S2S]") {
   auto peer = std::make_unique<sitetosite::SiteToSitePeer>(std::move(collector), "fake_host", 65433, "");
   sitetosite::RawSiteToSiteClient protocol(std::move(peer));
 
+  bool use_compression = false;
   std::vector<std::string> expected_responses;
   std::string payload = "Test MiNiFi payload";
 
-  expected_responses.push_back("");  // attribute count
-  expected_responses.push_back("");  // attribute key length
-  expected_responses.push_back("filename");
-  expected_responses.push_back("");  // attribute value length
-  expected_responses.push_back("myfile");
-  expected_responses.push_back("");  // attribute key length
-  expected_responses.push_back("flow.id");
-  expected_responses.push_back("");  // attribute value length
-  expected_responses.push_back("test");
-  expected_responses.push_back("");  // payload length
-  expected_responses.push_back(payload);
+  SECTION("Do not use compression") {
+    use_compression = false;
+    expected_responses.push_back("");  // attribute count
+    expected_responses.push_back("");  // attribute key length
+    expected_responses.push_back("filename");
+    expected_responses.push_back("");  // attribute value length
+    expected_responses.push_back("myfile");
+    expected_responses.push_back("");  // attribute key length
+    expected_responses.push_back("flow.id");
+    expected_responses.push_back("");  // attribute value length
+    expected_responses.push_back("test");
+    expected_responses.push_back("");  // payload length
+    expected_responses.push_back(payload);
+  }
+
+  SECTION("Use compression") {
+    use_compression = true;
+    expected_responses.push_back("SYNC");
+  }
 
   protocol.setBatchDuration(std::chrono::milliseconds(100));
   protocol.setBatchCount(5);
@@ -200,7 +219,7 @@ TEST_CASE("TestSiteToSiteVerifySend using flowfile data", "[S2S]") {
   auto fake_uuid = minifi::utils::Identifier::parse("C56A4180-65AA-42EC-A945-5FD21DEC0538").value();
   protocol.setPortId(fake_uuid);
 
-  verifyBootstrapMessages(protocol, *collector_ptr);
+  verifyBootstrapMessages(protocol, *collector_ptr, use_compression);
 
   // start to send the stuff
   auto transaction = SiteToSiteClientTestAccessor::createTransaction(protocol, sitetosite::TransferDirection::SEND);
@@ -306,7 +325,7 @@ TEST_CASE("Test receiving flow file through site to site", "[S2S]") {
   auto peer = std::make_unique<sitetosite::SiteToSitePeer>(std::move(collector), "fake_host", 65433, "");
   sitetosite::RawSiteToSiteClient protocol(std::move(peer));
 
-  verifyBootstrapMessages(protocol, *collector_ptr);
+  verifyBootstrapMessages(protocol, *collector_ptr, false);
 
   std::shared_ptr<sitetosite::Transaction> transaction;
   transaction = SiteToSiteClientTestAccessor::createTransaction(protocol, sitetosite::TransferDirection::RECEIVE);

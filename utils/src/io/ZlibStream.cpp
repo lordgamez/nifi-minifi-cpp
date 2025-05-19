@@ -100,7 +100,7 @@ size_t ZlibCompressStream::write(const uint8_t* value, size_t size, FlushMode mo
     logger_->log_trace("calling deflate with flush {}", mode);
 
     int ret = deflate(&strm_, mode);
-    if (ret == Z_STREAM_ERROR) {
+    if (ret < 0) {
       logger_->log_error("deflate failed, error code: {}", ret);
       state_ = ZlibStreamState::ERRORED;
       return STREAM_ERROR;
@@ -170,16 +170,13 @@ size_t ZlibDecompressStream::write(const uint8_t* value, size_t size) {
     strm_.avail_out = gsl::narrow<uInt>(outputBuffer_.size());
 
     ret = inflate(&strm_, Z_NO_FLUSH);
-    if (ret == Z_STREAM_ERROR ||
-        ret == Z_NEED_DICT ||
-        ret == Z_DATA_ERROR ||
-        ret == Z_MEM_ERROR) {
+    if (ret < 0) {
       logger_->log_error("inflate failed, error code: {}", ret);
       state_ = ZlibStreamState::ERRORED;
       return STREAM_ERROR;
     }
     const auto output_size = outputBuffer_.size() - strm_.avail_out;
-    logger_->log_trace("deflate produced {} B of output data", output_size);
+    logger_->log_trace("inflate produced {} B of output data", output_size);
     if (output_->write(gsl::make_span(outputBuffer_).subspan(0, output_size)) != output_size) {
       logger_->log_error("Failed to write to underlying stream");
       state_ = ZlibStreamState::ERRORED;
