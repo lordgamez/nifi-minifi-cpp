@@ -26,7 +26,7 @@ static constexpr std::array<char, 4> SYNC_BYTES = { 'S', 'Y', 'N', 'C' };
 class CompressingSiteToSitePeer : public SiteToSitePeer {
  public:
   CompressingSiteToSitePeer(std::unique_ptr<org::apache::nifi::minifi::io::BaseStream> injected_socket, const std::string& host, uint16_t port, const std::string& ifc)
-      : SiteToSitePeer(injected_socket, host, port, ifc) {
+      : SiteToSitePeer(std::move(injected_socket), host, port, ifc) {
   }
 
   CompressingSiteToSitePeer(const std::string& host, uint16_t port, const std::string& ifc)

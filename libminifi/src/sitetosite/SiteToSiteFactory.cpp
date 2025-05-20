@@ -24,6 +24,7 @@
 #include "sitetosite/HttpSiteToSiteClient.h"
 #include "utils/net/AsioSocketUtils.h"
 #include "core/ClassLoader.h"
+#include "sitetosite/CompressingSiteToSitePeer.h"
 
 namespace org::apache::nifi::minifi::sitetosite {
 
@@ -31,6 +32,9 @@ namespace {
 std::unique_ptr<SiteToSitePeer> createStreamingPeer(const SiteToSiteClientConfiguration &client_configuration) {
   utils::net::SocketData socket_data{client_configuration.getHost(), client_configuration.getPort(), client_configuration.getSecurityContext()};
   auto connection = std::make_unique<utils::net::AsioSocketConnection>(socket_data);
+  if (client_configuration.getUseCompression()) {
+    return std::make_unique<CompressingSiteToSitePeer>(std::move(connection), client_configuration.getHost(), client_configuration.getPort(), client_configuration.getInterface());
+  }
   return std::make_unique<SiteToSitePeer>(std::move(connection), client_configuration.getHost(), client_configuration.getPort(), client_configuration.getInterface());
 }
 
@@ -59,7 +63,12 @@ std::unique_ptr<SiteToSiteClient> createRawSocketSiteToSiteClient(const SiteToSi
 }
 
 std::unique_ptr<SiteToSiteClient> createHttpSiteToSiteClient(const SiteToSiteClientConfiguration &client_configuration) {
-  auto peer = std::make_unique<SiteToSitePeer>(client_configuration.getHost(), client_configuration.getPort(), client_configuration.getInterface());
+  std::unique_ptr<SiteToSitePeer> peer;
+  if (client_configuration.getUseCompression()) {
+    peer = std::make_unique<CompressingSiteToSitePeer>(client_configuration.getHost(), client_configuration.getPort(), client_configuration.getInterface());
+  } else {
+    peer = std::make_unique<SiteToSitePeer>(client_configuration.getHost(), client_configuration.getPort(), client_configuration.getInterface());
+  }
   peer->setHTTPProxy(client_configuration.getHTTPProxy());
 
   auto http_site_to_site_client = std::make_unique<HttpSiteToSiteClient>(std::move(peer));
