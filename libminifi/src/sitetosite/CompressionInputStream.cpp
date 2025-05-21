@@ -15,27 +15,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#pragma once
-
-#include "sitetosite/Peer.h"
+#include "sitetosite/CompressionInputStream.h"
 
 namespace org::apache::nifi::minifi::sitetosite {
 
-static constexpr std::array<char, 4> SYNC_BYTES = { 'S', 'Y', 'N', 'C' };
+size_t CompressionInputStream::read(std::span<std::byte> /*out_buffer*/) {
+  return 0;
+}
 
-class CompressingSiteToSitePeer : public SiteToSitePeer {
- public:
-  CompressingSiteToSitePeer(std::unique_ptr<org::apache::nifi::minifi::io::BaseStream> injected_socket, const std::string& host, uint16_t port, const std::string& ifc)
-      : SiteToSitePeer(std::move(injected_socket), host, port, ifc) {
-  }
+void CompressionInputStream::close() {
 
-  CompressingSiteToSitePeer(const std::string& host, uint16_t port, const std::string& ifc)
-      : SiteToSitePeer(host, port, ifc) {
-  }
-
-  size_t write(const uint8_t* data, size_t len) override;
-  size_t read(std::span<std::byte> data) override;
-  void close() override;
-};
+}
 
 }  // namespace org::apache::nifi::minifi::sitetosite
