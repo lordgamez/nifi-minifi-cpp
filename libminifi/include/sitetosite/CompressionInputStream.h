@@ -24,10 +24,11 @@ namespace org::apache::nifi::minifi::sitetosite {
 
 class CompressionInputStream : public io::InputStreamImpl {
  public:
+  static constexpr size_t DEFAULT_BUFFER_SIZE = 65536;
   static constexpr std::array<char, 4> SYNC_BYTES = { 'S', 'Y', 'N', 'C' };
 
-  CompressionInputStream(std::unique_ptr<io::BaseStream> internal_stream)
-      : internal_stream_(std::move(internal_stream)) {
+  CompressionInputStream(gsl::not_null<io::BaseStream*> internal_stream)
+      : internal_stream_(internal_stream) {
   }
 
   using io::InputStream::read;
@@ -37,7 +38,9 @@ class CompressionInputStream : public io::InputStreamImpl {
   void close() override;
 
  private:
-  std::unique_ptr<io::BaseStream> internal_stream_;
+  gsl::not_null<io::BaseStream*> internal_stream_;
+  std::vector<std::byte> buffer_{};
+  size_t buffer_index_{0};
 };
 
 }  // namespace org::apache::nifi::minifi::sitetosite

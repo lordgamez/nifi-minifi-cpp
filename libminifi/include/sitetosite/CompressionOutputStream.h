@@ -19,16 +19,17 @@
 
 #include "io/OutputStream.h"
 #include "io/BaseStream.h"
+#include "utils/gsl.h"
 
 namespace org::apache::nifi::minifi::sitetosite {
 
-class CompressionOutputStream : public io::OutputStreamImpl {
+class CompressionOutputStream : public io::StreamImpl, public virtual io::OutputStreamImpl {
  public:
   static constexpr std::array<char, 4> SYNC_BYTES = { 'S', 'Y', 'N', 'C' };
   static constexpr size_t DEFAULT_BUFFER_SIZE = 65536;
 
-  CompressionOutputStream(std::unique_ptr<io::BaseStream> internal_stream)
-      : internal_stream_(std::move(internal_stream)) {
+  CompressionOutputStream(gsl::not_null<io::OutputStream*> internal_stream)
+      : internal_stream_(internal_stream) {
     buffer_.resize(DEFAULT_BUFFER_SIZE);
   }
 
@@ -38,12 +39,14 @@ class CompressionOutputStream : public io::OutputStreamImpl {
 
   void close() override;
 
+  void flush();
+
  private:
   size_t compressAndWrite();
 
   bool was_data_written_{false};
   size_t buffer_index_{0};
-  std::unique_ptr<io::BaseStream> internal_stream_;
+  gsl::not_null<io::OutputStream*> internal_stream_;
   std::vector<std::byte> buffer_{};
 };
 

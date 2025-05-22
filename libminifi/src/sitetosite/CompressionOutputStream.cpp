@@ -45,7 +45,7 @@ size_t CompressionOutputStream::write(const uint8_t *value, size_t len) {
 
 size_t CompressionOutputStream::compressAndWrite() {
   if (was_data_written_) {
-    auto ret = internal_stream_->write(static_cast<uint32_t>(1));
+    auto ret = internal_stream_->write(static_cast<uint8_t>(1));
     if (io::isError(ret)) {
       return ret;
     }
@@ -55,13 +55,16 @@ size_t CompressionOutputStream::compressAndWrite() {
     return ret;
   }
 
+  was_data_written_ = true;
+
   io::BufferStream buffer_stream;
   {
-    io::ZlibCompressStream zlib_stream{gsl::make_not_null(&buffer_stream), io::ZlibCompressionFormat::ZLIB, 1};
-    ret = zlib_stream.write(buffer_);
+    io::ZlibCompressStream zlib_stream{gsl::make_not_null(&buffer_stream), io::ZlibCompressionFormat::ZLIB, Z_BEST_SPEED};
+    ret = zlib_stream.write(reinterpret_cast<uint8_t*>(buffer_.data()), buffer_index_);
     if (io::isError(ret)) {
       return ret;
     }
+    zlib_stream.close();
   }
 
   ret = internal_stream_->write(gsl::narrow<uint32_t>(buffer_index_));
@@ -69,7 +72,8 @@ size_t CompressionOutputStream::compressAndWrite() {
     return ret;
   }
 
-  ret = internal_stream_->write(gsl::narrow<uint32_t>(buffer_stream.size()));
+  size_t buffer_stream_size = buffer_stream.size();
+  ret = internal_stream_->write(gsl::narrow<uint32_t>(buffer_stream_size));
   if (io::isError(ret)) {
     return ret;
   }
@@ -83,11 +87,19 @@ size_t CompressionOutputStream::compressAndWrite() {
   return ret;
 }
 
-void CompressionOutputStream::close() {
-  if (internal_stream_) {
-    internal_stream_->write(static_cast<uint32_t>(0));
-    internal_stream_->close();
+void CompressionOutputStream::flush() {
+  if (buffer_index_ > 0) {
+    // TODO: Check for errors
+    compressAndWrite();
   }
+  if (was_data_written_) {
+    internal_stream_->write(static_cast<uint8_t>(0));
+  }
+}
+
+void CompressionOutputStream::close() {
+  flush();
+  internal_stream_->close();
 }
 
 }  // namespace org::apache::nifi::minifi::sitetosite

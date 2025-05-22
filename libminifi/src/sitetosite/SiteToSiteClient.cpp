@@ -23,6 +23,7 @@
 
 #include "utils/gsl.h"
 #include "utils/Enum.h"
+#include "sitetosite/CompressionOutputStream.h"
 
 namespace org::apache::nifi::minifi::sitetosite {
 
@@ -418,17 +419,22 @@ bool SiteToSiteClient::send(const utils::Identifier& transaction_id, DataPacket*
     }
   }
   // start to read the packet
-  if (const auto ret = transaction->getStream().write(gsl::narrow<uint32_t>(packet->attributes.size())); ret != 4) {
+  std::unique_ptr<CompressionOutputStream> compression_stream;
+  if (use_compression_) {
+    compression_stream = std::make_unique<CompressionOutputStream>(gsl::make_not_null(&transaction->getStream()));
+  }
+  io::OutputStream& stream = use_compression_ ?  static_cast<io::OutputStream&>(*compression_stream) : static_cast<io::OutputStream&>(transaction->getStream());
+  if (const auto ret = stream.write(gsl::narrow<uint32_t>(packet->attributes.size())); ret != 4) {
     logger_->log_error("Failed to write number of attributes!");
     return false;
   }
 
   for (const auto& attribute : packet->attributes) {
-    if (const auto ret = transaction->getStream().write(attribute.first, true); ret == 0 || io::isError(ret)) {
+    if (const auto ret = stream.write(attribute.first, true); ret == 0 || io::isError(ret)) {
       logger_->log_error("Failed to write attribute key {}!", attribute.first);
       return false;
     }
-    if (const auto ret = transaction->getStream().write(attribute.second, true); ret == 0 || io::isError(ret)) {
+    if (const auto ret = stream.write(attribute.second, true); ret == 0 || io::isError(ret)) {
       logger_->log_error("Failed to write attribute value {}!", attribute.second);
       return false;
     }
@@ -450,14 +456,19 @@ bool SiteToSiteClient::send(const utils::Identifier& transaction_id, DataPacket*
   uint64_t len = 0;
   if (flow_file && flowfile_has_content && session) {
     len = flow_file->getSize();
-    const auto ret = transaction->getStream().write(len);
+    const auto ret = stream.write(len);
     if (ret != 8) {
       logger_->log_debug("Failed to write content size!");
       return false;
     }
     if (flow_file->getSize() > 0) {
-      session->read(flow_file, [packet](const std::shared_ptr<io::InputStream>& input_stream) -> int64_t {
-        const auto result = internal::pipe(*input_stream, packet->transaction->getStream());
+      session->read(flow_file, [this, packet, &transaction](const std::shared_ptr<io::InputStream>& input_stream) -> int64_t {
+        std::unique_ptr<CompressionOutputStream> compression_stream;
+        if (use_compression_) {
+          compression_stream = std::make_unique<CompressionOutputStream>(gsl::make_not_null(&transaction->getStream()));
+        }
+        io::OutputStream& stream = use_compression_ ?  static_cast<io::OutputStream&>(*compression_stream) : static_cast<io::OutputStream&>(transaction->getStream());
+        const auto result = internal::pipe(*input_stream, stream);
         if (result == -1) return false;
         packet->size = gsl::narrow<size_t>(result);
         return true;
@@ -476,21 +487,25 @@ bool SiteToSiteClient::send(const utils::Identifier& transaction_id, DataPacket*
     }
   } else if (packet->payload.length() > 0) {
     len = packet->payload.length();
-    if (const auto ret = transaction->getStream().write(len); ret != 8) {
+    if (const auto ret = stream.write(len); ret != 8) {
       logger_->log_debug("Failed to write payload size!");
       return false;
     }
-    if (const auto ret = transaction->getStream().write(reinterpret_cast<const uint8_t*>(packet->payload.c_str()), gsl::narrow<size_t>(len)); ret != gsl::narrow<size_t>(len)) {
+    if (const auto ret = stream.write(reinterpret_cast<const uint8_t*>(packet->payload.c_str()), gsl::narrow<size_t>(len)); ret != gsl::narrow<size_t>(len)) {
       logger_->log_debug("Failed to write payload!");
       return false;
     }
     packet->size += len;
   } else if (flow_file && !flowfile_has_content) {
-    const auto ret = transaction->getStream().write(len);  // Indicate zero length
+    const auto ret = stream.write(len);  // Indicate zero length
     if (ret != 8) {
       logger_->log_debug("Failed to write content size (0)!");
       return false;
     }
+  }
+
+  if (compression_stream) {
+    compression_stream->flush();
   }
 
   transaction->incrementCurrentTransfers();
