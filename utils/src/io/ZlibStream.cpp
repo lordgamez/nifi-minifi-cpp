@@ -100,7 +100,7 @@ size_t ZlibCompressStream::write(const uint8_t* value, size_t size, FlushMode mo
     logger_->log_trace("calling deflate with flush {}", mode);
 
     int ret = deflate(&strm_, mode);
-    if (ret < 0) {
+    if (ret == Z_STREAM_ERROR) {
       logger_->log_error("deflate failed, error code: {}", ret);
       state_ = ZlibStreamState::ERRORED;
       return STREAM_ERROR;
@@ -170,7 +170,10 @@ size_t ZlibDecompressStream::write(const uint8_t* value, size_t size) {
     strm_.avail_out = gsl::narrow<uInt>(outputBuffer_.size());
 
     ret = inflate(&strm_, Z_NO_FLUSH);
-    if (ret < 0) {
+    if (ret == Z_STREAM_ERROR ||
+        ret == Z_NEED_DICT ||
+        ret == Z_DATA_ERROR ||
+        ret == Z_MEM_ERROR) {
       logger_->log_error("inflate failed, error code: {}", ret);
       state_ = ZlibStreamState::ERRORED;
       return STREAM_ERROR;
