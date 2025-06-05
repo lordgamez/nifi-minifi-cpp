@@ -29,6 +29,7 @@ class CompressionInputStream : public io::InputStreamImpl {
 
   explicit CompressionInputStream(gsl::not_null<io::BaseStream*> internal_stream)
       : internal_stream_(internal_stream) {
+    buffer_.resize(DEFAULT_BUFFER_SIZE);
   }
 
   using io::InputStream::read;
@@ -38,9 +39,13 @@ class CompressionInputStream : public io::InputStreamImpl {
   void close() override;
 
  private:
+  int64_t decompressData();
+
+  bool eof_{false};
   gsl::not_null<io::BaseStream*> internal_stream_;
   std::vector<std::byte> buffer_{};
   size_t buffer_index_{0};
+  size_t buffered_data_length_{0};
 };
 
 }  // namespace org::apache::nifi::minifi::sitetosite
