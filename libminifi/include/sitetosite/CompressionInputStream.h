@@ -19,23 +19,19 @@
 
 #include "io/InputStream.h"
 #include "io/BufferStream.h"
+#include "CompressionConsts.h"
 
 namespace org::apache::nifi::minifi::sitetosite {
 
 class CompressionInputStream : public io::InputStreamImpl {
  public:
-  static constexpr size_t DEFAULT_BUFFER_SIZE = 65536;
-  static constexpr std::array<char, 4> SYNC_BYTES = { 'S', 'Y', 'N', 'C' };
-
   explicit CompressionInputStream(gsl::not_null<io::BaseStream*> internal_stream)
       : internal_stream_(internal_stream) {
-    buffer_.resize(DEFAULT_BUFFER_SIZE);
+    buffer_.resize(COMPRESSION_BUFFER_SIZE);
   }
 
   using io::InputStream::read;
-
   size_t read(std::span<std::byte> out_buffer) override;
-
   void close() override;
 
  private:

@@ -17,32 +17,12 @@
  */
 #pragma once
 
-#include "io/OutputStream.h"
-#include "io/BaseStream.h"
-#include "utils/gsl.h"
-#include "CompressionConsts.h"
+#include "io/InputStream.h"
+#include "io/BufferStream.h"
 
 namespace org::apache::nifi::minifi::sitetosite {
 
-class CompressionOutputStream : public io::StreamImpl, public virtual io::OutputStreamImpl {
- public:
-  explicit CompressionOutputStream(gsl::not_null<io::OutputStream*> internal_stream)
-      : internal_stream_(internal_stream) {
-    buffer_.resize(COMPRESSION_BUFFER_SIZE);
-  }
-
-  using io::OutputStream::write;
-  size_t write(const uint8_t *value, size_t len) override;
-  void close() override;
-  void flush();
-
- private:
-  size_t compressAndWrite();
-
-  bool was_data_written_{false};
-  size_t buffer_index_{0};
-  gsl::not_null<io::OutputStream*> internal_stream_;
-  std::vector<std::byte> buffer_{};
-};
+static constexpr size_t COMPRESSION_BUFFER_SIZE = 65536;
+static constexpr std::array<char, 4> SYNC_BYTES = { 'S', 'Y', 'N', 'C' };
 
 }  // namespace org::apache::nifi::minifi::sitetosite

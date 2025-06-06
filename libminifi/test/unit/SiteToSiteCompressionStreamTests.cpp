@@ -17,6 +17,7 @@
 #include "unit/Catch.h"
 #include "unit/TestBase.h"
 #include "sitetosite/CompressionOutputStream.h"
+#include "sitetosite/CompressionInputStream.h"
 #include "io/BufferStream.h"
 #include "io/ZlibStream.h"
 
@@ -26,10 +27,10 @@ void verifySyncBytes(io::BufferStream& buffer_stream) {
   std::vector<std::byte> data_buffer;
   data_buffer.resize(4);
   buffer_stream.read(std::span(data_buffer));
-  REQUIRE(std::to_integer<char>(data_buffer[0]) == sitetosite::CompressionOutputStream::SYNC_BYTES[0]);
-  REQUIRE(std::to_integer<char>(data_buffer[1]) == sitetosite::CompressionOutputStream::SYNC_BYTES[1]);
-  REQUIRE(std::to_integer<char>(data_buffer[2]) == sitetosite::CompressionOutputStream::SYNC_BYTES[2]);
-  REQUIRE(std::to_integer<char>(data_buffer[3]) == sitetosite::CompressionOutputStream::SYNC_BYTES[3]);
+  REQUIRE(std::to_integer<char>(data_buffer[0]) == sitetosite::SYNC_BYTES[0]);
+  REQUIRE(std::to_integer<char>(data_buffer[1]) == sitetosite::SYNC_BYTES[1]);
+  REQUIRE(std::to_integer<char>(data_buffer[2]) == sitetosite::SYNC_BYTES[2]);
+  REQUIRE(std::to_integer<char>(data_buffer[3]) == sitetosite::SYNC_BYTES[3]);
 }
 
 void verifyOriginalSize(io::BufferStream& buffer_stream, uint32_t expected_size) {
@@ -82,8 +83,8 @@ void verifyCompressedChunks(io::BufferStream& buffer_stream, uint32_t expected_s
   uint32_t size_processed = 0;
   while (size_processed < expected_size) {
     uint32_t current_size_to_read = 0;
-    if (expected_size - size_processed > sitetosite::CompressionOutputStream::DEFAULT_BUFFER_SIZE) {
-      current_size_to_read = sitetosite::CompressionOutputStream::DEFAULT_BUFFER_SIZE;
+    if (expected_size - size_processed > sitetosite::COMPRESSION_BUFFER_SIZE) {
+      current_size_to_read = sitetosite::COMPRESSION_BUFFER_SIZE;
     } else {
       current_size_to_read = expected_size - size_processed;
     }
@@ -165,6 +166,50 @@ TEST_CASE("Write 3 chunks of compressed data and flush on demand", "[Compression
   output_stream.close();
 
   verifyCompressedChunks(buffer_stream, 160000);
+}
+
+TEST_CASE("Read single 4 byte integer compressed", "[CompressionOutputStream]") {
+  io::BufferStream buffer_stream;
+  sitetosite::CompressionOutputStream output_stream(gsl::make_not_null(&buffer_stream));
+  output_stream.write(static_cast<uint32_t>(42));
+  output_stream.flush();
+  sitetosite::CompressionInputStream input_stream(gsl::make_not_null(&buffer_stream));
+  uint32_t read_byte{};
+  input_stream.read(read_byte);
+  REQUIRE(read_byte == 42);
+}
+
+TEST_CASE("Read large number of bytes compressed", "[CompressionOutputStream]") {
+  io::BufferStream buffer_stream;
+  sitetosite::CompressionOutputStream output_stream(gsl::make_not_null(&buffer_stream));
+  for (size_t i = 0; i < 10000; ++i) {
+    output_stream.write(static_cast<uint32_t>(42));
+  }
+  output_stream.flush();
+  sitetosite::CompressionInputStream input_stream(gsl::make_not_null(&buffer_stream));
+  for (size_t i = 0; i < 10000; ++i) {
+    uint32_t read_byte{};
+    input_stream.read(read_byte);
+    CHECK(read_byte == 42);
+  }
+}
+
+TEST_CASE("Read large number of bytes that uses multiple buffers", "[CompressionOutputStream]") {
+  io::BufferStream buffer_stream;
+  sitetosite::CompressionOutputStream output_stream(gsl::make_not_null(&buffer_stream));
+  uint32_t count = 0;
+  while (buffer_stream.size() + 100 < sitetosite::COMPRESSION_BUFFER_SIZE) {
+    ++count;
+    output_stream.write(count);
+  }
+  output_stream.flush();
+
+  sitetosite::CompressionInputStream input_stream(gsl::make_not_null(&buffer_stream));
+  for (size_t i = 1; i <= count; ++i) {
+    uint32_t read_byte{};
+    input_stream.read(read_byte);
+    CHECK(read_byte == i);
+  }
 }
 
 }  // namespace org::apache::nifi::minifi::test

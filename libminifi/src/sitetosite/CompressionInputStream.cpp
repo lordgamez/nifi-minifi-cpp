@@ -25,38 +25,34 @@ int64_t CompressionInputStream::decompressData() {
     return 0;
   }
 
-  std::vector<std::byte> local_buffer(DEFAULT_BUFFER_SIZE);
+  std::vector<std::byte> local_buffer(COMPRESSION_BUFFER_SIZE);
   auto ret = internal_stream_->read(std::span(local_buffer).subspan(0, SYNC_BYTES.size()));
   if (ret != SYNC_BYTES.size() ||
       !std::equal(SYNC_BYTES.begin(), SYNC_BYTES.end(), local_buffer.begin(), [](char sync_char, std::byte read_byte) { return static_cast<std::byte>(sync_char) == read_byte;})) {
     return io::STREAM_ERROR;
   }
 
-  ret = internal_stream_->read(std::span(local_buffer).subspan(0, 4));
-  if (io::isError(ret) || ret != 4) {
-    return io::STREAM_ERROR;
-  }
-
   uint32_t original_size = 0;
-  std::memcpy(&original_size, local_buffer.data(), sizeof(uint32_t));
-
-  ret = internal_stream_->read(std::span(local_buffer).subspan(0, 4));
+  ret = internal_stream_->read(original_size);
   if (io::isError(ret) || ret != 4) {
     return io::STREAM_ERROR;
   }
 
   uint32_t compressed_size = 0;
-  std::memcpy(&compressed_size, local_buffer.data(), sizeof(uint32_t));
-
-  size_t bytes_read = internal_stream_->read(std::span(local_buffer).subspan(0, compressed_size));
-  if (io::isError(bytes_read) || bytes_read != compressed_size) {
+  ret = internal_stream_->read(compressed_size);
+  if (io::isError(ret) || ret != 4) {
     return io::STREAM_ERROR;
   }
 
-  io::BufferStream buffer_stream;
+  ret = internal_stream_->read(std::span(local_buffer).subspan(0, compressed_size));
+  if (io::isError(ret) || ret != compressed_size) {
+    return io::STREAM_ERROR;
+  }
+
+  io::BufferStream decompressed_data_stream;
   {
-    io::ZlibDecompressStream zlib_stream{gsl::make_not_null(&buffer_stream), io::ZlibCompressionFormat::ZLIB};
-    ret = zlib_stream.write(gsl::make_span(buffer_).subspan(0, bytes_read));
+    io::ZlibDecompressStream zlib_stream{gsl::make_not_null(&decompressed_data_stream), io::ZlibCompressionFormat::ZLIB};
+    ret = zlib_stream.write(std::span(local_buffer).subspan(0, compressed_size));
     if (io::isError(ret)) {
       return ret;
     }
@@ -64,13 +60,16 @@ int64_t CompressionInputStream::decompressData() {
     gsl_Assert(zlib_stream.isFinished());
   }
 
-  ret = internal_stream_->read(std::span(local_buffer).subspan(0, 1));
-  if (io::isError(ret) || ret != 1) {
+  ret = decompressed_data_stream.read(std::span(buffer_).subspan(0, original_size));
+  if (io::isError(ret) || ret != original_size) {
     return io::STREAM_ERROR;
   }
 
   uint8_t end_byte = 0;
-  std::memcpy(&end_byte, local_buffer.data(), sizeof(uint8_t));
+  ret = internal_stream_->read(end_byte);
+  if (io::isError(ret) || ret != 1) {
+    return io::STREAM_ERROR;
+  }
 
   if (end_byte == 0) {
     eof_ = true;
@@ -78,9 +77,9 @@ int64_t CompressionInputStream::decompressData() {
     return io::STREAM_ERROR;
   }
 
-  buffered_data_length_ = bytes_read;
+  buffered_data_length_ = original_size;
   buffer_index_ = 0;
-  return bytes_read;
+  return original_size;
 }
 
 size_t CompressionInputStream::read(std::span<std::byte> out_buffer) {
@@ -91,7 +90,10 @@ size_t CompressionInputStream::read(std::span<std::byte> out_buffer) {
   size_t bytes_to_read = out_buffer.size();
   while (bytes_to_read > 0) {
     if (buffered_data_length_ == 0) {
-      decompressData();
+      auto ret = decompressData();
+      if (io::isError(ret)) {
+        return io::STREAM_ERROR;
+      }
     }
     uint64_t bytes_available = buffered_data_length_ - buffer_index_;
     if (bytes_available == 0) {
@@ -105,12 +107,11 @@ size_t CompressionInputStream::read(std::span<std::byte> out_buffer) {
     } else {
       std::memcpy(out_buffer.data(), reinterpret_cast<const uint8_t*>(buffer_.data()) + buffer_index_, bytes_to_read);
       buffer_index_ += bytes_to_read;
-      buffered_data_length_ -= bytes_to_read;
       bytes_to_read = 0;
     }
   }
 
-  return 0;
+  return out_buffer.size();
 }
 
 void CompressionInputStream::close() {
