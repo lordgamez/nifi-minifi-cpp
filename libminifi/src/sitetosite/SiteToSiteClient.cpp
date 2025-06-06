@@ -23,6 +23,8 @@
 
 #include "utils/gsl.h"
 #include "utils/Enum.h"
+#include "sitetosite/CompressionOutputStream.h"
+#include "sitetosite/CompressionInputStream.h"
 
 namespace org::apache::nifi::minifi::sitetosite {
 
@@ -420,7 +422,7 @@ bool SiteToSiteClient::initializeSend(const std::shared_ptr<Transaction>& transa
   return true;
 }
 
-bool SiteToSiteClient::writeAttributesInSendTransaction(io::CRCStream<io::OutputStream>& stream, const::std::string& transaction_id_str, const std::map<std::string, std::string>& attributes) {
+bool SiteToSiteClient::writeAttributesInSendTransaction(io::OutputStream& stream, const::std::string& transaction_id_str, const std::map<std::string, std::string>& attributes) {
   if (const auto ret = stream.write(gsl::narrow<uint32_t>(attributes.size())); ret != 4) {
     logger_->log_error("Failed to write number of attributes!");
     return false;
@@ -551,22 +553,21 @@ bool SiteToSiteClient::sendPacket(const DataPacket& packet) {
   return true;
 }
 
-bool SiteToSiteClient::readFlowFileHeaderData(const std::shared_ptr<Transaction>& transaction, SiteToSiteClient::ReceiveFlowFileHeaderResult& result) {
+bool SiteToSiteClient::readFlowFileHeaderData(io::InputStream& stream, const std::string& transaction_id_str, SiteToSiteClient::ReceiveFlowFileHeaderResult& result) {
   uint32_t num_attributes = 0;
-  if (const auto ret = transaction->getStream().read(num_attributes); ret == 0 || io::isError(ret) || num_attributes > MAX_NUM_ATTRIBUTES) {
+  if (const auto ret = stream.read(num_attributes); ret == 0 || io::isError(ret) || num_attributes > MAX_NUM_ATTRIBUTES) {
     return false;
   }
 
-  const auto transaction_id_str = transaction->getUUIDStr();
   logger_->log_debug("Site2Site transaction {} receives {} attributes", transaction_id_str, num_attributes);
   for (uint64_t i = 0; i < num_attributes; i++) {
     std::string key;
     std::string value;
-    if (const auto ret = transaction->getStream().read(key, true); ret == 0 || io::isError(ret)) {
+    if (const auto ret = stream.read(key, true); ret == 0 || io::isError(ret)) {
       return false;
     }
 
-    if (const auto ret = transaction->getStream().read(value, true); ret == 0 || io::isError(ret)) {
+    if (const auto ret = stream.read(value, true); ret == 0 || io::isError(ret)) {
       return false;
     }
 
@@ -575,7 +576,7 @@ bool SiteToSiteClient::readFlowFileHeaderData(const std::shared_ptr<Transaction>
   }
 
   uint64_t len = 0;
-  if (const auto ret = transaction->getStream().read(len); ret == 0 || io::isError(ret)) {
+  if (const auto ret = stream.read(len); ret == 0 || io::isError(ret)) {
     return false;
   }
 
@@ -583,7 +584,7 @@ bool SiteToSiteClient::readFlowFileHeaderData(const std::shared_ptr<Transaction>
   return true;
 }
 
-std::optional<SiteToSiteClient::ReceiveFlowFileHeaderResult> SiteToSiteClient::receiveFlowFileHeader(const std::shared_ptr<Transaction>& transaction) {
+std::optional<SiteToSiteClient::ReceiveFlowFileHeaderResult> SiteToSiteClient::receiveFlowFileHeader(io::InputStream& stream, const std::shared_ptr<Transaction>& transaction) {
   if (peer_state_ != PeerState::READY) {
     bootstrap();
   }
@@ -635,7 +636,7 @@ std::optional<SiteToSiteClient::ReceiveFlowFileHeaderResult> SiteToSiteClient::r
     return result;
   }
 
-  if (!readFlowFileHeaderData(transaction, result)) {
+  if (!readFlowFileHeaderData(stream, transaction_id_str, result)) {
     logger_->log_error("Site2Site transaction {} failed to read flow file header data", transaction_id_str);
     return std::nullopt;
   }
@@ -664,7 +665,14 @@ std::pair<uint64_t, uint64_t> SiteToSiteClient::readFlowFiles(const std::shared_
   while (true) {
     auto start_time = std::chrono::steady_clock::now();
 
-    auto receive_header_result = receiveFlowFileHeader(transaction);
+    std::unique_ptr<CompressionInputStream> compression_stream;
+    if (use_compression_) {
+      compression_stream = std::make_unique<CompressionInputStream>(gsl::make_not_null(&transaction->getStream()));
+    }
+    io::InputStream& input_stream = use_compression_ ?  static_cast<io::InputStream&>(*compression_stream) : static_cast<io::InputStream&>(transaction->getStream());
+    io::CRCStream<io::InputStream> stream(gsl::make_not_null(&input_stream));
+
+    auto receive_header_result = receiveFlowFileHeader(stream, transaction);
     if (!receive_header_result) {
       throw Exception(SITE2SITE_EXCEPTION, "Receive Failed " + transaction->getUUIDStr());
     }
@@ -688,12 +696,12 @@ std::pair<uint64_t, uint64_t> SiteToSiteClient::readFlowFiles(const std::shared_
     }
 
     if (receive_header_result->flow_file_data_size > 0) {
-      session.write(flow_file, [&receive_header_result, &transaction](const std::shared_ptr<io::OutputStream>& output_stream) -> int64_t {
+      session.write(flow_file, [&receive_header_result, &stream](const std::shared_ptr<io::OutputStream>& output_stream) -> int64_t {
         uint64_t len = receive_header_result->flow_file_data_size;
         std::array<std::byte, utils::configuration::DEFAULT_BUFFER_SIZE> buffer{};
         while (len > 0) {
           const auto size = std::min(len, uint64_t{utils::configuration::DEFAULT_BUFFER_SIZE});
-          const auto ret = transaction->getStream().read(std::as_writable_bytes(std::span(buffer).subspan(0, size)));
+          const auto ret = stream.read(std::as_writable_bytes(std::span(buffer).subspan(0, size)));
           if (ret != size) {
             return -1;
           }
@@ -717,6 +725,10 @@ std::pair<uint64_t, uint64_t> SiteToSiteClient::readFlowFiles(const std::shared_
     // receive the transfer for the flow record
     bytes += receive_header_result->flow_file_data_size;
     transfers++;
+
+    if (compression_stream) {
+      transaction->getStream().setCrc(stream.getCRC());
+    }
   }
 
   return {transfers, bytes};

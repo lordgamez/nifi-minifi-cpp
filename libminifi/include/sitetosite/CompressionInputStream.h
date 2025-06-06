@@ -25,7 +25,7 @@ namespace org::apache::nifi::minifi::sitetosite {
 
 class CompressionInputStream : public io::InputStreamImpl {
  public:
-  explicit CompressionInputStream(gsl::not_null<io::BaseStream*> internal_stream)
+  explicit CompressionInputStream(gsl::not_null<io::InputStream*> internal_stream)
       : internal_stream_(internal_stream) {
     buffer_.resize(COMPRESSION_BUFFER_SIZE);
   }
@@ -38,7 +38,7 @@ class CompressionInputStream : public io::InputStreamImpl {
   int64_t decompressData();
 
   bool eof_{false};
-  gsl::not_null<io::BaseStream*> internal_stream_;
+  gsl::not_null<io::InputStream*> internal_stream_;
   std::vector<std::byte> buffer_{};
   size_t buffer_index_{0};
   size_t buffered_data_length_{0};
