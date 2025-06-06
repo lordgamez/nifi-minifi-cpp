@@ -33,6 +33,11 @@ class CompressionInputStream : public io::InputStreamImpl {
   using io::InputStream::read;
   size_t read(std::span<std::byte> out_buffer) override;
   void close() override;
+  void resetBuffer() {
+    buffer_index_ = 0;
+    buffered_data_length_ = 0;
+    eof_ = false;
+  }
 
  private:
   int64_t decompressData();

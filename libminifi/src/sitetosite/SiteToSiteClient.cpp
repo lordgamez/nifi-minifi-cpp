@@ -555,6 +555,7 @@ bool SiteToSiteClient::sendPacket(const DataPacket& packet) {
 
 bool SiteToSiteClient::readFlowFileHeaderData(io::InputStream& stream, const std::string& transaction_id_str, SiteToSiteClient::ReceiveFlowFileHeaderResult& result) {
   uint32_t num_attributes = 0;
+  // TODO: add more logs for errors
   if (const auto ret = stream.read(num_attributes); ret == 0 || io::isError(ret) || num_attributes > MAX_NUM_ATTRIBUTES) {
     return false;
   }
@@ -611,7 +612,7 @@ std::optional<SiteToSiteClient::ReceiveFlowFileHeaderResult> SiteToSiteClient::r
   }
 
   if (transaction->getCurrentTransfers() > 0) {
-    // if we already has transfer before, check to see whether another one is available
+    // if we already have transferred a flow file before, check to see whether another one is available
     auto response = readResponse(transaction);
     if (!response) {
       return std::nullopt;
@@ -662,15 +663,16 @@ std::optional<SiteToSiteClient::ReceiveFlowFileHeaderResult> SiteToSiteClient::r
 std::pair<uint64_t, uint64_t> SiteToSiteClient::readFlowFiles(const std::shared_ptr<Transaction>& transaction, core::ProcessSession& session) {
   uint64_t transfers = 0;
   uint64_t bytes = 0;
+
+  std::unique_ptr<CompressionInputStream> compression_stream;
+  if (use_compression_) {
+    compression_stream = std::make_unique<CompressionInputStream>(gsl::make_not_null(&transaction->getStream()));
+  }
+  io::InputStream& input_stream = use_compression_ ?  static_cast<io::InputStream&>(*compression_stream) : static_cast<io::InputStream&>(transaction->getStream());
+  io::CRCStream<io::InputStream> stream(gsl::make_not_null(&input_stream));
+
   while (true) {
     auto start_time = std::chrono::steady_clock::now();
-
-    std::unique_ptr<CompressionInputStream> compression_stream;
-    if (use_compression_) {
-      compression_stream = std::make_unique<CompressionInputStream>(gsl::make_not_null(&transaction->getStream()));
-    }
-    io::InputStream& input_stream = use_compression_ ?  static_cast<io::InputStream&>(*compression_stream) : static_cast<io::InputStream&>(transaction->getStream());
-    io::CRCStream<io::InputStream> stream(gsl::make_not_null(&input_stream));
 
     auto receive_header_result = receiveFlowFileHeader(stream, transaction);
     if (!receive_header_result) {
@@ -722,13 +724,19 @@ std::pair<uint64_t, uint64_t> SiteToSiteClient::readFlowFiles(const std::shared_
     std::string details = "urn:nifi:" + source_identifier + "Remote Host=" + peer_->getHostName();
     session.getProvenanceReporter()->receive(*flow_file, transitUri, source_identifier, details, std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time));
     session.transfer(flow_file, relation);
-    // receive the transfer for the flow record
+
     bytes += receive_header_result->flow_file_data_size;
     transfers++;
 
     if (compression_stream) {
-      transaction->getStream().setCrc(stream.getCRC());
+      // Non-compressed response codes are written between flow files, so we need to reset the compression stream buffer for the next flow file
+      compression_stream->resetBuffer();
     }
+  }
+
+  if (compression_stream) {
+    // Update the CRC value to use the uncompressed stream CRC
+    transaction->getStream().setCrc(stream.getCRC());
   }
 
   return {transfers, bytes};
