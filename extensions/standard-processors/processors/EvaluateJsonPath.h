@@ -16,7 +16,6 @@
  */
 #pragma once
 
-#include "rapidjson/document.h"
 #include "core/logging/LoggerFactory.h"
 #include "core/Processor.h"
 #include "core/PropertyDefinition.h"

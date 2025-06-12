@@ -14,31 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "EvaluateJsonPath.h"
+#include "unit/TestBase.h"
+#include "unit/Catch.h"
+#include "unit/TestUtils.h"
 
-#include "core/ProcessSession.h"
-#include "core/ProcessContext.h"
-#include "core/Resource.h"
+namespace org::apache::nifi::minifi::test {
 
-#include "jsoncons/json_parser.hpp"
+TEST_CASE("test", "[EvaluateJsonPathTests]") {
 
-namespace org::apache::nifi::minifi::processors {
-
-void EvaluateJsonPath::initialize() {
-  setSupportedProperties(Properties);
-  setSupportedRelationships(Relationships);
 }
 
-void EvaluateJsonPath::onSchedule(core::ProcessContext&, core::ProcessSessionFactory&) {
-}
-
-void EvaluateJsonPath::onTrigger(core::ProcessContext&, core::ProcessSession& session) {
-  auto flow_file = session.get();
-  if (!flow_file) {
-    return;
-  }
-}
-
-REGISTER_RESOURCE(EvaluateJsonPath, Processor);
-
-}  // namespace org::apache::nifi::minifi::processors
+}  // namespace org::apache::nifi::minifi::test
