@@ -24,6 +24,85 @@
 #include "minifi-cpp/core/PropertyValidator.h"
 #include "core/RelationshipDefinition.h"
 
+namespace org::apache::nifi::minifi::processors::evaluate_json_path {
+enum class DestinationType {
+  FlowFileContent,
+  FlowFileAttribute
+};
+
+enum class NullValueRepresentationOption {
+  EmptyString,
+  Null
+};
+
+enum class ReturnTypeOption {
+  AutoDetect,
+  JSON,
+  Scalar
+};
+
+enum class PathNotFoundBehaviorOption {
+  Warn,
+  Ignore,
+  Skip
+};
+}  // namespace org::apache::nifi::minifi::processors::evaluate_json_path
+
+namespace magic_enum::customize {
+using DestinationType = org::apache::nifi::minifi::processors::evaluate_json_path::DestinationType;
+using NullValueRepresentationOption = org::apache::nifi::minifi::processors::evaluate_json_path::NullValueRepresentationOption;
+using ReturnTypeOption = org::apache::nifi::minifi::processors::evaluate_json_path::ReturnTypeOption;
+using PathNotFoundBehaviorOption = org::apache::nifi::minifi::processors::evaluate_json_path::PathNotFoundBehaviorOption;
+
+template <>
+constexpr customize_t enum_name<DestinationType>(DestinationType value) noexcept {
+  switch (value) {
+    case DestinationType::FlowFileContent:
+      return "flowfile-content";
+    case DestinationType::FlowFileAttribute:
+      return "flowfile-attribute";
+  }
+  return invalid_tag;
+}
+
+template <>
+constexpr customize_t enum_name<NullValueRepresentationOption>(NullValueRepresentationOption value) noexcept {
+  switch (value) {
+    case NullValueRepresentationOption::EmptyString:
+      return "empty string";
+    case NullValueRepresentationOption::Null:
+      return "the string 'null'";
+  }
+  return invalid_tag;
+}
+
+template <>
+constexpr customize_t enum_name<ReturnTypeOption>(ReturnTypeOption value) noexcept {
+  switch (value) {
+    case ReturnTypeOption::AutoDetect:
+      return "auto-detect";
+    case ReturnTypeOption::JSON:
+      return "json";
+    case ReturnTypeOption::Scalar:
+      return "scalar";
+  }
+  return invalid_tag;
+}
+
+template <>
+constexpr customize_t enum_name<PathNotFoundBehaviorOption>(PathNotFoundBehaviorOption value) noexcept {
+  switch (value) {
+    case PathNotFoundBehaviorOption::Warn:
+      return "warn";
+    case PathNotFoundBehaviorOption::Ignore:
+      return "ignore";
+    case PathNotFoundBehaviorOption::Skip:
+      return "skip";
+  }
+  return invalid_tag;
+}
+}  // namespace magic_enum::customize
+
 namespace org::apache::nifi::minifi::processors {
 
 class EvaluateJsonPath : public core::ProcessorImpl {
@@ -38,43 +117,46 @@ class EvaluateJsonPath : public core::ProcessorImpl {
         "routed to 'unmatched' without having its contents modified. If Destination is 'flowfile-attribute' and the expression matches nothing, attributes will be created with empty strings as the "
         "value unless 'Path Not Found Behaviour' is set to 'skip', and the FlowFile will always be routed to 'matched.'";
 
-  EXTENSIONAPI static constexpr auto Destination = core::PropertyDefinitionBuilder<>::createProperty("Destination")
-      .withDescription("Indicates whether the results of the JsonPath evaluation are written to the FlowFile content or a FlowFile attribute; if using attribute, must specify the Attribute Name "
-          "property. If set to flowfile-content, only one JsonPath may be specified, and the property name is ignored.")
-      .withValidator(core::StandardPropertyValidators::NON_BLANK_VALIDATOR)
-      .build();
-  EXTENSIONAPI static constexpr auto AttributesRegularExpression = core::PropertyDefinitionBuilder<>::createProperty("Attributes Regular Expression")
-      .withDescription("Regular expression that will be evaluated against the flow file attributes to select the matching attributes. "
-          "Both the matching attributes and the selected attributes from the Attributes List property will be written in the resulting JSON.")
-      .withValidator(core::StandardPropertyValidators::NON_BLANK_VALIDATOR)
-      .build();
   EXTENSIONAPI static constexpr auto Destination = core::PropertyDefinitionBuilder<2>::createProperty("Destination")
-      .withDescription("Control if JSON value is written as a new flowfile attribute 'JSONAttributes' or written in the flowfile content. "
-          "Writing to flowfile content will overwrite any existing flowfile content.")
+      .withDescription("Indicates whether the results of the JsonPath evaluation are written to the FlowFile content or a FlowFile attribute. If using attribute, must specify the Attribute Name "
+          "property. If set to flowfile-content, only one JsonPath may be specified, and the property name is ignored.")
+      .withAllowedValues(magic_enum::enum_names<evaluate_json_path::DestinationType>())
+      .withDefaultValue(magic_enum::enum_name(evaluate_json_path::DestinationType::FlowFileAttribute))
       .isRequired(true)
-      .withDefaultValue(magic_enum::enum_name(attributes_to_json::WriteDestination::FLOWFILE_ATTRIBUTE))
-      .withAllowedValues(magic_enum::enum_names<attributes_to_json::WriteDestination>())
       .build();
-  EXTENSIONAPI static constexpr auto IncludeCoreAttributes = core::PropertyDefinitionBuilder<>::createProperty("Include Core Attributes")
-      .withDescription("Determines if the FlowFile core attributes which are contained in every FlowFile should be included in the final JSON value generated.")
+  EXTENSIONAPI static constexpr auto MaxStringLength = core::PropertyDefinitionBuilder<>::createProperty("Max String Length")
+      .withDescription("The maximum allowed length of a string value when parsing the JSON document")
+      .withDefaultValue("20 MB")
+      .withValidator(core::StandardPropertyValidators::DATA_SIZE_VALIDATOR)
       .isRequired(true)
-      .withValidator(core::StandardPropertyValidators::BOOLEAN_VALIDATOR)
-      .withDefaultValue("true")
       .build();
-  EXTENSIONAPI static constexpr auto NullValue = core::PropertyDefinitionBuilder<>::createProperty("Null Value")
-      .withDescription("If true a non existing selected attribute will be NULL in the resulting JSON. If false an empty string will be placed in the JSON.")
+  EXTENSIONAPI static constexpr auto NullValueRepresentation = core::PropertyDefinitionBuilder<2>::createProperty("Null Value Representation")
+      .withDescription("Indicates the desired representation of JSON Path expressions resulting in a null value.")
+      .withAllowedValues(magic_enum::enum_names<evaluate_json_path::NullValueRepresentationOption>())
+      .withDefaultValue(magic_enum::enum_name(evaluate_json_path::NullValueRepresentationOption::EmptyString))
       .isRequired(true)
-      .withValidator(core::StandardPropertyValidators::BOOLEAN_VALIDATOR)
-      .withDefaultValue("false")
       .build();
-  EXTENSIONAPI static constexpr auto Properties = std::to_array<core::PropertyReference>({
-      AttributesList,
-      AttributesRegularExpression,
-      Destination,
-      IncludeCoreAttributes,
-      NullValue
-  });
+  EXTENSIONAPI static constexpr auto PathNotFoundBehavior = core::PropertyDefinitionBuilder<3>::createProperty("Path Not Found Behavior")
+      .withDescription("Indicates how to handle missing JSON path expressions when destination is set to 'flowfile-attribute'. Selecting 'warn' will generate a warning when a JSON path expression is "
+          "not found. Selecting 'skip' will omit attributes for any unmatched JSON path expressions.")
+      .withAllowedValues(magic_enum::enum_names<evaluate_json_path::PathNotFoundBehaviorOption>())
+      .withDefaultValue(magic_enum::enum_name(evaluate_json_path::PathNotFoundBehaviorOption::Ignore))
+      .isRequired(true)
+      .build();
+  EXTENSIONAPI static constexpr auto ReturnType = core::PropertyDefinitionBuilder<3>::createProperty("Return Type")
+      .withDescription("Indicates the desired return type of the JSON Path expressions. Selecting 'auto-detect' will set the return type to 'json' for a Destination of 'flowfile-content', and 'scalar' for a Destination of 'flowfile-attribute'.")
+      .withAllowedValues(magic_enum::enum_names<evaluate_json_path::ReturnTypeOption>())
+      .withDefaultValue(magic_enum::enum_name(evaluate_json_path::ReturnTypeOption::AutoDetect))
+      .isRequired(true)
+      .build();
 
+  EXTENSIONAPI static constexpr auto Properties = std::to_array<core::PropertyReference>({
+      Destination,
+      MaxStringLength,
+      NullValueRepresentation,
+      PathNotFoundBehavior,
+      ReturnType
+  });
 
   EXTENSIONAPI static constexpr core::RelationshipDefinition Failure{"failure", "FlowFiles are routed to this relationship when the JsonPath cannot be evaluated against the content of the FlowFile; for instance, if the FlowFile is not valid JSON"};
   EXTENSIONAPI static constexpr core::RelationshipDefinition Matched{"matched", "FlowFiles are routed to this relationship when the JsonPath is successfully evaluated and the FlowFile is modified as a result"};
