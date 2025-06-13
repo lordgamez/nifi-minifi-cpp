@@ -162,7 +162,7 @@ class EvaluateJsonPath : public core::ProcessorImpl {
   EXTENSIONAPI static constexpr core::RelationshipDefinition Unmatched{"unmatched", "FlowFiles are routed to this relationship when the JsonPath does not match the content of the FlowFile and the Destination is set to flowfile-content"};
   EXTENSIONAPI static constexpr auto Relationships = std::array{Failure, Matched, Unmatched};
 
-  EXTENSIONAPI static constexpr bool SupportsDynamicProperties = false;
+  EXTENSIONAPI static constexpr bool SupportsDynamicProperties = true;
   EXTENSIONAPI static constexpr bool SupportsDynamicRelationships = false;
   EXTENSIONAPI static constexpr core::annotation::Input InputRequirement = core::annotation::Input::INPUT_REQUIRED;
   EXTENSIONAPI static constexpr bool IsSingleThreaded = false;
@@ -179,7 +179,11 @@ class EvaluateJsonPath : public core::ProcessorImpl {
   void onTrigger(core::ProcessContext& context, core::ProcessSession& session) override;
 
  private:
-
+  evaluate_json_path::DestinationType destination_ = evaluate_json_path::DestinationType::FlowFileAttribute;
+  uint64_t max_string_length_ = 0;
+  evaluate_json_path::NullValueRepresentationOption null_value_representation_ = evaluate_json_path::NullValueRepresentationOption::EmptyString;
+  evaluate_json_path::PathNotFoundBehaviorOption path_not_found_behavior_ = evaluate_json_path::PathNotFoundBehaviorOption::Ignore;
+  evaluate_json_path::ReturnTypeOption return_type_ = evaluate_json_path::ReturnTypeOption::AutoDetect;
 };
 
 }  // namespace org::apache::nifi::minifi::processors

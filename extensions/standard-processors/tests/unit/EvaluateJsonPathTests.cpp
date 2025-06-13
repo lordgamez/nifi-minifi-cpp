@@ -16,12 +16,44 @@
  */
 #include "unit/TestBase.h"
 #include "unit/Catch.h"
+#include "unit/SingleProcessorTestController.h"
+#include "processors/EvaluateJsonPath.h"
 #include "unit/TestUtils.h"
 
 namespace org::apache::nifi::minifi::test {
 
-TEST_CASE("test", "[EvaluateJsonPathTests]") {
+TEST_CASE("When destination is set to flowfile content only one dynamic property is allowed", "[EvaluateJsonPathTests]") {
+  SingleProcessorTestController controller(std::make_unique<processors::EvaluateJsonPath>("EvaluateJsonPath"));
+  auto evaluate_json_path = dynamic_cast<processors::EvaluateJsonPath*>(controller.getProcessor());
+  REQUIRE(evaluate_json_path);
+  controller.plan->setProperty(evaluate_json_path, processors::EvaluateJsonPath::Destination, "flowfile-content");
+  controller.plan->setDynamicProperty(evaluate_json_path, "attribute1", "value1");
+  controller.plan->setDynamicProperty(evaluate_json_path, "attribute2", "value2");
+  REQUIRE_THROWS_WITH(controller.trigger({{.content = "foo"}}), "Process Schedule Operation: Only one dynamic property is allowed for JSON path when destination is set to flowfile-content");
+}
 
+TEST_CASE("Input flowfile has invalid JSON as content", "[EvaluateJsonPathTests]") {
+  LogTestController::getInstance().setTrace<processors::EvaluateJsonPath>();
+  SingleProcessorTestController controller(std::make_unique<processors::EvaluateJsonPath>("EvaluateJsonPath"));
+  auto evaluate_json_path = dynamic_cast<processors::EvaluateJsonPath*>(controller.getProcessor());
+  REQUIRE(evaluate_json_path);
+
+  ProcessorTriggerResult result;
+  std::string error_log;
+  SECTION("Flow file content is empty") {
+    result = controller.trigger({{.content = ""}});
+    error_log = "FlowFile content is empty, transferring to Failure relationship";
+  }
+
+  SECTION("Flow file content is invalid json") {
+    result = controller.trigger({{.content = "invalid json"}});
+    error_log = "FlowFile content is not a valid JSON document, transferring to Failure relationship";
+  }
+
+  CHECK(result.at(processors::EvaluateJsonPath::Matched).empty());
+  CHECK(result.at(processors::EvaluateJsonPath::Unmatched).empty());
+  CHECK(result.at(processors::EvaluateJsonPath::Failure).size() == 1);
+  CHECK(utils::verifyLogLinePresenceInPollTime(1s, error_log));
 }
 
 }  // namespace org::apache::nifi::minifi::test
