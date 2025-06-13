@@ -26,6 +26,12 @@
 
 namespace org::apache::nifi::minifi::processors {
 
+namespace {
+bool isScalar(const jsoncons::json& value) {
+  return !value.is_array() && !value.is_object();
+}
+}
+
 void EvaluateJsonPath::initialize() {
   setSupportedProperties(Properties);
   setSupportedRelationships(Relationships);
@@ -36,10 +42,16 @@ void EvaluateJsonPath::onSchedule(core::ProcessContext& context, core::ProcessSe
   if (destination_ == evaluate_json_path::DestinationType::FlowFileContent && getDynamicProperties().size() > 1) {
     throw Exception(PROCESS_SCHEDULE_EXCEPTION, "Only one dynamic property is allowed for JSON path when destination is set to flowfile-content");
   }
-  max_string_length_ = utils::parseDataSizeProperty(context, EvaluateJsonPath::MaxStringLength);
   null_value_representation_ = utils::parseEnumProperty<evaluate_json_path::NullValueRepresentationOption>(context, EvaluateJsonPath::NullValueRepresentation);
   path_not_found_behavior_ = utils::parseEnumProperty<evaluate_json_path::PathNotFoundBehaviorOption>(context, EvaluateJsonPath::PathNotFoundBehavior);
   return_type_ = utils::parseEnumProperty<evaluate_json_path::ReturnTypeOption>(context, EvaluateJsonPath::ReturnType);
+  if (return_type_ == evaluate_json_path::ReturnTypeOption::AutoDetect) {
+    if (destination_ == evaluate_json_path::DestinationType::FlowFileContent) {
+      return_type_ = evaluate_json_path::ReturnTypeOption::JSON;
+    } else {
+      return_type_ = evaluate_json_path::ReturnTypeOption::Scalar;
+    }
+  }
 }
 
 void EvaluateJsonPath::onTrigger(core::ProcessContext&, core::ProcessSession& session) {
@@ -82,6 +94,12 @@ void EvaluateJsonPath::onTrigger(core::ProcessContext&, core::ProcessSession& se
       } else {
         flow_file->setAttribute(property_name, "");
       }
+    }
+
+    if (return_type_ == evaluate_json_path::ReturnTypeOption::Scalar && (query_result.size() > 1 || (query_result.size() == 1 && !isScalar(query_result[0])))) {
+      logger_->log_error("JSON path '{}' returned a non-scalar value or multiple values for attribute key '{}', transferring to Failure relationship", json_path, property_name);
+      session.transfer(flow_file, Failure);
+      return;
     }
   }
 

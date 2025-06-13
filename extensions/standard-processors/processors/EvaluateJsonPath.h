@@ -123,12 +123,6 @@ class EvaluateJsonPath : public core::ProcessorImpl {
       .withDefaultValue(magic_enum::enum_name(evaluate_json_path::DestinationType::FlowFileAttribute))
       .isRequired(true)
       .build();
-  EXTENSIONAPI static constexpr auto MaxStringLength = core::PropertyDefinitionBuilder<>::createProperty("Max String Length")
-      .withDescription("The maximum allowed length of a string value when parsing the JSON document")
-      .withDefaultValue("20 MB")
-      .withValidator(core::StandardPropertyValidators::DATA_SIZE_VALIDATOR)
-      .isRequired(true)
-      .build();
   EXTENSIONAPI static constexpr auto NullValueRepresentation = core::PropertyDefinitionBuilder<2>::createProperty("Null Value Representation")
       .withDescription("Indicates the desired representation of JSON Path expressions resulting in a null value.")
       .withAllowedValues(magic_enum::enum_names<evaluate_json_path::NullValueRepresentationOption>())
@@ -152,7 +146,6 @@ class EvaluateJsonPath : public core::ProcessorImpl {
 
   EXTENSIONAPI static constexpr auto Properties = std::to_array<core::PropertyReference>({
       Destination,
-      MaxStringLength,
       NullValueRepresentation,
       PathNotFoundBehavior,
       ReturnType
@@ -184,7 +177,6 @@ class EvaluateJsonPath : public core::ProcessorImpl {
 
  private:
   evaluate_json_path::DestinationType destination_ = evaluate_json_path::DestinationType::FlowFileAttribute;
-  uint64_t max_string_length_ = 0;
   evaluate_json_path::NullValueRepresentationOption null_value_representation_ = evaluate_json_path::NullValueRepresentationOption::EmptyString;
   evaluate_json_path::PathNotFoundBehaviorOption path_not_found_behavior_ = evaluate_json_path::PathNotFoundBehaviorOption::Ignore;
   evaluate_json_path::ReturnTypeOption return_type_ = evaluate_json_path::ReturnTypeOption::AutoDetect;

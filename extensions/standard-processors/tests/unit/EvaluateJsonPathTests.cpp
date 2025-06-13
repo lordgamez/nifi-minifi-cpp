@@ -151,4 +151,30 @@ TEST_CASE("JSON paths are not found in content when destination is set in conten
   }
 }
 
+TEST_CASE("JSON path query result does not match the required return type", "[EvaluateJsonPathTests]") {
+  SingleProcessorTestController controller(std::make_unique<processors::EvaluateJsonPath>("EvaluateJsonPath"));
+  LogTestController::getInstance().setTrace<processors::EvaluateJsonPath>();
+  auto evaluate_json_path = dynamic_cast<processors::EvaluateJsonPath*>(controller.getProcessor());
+  REQUIRE(evaluate_json_path);
+  controller.plan->setDynamicProperty(evaluate_json_path, "attribute", "$.name");
+
+  SECTION("Return type is set to scalar automatically when destination is set to flowfile-attribute") {
+    controller.plan->setProperty(evaluate_json_path, processors::EvaluateJsonPath::Destination, "flowfile-attribute");
+  }
+
+  std::string json_content = R"({"name": {"firstName": "John", "lastName": "Doe"}})";
+  auto result = controller.trigger({{.content = json_content}});
+
+  CHECK(result.at(processors::EvaluateJsonPath::Matched).empty());
+  CHECK(result.at(processors::EvaluateJsonPath::Unmatched).empty());
+  CHECK(result.at(processors::EvaluateJsonPath::Failure).size() == 1);
+
+  const auto result_flow_file = result.at(processors::EvaluateJsonPath::Failure).at(0);
+
+  CHECK(controller.plan->getContent(result_flow_file) == json_content);
+  std::string attribute_value;
+  CHECK_FALSE(result_flow_file->getAttribute("attribute", attribute_value));
+  CHECK(utils::verifyLogLinePresenceInPollTime(0s, "JSON path '$.name' returned a non-scalar value or multiple values for attribute key 'attribute', transferring to Failure relationship"));
+}
+
 }  // namespace org::apache::nifi::minifi::test
