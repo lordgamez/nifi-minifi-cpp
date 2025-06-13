@@ -30,7 +30,11 @@ namespace {
 bool isScalar(const jsoncons::json& value) {
   return !value.is_array() && !value.is_object();
 }
+
+bool isQueryResultEmptyOrScalar(const jsoncons::json& query_result) {
+  return query_result.empty() || (query_result.size() == 1 && isScalar(query_result[0]));
 }
+}  // namespace
 
 void EvaluateJsonPath::initialize() {
   setSupportedProperties(Properties);
@@ -96,7 +100,7 @@ void EvaluateJsonPath::onTrigger(core::ProcessContext&, core::ProcessSession& se
       }
     }
 
-    if (return_type_ == evaluate_json_path::ReturnTypeOption::Scalar && (query_result.size() > 1 || (query_result.size() == 1 && !isScalar(query_result[0])))) {
+    if (return_type_ == evaluate_json_path::ReturnTypeOption::Scalar && !isQueryResultEmptyOrScalar(query_result)) {
       logger_->log_error("JSON path '{}' returned a non-scalar value or multiple values for attribute key '{}', transferring to Failure relationship", json_path, property_name);
       session.transfer(flow_file, Failure);
       return;

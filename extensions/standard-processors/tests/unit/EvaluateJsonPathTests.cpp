@@ -87,9 +87,9 @@ TEST_CASE("JSON paths are not found in content when destination is set to attrib
 
   auto result = controller.trigger({{.content = "{}"}});
 
-  CHECK(result.at(processors::EvaluateJsonPath::Matched).size() == 1);
-  CHECK(result.at(processors::EvaluateJsonPath::Unmatched).empty());
-  CHECK(result.at(processors::EvaluateJsonPath::Failure).empty());
+  REQUIRE(result.at(processors::EvaluateJsonPath::Matched).size() == 1);
+  REQUIRE(result.at(processors::EvaluateJsonPath::Unmatched).empty());
+  REQUIRE(result.at(processors::EvaluateJsonPath::Failure).empty());
 
   const auto result_flow_file = result.at(processors::EvaluateJsonPath::Matched).at(0);
 
@@ -135,9 +135,9 @@ TEST_CASE("JSON paths are not found in content when destination is set in conten
 
   auto result = controller.trigger({{.content = "{}"}});
 
-  CHECK(result.at(processors::EvaluateJsonPath::Matched).empty());
-  CHECK(result.at(processors::EvaluateJsonPath::Unmatched).size() == 1);
-  CHECK(result.at(processors::EvaluateJsonPath::Failure).empty());
+  REQUIRE(result.at(processors::EvaluateJsonPath::Matched).empty());
+  REQUIRE(result.at(processors::EvaluateJsonPath::Unmatched).size() == 1);
+  REQUIRE(result.at(processors::EvaluateJsonPath::Failure).empty());
 
   const auto result_flow_file = result.at(processors::EvaluateJsonPath::Unmatched).at(0);
 
@@ -165,9 +165,9 @@ TEST_CASE("JSON path query result does not match the required return type", "[Ev
   std::string json_content = R"({"name": {"firstName": "John", "lastName": "Doe"}})";
   auto result = controller.trigger({{.content = json_content}});
 
-  CHECK(result.at(processors::EvaluateJsonPath::Matched).empty());
-  CHECK(result.at(processors::EvaluateJsonPath::Unmatched).empty());
-  CHECK(result.at(processors::EvaluateJsonPath::Failure).size() == 1);
+  REQUIRE(result.at(processors::EvaluateJsonPath::Matched).empty());
+  REQUIRE(result.at(processors::EvaluateJsonPath::Unmatched).empty());
+  REQUIRE(result.at(processors::EvaluateJsonPath::Failure).size() == 1);
 
   const auto result_flow_file = result.at(processors::EvaluateJsonPath::Failure).at(0);
 
@@ -175,6 +175,22 @@ TEST_CASE("JSON path query result does not match the required return type", "[Ev
   std::string attribute_value;
   CHECK_FALSE(result_flow_file->getAttribute("attribute", attribute_value));
   CHECK(utils::verifyLogLinePresenceInPollTime(0s, "JSON path '$.name' returned a non-scalar value or multiple values for attribute key 'attribute', transferring to Failure relationship"));
+}
+
+TEST_CASE("Query JSON object and write it to flow file", "[EvaluateJsonPathTests]") {
+
+}
+
+TEST_CASE("Query multiple scalars and write them to attributes", "[EvaluateJsonPathTests]") {
+
+}
+
+TEST_CASE("Query single scalars and write it to flow file", "[EvaluateJsonPathTests]") {
+
+}
+
+TEST_CASE("Query result is null value", "[EvaluateJsonPathTests]") {
+
 }
 
 }  // namespace org::apache::nifi::minifi::test
