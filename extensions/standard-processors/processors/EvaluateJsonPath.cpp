@@ -22,6 +22,7 @@
 #include "utils/ProcessorConfigUtils.h"
 
 #include <jsoncons/json.hpp>
+#include <jsoncons_ext/jsonpath/jsonpath.hpp>
 
 namespace org::apache::nifi::minifi::processors {
 
@@ -32,11 +33,12 @@ void EvaluateJsonPath::initialize() {
 
 void EvaluateJsonPath::onSchedule(core::ProcessContext& context, core::ProcessSessionFactory&) {
   destination_ = utils::parseEnumProperty<evaluate_json_path::DestinationType>(context, EvaluateJsonPath::Destination);
-  if (destination_ == evaluate_json_path::DestinationType::FlowFileContent && context.getDynamicProperties().size() > 1) {
+  if (destination_ == evaluate_json_path::DestinationType::FlowFileContent && getDynamicProperties().size() > 1) {
     throw Exception(PROCESS_SCHEDULE_EXCEPTION, "Only one dynamic property is allowed for JSON path when destination is set to flowfile-content");
   }
   max_string_length_ = utils::parseDataSizeProperty(context, EvaluateJsonPath::MaxStringLength);
   null_value_representation_ = utils::parseEnumProperty<evaluate_json_path::NullValueRepresentationOption>(context, EvaluateJsonPath::NullValueRepresentation);
+  path_not_found_behavior_ = utils::parseEnumProperty<evaluate_json_path::PathNotFoundBehaviorOption>(context, EvaluateJsonPath::PathNotFoundBehavior);
   return_type_ = utils::parseEnumProperty<evaluate_json_path::ReturnTypeOption>(context, EvaluateJsonPath::ReturnType);
 }
 
@@ -62,6 +64,28 @@ void EvaluateJsonPath::onTrigger(core::ProcessContext&, core::ProcessSession& se
     session.transfer(flow_file, Failure);
     return;
   }
+
+  for (const auto& [property_name, json_path] : getDynamicProperties()) {
+    jsoncons::json query_result = jsoncons::jsonpath::json_query(json_object, json_path);
+    if (!query_result.is_array() || query_result.empty()) {
+      if (path_not_found_behavior_ == evaluate_json_path::PathNotFoundBehaviorOption::Warn) {
+        logger_->log_warn("JSON path '{}' not found for attribute key '{}'", json_path, property_name);
+      }
+
+      if (destination_ == evaluate_json_path::DestinationType::FlowFileContent) {
+        session.transfer(flow_file, Unmatched);
+        return;
+      }
+
+      if (path_not_found_behavior_ == evaluate_json_path::PathNotFoundBehaviorOption::Skip) {
+        continue;
+      } else {
+        flow_file->setAttribute(property_name, "");
+      }
+    }
+  }
+
+  session.transfer(flow_file, Matched);
 }
 
 REGISTER_RESOURCE(EvaluateJsonPath, Processor);
