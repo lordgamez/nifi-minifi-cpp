@@ -143,7 +143,8 @@ class EvaluateJsonPath : public core::ProcessorImpl {
       .isRequired(true)
       .build();
   EXTENSIONAPI static constexpr auto ReturnType = core::PropertyDefinitionBuilder<3>::createProperty("Return Type")
-      .withDescription("Indicates the desired return type of the JSON Path expressions. Selecting 'auto-detect' will set the return type to 'json' for a Destination of 'flowfile-content', and 'scalar' for a Destination of 'flowfile-attribute'.")
+      .withDescription("Indicates the desired return type of the JSON Path expressions. Selecting 'auto-detect' will set the return type to 'json' for a Destination of 'flowfile-content', and "
+          "'scalar' for a Destination of 'flowfile-attribute'.")
       .withAllowedValues(magic_enum::enum_names<evaluate_json_path::ReturnTypeOption>())
       .withDefaultValue(magic_enum::enum_name(evaluate_json_path::ReturnTypeOption::AutoDetect))
       .isRequired(true)
@@ -157,9 +158,12 @@ class EvaluateJsonPath : public core::ProcessorImpl {
       ReturnType
   });
 
-  EXTENSIONAPI static constexpr core::RelationshipDefinition Failure{"failure", "FlowFiles are routed to this relationship when the JsonPath cannot be evaluated against the content of the FlowFile; for instance, if the FlowFile is not valid JSON"};
-  EXTENSIONAPI static constexpr core::RelationshipDefinition Matched{"matched", "FlowFiles are routed to this relationship when the JsonPath is successfully evaluated and the FlowFile is modified as a result"};
-  EXTENSIONAPI static constexpr core::RelationshipDefinition Unmatched{"unmatched", "FlowFiles are routed to this relationship when the JsonPath does not match the content of the FlowFile and the Destination is set to flowfile-content"};
+  EXTENSIONAPI static constexpr core::RelationshipDefinition Failure{"failure", "FlowFiles are routed to this relationship when the JsonPath cannot be evaluated against the content of the FlowFile; "
+      "for instance, if the FlowFile is not valid JSON"};
+  EXTENSIONAPI static constexpr core::RelationshipDefinition Matched{"matched", "FlowFiles are routed to this relationship when the JsonPath is successfully evaluated and the FlowFile is modified "
+      "as a result"};
+  EXTENSIONAPI static constexpr core::RelationshipDefinition Unmatched{"unmatched", "FlowFiles are routed to this relationship when the JsonPath does not match the content of the FlowFile and the "
+      "Destination is set to flowfile-content"};
   EXTENSIONAPI static constexpr auto Relationships = std::array{Failure, Matched, Unmatched};
 
   EXTENSIONAPI static constexpr bool SupportsDynamicProperties = true;
