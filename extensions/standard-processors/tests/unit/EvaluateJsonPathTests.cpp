@@ -56,6 +56,25 @@ TEST_CASE("Input flowfile has invalid JSON as content", "[EvaluateJsonPathTests]
   CHECK(utils::verifyLogLinePresenceInPollTime(1s, error_log));
 }
 
+TEST_CASE("Dynamic property contains invalid JSON path expression", "[EvaluateJsonPathTests]") {
+  SingleProcessorTestController controller(std::make_unique<processors::EvaluateJsonPath>("EvaluateJsonPath"));
+  LogTestController::getInstance().setTrace<processors::EvaluateJsonPath>();
+  auto evaluate_json_path = dynamic_cast<processors::EvaluateJsonPath*>(controller.getProcessor());
+  REQUIRE(evaluate_json_path);
+  controller.plan->setDynamicProperty(evaluate_json_path, "attribute", "1234");
+
+  auto result = controller.trigger({{.content = "{}"}});
+
+  REQUIRE(result.at(processors::EvaluateJsonPath::Matched).empty());
+  REQUIRE(result.at(processors::EvaluateJsonPath::Unmatched).empty());
+  REQUIRE(result.at(processors::EvaluateJsonPath::Failure).size() == 1);
+
+  const auto result_flow_file = result.at(processors::EvaluateJsonPath::Failure).at(0);
+
+  CHECK(controller.plan->getContent(result_flow_file) == "{}");
+  CHECK(utils::verifyLogLinePresenceInPollTime(0s, "Invalid JSON path expression '1234' found for attribute key 'attribute'"));
+}
+
 TEST_CASE("JSON paths are not found in content when destination is set to attribute", "[EvaluateJsonPathTests]") {
   SingleProcessorTestController controller(std::make_unique<processors::EvaluateJsonPath>("EvaluateJsonPath"));
   LogTestController::getInstance().setTrace<processors::EvaluateJsonPath>();
@@ -200,9 +219,53 @@ TEST_CASE("Query JSON object and write it to flow file", "[EvaluateJsonPathTests
 }
 
 TEST_CASE("Query multiple scalars and write them to attributes", "[EvaluateJsonPathTests]") {
+  SingleProcessorTestController controller(std::make_unique<processors::EvaluateJsonPath>("EvaluateJsonPath"));
+  LogTestController::getInstance().setTrace<processors::EvaluateJsonPath>();
+  auto evaluate_json_path = dynamic_cast<processors::EvaluateJsonPath*>(controller.getProcessor());
+  REQUIRE(evaluate_json_path);
+  controller.plan->setProperty(evaluate_json_path, processors::EvaluateJsonPath::Destination, "flowfile-attribute");
+  controller.plan->setDynamicProperty(evaluate_json_path, "firstName", "$.name.firstName");
+  controller.plan->setDynamicProperty(evaluate_json_path, "lastName", "$.name.lastName");
+  controller.plan->setDynamicProperty(evaluate_json_path, "id", "$.id");
+
+  std::string json_content = R"({"id": 1234, "name": {"firstName": "John", "lastName": "Doe"}})";
+  auto result = controller.trigger({{.content = json_content}});
+
+  REQUIRE(result.at(processors::EvaluateJsonPath::Matched).size() == 1);
+  REQUIRE(result.at(processors::EvaluateJsonPath::Unmatched).empty());
+  REQUIRE(result.at(processors::EvaluateJsonPath::Failure).empty());
+
+  const auto result_flow_file = result.at(processors::EvaluateJsonPath::Matched).at(0);
+
+  CHECK(controller.plan->getContent(result_flow_file) == json_content);
+  auto attribute_value = result_flow_file->getAttribute("firstName");
+  CHECK(attribute_value.value() == "John");
+  attribute_value = result_flow_file->getAttribute("lastName");
+  CHECK(attribute_value.value() == "Doe");
+  attribute_value = result_flow_file->getAttribute("id");
+  CHECK(attribute_value.value() == "1234");
 }
 
 TEST_CASE("Query a single scalar and write it to flow file", "[EvaluateJsonPathTests]") {
+  SingleProcessorTestController controller(std::make_unique<processors::EvaluateJsonPath>("EvaluateJsonPath"));
+  LogTestController::getInstance().setTrace<processors::EvaluateJsonPath>();
+  auto evaluate_json_path = dynamic_cast<processors::EvaluateJsonPath*>(controller.getProcessor());
+  REQUIRE(evaluate_json_path);
+  controller.plan->setProperty(evaluate_json_path, processors::EvaluateJsonPath::Destination, "flowfile-content");
+  controller.plan->setDynamicProperty(evaluate_json_path, "firstName", "$.name.firstName");
+
+  std::string json_content = R"({"id": 1234, "name": {"firstName": "John", "lastName": "Doe"}})";
+  auto result = controller.trigger({{.content = json_content}});
+
+  REQUIRE(result.at(processors::EvaluateJsonPath::Matched).size() == 1);
+  REQUIRE(result.at(processors::EvaluateJsonPath::Unmatched).empty());
+  REQUIRE(result.at(processors::EvaluateJsonPath::Failure).empty());
+
+  const auto result_flow_file = result.at(processors::EvaluateJsonPath::Matched).at(0);
+
+  CHECK(controller.plan->getContent(result_flow_file) == "John");
+  std::string attribute_value;
+  CHECK_FALSE(result_flow_file->getAttribute("firstName", attribute_value));
 }
 
 TEST_CASE("Query has multiple results", "[EvaluateJsonPathTests]") {

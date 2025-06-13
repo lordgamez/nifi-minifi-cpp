@@ -16,6 +16,8 @@
  */
 #include "EvaluateJsonPath.h"
 
+#include <unordered_map>
+
 #include "core/ProcessSession.h"
 #include "core/ProcessContext.h"
 #include "core/Resource.h"
@@ -67,6 +69,9 @@ std::string EvaluateJsonPath::extractQueryResult(const jsoncons::json& query_res
     return null_value_representation_ == evaluate_json_path::NullValueRepresentationOption::EmptyString ? "" : "null";
   }
 
+  if (query_result[0].is_string()) {
+    return query_result[0].as<std::string>();
+  }
   return query_result[0].to_string();
 }
 
@@ -93,8 +98,17 @@ void EvaluateJsonPath::onTrigger(core::ProcessContext&, core::ProcessSession& se
     return;
   }
 
+  std::unordered_map<std::string, std::string> attributes_to_set;
   for (const auto& [property_name, json_path] : getDynamicProperties()) {
-    jsoncons::json query_result = jsoncons::jsonpath::json_query(json_object, json_path);
+    jsoncons::json query_result;
+    try {
+      query_result = jsoncons::jsonpath::json_query(json_object, json_path);
+    } catch (const jsoncons::jsonpath::jsonpath_error& e) {
+      logger_->log_error("Invalid JSON path expression '{}' found for attribute key '{}': {}", json_path, property_name, e.what());
+      session.transfer(flow_file, Failure);
+      return;
+    }
+
     if (!query_result.is_array() || query_result.empty()) {
       if (path_not_found_behavior_ == evaluate_json_path::PathNotFoundBehaviorOption::Warn) {
         logger_->log_warn("JSON path '{}' not found for attribute key '{}'", json_path, property_name);
@@ -105,11 +119,10 @@ void EvaluateJsonPath::onTrigger(core::ProcessContext&, core::ProcessSession& se
         return;
       }
 
-      if (path_not_found_behavior_ == evaluate_json_path::PathNotFoundBehaviorOption::Skip) {
-        continue;
-      } else {
+      if (path_not_found_behavior_ != evaluate_json_path::PathNotFoundBehaviorOption::Skip) {
         flow_file->setAttribute(property_name, "");
       }
+      continue;
     }
 
     if (return_type_ == evaluate_json_path::ReturnTypeOption::Scalar && !isQueryResultEmptyOrScalar(query_result)) {
@@ -123,9 +136,16 @@ void EvaluateJsonPath::onTrigger(core::ProcessContext&, core::ProcessSession& se
         auto result_string = extractQueryResult(query_result);
         return output_stream->write(reinterpret_cast<const uint8_t*>(result_string.data()), result_string.size());
       });
+    } else {
+      attributes_to_set.emplace(property_name, extractQueryResult(query_result));
     }
   }
 
+  if (destination_ == evaluate_json_path::DestinationType::FlowFileAttribute) {
+    for (const auto& [key, value] : attributes_to_set) {
+      session.putAttribute(*flow_file, key, value);
+    }
+  }
   session.transfer(flow_file, Matched);
 }
 

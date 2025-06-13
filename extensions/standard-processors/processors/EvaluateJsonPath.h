@@ -16,6 +16,10 @@
  */
 #pragma once
 
+#include <string>
+#include <string_view>
+#include <array>
+
 #include "core/logging/LoggerFactory.h"
 #include "core/Processor.h"
 #include "core/PropertyDefinition.h"
