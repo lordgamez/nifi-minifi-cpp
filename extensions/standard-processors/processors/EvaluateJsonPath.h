@@ -23,6 +23,8 @@
 #include "minifi-cpp/core/PropertyValidator.h"
 #include "core/RelationshipDefinition.h"
 
+#include "jsoncons/json.hpp"
+
 namespace org::apache::nifi::minifi::processors::evaluate_json_path {
 enum class DestinationType {
   FlowFileContent,
@@ -176,6 +178,8 @@ class EvaluateJsonPath : public core::ProcessorImpl {
   void onTrigger(core::ProcessContext& context, core::ProcessSession& session) override;
 
  private:
+  std::string extractQueryResult(const jsoncons::json& query_result) const;
+
   evaluate_json_path::DestinationType destination_ = evaluate_json_path::DestinationType::FlowFileAttribute;
   evaluate_json_path::NullValueRepresentationOption null_value_representation_ = evaluate_json_path::NullValueRepresentationOption::EmptyString;
   evaluate_json_path::PathNotFoundBehaviorOption path_not_found_behavior_ = evaluate_json_path::PathNotFoundBehaviorOption::Ignore;

@@ -178,19 +178,37 @@ TEST_CASE("JSON path query result does not match the required return type", "[Ev
 }
 
 TEST_CASE("Query JSON object and write it to flow file", "[EvaluateJsonPathTests]") {
+  SingleProcessorTestController controller(std::make_unique<processors::EvaluateJsonPath>("EvaluateJsonPath"));
+  LogTestController::getInstance().setTrace<processors::EvaluateJsonPath>();
+  auto evaluate_json_path = dynamic_cast<processors::EvaluateJsonPath*>(controller.getProcessor());
+  REQUIRE(evaluate_json_path);
+  controller.plan->setProperty(evaluate_json_path, processors::EvaluateJsonPath::Destination, "flowfile-content");
+  controller.plan->setDynamicProperty(evaluate_json_path, "jsonPath", "$.name");
 
+  std::string json_content = R"({"name": {"firstName": "John", "lastName": "Doe"}})";
+  auto result = controller.trigger({{.content = json_content}});
+
+  REQUIRE(result.at(processors::EvaluateJsonPath::Matched).size() == 1);
+  REQUIRE(result.at(processors::EvaluateJsonPath::Unmatched).empty());
+  REQUIRE(result.at(processors::EvaluateJsonPath::Failure).empty());
+
+  const auto result_flow_file = result.at(processors::EvaluateJsonPath::Matched).at(0);
+
+  CHECK(controller.plan->getContent(result_flow_file) == R"({"firstName":"John","lastName":"Doe"})");
+  std::string attribute_value;
+  CHECK_FALSE(result_flow_file->getAttribute("jsonPath", attribute_value));
 }
 
 TEST_CASE("Query multiple scalars and write them to attributes", "[EvaluateJsonPathTests]") {
-
 }
 
-TEST_CASE("Query single scalars and write it to flow file", "[EvaluateJsonPathTests]") {
+TEST_CASE("Query a single scalar and write it to flow file", "[EvaluateJsonPathTests]") {
+}
 
+TEST_CASE("Query has multiple results", "[EvaluateJsonPathTests]") {
 }
 
 TEST_CASE("Query result is null value", "[EvaluateJsonPathTests]") {
-
 }
 
 }  // namespace org::apache::nifi::minifi::test

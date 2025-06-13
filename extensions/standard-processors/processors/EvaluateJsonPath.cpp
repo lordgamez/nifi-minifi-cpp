@@ -21,8 +21,7 @@
 #include "core/Resource.h"
 #include "utils/ProcessorConfigUtils.h"
 
-#include <jsoncons/json.hpp>
-#include <jsoncons_ext/jsonpath/jsonpath.hpp>
+#include "jsoncons_ext/jsonpath/jsonpath.hpp"
 
 namespace org::apache::nifi::minifi::processors {
 
@@ -56,6 +55,19 @@ void EvaluateJsonPath::onSchedule(core::ProcessContext& context, core::ProcessSe
       return_type_ = evaluate_json_path::ReturnTypeOption::Scalar;
     }
   }
+}
+
+std::string EvaluateJsonPath::extractQueryResult(const jsoncons::json& query_result) const {
+  gsl_Expects(!query_result.empty());
+  if (query_result.size() > 1) {
+    gsl_Assert(return_type_ == evaluate_json_path::ReturnTypeOption::JSON);
+    return query_result.to_string();
+  }
+  if (query_result[0].is_null()) {
+    return null_value_representation_ == evaluate_json_path::NullValueRepresentationOption::EmptyString ? "" : "null";
+  }
+
+  return query_result[0].to_string();
 }
 
 void EvaluateJsonPath::onTrigger(core::ProcessContext&, core::ProcessSession& session) {
@@ -104,6 +116,13 @@ void EvaluateJsonPath::onTrigger(core::ProcessContext&, core::ProcessSession& se
       logger_->log_error("JSON path '{}' returned a non-scalar value or multiple values for attribute key '{}', transferring to Failure relationship", json_path, property_name);
       session.transfer(flow_file, Failure);
       return;
+    }
+
+    if (destination_ == evaluate_json_path::DestinationType::FlowFileContent) {
+      session.write(flow_file, [&, this](const std::shared_ptr<io::OutputStream>& output_stream) -> int64_t {
+        auto result_string = extractQueryResult(query_result);
+        return output_stream->write(reinterpret_cast<const uint8_t*>(result_string.data()), result_string.size());
+      });
     }
   }
 
