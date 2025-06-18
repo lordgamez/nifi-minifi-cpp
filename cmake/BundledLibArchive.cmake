@@ -30,6 +30,7 @@ function(use_bundled_libarchive SOURCE_DIR BINARY_DIR)
     set(LIBARCHIVE_CMAKE_ARGS ${PASSTHROUGH_CMAKE_ARGS}
             "-DCMAKE_INSTALL_PREFIX=${BINARY_DIR}/thirdparty/libarchive-install"
             -DLIBARCHIVE_STATIC=1
+            -DBUILD_SHARED_LIBS=OFF
             -DENABLE_MBEDTLS=OFF
             -DENABLE_NETTLE=OFF
             -DENABLE_LIBB2=OFF
@@ -67,8 +68,8 @@ function(use_bundled_libarchive SOURCE_DIR BINARY_DIR)
     # Build project
     ExternalProject_Add(
             libarchive-external
-            URL "https://github.com/libarchive/libarchive/releases/download/v3.4.2/libarchive-3.4.2.tar.gz"
-            URL_HASH "SHA256=b60d58d12632ecf1e8fad7316dc82c6b9738a35625746b47ecdcaf4aed176176"
+            URL "https://github.com/libarchive/libarchive/releases/download/v3.8.1/libarchive-3.8.1.tar.gz"
+            URL_HASH "SHA256=bde832a5e3344dc723cfe9cc37f8e54bde04565bfe6f136bc1bd31ab352e9fab"
             SOURCE_DIR "${BINARY_DIR}/thirdparty/libarchive-src"
             LIST_SEPARATOR % # This is needed for passing semicolon-separated lists
             CMAKE_ARGS ${LIBARCHIVE_CMAKE_ARGS}
