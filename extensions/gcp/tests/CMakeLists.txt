@@ -32,7 +32,7 @@ FOREACH(testfile ${GCS_TESTS})
     target_link_libraries(${testfilename} minifi-gcp)
     target_link_libraries(${testfilename} minifi-standard-processors)
     target_link_libraries(${testfilename} minifi-expression-language-extensions)
-    target_link_libraries(${testfilename} gtest_main gmock mock_google_cloud_client)
+    target_link_libraries(${testfilename} gtest_main gmock)
 
     gtest_add_tests(TARGET "${testfilename}")
 ENDFOREACH()
