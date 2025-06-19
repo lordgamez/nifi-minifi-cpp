@@ -1,5 +1,5 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 4c1f8770..8a5333dc 100644
+index 4c1f8770..642ac000 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.17 FATAL_ERROR)
@@ -11,16 +11,6 @@ index 4c1f8770..8a5333dc 100644
  if(NOT CMAKE_RUNTIME_OUTPUT_DIRECTORY)
    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${libarchive_BINARY_DIR}/bin)
  endif()
-@@ -2195,9 +2195,6 @@ CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/build/cmake/config.h.in
- INCLUDE_DIRECTORIES(BEFORE ${CMAKE_CURRENT_BINARY_DIR})
- ADD_DEFINITIONS(-DHAVE_CONFIG_H)
- 
--# Handle generation of the libarchive.pc file for pkg-config
--INCLUDE(CreatePkgConfigFile)
--
- #
- # Register installation of PDF documents.
- #
 diff --git a/libarchive/CMakeLists.txt b/libarchive/CMakeLists.txt
 index fd997db4..ce1ad6dd 100644
 --- a/libarchive/CMakeLists.txt

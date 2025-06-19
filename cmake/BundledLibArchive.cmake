@@ -29,6 +29,7 @@ function(use_bundled_libarchive SOURCE_DIR BINARY_DIR)
     # Set build options
     set(LIBARCHIVE_CMAKE_ARGS ${PASSTHROUGH_CMAKE_ARGS}
             "-DCMAKE_INSTALL_PREFIX=${BINARY_DIR}/thirdparty/libarchive-install"
+            -DCMAKE_INSTALL_LIBDIR=lib
             -DLIBARCHIVE_STATIC=1
             -DBUILD_SHARED_LIBS=OFF
             -DENABLE_MBEDTLS=OFF
