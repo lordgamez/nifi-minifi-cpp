@@ -50,7 +50,8 @@ function(use_bundled_libarchive SOURCE_DIR BINARY_DIR)
             -DENABLE_ICONV=OFF
             -DENABLE_TEST=OFF
             -DENABLE_WERROR=OFF
-            -DENABLE_OPENSSL=ON)
+            -DENABLE_OPENSSL=ON
+            -DENABLE_UNZIP=OFF)
 
     if (NOT ENABLE_LZMA)
         list(APPEND LIBARCHIVE_CMAKE_ARGS -DENABLE_LZMA=OFF)
