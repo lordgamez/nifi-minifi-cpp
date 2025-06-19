@@ -21,7 +21,7 @@ function(use_bundled_libarchive SOURCE_DIR BINARY_DIR)
 
     # Define byproducts
     if (WIN32)
-        set(BYPRODUCT "lib/archive_static.lib")
+        set(BYPRODUCT "lib/archive.lib")
     else()
         set(BYPRODUCT "lib/libarchive.a")
     endif()
