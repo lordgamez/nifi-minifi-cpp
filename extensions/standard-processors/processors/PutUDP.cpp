@@ -110,20 +110,25 @@ void PutUDP::onTrigger(core::ProcessContext& context, core::ProcessSession& sess
     return nonstd::make_unexpected(error);
   };
 
-  const auto transfer_to_success = [&session, &flow_file]() -> void {
-    session.transfer(flow_file, Success);
-  };
-
   const auto transfer_to_failure = [&session, &flow_file, &logger = this->logger_](std::error_code ec) -> void {
     gsl_Expects(ec);
     logger->log_error("{}", ec.message());
     session.transfer(flow_file, Failure);
   };
 
-  resolve_hostname()
-      | utils::andThen(send_data_to_endpoint)
-      | utils::transform(transfer_to_success)
-      | utils::orElse(transfer_to_failure);
+  auto resolve_result = resolve_hostname();
+  if (!resolve_result) {
+    transfer_to_failure(resolve_result.error());
+    return;
+  }
+
+  auto send_result = send_data_to_endpoint(resolve_result.value());
+  if (!send_result) {
+    transfer_to_failure(send_result.error());
+    return;
+  }
+
+  session.transfer(flow_file, Success);
 }
 
 REGISTER_RESOURCE(PutUDP, Processor);
