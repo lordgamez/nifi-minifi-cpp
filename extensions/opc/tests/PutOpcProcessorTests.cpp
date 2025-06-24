@@ -379,7 +379,7 @@ TEST_CASE("Test missing target node type", "[putopcprocessor]") {
   REQUIRE(put_opc_processor->setProperty(processors::PutOPCProcessor::ParentNodeID.name, "Simulator/Default/Device1"));
   REQUIRE(put_opc_processor->setProperty(processors::PutOPCProcessor::ParentNameSpaceIndex.name, std::to_string(server.getNamespaceIndex())));
   REQUIRE(put_opc_processor->setProperty(processors::PutOPCProcessor::ValueType.name, "Int32"));
-  REQUIRE(put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeIDType.name, "${missing}"));
+  REQUIRE_FALSE(put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeIDType.name, "${invalid_type}"));
   REQUIRE(put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeID.name, "9999"));
   REQUIRE(put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeNameSpaceIndex.name, std::to_string(server.getNamespaceIndex())));
   REQUIRE(put_opc_processor->setProperty(processors::PutOPCProcessor::TargetNodeBrowseName.name, "everything"));

@@ -45,7 +45,7 @@ TEST_CASE("Script engine is not set", "[executescriptMisconfiguration]") {
 
   auto execute_script = plan->addProcessor("ExecuteScript", "executeScript");
 
-  REQUIRE(plan->setProperty(execute_script, ExecuteScript::ScriptEngine, ""));
+  REQUIRE_FALSE(plan->setProperty(execute_script, ExecuteScript::ScriptEngine, ""));
   REQUIRE(plan->setProperty(execute_script, ExecuteScript::ScriptFile, "/path/to/script.py"));
 
   REQUIRE_THROWS_AS(test_controller.runSession(plan, true), minifi::Exception);
