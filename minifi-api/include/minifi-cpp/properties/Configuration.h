@@ -124,7 +124,6 @@ class Configuration : public virtual Properties {
   static constexpr const char *nifi_c2_rest_path_base = "nifi.c2.rest.path.base";
   static constexpr const char *nifi_c2_rest_url = "nifi.c2.rest.url";
   static constexpr const char *nifi_c2_rest_url_ack = "nifi.c2.rest.url.ack";
-  static constexpr const char *nifi_c2_rest_ssl_context_service = "nifi.c2.rest.ssl.context.service";
   static constexpr const char *nifi_c2_rest_heartbeat_minimize_updates = "nifi.c2.rest.heartbeat.minimize.updates";
   static constexpr const char *nifi_c2_rest_request_encoding = "nifi.c2.rest.request.encoding";
   static constexpr const char *nifi_c2_flow_info_processor_bulletin_limit = "nifi.c2.flow.info.processor.bulletin.limit";
@@ -193,7 +192,6 @@ class Configuration : public virtual Properties {
   static constexpr const char *controller_socket_local_any_interface = "controller.socket.local.any.interface";
   static constexpr const char *controller_socket_host = "controller.socket.host";
   static constexpr const char *controller_socket_port = "controller.socket.port";
-  static constexpr const char *controller_ssl_context_service = "controller.ssl.context.service";
 
   static constexpr const char *nifi_flow_file_repository_check_health = "nifi.flowfile.repository.check.health";
   static constexpr const char *nifi_python_virtualenv_directory = "nifi.python.virtualenv.directory";
