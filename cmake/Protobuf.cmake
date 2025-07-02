@@ -17,7 +17,6 @@
 include(FetchContent)
 
 set(protobuf_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-set(protobuf_ABSL_PROVIDER "package" CACHE STRING "" FORCE)
 
 FetchContent_Declare(
     protobuf
@@ -28,3 +27,11 @@ FetchContent_MakeAvailable(protobuf)
 
 set(PROTOBUF_INCLUDE_DIR "${protobuf_SOURCE_DIR}/src" CACHE STRING "" FORCE)
 set(PROTOBUF_COMPILER "$<TARGET_FILE:protoc>" CACHE STRING "" FORCE)
+
+if (WIN32)
+    set(PROTOBUF_LIBRARIES "${protobuf_BINARY_DIR}/lib/${CMAKE_BUILD_TYPE}/protobuf_static.lib" CACHE STRING "" FORCE)
+    set(PROTOBUF_LIBRARY "${protobuf_BINARY_DIR}/lib/${CMAKE_BUILD_TYPE}/protobuf_static.lib" CACHE STRING "" FORCE)
+else()
+    set(PROTOBUF_LIBRARIES "${protobuf_BINARY_DIR}/lib/libprotobuf.a" CACHE STRING "" FORCE)
+    set(PROTOBUF_LIBRARY "${protobuf_BINARY_DIR}/lib/libprotobuf.a" CACHE STRING "" FORCE)
+endif()
