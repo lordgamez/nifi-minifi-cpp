@@ -1,5 +1,5 @@
 /**
-* Licensed to the Apache Software Foundation (ASF) under one or more
+ * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
  * The ASF licenses this file to You under the Apache License, Version 2.0
@@ -17,26 +17,23 @@
 #pragma once
 
 #include "controllers/RecordSetReader.h"
+#include "core/logging/LoggerFactory.h"
 
-namespace org::apache::nifi::minifi::standard {
+namespace org::apache::nifi::minifi::controllers {
 
-class JsonTreeReader final : public core::RecordSetReaderImpl {
+class SparkplugBReader final : public core::RecordSetReaderImpl {
  public:
-  explicit JsonTreeReader(const std::string_view name, const utils::Identifier& uuid = {}) : RecordSetReaderImpl(name, uuid) {}
+  explicit SparkplugBReader(const std::string_view name, const utils::Identifier& uuid = {}) : RecordSetReaderImpl(name, uuid) {}
 
-  JsonTreeReader(JsonTreeReader&&) = delete;
-  JsonTreeReader(const JsonTreeReader&) = delete;
-  JsonTreeReader& operator=(JsonTreeReader&&) = delete;
-  JsonTreeReader& operator=(const JsonTreeReader&) = delete;
+  SparkplugBReader(SparkplugBReader&&) = delete;
+  SparkplugBReader(const SparkplugBReader&) = delete;
+  SparkplugBReader& operator=(SparkplugBReader&&) = delete;
+  SparkplugBReader& operator=(const SparkplugBReader&) = delete;
 
-  ~JsonTreeReader() override = default;
+  ~SparkplugBReader() override = default;
 
-  EXTENSIONAPI static constexpr const char* Description = "Parses JSON into individual Record objects. "
-    "While the reader expects each record to be well-formed JSON, the content of a FlowFile may consist of many records, "
-    "each as a well-formed JSON array or JSON object with optional whitespace between them, such as the common 'JSON-per-line' format. "
-    "If an array is encountered, each element in that array will be treated as a separate record. "
-    "If the schema that is configured contains a field that is not present in the JSON, a null value will be used. "
-    "If the JSON contains a field that is not present in the schema, that field will be skipped.";
+  EXTENSIONAPI static constexpr const char* Description = "Reads Sparkplug B messages and turns them into individual Record objects. "
+      "The reader expects a single Sparkplug B payload in a read operation, which is a protobuf-encoded binary message. This reader is typically used with MQTT processors like ConsumeMQTT.";
 
   EXTENSIONAPI static constexpr auto Properties = std::array<core::PropertyReference, 0>{};
 
@@ -52,6 +49,9 @@ class JsonTreeReader final : public core::RecordSetReaderImpl {
   void yield() override {}
   bool isRunning() const override { return getState() == core::controller::ControllerServiceState::ENABLED; }
   bool isWorkAvailable() override { return false; }
+
+ private:
+  std::shared_ptr<core::logging::Logger> logger_ = core::logging::LoggerFactory<SparkplugBReader>::getLogger();
 };
 
-}  // namespace org::apache::nifi::minifi::standard
+}  // namespace org::apache::nifi::minifi::controllers
