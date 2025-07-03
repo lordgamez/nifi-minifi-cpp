@@ -1,5 +1,5 @@
 /**
-* Licensed to the Apache Software Foundation (ASF) under one or more
+ * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
  * The ASF licenses this file to You under the Apache License, Version 2.0
@@ -18,18 +18,18 @@
 
 #include "controllers/RecordSetReader.h"
 
-namespace org::apache::nifi::minifi::standard {
+namespace org::apache::nifi::minifi::controllers {
 
-class JsonTreeReader final : public core::RecordSetReaderImpl {
+class SparkplugReader final : public core::RecordSetReaderImpl {
  public:
-  explicit JsonTreeReader(const std::string_view name, const utils::Identifier& uuid = {}) : RecordSetReaderImpl(name, uuid) {}
+  explicit SparkplugReader(const std::string_view name, const utils::Identifier& uuid = {}) : RecordSetReaderImpl(name, uuid) {}
 
-  JsonTreeReader(JsonTreeReader&&) = delete;
-  JsonTreeReader(const JsonTreeReader&) = delete;
-  JsonTreeReader& operator=(JsonTreeReader&&) = delete;
-  JsonTreeReader& operator=(const JsonTreeReader&) = delete;
+  SparkplugReader(SparkplugReader&&) = delete;
+  SparkplugReader(const SparkplugReader&) = delete;
+  SparkplugReader& operator=(SparkplugReader&&) = delete;
+  SparkplugReader& operator=(const SparkplugReader&) = delete;
 
-  ~JsonTreeReader() override = default;
+  ~SparkplugReader() override = default;
 
   EXTENSIONAPI static constexpr const char* Description = "Parses JSON into individual Record objects. "
     "While the reader expects each record to be well-formed JSON, the content of a FlowFile may consist of many records, "
@@ -54,4 +54,4 @@ class JsonTreeReader final : public core::RecordSetReaderImpl {
   bool isWorkAvailable() override { return false; }
 };
 
-}  // namespace org::apache::nifi::minifi::standard
+}  // namespace org::apache::nifi::minifi::controllers
