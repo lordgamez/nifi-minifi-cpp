@@ -1,0 +1,79 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+#include "utils/RecordUtils.h"
+
+#ifdef WIN32
+#pragma push_macro("GetObject")
+#undef GetObject  // windows.h #defines GetObject = GetObjectA or GetObjectW, which conflicts with rapidjson
+#endif
+
+namespace org::apache::nifi::minifi::utils::record {
+
+nonstd::expected<core::RecordField, std::error_code> parse(const rapidjson::Value& json_value) {
+  if (json_value.IsDouble()) {
+    return core::RecordField{json_value.GetDouble()};
+  }
+  if (json_value.IsBool()) {
+    return core::RecordField{json_value.GetBool()};
+  }
+  if (json_value.IsInt64()) {
+    return core::RecordField{json_value.GetInt64()};
+  }
+  if (json_value.IsString()) {
+    return core::RecordField{std::string{json_value.GetString(), json_value.GetStringLength()}};
+  }
+  if (json_value.IsArray()) {
+    core::RecordArray record_array;
+    for (const auto& element : json_value.GetArray()) {
+      auto element_field = parse(element);
+      if (!element_field)
+        return nonstd::make_unexpected(element_field.error());
+      record_array.push_back(std::move(*element_field));
+    }
+    return core::RecordField{std::move(record_array)};
+  }
+  if (json_value.IsObject()) {
+    core::RecordObject record_object;
+    for (const auto& m : json_value.GetObject()) {
+      auto element_key = m.name.GetString();
+      auto element_field = parse(m.value);
+      if (!element_field)
+        return nonstd::make_unexpected(element_field.error());
+      record_object.emplace(element_key, std::move(*element_field));
+    }
+    return core::RecordField{std::move(record_object)};
+  }
+
+  return nonstd::make_unexpected(std::make_error_code(std::errc::invalid_argument));
+}
+
+nonstd::expected<core::Record, std::error_code> parseRecord(rapidjson::Value& record_json) {
+  core::Record result;
+  if (!record_json.IsObject()) {
+    return nonstd::make_unexpected(std::make_error_code(std::errc::invalid_argument));
+  }
+  for (const auto& member : record_json.GetObject()) {
+    const auto element_key = member.name.GetString();
+    auto element_field = parse(member.value);
+    if (!element_field)
+      return nonstd::make_unexpected(element_field.error());
+    result.emplace(element_key, std::move(*element_field));
+  }
+  return result;
+}
+
+}  // namespace org::apache::nifi::minifi::utils::record
