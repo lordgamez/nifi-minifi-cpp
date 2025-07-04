@@ -23,6 +23,7 @@
 #include "sparkplug_b.pb.h"
 #include "minifi-cpp/core/Record.h"
 #include "utils/RecordUtils.h"
+#include "core/Resource.h"
 
 namespace org::apache::nifi::minifi::controllers {
 
@@ -66,5 +67,7 @@ nonstd::expected<core::RecordSet, std::error_code> SparkplugReader::read(io::Inp
   record_set.push_back(std::move(*record));
   return record_set;
 }
+
+REGISTER_RESOURCE(SparkplugReader, ControllerService);
 
 }  // namespace org::apache::nifi::minifi::controllers

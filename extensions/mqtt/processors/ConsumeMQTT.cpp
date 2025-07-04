@@ -101,6 +101,10 @@ void ConsumeMQTT::onTriggerImpl(core::ProcessContext&, core::ProcessSession& ses
       msg_queue.pop();
     }
     gsl_Assert(record_set_writer_);
+    if (record_set.empty()) {
+      logger_->log_debug("No records to write, skipping FlowFile creation");
+      return;
+    }
     std::shared_ptr<core::FlowFile> flow_file = session.create();
     record_set_writer_->write(record_set, flow_file, session);
     session.transfer(flow_file, Success);
