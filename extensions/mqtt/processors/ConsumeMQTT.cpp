@@ -29,12 +29,36 @@
 #include "utils/StringUtils.h"
 #include "utils/ValueParser.h"
 #include "utils/ProcessorConfigUtils.h"
+#include "io/BufferStream.h"
 
 namespace org::apache::nifi::minifi::processors {
+namespace {
+template<typename RecordSetIO>
+std::shared_ptr<RecordSetIO> getRecordSetIO(core::ProcessContext& context, const core::PropertyReference& property, const utils::Identifier& processor_uuid) {
+  std::string service_name = context.getProperty(property).value_or("");
+  if (!IsNullOrEmpty(service_name)) {
+    auto record_set_io = std::dynamic_pointer_cast<RecordSetIO>(context.getControllerService(service_name, processor_uuid));
+    if (!record_set_io)
+      return nullptr;
+    return record_set_io;
+  }
+  return nullptr;
+}
+}  // namespace
 
 void ConsumeMQTT::initialize() {
   setSupportedProperties(Properties);
   setSupportedRelationships(Relationships);
+}
+
+void ConsumeMQTT::onSchedule(core::ProcessContext& context, core::ProcessSessionFactory& factory) {
+  AbstractMQTTProcessor::onSchedule(context, factory);
+  record_set_reader_ = getRecordSetIO<core::RecordSetReader>(context, RecordReader, getUUID());
+  record_set_writer_ = getRecordSetIO<core::RecordSetWriter>(context, RecordWriter, getUUID());
+
+  if (record_set_reader_ == nullptr || record_set_writer_ == nullptr) {
+    throw Exception(ExceptionType::PROCESS_SCHEDULE_EXCEPTION, "ConsumeMQTT requires both or neither Record Reader and Record Writer to be set");
+  }
 }
 
 void ConsumeMQTT::enqueueReceivedMQTTMsg(SmartMessage message) {
@@ -60,27 +84,49 @@ void ConsumeMQTT::readProperties(core::ProcessContext& context) {
 
 void ConsumeMQTT::onTriggerImpl(core::ProcessContext&, core::ProcessSession& session) {
   std::queue<SmartMessage> msg_queue = getReceivedMqttMessages();
-  while (!msg_queue.empty()) {
-    const auto& message = msg_queue.front();
+  if (record_set_reader_) {
+    core::RecordSet record_set;
+    while (!msg_queue.empty()) {
+      io::BufferStream buffer_stream;
+      buffer_stream.write(reinterpret_cast<const uint8_t*>(msg_queue.front().contents->payload), gsl::narrow<size_t>(msg_queue.front().contents->payloadlen));
+      auto new_records_result = record_set_reader_->read(buffer_stream);
+      if (!new_records_result) {
+        logger_->log_error("Failed to read records from MQTT message: {}", new_records_result.error());
+        msg_queue.pop();
+        continue;
+      }
+      auto& new_records = new_records_result.value();
+      record_set.reserve(record_set.size() + new_records_result->size());
+      record_set.insert(record_set.end(), std::make_move_iterator(new_records.begin()), std::make_move_iterator(new_records.end()));
+      msg_queue.pop();
+    }
+    gsl_Assert(record_set_writer_);
     std::shared_ptr<core::FlowFile> flow_file = session.create();
-    WriteCallback write_callback(message, logger_);
-    try {
-      session.write(flow_file, std::ref(write_callback));
-    } catch (const Exception& ex) {
-      logger_->log_error("Error when processing message queue: {}", ex.what());
+    record_set_writer_->write(record_set, flow_file, session);
+    session.transfer(flow_file, Success);
+  } else {
+    while (!msg_queue.empty()) {
+      const auto& message = msg_queue.front();
+      std::shared_ptr<core::FlowFile> flow_file = session.create();
+      WriteCallback write_callback(message, logger_);
+      try {
+        session.write(flow_file, std::ref(write_callback));
+      } catch (const Exception& ex) {
+        logger_->log_error("Error when processing message queue: {}", ex.what());
+      }
+      if (!write_callback.getSuccessStatus()) {
+        logger_->log_error("ConsumeMQTT fail for the flow with UUID {}", flow_file->getUUIDStr());
+        session.remove(flow_file);
+      } else {
+        putUserPropertiesAsAttributes(message, flow_file, session);
+        session.putAttribute(*flow_file, BrokerOutputAttribute.name, uri_);
+        session.putAttribute(*flow_file, TopicOutputAttribute.name, message.topic);
+        fillAttributeFromContentType(message, flow_file, session);
+        logger_->log_debug("ConsumeMQTT processing success for the flow with UUID {} topic {}", flow_file->getUUIDStr(), message.topic);
+        session.transfer(flow_file, Success);
+      }
+      msg_queue.pop();
     }
-    if (!write_callback.getSuccessStatus()) {
-      logger_->log_error("ConsumeMQTT fail for the flow with UUID {}", flow_file->getUUIDStr());
-      session.remove(flow_file);
-    } else {
-      putUserPropertiesAsAttributes(message, flow_file, session);
-      session.putAttribute(*flow_file, BrokerOutputAttribute.name, uri_);
-      session.putAttribute(*flow_file, TopicOutputAttribute.name, message.topic);
-      fillAttributeFromContentType(message, flow_file, session);
-      logger_->log_debug("ConsumeMQTT processing success for the flow with UUID {} topic {}", flow_file->getUUIDStr(), message.topic);
-      session.transfer(flow_file, Success);
-    }
-    msg_queue.pop();
   }
 }
 
@@ -202,7 +248,6 @@ void ConsumeMQTT::resolveTopicFromAlias(SmartMessage& smart_message) {
     logger_->log_error("Received message without topic and alias");
   }
 }
-
 
 void ConsumeMQTT::checkProperties() {
   auto is_property_explicitly_set = [this](const std::string_view property_name) -> bool {
