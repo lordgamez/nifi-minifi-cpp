@@ -34,6 +34,8 @@
 #include "AbstractMQTTProcessor.h"
 #include "utils/ArrayUtils.h"
 #include "utils/gsl.h"
+#include "controllers/RecordSetReader.h"
+#include "controllers/RecordSetWriter.h"
 
 namespace org::apache::nifi::minifi::processors {
 
@@ -84,6 +86,16 @@ class ConsumeMQTT : public processors::AbstractMQTTProcessor {
       .withValidator(core::StandardPropertyValidators::UNSIGNED_INTEGER_VALIDATOR)
       .withDefaultValue(MQTT_MAX_RECEIVE_MAXIMUM_STR)
       .build();
+  EXTENSIONAPI static constexpr auto RecordReader = core::PropertyDefinitionBuilder<>::createProperty("Record Reader")
+      .withDescription("The Record Reader to use for parsing received MQTT Messages into Records.")
+      .isRequired(true)
+      .withAllowedTypes<minifi::core::RecordSetReader>()
+      .build();
+  EXTENSIONAPI static constexpr auto RecordWriter = core::PropertyDefinitionBuilder<>::createProperty("Record Writer")
+      .withDescription("The Record Writer to use for serializing Records before writing them to a FlowFile.")
+      .isRequired(true)
+      .withAllowedTypes<minifi::core::RecordSetWriter>()
+      .build();
   EXTENSIONAPI static constexpr auto Properties = utils::array_cat(AbstractMQTTProcessor::BasicProperties, std::to_array<core::PropertyReference>({
       Topic,
       CleanSession,
@@ -92,7 +104,9 @@ class ConsumeMQTT : public processors::AbstractMQTTProcessor {
       QueueBufferMaxMessage,
       AttributeFromContentType,
       TopicAliasMaximum,
-      ReceiveMaximum
+      ReceiveMaximum,
+      RecordReader,
+      RecordWriter
   }), AbstractMQTTProcessor::AdvancedProperties);
 
   EXTENSIONAPI static constexpr auto Success = core::RelationshipDefinition{"success", "FlowFiles that are sent successfully to the destination are transferred to this relationship"};
@@ -112,6 +126,7 @@ class ConsumeMQTT : public processors::AbstractMQTTProcessor {
   void readProperties(core::ProcessContext& context) override;
   void onTriggerImpl(core::ProcessContext& context, core::ProcessSession& session) override;
   void initialize() override;
+  void onSchedule(core::ProcessContext& context, core::ProcessSessionFactory& factory) override;
 
  private:
   class WriteCallback {
@@ -208,6 +223,8 @@ class ConsumeMQTT : public processors::AbstractMQTTProcessor {
   std::unordered_map<uint16_t, std::string> alias_to_topic_;
 
   moodycamel::ConcurrentQueue<SmartMessage> queue_;
+  std::shared_ptr<core::RecordSetReader> record_set_reader_;
+  std::shared_ptr<core::RecordSetWriter> record_set_writer_;
 };
 
 }  // namespace org::apache::nifi::minifi::processors
