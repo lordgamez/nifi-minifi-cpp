@@ -18,9 +18,64 @@
 #include "JsonTreeReader.h"
 
 #include "core/Resource.h"
-#include "utils/RecordUtils.h"
 
 namespace org::apache::nifi::minifi::standard {
+
+namespace {
+
+nonstd::expected<core::RecordField, std::error_code> parse(const rapidjson::Value& json_value) {
+  if (json_value.IsDouble()) {
+    return core::RecordField{json_value.GetDouble()};
+  }
+  if (json_value.IsBool()) {
+    return core::RecordField{json_value.GetBool()};
+  }
+  if (json_value.IsInt64()) {
+    return core::RecordField{json_value.GetInt64()};
+  }
+  if (json_value.IsString()) {
+    return core::RecordField{std::string{json_value.GetString(), json_value.GetStringLength()}};
+  }
+  if (json_value.IsArray()) {
+    core::RecordArray record_array;
+    for (const auto& element : json_value.GetArray()) {
+      auto element_field = parse(element);
+      if (!element_field)
+        return nonstd::make_unexpected(element_field.error());
+      record_array.push_back(std::move(*element_field));
+    }
+    return core::RecordField{std::move(record_array)};
+  }
+  if (json_value.IsObject()) {
+    core::RecordObject record_object;
+    for (const auto& m : json_value.GetObject()) {
+      auto element_key = m.name.GetString();
+      auto element_field = parse(m.value);
+      if (!element_field)
+        return nonstd::make_unexpected(element_field.error());
+      record_object.emplace(element_key, std::move(*element_field));
+    }
+    return core::RecordField{std::move(record_object)};
+  }
+
+  return nonstd::make_unexpected(std::make_error_code(std::errc::invalid_argument));
+}
+
+nonstd::expected<core::Record, std::error_code> parseRecord(rapidjson::Value& record_json) {
+  core::Record result;
+  if (!record_json.IsObject()) {
+    return nonstd::make_unexpected(std::make_error_code(std::errc::invalid_argument));
+  }
+  for (const auto& member : record_json.GetObject()) {
+    const auto element_key = member.name.GetString();
+    auto element_field = parse(member.value);
+    if (!element_field)
+      return nonstd::make_unexpected(element_field.error());
+    result.emplace(element_key, std::move(*element_field));
+  }
+  return result;
+}
+}  // namespace
 
 bool readAsJsonLines(const std::string& content, core::RecordSet& record_set) {
   std::stringstream ss(content);
@@ -29,7 +84,7 @@ bool readAsJsonLines(const std::string& content, core::RecordSet& record_set) {
     rapidjson::Document document;
     if (rapidjson::ParseResult parse_result = document.Parse<rapidjson::kParseStopWhenDoneFlag>(line); parse_result.IsError())
       return false;
-    auto record = utils::record::parseRecord(document);
+    auto record = parseRecord(document);
     if (!record)
       return false;
     record_set.push_back(std::move(*record));
@@ -44,7 +99,7 @@ bool readAsArray(const std::string& content, core::RecordSet& record_set) {
   if (!document.IsArray())
     return false;
   for (auto& json_record : document.GetArray()) {
-    auto record  = utils::record::parseRecord(json_record);
+    auto record  = parseRecord(json_record);
     if (!record)
       return false;
     record_set.push_back(std::move(*record));

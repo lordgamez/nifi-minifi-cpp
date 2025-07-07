@@ -24,12 +24,27 @@
 
 namespace org::apache::nifi::minifi::test {
 
-TEST_CASE("Test", "[sparkplugReader]") {
+TEST_CASE("Test invalid payload read failure", "[sparkplugReader]") {
+  io::BufferStream buffer_stream;
+  std::string payload_string = "invalid payload data";
+  buffer_stream.write(reinterpret_cast<const uint8_t*>(payload_string.data()), payload_string.size());
+
+  controllers::SparkplugReader sparkplug_reader("SparkplugReader");
+  auto record_set = sparkplug_reader.read(buffer_stream);
+  REQUIRE_FALSE(record_set.has_value());
+  REQUIRE(record_set.error().value() == std::make_error_code(std::errc::invalid_argument).value());
+}
+
+TEST_CASE("Test converting serialized Sparkplug payload to recordset", "[sparkplugReader]") {
   com::cirruslink::sparkplug::protobuf::Payload payload;
   payload.set_uuid("test-uuid");
   payload.set_timestamp(987654321);
   payload.set_seq(12345);
   payload.set_body("test-body");
+  auto metrics = payload.add_metrics();
+  metrics->set_name("test-metric");
+  metrics->set_datatype(99);
+  metrics->set_timestamp(42);
   io::BufferStream buffer_stream;
   std::string payload_string;
   payload.SerializeToString(&payload_string);
@@ -40,7 +55,14 @@ TEST_CASE("Test", "[sparkplugReader]") {
   REQUIRE(record_set.has_value());
   REQUIRE(record_set->size() == 1);
   auto& record = record_set->at(0);
-  REQUIRE(std::get<std::string>(record.at("uuid").value_) == "test-uuid");
+  CHECK(std::get<std::string>(record.at("uuid").value_) == "test-uuid");
+  CHECK(std::get<uint64_t>(record.at("timestamp").value_) == 987654321);
+  CHECK(std::get<uint64_t>(record.at("seq").value_) == 12345);
+  CHECK(std::get<std::string>(record.at("body").value_) == "test-body");
+  auto record_metric_array = std::get<core::RecordArray>(record.at("metrics").value_);
+  REQUIRE(record_metric_array.size() == 1);
+  auto record_metric = std::get<core::RecordObject>(record_metric_array.at(0).value_);
+  CHECK(std::get<std::string>(record_metric.at("name").value_) == "test-metric");
 }
 
 }  // namespace org::apache::nifi::minifi::test

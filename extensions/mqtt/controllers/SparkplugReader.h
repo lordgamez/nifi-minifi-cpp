@@ -17,6 +17,7 @@
 #pragma once
 
 #include "controllers/RecordSetReader.h"
+#include "core/logging/LoggerFactory.h"
 
 namespace org::apache::nifi::minifi::controllers {
 
@@ -52,6 +53,9 @@ class SparkplugReader final : public core::RecordSetReaderImpl {
   void yield() override {}
   bool isRunning() const override { return getState() == core::controller::ControllerServiceState::ENABLED; }
   bool isWorkAvailable() override { return false; }
+
+ private:
+  std::shared_ptr<core::logging::Logger> logger_ = core::logging::LoggerFactory<SparkplugReader>::getLogger();
 };
 
 }  // namespace org::apache::nifi::minifi::controllers
