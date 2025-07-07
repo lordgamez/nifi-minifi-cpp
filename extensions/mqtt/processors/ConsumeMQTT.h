@@ -96,6 +96,11 @@ class ConsumeMQTT : public processors::AbstractMQTTProcessor {
       .isRequired(true)
       .withAllowedTypes<minifi::core::RecordSetWriter>()
       .build();
+  EXTENSIONAPI static constexpr auto AddAttributesAsFields = core::PropertyDefinitionBuilder<>::createProperty("Add attributes as fields")
+      .withDescription("If setting this property to true, default fields are going to be added in each record: _topic, _qos, _isDuplicate, _isRetained.")
+      .withValidator(core::StandardPropertyValidators::BOOLEAN_VALIDATOR)
+      .withDefaultValue("true")
+      .build();
   EXTENSIONAPI static constexpr auto Properties = utils::array_cat(AbstractMQTTProcessor::BasicProperties, std::to_array<core::PropertyReference>({
       Topic,
       CleanSession,
@@ -106,7 +111,8 @@ class ConsumeMQTT : public processors::AbstractMQTTProcessor {
       TopicAliasMaximum,
       ReceiveMaximum,
       RecordReader,
-      RecordWriter
+      RecordWriter,
+      AddAttributesAsFields
   }), AbstractMQTTProcessor::AdvancedProperties);
 
   EXTENSIONAPI static constexpr auto Success = core::RelationshipDefinition{"success", "FlowFiles that are sent successfully to the destination are transferred to this relationship"};
@@ -114,7 +120,14 @@ class ConsumeMQTT : public processors::AbstractMQTTProcessor {
 
   EXTENSIONAPI static constexpr auto BrokerOutputAttribute = core::OutputAttributeDefinition<0>{"mqtt.broker", {}, "URI of the sending broker"};
   EXTENSIONAPI static constexpr auto TopicOutputAttribute = core::OutputAttributeDefinition<0>{"mqtt.topic", {}, "Topic of the message"};
-  EXTENSIONAPI static constexpr auto OutputAttributes = std::array<core::OutputAttributeReference, 2>{BrokerOutputAttribute, TopicOutputAttribute};
+  EXTENSIONAPI static constexpr auto QosOutputAttribute = core::OutputAttributeDefinition<0>{"mqtt.qos", {}, "The quality of service for this message."};
+  EXTENSIONAPI static constexpr auto IsDuplicateOutputAttribute = core::OutputAttributeDefinition<0>{"mqtt.isDuplicate", {},
+      "Whether or not this message might be a duplicate of one which has already been received."};
+  EXTENSIONAPI static constexpr auto IsRetainedOutputAttribute = core::OutputAttributeDefinition<0>{"mqtt.isRetained", {},
+      "Whether or not this message was from a current publisher, or was \"retained\" by the server as the last message published on the topic."};
+  EXTENSIONAPI static constexpr auto RecordCountOutputAttribute = core::OutputAttributeDefinition<0>{"record.count", {}, "The number of records received"};
+  EXTENSIONAPI static constexpr auto OutputAttributes = std::array<core::OutputAttributeReference, 6>{BrokerOutputAttribute, TopicOutputAttribute,
+      QosOutputAttribute, IsDuplicateOutputAttribute, IsRetainedOutputAttribute, RecordCountOutputAttribute};
 
   EXTENSIONAPI static constexpr bool SupportsDynamicProperties = false;
   EXTENSIONAPI static constexpr bool SupportsDynamicRelationships = false;
@@ -225,6 +238,7 @@ class ConsumeMQTT : public processors::AbstractMQTTProcessor {
   moodycamel::ConcurrentQueue<SmartMessage> queue_;
   std::shared_ptr<core::RecordSetReader> record_set_reader_;
   std::shared_ptr<core::RecordSetWriter> record_set_writer_;
+  bool add_attributes_as_fields_ = true;
 };
 
 }  // namespace org::apache::nifi::minifi::processors

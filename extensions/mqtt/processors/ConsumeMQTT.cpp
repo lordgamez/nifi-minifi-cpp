@@ -56,9 +56,10 @@ void ConsumeMQTT::onSchedule(core::ProcessContext& context, core::ProcessSession
   record_set_reader_ = getRecordSetIO<core::RecordSetReader>(context, RecordReader, getUUID());
   record_set_writer_ = getRecordSetIO<core::RecordSetWriter>(context, RecordWriter, getUUID());
 
-  if (record_set_reader_ == nullptr || record_set_writer_ == nullptr) {
+  if ((record_set_reader_ == nullptr) != (record_set_writer_ == nullptr)) {
     throw Exception(ExceptionType::PROCESS_SCHEDULE_EXCEPTION, "ConsumeMQTT requires both or neither Record Reader and Record Writer to be set");
   }
+  add_attributes_as_fields_ = utils::parseBoolProperty(context, AddAttributesAsFields);
 }
 
 void ConsumeMQTT::enqueueReceivedMQTTMsg(SmartMessage message) {
@@ -96,6 +97,14 @@ void ConsumeMQTT::onTriggerImpl(core::ProcessContext&, core::ProcessSession& ses
         continue;
       }
       auto& new_records = new_records_result.value();
+      if (add_attributes_as_fields_) {
+        for (auto& record : new_records) {
+          record.emplace("_topic", core::RecordField(msg_queue.front().topic));
+          record.emplace("_qos", core::RecordField(msg_queue.front().contents->qos));
+          record.emplace("_isDuplicate", core::RecordField(msg_queue.front().contents->dup > 0));
+          record.emplace("_isRetained", core::RecordField(msg_queue.front().contents->retained > 0));
+        }
+      }
       record_set.reserve(record_set.size() + new_records_result->size());
       record_set.insert(record_set.end(), std::make_move_iterator(new_records.begin()), std::make_move_iterator(new_records.end()));
       msg_queue.pop();
@@ -107,6 +116,8 @@ void ConsumeMQTT::onTriggerImpl(core::ProcessContext&, core::ProcessSession& ses
     }
     std::shared_ptr<core::FlowFile> flow_file = session.create();
     record_set_writer_->write(record_set, flow_file, session);
+    session.putAttribute(*flow_file, RecordCountOutputAttribute.name, std::to_string(record_set.size()));
+    session.putAttribute(*flow_file, BrokerOutputAttribute.name, uri_);
     session.transfer(flow_file, Success);
   } else {
     while (!msg_queue.empty()) {
@@ -125,6 +136,9 @@ void ConsumeMQTT::onTriggerImpl(core::ProcessContext&, core::ProcessSession& ses
         putUserPropertiesAsAttributes(message, flow_file, session);
         session.putAttribute(*flow_file, BrokerOutputAttribute.name, uri_);
         session.putAttribute(*flow_file, TopicOutputAttribute.name, message.topic);
+        session.putAttribute(*flow_file, QosOutputAttribute.name, std::to_string(message.contents->qos));
+        session.putAttribute(*flow_file, IsDuplicateOutputAttribute.name, message.contents->dup > 0 ? "true" : "false");
+        session.putAttribute(*flow_file, IsRetainedOutputAttribute.name, message.contents->retained > 0 ? "true" : "false");
         fillAttributeFromContentType(message, flow_file, session);
         logger_->log_debug("ConsumeMQTT processing success for the flow with UUID {} topic {}", flow_file->getUUIDStr(), message.topic);
         session.transfer(flow_file, Success);
