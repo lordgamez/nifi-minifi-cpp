@@ -505,3 +505,23 @@ Feature: Sending data to MQTT streaming platform using PublishMQTT
     And "publisher-client" flow is killed
     And the MQTT broker has a log line matching "Sending PUBLISH to consumer-client"
     And a flowfile with the content "last_will_message" is placed in the monitored directory in less than 60 seconds
+
+  Scenario Outline: A MiNiFi instance publishes and consumes data to/from an MQTT broker
+    Given a SparkplugReader controller service is set up
+    And a JsonRecordSetWriter controller service is set up with "Array" output grouping
+    And a ConsumeMQTT processor with the "Topic" property set to "spBv1.0/TestGroup/DDATA/TestNode/TestDevice"
+    And the "MQTT Version" property of the ConsumeMQTT processor is set to "<version>"
+    And a PutFile processor with the "Directory" property set to "/tmp/output"
+    And "ConsumeMQTT" processor is a start node
+    And the "success" relationship of the ConsumeMQTT processor is connected to the PutFile
+
+    And an MQTT broker is set up in correspondence with the ConsumeMQTT
+
+    When both instances start up
+    Then the MQTT broker has a log line matching "Received SUBSCRIBE from consumer-client"
+    And a flowfile with the content "test" is placed in the monitored directory in less than 60 seconds
+
+    Examples: MQTT versions
+    | version  |
+    | 3.1.1    |
+    | 5.0      |
