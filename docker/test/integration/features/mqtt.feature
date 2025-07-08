@@ -90,8 +90,10 @@ Feature: Sending data to MQTT streaming platform using PublishMQTT
     And a ConsumeMQTT processor set up to communicate with an MQTT broker instance
     And the "MQTT Version" property of the ConsumeMQTT processor is set to "<version>"
     And a PutFile processor with the "Directory" property set to "/tmp/output"
+    And a LogAttribute processor
     And "ConsumeMQTT" processor is a start node
     And the "success" relationship of the ConsumeMQTT processor is connected to the PutFile
+    And the "success" relationship of the PutFile processor is connected to the LogAttribute
 
     And an MQTT broker is set up in correspondence with the PublishMQTT and ConsumeMQTT
 
@@ -101,6 +103,11 @@ Feature: Sending data to MQTT streaming platform using PublishMQTT
     And a file with the content "test" is placed in "/tmp/input"
     And a flowfile with the content "test" is placed in the monitored directory in less than 60 seconds
     And the MQTT broker has a log line matching "Received PUBLISH from .*testtopic.*\(4 bytes\)"
+    And the Minifi logs contain the following message: "key:mqtt.broker value:mqtt-broker-" in less than 60 seconds
+    And the Minifi logs contain the following message: "key:mqtt.topic value:testtopic" in less than 1 seconds
+    And the Minifi logs contain the following message: "key:mqtt.qos value:0" in less than 1 seconds
+    And the Minifi logs contain the following message: "key:mqtt.isDuplicate value:false" in less than 1 seconds
+    And the Minifi logs contain the following message: "key:mqtt.isRetained value:false" in less than 1 seconds
 
     Examples: MQTT versions
     | version  |
@@ -511,15 +518,21 @@ Feature: Sending data to MQTT streaming platform using PublishMQTT
     And a JsonRecordSetWriter controller service is set up with "Array" output grouping
     And a ConsumeMQTT processor with the "Topic" property set to "spBv1.0/TestGroup/DDATA/TestNode/TestDevice"
     And the "MQTT Version" property of the ConsumeMQTT processor is set to "<version>"
+    And the "Record Reader" property of the ConsumeMQTT processor is set to "SparkplugReader"
+    And the "Record Writer" property of the ConsumeMQTT processor is set to "JsonRecordSetWriter"
     And a PutFile processor with the "Directory" property set to "/tmp/output"
-    And "ConsumeMQTT" processor is a start node
+    And a LogAttribute processor
     And the "success" relationship of the ConsumeMQTT processor is connected to the PutFile
-
+    And the "success" relationship of the PutFile processor is connected to the LogAttribute
     And an MQTT broker is set up in correspondence with the ConsumeMQTT
 
     When both instances start up
+    And a test Sparkplug payload is published to the topic "spBv1.0/TestGroup/DDATA/TestNode/TestDevice"
+
     Then the MQTT broker has a log line matching "Received SUBSCRIBE from consumer-client"
-    And a flowfile with the content "test" is placed in the monitored directory in less than 60 seconds
+    And a flowfile with the content '[{"_isDuplicate":false,"_qos":0,"_topic":"spBv1.0/TestGroup/DDATA/TestNode/TestDevice","_isRetained":false,"body":"test-body","uuid":"test-uuid","seq":12345,"metrics":[{"int_value":123,"timestamp":45345346346,"name":"TestMetric"}],"timestamp":987654321}]' is placed in the monitored directory in less than 60 seconds
+    And the Minifi logs contain the following message: "key:record.count value:1" in less than 60 seconds
+    And the Minifi logs contain the following message: "key:mqtt.broker value:mqtt-broker-" in less than 1 seconds
 
     Examples: MQTT versions
     | version  |

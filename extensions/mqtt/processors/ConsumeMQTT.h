@@ -88,12 +88,10 @@ class ConsumeMQTT : public processors::AbstractMQTTProcessor {
       .build();
   EXTENSIONAPI static constexpr auto RecordReader = core::PropertyDefinitionBuilder<>::createProperty("Record Reader")
       .withDescription("The Record Reader to use for parsing received MQTT Messages into Records.")
-      .isRequired(true)
       .withAllowedTypes<minifi::core::RecordSetReader>()
       .build();
   EXTENSIONAPI static constexpr auto RecordWriter = core::PropertyDefinitionBuilder<>::createProperty("Record Writer")
       .withDescription("The Record Writer to use for serializing Records before writing them to a FlowFile.")
-      .isRequired(true)
       .withAllowedTypes<minifi::core::RecordSetWriter>()
       .build();
   EXTENSIONAPI static constexpr auto AddAttributesAsFields = core::PropertyDefinitionBuilder<>::createProperty("Add attributes as fields")
