@@ -32,12 +32,8 @@ class SparkplugReader final : public core::RecordSetReaderImpl {
 
   ~SparkplugReader() override = default;
 
-  EXTENSIONAPI static constexpr const char* Description = "Parses JSON into individual Record objects. "
-    "While the reader expects each record to be well-formed JSON, the content of a FlowFile may consist of many records, "
-    "each as a well-formed JSON array or JSON object with optional whitespace between them, such as the common 'JSON-per-line' format. "
-    "If an array is encountered, each element in that array will be treated as a separate record. "
-    "If the schema that is configured contains a field that is not present in the JSON, a null value will be used. "
-    "If the JSON contains a field that is not present in the schema, that field will be skipped.";
+  EXTENSIONAPI static constexpr const char* Description = "Reads Sparkplug B messages and turns them into individual Record objects. "
+      "The reader expects a single Sparkplug B payload in a read operation, which is a protobuf-encoded binary message. This reader is typically used with MQTT processors like ConsumeMQTT.";
 
   EXTENSIONAPI static constexpr auto Properties = std::array<core::PropertyReference, 0>{};
 
