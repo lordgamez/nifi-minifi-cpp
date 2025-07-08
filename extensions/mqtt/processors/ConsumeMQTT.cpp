@@ -16,7 +16,6 @@
  */
 #include "ConsumeMQTT.h"
 
-
 #include <cinttypes>
 #include <memory>
 #include <set>
@@ -26,20 +25,20 @@
 #include "core/ProcessContext.h"
 #include "core/ProcessSession.h"
 #include "core/Resource.h"
+#include "io/BufferStream.h"
+#include "utils/ProcessorConfigUtils.h"
 #include "utils/StringUtils.h"
 #include "utils/ValueParser.h"
-#include "utils/ProcessorConfigUtils.h"
-#include "io/BufferStream.h"
 
 namespace org::apache::nifi::minifi::processors {
 namespace {
 template<typename RecordSetIO>
-std::shared_ptr<RecordSetIO> getRecordSetIO(core::ProcessContext& context, const core::PropertyReference& property, const utils::Identifier& processor_uuid) {
+std::shared_ptr<RecordSetIO> getRecordSetIO(core::ProcessContext& context, const core::PropertyReference& property,
+    const utils::Identifier& processor_uuid) {
   std::string service_name = context.getProperty(property).value_or("");
   if (!IsNullOrEmpty(service_name)) {
     auto record_set_io = std::dynamic_pointer_cast<RecordSetIO>(context.getControllerService(service_name, processor_uuid));
-    if (!record_set_io)
-      return nullptr;
+    if (!record_set_io) { return nullptr; }
     return record_set_io;
   }
   return nullptr;
@@ -83,81 +82,95 @@ void ConsumeMQTT::readProperties(core::ProcessContext& context) {
   receive_maximum_ = gsl::narrow<uint16_t>(utils::parseU64Property(context, ReceiveMaximum));
 }
 
-void ConsumeMQTT::onTriggerImpl(core::ProcessContext&, core::ProcessSession& session) {
-  std::queue<SmartMessage> msg_queue = getReceivedMqttMessages();
-  if (record_set_reader_) {
-    core::RecordSet record_set;
-    while (!msg_queue.empty()) {
-      io::BufferStream buffer_stream;
-      buffer_stream.write(reinterpret_cast<const uint8_t*>(msg_queue.front().contents->payload), gsl::narrow<size_t>(msg_queue.front().contents->payloadlen));
-      auto new_records_result = record_set_reader_->read(buffer_stream);
-      if (!new_records_result) {
-        logger_->log_error("Failed to read records from MQTT message: {}", new_records_result.error());
-        msg_queue.pop();
-        continue;
-      }
-      auto& new_records = new_records_result.value();
-      if (add_attributes_as_fields_) {
-        for (auto& record : new_records) {
-          record.emplace("_topic", core::RecordField(msg_queue.front().topic));
-          record.emplace("_qos", core::RecordField(msg_queue.front().contents->qos));
-          record.emplace("_isDuplicate", core::RecordField(msg_queue.front().contents->dup > 0));
-          record.emplace("_isRetained", core::RecordField(msg_queue.front().contents->retained > 0));
-        }
-      }
-      record_set.reserve(record_set.size() + new_records_result->size());
-      record_set.insert(record_set.end(), std::make_move_iterator(new_records.begin()), std::make_move_iterator(new_records.end()));
+void ConsumeMQTT::addAttributesAsRecordFields(core::RecordSet& new_records, const std::queue<SmartMessage>& msg_queue) {
+  if (!add_attributes_as_fields_) {
+    return;
+  }
+
+  for (auto& record: new_records) {
+    record.emplace("_topic", core::RecordField(msg_queue.front().topic));
+    record.emplace("_qos", core::RecordField(msg_queue.front().contents->qos));
+    record.emplace("_isDuplicate", core::RecordField(msg_queue.front().contents->dup > 0));
+    record.emplace("_isRetained", core::RecordField(msg_queue.front().contents->retained > 0));
+  }
+}
+
+void ConsumeMQTT::transferMessagesAsRecords(core::ProcessSession& session) {
+  gsl_Expects(record_set_reader_ && record_set_writer_);
+  auto msg_queue = getReceivedMqttMessages();
+  core::RecordSet record_set;
+  while (!msg_queue.empty()) {
+    io::BufferStream buffer_stream;
+    buffer_stream.write(reinterpret_cast<const uint8_t*>(msg_queue.front().contents->payload),
+        gsl::narrow<size_t>(msg_queue.front().contents->payloadlen));
+    auto new_records_result = record_set_reader_->read(buffer_stream);
+    if (!new_records_result) {
+      logger_->log_error("Failed to read records from MQTT message: {}", new_records_result.error());
       msg_queue.pop();
+      continue;
     }
-    gsl_Assert(record_set_writer_);
-    if (record_set.empty()) {
-      logger_->log_debug("No records to write, skipping FlowFile creation");
-      return;
-    }
+    auto& new_records = new_records_result.value();
+    addAttributesAsRecordFields(new_records, msg_queue);
+    record_set.reserve(record_set.size() + new_records.size());
+    record_set.insert(record_set.end(), std::make_move_iterator(new_records.begin()), std::make_move_iterator(new_records.end()));
+    msg_queue.pop();
+  }
+  if (record_set.empty()) {
+    logger_->log_debug("No records to write, skipping FlowFile creation");
+    return;
+  }
+  std::shared_ptr<core::FlowFile> flow_file = session.create();
+  record_set_writer_->write(record_set, flow_file, session);
+  session.putAttribute(*flow_file, RecordCountOutputAttribute.name, std::to_string(record_set.size()));
+  session.putAttribute(*flow_file, BrokerOutputAttribute.name, uri_);
+  session.transfer(flow_file, Success);
+}
+
+void ConsumeMQTT::transferMessagesAsFlowFiles(core::ProcessSession& session) {
+  auto msg_queue = getReceivedMqttMessages();
+  while (!msg_queue.empty()) {
+    const auto& message = msg_queue.front();
     std::shared_ptr<core::FlowFile> flow_file = session.create();
-    record_set_writer_->write(record_set, flow_file, session);
-    session.putAttribute(*flow_file, RecordCountOutputAttribute.name, std::to_string(record_set.size()));
-    session.putAttribute(*flow_file, BrokerOutputAttribute.name, uri_);
-    session.transfer(flow_file, Success);
-  } else {
-    while (!msg_queue.empty()) {
-      const auto& message = msg_queue.front();
-      std::shared_ptr<core::FlowFile> flow_file = session.create();
-      WriteCallback write_callback(message, logger_);
-      try {
-        session.write(flow_file, std::ref(write_callback));
-      } catch (const Exception& ex) {
-        logger_->log_error("Error when processing message queue: {}", ex.what());
-      }
-      if (!write_callback.getSuccessStatus()) {
-        logger_->log_error("ConsumeMQTT fail for the flow with UUID {}", flow_file->getUUIDStr());
-        session.remove(flow_file);
-      } else {
-        putUserPropertiesAsAttributes(message, flow_file, session);
-        session.putAttribute(*flow_file, BrokerOutputAttribute.name, uri_);
-        session.putAttribute(*flow_file, TopicOutputAttribute.name, message.topic);
-        session.putAttribute(*flow_file, QosOutputAttribute.name, std::to_string(message.contents->qos));
-        session.putAttribute(*flow_file, IsDuplicateOutputAttribute.name, message.contents->dup > 0 ? "true" : "false");
-        session.putAttribute(*flow_file, IsRetainedOutputAttribute.name, message.contents->retained > 0 ? "true" : "false");
-        fillAttributeFromContentType(message, flow_file, session);
-        logger_->log_debug("ConsumeMQTT processing success for the flow with UUID {} topic {}", flow_file->getUUIDStr(), message.topic);
-        session.transfer(flow_file, Success);
-      }
-      msg_queue.pop();
+    WriteCallback write_callback(message, logger_);
+    try {
+      session.write(flow_file, std::ref(write_callback));
+    } catch (const Exception& ex) {
+      logger_->log_error("Error when processing message queue: {}", ex.what());
     }
+    if (!write_callback.getSuccessStatus()) {
+      logger_->log_error("ConsumeMQTT fail for the flow with UUID {}", flow_file->getUUIDStr());
+      session.remove(flow_file);
+    } else {
+      putUserPropertiesAsAttributes(message, flow_file, session);
+      session.putAttribute(*flow_file, BrokerOutputAttribute.name, uri_);
+      session.putAttribute(*flow_file, TopicOutputAttribute.name, message.topic);
+      session.putAttribute(*flow_file, QosOutputAttribute.name, std::to_string(message.contents->qos));
+      session.putAttribute(*flow_file, IsDuplicateOutputAttribute.name, message.contents->dup > 0 ? "true" : "false");
+      session.putAttribute(*flow_file, IsRetainedOutputAttribute.name, message.contents->retained > 0 ? "true" : "false");
+      fillAttributeFromContentType(message, flow_file, session);
+      logger_->log_debug("ConsumeMQTT processing success for the flow with UUID {} topic {}", flow_file->getUUIDStr(), message.topic);
+      session.transfer(flow_file, Success);
+    }
+    msg_queue.pop();
+  }
+}
+
+void ConsumeMQTT::onTriggerImpl(core::ProcessContext&, core::ProcessSession& session) {
+  if (record_set_reader_) {
+    transferMessagesAsRecords(session);
+  } else {
+    transferMessagesAsFlowFiles(session);
   }
 }
 
 std::queue<ConsumeMQTT::SmartMessage> ConsumeMQTT::getReceivedMqttMessages() {
   std::queue<SmartMessage> msg_queue;
   SmartMessage message;
-  while (queue_.try_dequeue(message)) {
-    msg_queue.push(std::move(message));
-  }
+  while (queue_.try_dequeue(message)) { msg_queue.push(std::move(message)); }
   return msg_queue;
 }
 
-int64_t ConsumeMQTT::WriteCallback::operator() (const std::shared_ptr<io::OutputStream>& stream) {
+int64_t ConsumeMQTT::WriteCallback::operator()(const std::shared_ptr<io::OutputStream>& stream) {
   if (message_.contents->payloadlen < 0) {
     success_status_ = false;
     logger_->log_error("Payload length of message is negative, value is [{}]", message_.contents->payloadlen);
@@ -174,29 +187,25 @@ int64_t ConsumeMQTT::WriteCallback::operator() (const std::shared_ptr<io::Output
   return gsl::narrow<int64_t>(len);
 }
 
-void ConsumeMQTT::putUserPropertiesAsAttributes(const SmartMessage& message, const std::shared_ptr<core::FlowFile>& flow_file, core::ProcessSession& session) const {
-  if (mqtt_version_ != mqtt::MqttVersions::V_5_0) {
-    return;
-  }
+void ConsumeMQTT::putUserPropertiesAsAttributes(const SmartMessage& message, const std::shared_ptr<core::FlowFile>& flow_file,
+    core::ProcessSession& session) const {
+  if (mqtt_version_ != mqtt::MqttVersions::V_5_0) { return; }
 
   const auto property_count = MQTTProperties_propertyCount(&message.contents->properties, MQTTPROPERTY_CODE_USER_PROPERTY);
-  for (int i=0; i < property_count; ++i) {
+  for (int i = 0; i < property_count; ++i) {
     MQTTProperty* property = MQTTProperties_getPropertyAt(&message.contents->properties, MQTTPROPERTY_CODE_USER_PROPERTY, i);
-    std::string key(property->value.data.data, property->value.data.len);  // NOLINT(cppcoreguidelines-pro-type-union-access)
+    std::string key(property->value.data.data, property->value.data.len);      // NOLINT(cppcoreguidelines-pro-type-union-access)
     std::string value(property->value.value.data, property->value.value.len);  // NOLINT(cppcoreguidelines-pro-type-union-access)
     session.putAttribute(*flow_file, key, value);
   }
 }
 
-void ConsumeMQTT::fillAttributeFromContentType(const SmartMessage& message, const std::shared_ptr<core::FlowFile>& flow_file, core::ProcessSession& session) const {
-  if (mqtt_version_ != mqtt::MqttVersions::V_5_0 || attribute_from_content_type_.empty()) {
-    return;
-  }
+void ConsumeMQTT::fillAttributeFromContentType(const SmartMessage& message, const std::shared_ptr<core::FlowFile>& flow_file,
+    core::ProcessSession& session) const {
+  if (mqtt_version_ != mqtt::MqttVersions::V_5_0 || attribute_from_content_type_.empty()) { return; }
 
   MQTTProperty* property = MQTTProperties_getProperty(&message.contents->properties, MQTTPROPERTY_CODE_CONTENT_TYPE);
-  if (property == nullptr) {
-    return;
-  }
+  if (property == nullptr) { return; }
 
   std::string content_type(property->value.data.data, property->value.data.len);  // NOLINT(cppcoreguidelines-pro-type-union-access)
   session.putAttribute(*flow_file, attribute_from_content_type_, content_type);
@@ -223,9 +232,7 @@ void ConsumeMQTT::startupClient() {
 }
 
 void ConsumeMQTT::onMessageReceived(SmartMessage smart_message) {
-  if (mqtt_version_ == mqtt::MqttVersions::V_5_0) {
-    resolveTopicFromAlias(smart_message);
-  }
+  if (mqtt_version_ == mqtt::MqttVersions::V_5_0) { resolveTopicFromAlias(smart_message); }
 
   if (smart_message.topic.empty()) {
     logger_->log_error("Received message without topic");
@@ -239,9 +246,7 @@ void ConsumeMQTT::resolveTopicFromAlias(SmartMessage& smart_message) {
   auto raw_alias = MQTTProperties_getNumericValue(&smart_message.contents->properties, MQTTPROPERTY_CODE_TOPIC_ALIAS);
 
   std::optional<uint16_t> alias;
-  if (raw_alias != PAHO_MQTT_C_FAILURE_CODE) {
-    alias = gsl::narrow<uint16_t>(raw_alias);
-  }
+  if (raw_alias != PAHO_MQTT_C_FAILURE_CODE) { alias = gsl::narrow<uint16_t>(raw_alias); }
 
   auto& topic = smart_message.topic;
 
@@ -272,7 +277,8 @@ void ConsumeMQTT::checkProperties() {
     const auto property_values = getAllPropertyValues(property_name) | utils::orThrow("It should only be called on valid property");
     return !property_values.empty();
   };
-  if (mqtt_version_ == mqtt::MqttVersions::V_3_1_0 || mqtt_version_ == mqtt::MqttVersions::V_3_1_1 || mqtt_version_ == mqtt::MqttVersions::V_3X_AUTO) {
+  if (mqtt_version_ == mqtt::MqttVersions::V_3_1_0 || mqtt_version_ == mqtt::MqttVersions::V_3_1_1 ||
+      mqtt_version_ == mqtt::MqttVersions::V_3X_AUTO) {
     if (is_property_explicitly_set(CleanStart.name)) {
       logger_->log_warn("MQTT 3.x specification does not support Clean Start. Property is not used.");
     }
@@ -280,7 +286,8 @@ void ConsumeMQTT::checkProperties() {
       logger_->log_warn("MQTT 3.x specification does not support Session Expiry Intervals. Property is not used.");
     }
     if (is_property_explicitly_set(AttributeFromContentType.name)) {
-      logger_->log_warn("MQTT 3.x specification does not support Content Types and thus attributes cannot be created from them. Property is not used.");
+      logger_
+          ->log_warn("MQTT 3.x specification does not support Content Types and thus attributes cannot be created from them. Property is not used.");
     }
     if (is_property_explicitly_set(TopicAliasMaximum.name)) {
       logger_->log_warn("MQTT 3.x specification does not support Topic Alias Maximum. Property is not used.");
@@ -307,30 +314,33 @@ void ConsumeMQTT::checkProperties() {
   if (qos_ == mqtt::MqttQoS::LEVEL_0) {
     if (mqtt_version_ == mqtt::MqttVersions::V_5_0) {
       if (session_expiry_interval_ > std::chrono::seconds(0)) {
-        logger_->log_warn("Messages are not preserved during client disconnection "
-                          "by the broker when QoS is less than 1 for durable (Session Expiry Interval > 0) sessions. Only subscriptions are preserved.");
+        logger_->log_warn(
+            "Messages are not preserved during client disconnection "
+            "by the broker when QoS is less than 1 for durable (Session Expiry Interval > 0) sessions. Only subscriptions are preserved.");
       }
     } else if (!clean_session_) {
-      logger_->log_warn("Messages are not preserved during client disconnection "
-                        "by the broker when QoS is less than 1 for durable (non-clean) sessions. Only subscriptions are preserved.");
+      logger_->log_warn(
+          "Messages are not preserved during client disconnection "
+          "by the broker when QoS is less than 1 for durable (non-clean) sessions. Only subscriptions are preserved.");
     }
   }
 }
 
 void ConsumeMQTT::checkBrokerLimitsImpl() {
-  auto hasWildcards = [] (std::string_view topic) {
-    return std::any_of(topic.begin(), topic.end(), [] (const char ch) {return ch == '+' || ch == '#';});
+  auto hasWildcards = [](std::string_view topic) {
+    return std::any_of(topic.begin(), topic.end(), [](const char ch) { return ch == '+' || ch == '#'; });
   };
 
   if (wildcard_subscription_available_ == false && hasWildcards(topic_)) {
     std::ostringstream os;
-    os << "Broker does not support wildcards but topic \"" << topic_ <<"\" has them";
+    os << "Broker does not support wildcards but topic \"" << topic_ << "\" has them";
     throw Exception(PROCESS_SCHEDULE_EXCEPTION, os.str());
   }
 
   if (maximum_session_expiry_interval_.has_value() && session_expiry_interval_ > maximum_session_expiry_interval_) {
     std::ostringstream os;
-    os << "Set Session Expiry Interval (" << session_expiry_interval_.count() <<" s) is longer than the maximum supported by the broker (" << maximum_session_expiry_interval_->count() << " s).";
+    os << "Set Session Expiry Interval (" << session_expiry_interval_.count() << " s) is longer than the maximum supported by the broker ("
+       << maximum_session_expiry_interval_->count() << " s).";
     throw Exception(PROCESS_SCHEDULE_EXCEPTION, os.str());
   }
 
@@ -390,17 +400,15 @@ void ConsumeMQTT::onSubscriptionSuccess() {
 
 void ConsumeMQTT::onSubscriptionFailure(MQTTAsync_failureData* response) {
   logger_->log_error("Subscription failed on topic {} to MQTT broker {} ({})", topic_, uri_, response->code);
-  if (response->message != nullptr) {
-    logger_->log_error("Detailed reason for subscription failure: {}", response->message);
-  }
+  if (response->message != nullptr) { logger_->log_error("Detailed reason for subscription failure: {}", response->message); }
 }
 
 void ConsumeMQTT::onSubscriptionFailure5(MQTTAsync_failureData5* response) {
   logger_->log_error("Subscription failed on topic {} to MQTT broker {} ({})", topic_, uri_, response->code);
-  if (response->message != nullptr) {
-    logger_->log_error("Detailed reason for subscription failure: {}", response->message);
-  }
-  logger_->log_error("Reason code for subscription failure: {}: {}", magic_enum::enum_underlying(response->reasonCode), MQTTReasonCode_toString(response->reasonCode));
+  if (response->message != nullptr) { logger_->log_error("Detailed reason for subscription failure: {}", response->message); }
+  logger_->log_error("Reason code for subscription failure: {}: {}",
+      magic_enum::enum_underlying(response->reasonCode),
+      MQTTReasonCode_toString(response->reasonCode));
 }
 
 REGISTER_RESOURCE(ConsumeMQTT, Processor);

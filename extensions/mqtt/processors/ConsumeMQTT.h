@@ -222,6 +222,10 @@ class ConsumeMQTT : public processors::AbstractMQTTProcessor {
 
   void setProcessorSpecificMqtt5ConnectOptions(MQTTProperties& connect_props) const override;
 
+  void transferMessagesAsRecords(core::ProcessSession& session);
+  void addAttributesAsRecordFields(core::RecordSet& new_records, const std::queue<SmartMessage>& msg_queue);
+  void transferMessagesAsFlowFiles(core::ProcessSession& session);
+
   std::string topic_;
   bool clean_session_ = true;
   bool clean_start_ = true;
