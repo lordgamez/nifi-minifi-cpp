@@ -139,6 +139,14 @@ class ConsumeMQTT : public processors::AbstractMQTTProcessor {
   void initialize() override;
   void onSchedule(core::ProcessContext& context, core::ProcessSessionFactory& factory) override;
 
+ protected:
+    /**
+   * Enqueues received MQTT message into internal message queue.
+   * Called as a callback on a separate thread than onTrigger, as a reaction to message incoming.
+   * @param message message to put to queue
+   */
+  void enqueueReceivedMQTTMsg(SmartMessage message);
+
  private:
   class WriteCallback {
    public:
@@ -170,13 +178,6 @@ class ConsumeMQTT : public processors::AbstractMQTTProcessor {
   void onSubscriptionFailure(MQTTAsync_failureData* response);
   void onSubscriptionFailure5(MQTTAsync_failureData5* response);
   void onMessageReceived(SmartMessage smart_message) override;
-
-  /**
-   * Enqueues received MQTT message into internal message queue.
-   * Called as a callback on a separate thread than onTrigger, as a reaction to message incoming.
-   * @param message message to put to queue
-   */
-  void enqueueReceivedMQTTMsg(SmartMessage message);
 
   /**
    * Called in onTrigger to return the whole internal message queue
