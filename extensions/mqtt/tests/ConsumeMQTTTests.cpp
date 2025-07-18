@@ -383,4 +383,22 @@ TEST_CASE_METHOD(ConsumeMqttTestFixture, "Read MQTT message and write it to a fl
   }
 }
 
+TEST_CASE_METHOD(ConsumeMqttTestFixture, "Test scheduling failure if non-existant recordset reader or writer is set", "[consumeMQTTTest]") {
+  test_controller_.plan->addController("SparkplugBReader", "SparkplugBReader");
+  test_controller_.plan->addController("JsonRecordSetWriter", "JsonRecordSetWriter");
+  REQUIRE(consume_mqtt_processor_->setProperty(minifi::processors::AbstractMQTTProcessor::BrokerURI.name, "127.0.0.1:1883"));
+  REQUIRE(consume_mqtt_processor_->setProperty(minifi::processors::ConsumeMQTT::Topic.name, "mytopic"));
+  SECTION("RecordReader is set to invalid controller service") {
+    REQUIRE(consume_mqtt_processor_->setProperty(minifi::processors::ConsumeMQTT::RecordReader.name, "invalid_reader"));
+    REQUIRE(consume_mqtt_processor_->setProperty(minifi::processors::ConsumeMQTT::RecordWriter.name, "JsonRecordSetWriter"));
+    REQUIRE_THROWS_WITH(test_controller_.trigger(), Catch::Matchers::EndsWith("'Record Reader' property is set to invalid controller service 'invalid_reader'"));
+  }
+
+  SECTION("RecordWriter is set to invalid controller service") {
+    REQUIRE(consume_mqtt_processor_->setProperty(minifi::processors::ConsumeMQTT::RecordReader.name, "SparkplugBReader"));
+    REQUIRE(consume_mqtt_processor_->setProperty(minifi::processors::ConsumeMQTT::RecordWriter.name, "invalid_writer"));
+    REQUIRE_THROWS_WITH(test_controller_.trigger(), Catch::Matchers::EndsWith("'Record Writer' property is set to invalid controller service 'invalid_writer'"));
+  }
+}
+
 }  // namespace org::apache::nifi::minifi::test
