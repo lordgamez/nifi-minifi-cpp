@@ -140,35 +140,31 @@ std::optional<std::string> FetchOPCProcessor::readNewState(const opc::NodeData& 
 
 void FetchOPCProcessor::writeFlowFileUsingLazyMode(const opc::NodeData& nodedata, core::ProcessContext& context, core::ProcessSession& session, size_t& variables_found,
     std::unordered_map<std::string, std::string>& state_map) {
+  auto writeDataToFlowFile = [this, &nodedata, &context, &session, &variables_found]() {
+    OPCData2FlowFile(nodedata, context, session, opc::nodeValue2String(nodedata));
+    ++variables_found;
+  };
   auto full_path_it = nodedata.attributes.find("Full path");
   if (full_path_it == nodedata.attributes.end()) {
     logger_->log_error("Node data does not contain 'Full path' attribute, cannot read state for node");
-    OPCData2FlowFile(nodedata, context, session, opc::nodeValue2String(nodedata));
-    ++variables_found;
+    writeDataToFlowFile();
     return;
   }
   std::string nodeid = full_path_it->second + "_timestamp";
   std::string cur_state_value = state_map[nodeid];
   auto source_timestamp_it = nodedata.attributes.find("Sourcetimestamp");
   if (source_timestamp_it == nodedata.attributes.end()) {
-    OPCData2FlowFile(nodedata, context, session, opc::nodeValue2String(nodedata));
-    ++variables_found;
+    writeDataToFlowFile();
     return;
   }
   auto new_state_value = source_timestamp_it->second;
   if (cur_state_value.empty() || cur_state_value != new_state_value) {
     state_map[nodeid] = new_state_value;
-    OPCData2FlowFile(nodedata, context, session, opc::nodeValue2String(nodedata));
-    ++variables_found;
+    writeDataToFlowFile();
     return;
   }
 
-  auto it = nodedata.attributes.find("Full path");
-  if (it != nodedata.attributes.end()) {
-    logger_->log_debug("Node {} has no new source timestamp, skipping", it->second);
-  } else {
-    logger_->log_debug("Node has no 'Full path' attribute, skipping");
-  }
+  logger_->log_debug("Node {} has no new source timestamp, skipping", full_path_it->second);
 }
 
 bool FetchOPCProcessor::nodeFoundCallBack(const UA_ReferenceDescription *ref, const std::string& path,
