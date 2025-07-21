@@ -144,7 +144,7 @@ class FetchOPCProcessor : public BaseOPCProcessor {
  protected:
   bool nodeFoundCallBack(const UA_ReferenceDescription *ref, const std::string& path,
                          core::ProcessContext& context, core::ProcessSession& session,
-                         size_t& nodes_found, size_t& variables_found);
+                         size_t& nodes_found, size_t& variables_found, std::unordered_map<std::string, std::string>& state_map);
 
   void OPCData2FlowFile(const opc::NodeData& opc_node, core::ProcessContext& context, core::ProcessSession& session, const std::string& node_value) const;
 
@@ -153,7 +153,10 @@ class FetchOPCProcessor : public BaseOPCProcessor {
 
  private:
   std::optional<std::string> readNewState(const opc::NodeData& nodedata, const std::string& state_suffix,
+    std::unordered_map<std::string, std::string>& state_map,
     const std::function<std::optional<std::string>(const opc::NodeData& nodedata)>& fetch_new_state) const;
+  void writeFlowFileUsingLazyMode(const opc::NodeData& nodedata, core::ProcessContext& context, core::ProcessSession& session, size_t& variables_found,
+    std::unordered_map<std::string, std::string>& state_map);
   std::vector<UA_NodeId> translated_node_ids_;  // Only used when user provides path, path->nodeid translation is only done once
   core::StateManager* state_manager_ = nullptr;
 };

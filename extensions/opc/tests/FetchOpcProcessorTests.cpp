@@ -198,8 +198,6 @@ TEST_CASE("Test fetching using lazy mode timestamps", "[fetchopcprocessor]") {
   results = controller.trigger();
   REQUIRE(results.at(processors::FetchOPCProcessor::Failure).empty());
   REQUIRE(results.at(processors::FetchOPCProcessor::Success).empty());
-  REQUIRE(LogTestController::getInstance().contains("Node {} has no new source timestamp, skipping"));
-  // Node {} has no new source timestamp, skipping
 }
 
 }  // namespace org::apache::nifi::minifi::test

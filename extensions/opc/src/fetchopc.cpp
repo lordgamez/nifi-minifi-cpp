@@ -74,8 +74,12 @@ void FetchOPCProcessor::onTrigger(core::ProcessContext& context, core::ProcessSe
   size_t nodes_found = 0;
   size_t variables_found = 0;
 
-  auto found_cb = [this, &context, &session, &nodes_found, &variables_found](const UA_ReferenceDescription* ref, const std::string& path) {
-    return nodeFoundCallBack(ref, path, context, session, nodes_found, variables_found); };
+  std::unordered_map<std::string, std::string> state_map;
+  state_manager_->get(state_map);
+
+  auto found_cb = [this, &context, &session, &nodes_found, &variables_found, &state_map](const UA_ReferenceDescription* ref, const std::string& path) {
+    return nodeFoundCallBack(ref, path, context, session, nodes_found, variables_found, state_map);
+  };
 
   if (id_type_ != opc::OPCNodeIDType::Path) {
     UA_NodeId my_id;
@@ -112,12 +116,13 @@ void FetchOPCProcessor::onTrigger(core::ProcessContext& context, core::ProcessSe
     logger_->log_warn("Found no variables when traversing the specified node. No flowfiles are generated. Yielding...");
     yield();
   }
+
+  state_manager_->set(state_map);
 }
 
-nonstd::expected<std::string, std::error_code> FetchOPCProcessor::readNewState(const opc::NodeData& nodedata, const std::string& state_suffix,
+std::optional<std::string> FetchOPCProcessor::readNewState(const opc::NodeData& nodedata, const std::string& state_suffix,
+    std::unordered_map<std::string, std::string>& state_map,
     const std::function<std::optional<std::string>(const opc::NodeData& nodedata)>& fetch_new_state) const {
-  std::unordered_map<std::string, std::string> state_map;
-  state_manager_->get(state_map);
   auto full_path_it = nodedata.attributes.find("Full path");
   if (full_path_it == nodedata.attributes.end()) {
     logger_->log_error("Node data does not contain 'Full path' attribute, cannot read state for node");
@@ -128,14 +133,47 @@ nonstd::expected<std::string, std::error_code> FetchOPCProcessor::readNewState(c
   auto new_state_value = fetch_new_state(nodedata);
   if (new_state_value && (cur_state_value.empty() || cur_state_value != *new_state_value)) {
     state_map[nodeid] = *new_state_value;
-    state_manager_->set(state_map);
     return *new_state_value;
   }
   return std::nullopt;
 }
 
+void FetchOPCProcessor::writeFlowFileUsingLazyMode(const opc::NodeData& nodedata, core::ProcessContext& context, core::ProcessSession& session, size_t& variables_found,
+    std::unordered_map<std::string, std::string>& state_map) {
+  auto full_path_it = nodedata.attributes.find("Full path");
+  if (full_path_it == nodedata.attributes.end()) {
+    logger_->log_error("Node data does not contain 'Full path' attribute, cannot read state for node");
+    OPCData2FlowFile(nodedata, context, session, opc::nodeValue2String(nodedata));
+    ++variables_found;
+    return;
+  }
+  std::string nodeid = full_path_it->second + "_timestamp";
+  std::string cur_state_value = state_map[nodeid];
+  auto source_timestamp_it = nodedata.attributes.find("Sourcetimestamp");
+  if (source_timestamp_it == nodedata.attributes.end()) {
+    OPCData2FlowFile(nodedata, context, session, opc::nodeValue2String(nodedata));
+    ++variables_found;
+    return;
+  }
+  auto new_state_value = source_timestamp_it->second;
+  if (cur_state_value.empty() || cur_state_value != new_state_value) {
+    state_map[nodeid] = new_state_value;
+    OPCData2FlowFile(nodedata, context, session, opc::nodeValue2String(nodedata));
+    ++variables_found;
+    return;
+  }
+
+  auto it = nodedata.attributes.find("Full path");
+  if (it != nodedata.attributes.end()) {
+    logger_->log_debug("Node {} has no new source timestamp, skipping", it->second);
+  } else {
+    logger_->log_debug("Node has no 'Full path' attribute, skipping");
+  }
+}
+
 bool FetchOPCProcessor::nodeFoundCallBack(const UA_ReferenceDescription *ref, const std::string& path,
-    core::ProcessContext& context, core::ProcessSession& session, size_t& nodes_found, size_t& variables_found) {
+    core::ProcessContext& context, core::ProcessSession& session, size_t& nodes_found, size_t& variables_found,
+    std::unordered_map<std::string, std::string>& state_map) {
   ++nodes_found;
   if (ref->nodeClass != UA_NODECLASS_VARIABLE) {
     return true;
@@ -143,22 +181,9 @@ bool FetchOPCProcessor::nodeFoundCallBack(const UA_ReferenceDescription *ref, co
   try {
     opc::NodeData nodedata = connection_->getNodeData(ref, path);
     if (lazy_mode_ == LazyModeOptions::On) {
-      auto new_state = readNewState(nodedata, "_timestamp", [](const opc::NodeData& nodedata) -> std::optional<std::string> {
-        auto source_timestamp_it = nodedata.attributes.find("Source timestamp");
-        if (source_timestamp_it == nodedata.attributes.end()) {
-          return std::nullopt;
-        }
-        return source_timestamp_it->second;
-      });
-      if (new_state.has_value()) {
-        logger_->log_debug("Node {} has new source timestamp {}", nodedata.attributes["Full path"], *new_state);
-        OPCData2FlowFile(nodedata, context, session, opc::nodeValue2String(nodedata));
-        ++variables_found;
-      } else {
-        logger_->log_debug("Node {} has no new source timestamp, skipping", nodedata.attributes["Full path"]);
-      }
+      writeFlowFileUsingLazyMode(nodedata, context, session, variables_found, state_map);
     } else if (lazy_mode_ == LazyModeOptions::NewValue) {
-      auto new_state = readNewState(nodedata, "_value", [](const opc::NodeData& nodedata) {
+      auto new_state = readNewState(nodedata, "_value", state_map, [](const opc::NodeData& nodedata) {
         return opc::nodeValue2String(nodedata);
       });
       if (new_state.has_value()) {
