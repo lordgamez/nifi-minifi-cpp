@@ -68,7 +68,7 @@ constexpr customize_t enum_name<LazyModeOptions>(LazyModeOptions value) noexcept
 
 namespace org::apache::nifi::minifi::processors {
 
-class FetchOPCProcessor : public BaseOPCProcessor {
+class FetchOPCProcessor final : public BaseOPCProcessor {
  public:
   explicit FetchOPCProcessor(std::string_view name, const utils::Identifier& uuid = {})
       : BaseOPCProcessor(name, uuid) {
@@ -141,22 +141,18 @@ class FetchOPCProcessor : public BaseOPCProcessor {
   void onTrigger(core::ProcessContext& context, core::ProcessSession& session) override;
   void initialize() override;
 
- protected:
+ private:
   bool nodeFoundCallBack(const UA_ReferenceDescription *ref, const std::string& path,
                          core::ProcessContext& context, core::ProcessSession& session,
                          size_t& nodes_found, size_t& variables_found, std::unordered_map<std::string, std::string>& state_map);
-
   void OPCData2FlowFile(const opc::NodeData& opc_node, core::ProcessContext& context, core::ProcessSession& session, const std::string& node_value) const;
+  void writeFlowFileUsingLazyModeWithTimestamp(const opc::NodeData& nodedata, core::ProcessContext& context, core::ProcessSession& session, size_t& variables_found,
+    std::unordered_map<std::string, std::string>& state_map) const;
+  void writeFlowFileUsingLazyModeWithNewValue(const opc::NodeData& nodedata, core::ProcessContext& context, core::ProcessSession& session, size_t& variables_found,
+    std::unordered_map<std::string, std::string>& state_map) const;
 
   uint64_t max_depth_ = 0;
   LazyModeOptions lazy_mode_ = LazyModeOptions::Off;
-
- private:
-  std::optional<std::string> readNewState(const opc::NodeData& nodedata, const std::string& state_suffix,
-    std::unordered_map<std::string, std::string>& state_map,
-    const std::function<std::optional<std::string>(const opc::NodeData& nodedata)>& fetch_new_state) const;
-  void writeFlowFileUsingLazyMode(const opc::NodeData& nodedata, core::ProcessContext& context, core::ProcessSession& session, size_t& variables_found,
-    std::unordered_map<std::string, std::string>& state_map);
   std::vector<UA_NodeId> translated_node_ids_;  // Only used when user provides path, path->nodeid translation is only done once
   core::StateManager* state_manager_ = nullptr;
 };
