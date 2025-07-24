@@ -25,6 +25,51 @@
 namespace org::apache::nifi::minifi::standard {
 
 namespace {
+
+void writeRecordFieldFromXMLNode(core::Record& record, const pugi::xml_node& node) {
+  std::string value = node.child_value();
+  if (value.empty()) {
+    record.emplace(node.name(), core::RecordField(value));
+    return;
+  } else if (value == "true" || value == "false") {
+    record.emplace(node.name(), core::RecordField(value == "true"));
+    return;
+  } else if (auto date = utils::timeutils::parseDateTimeStr(value)) {
+    record.emplace(node.name(), core::RecordField(*date));
+    return;
+  } else if (auto date = utils::timeutils::parseRfc3339(value)) {
+    record.emplace(node.name(), core::RecordField(*date));
+    return;
+  }
+
+  if (std::all_of(value.begin(), value.end(), ::isdigit)) {
+    try {
+      uint64_t value_as_uint64 = std::stoull(value);
+      record.emplace(node.name(), core::RecordField(value_as_uint64));
+      return;
+    } catch (const std::exception&) {
+    }
+  }
+
+  if (value.starts_with('-') && std::all_of(value.begin() + 1, value.end(), ::isdigit)) {
+    try {
+      int64_t value_as_int64 = std::stoll(value);
+      record.emplace(node.name(), core::RecordField(value_as_int64));
+      return;
+    } catch (const std::exception&) {
+    }
+  }
+
+  try {
+    auto value_as_double = std::stod(value);
+    record.emplace(node.name(), core::RecordField(value_as_double));
+    return;
+  } catch (const std::exception&) {
+  }
+
+  record.emplace(node.name(), core::RecordField(value));
+}
+
 bool parseRecordsFromXML(core::RecordSet& record_set, const std::string& xml_content) {
   pugi::xml_document doc;
   if (!doc.load_string(xml_content.c_str())) {
@@ -42,47 +87,7 @@ bool parseRecordsFromXML(core::RecordSet& record_set, const std::string& xml_con
       continue;
     }
 
-    std::string value = child.child_value();
-    if (value.empty()) {
-      record.emplace(child.name(), core::RecordField(value));
-      continue;
-    } else if (value == "true" || value == "false") {
-      record.emplace(child.name(), core::RecordField(value == "true"));
-      continue;
-    } else if (auto date = utils::timeutils::parseDateTimeStr(value)) {
-      record.emplace(child.name(), core::RecordField(*date));
-      continue;
-    } else if (auto date = utils::timeutils::parseRfc3339(value)) {
-      record.emplace(child.name(), core::RecordField(*date));
-      continue;
-    }
-
-    if (std::all_of(value.begin(), value.end(), ::isdigit)) {
-      try {
-        uint64_t value_as_uint64 = std::stoull(value);
-        record.emplace(child.name(), core::RecordField(value_as_uint64));
-        continue;
-      } catch (const std::exception&) {
-      }
-    }
-
-    if (value.starts_with('-') && std::all_of(value.begin() + 1, value.end(), ::isdigit)) {
-      try {
-        int64_t value_as_int64 = std::stoll(value);
-        record.emplace(child.name(), core::RecordField(value_as_int64));
-        continue;
-      } catch (const std::exception&) {
-      }
-    }
-
-    try {
-      auto value_as_double = std::stod(value);
-      record.emplace(child.name(), core::RecordField(value_as_double));
-      continue;
-    } catch (const std::exception&) {
-    }
-
-    record.emplace(child.name(), core::RecordField(value));
+    writeRecordFieldFromXMLNode(record, child);
   }
   record_set.emplace_back(std::move(record));
   return true;
