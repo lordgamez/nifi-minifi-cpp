@@ -27,7 +27,9 @@ target_include_directories(minifi-standard-processors PUBLIC "${CMAKE_SOURCE_DIR
 
 include(RangeV3)
 include(Asio)
-target_link_libraries(minifi-standard-processors ${LIBMINIFI} Threads::Threads range-v3 asio)
+include(BundledPugiXml)
+use_bundled_pugixml(${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR})
+target_link_libraries(minifi-standard-processors ${LIBMINIFI} Threads::Threads range-v3 asio PUGI::libpugixml)
 
 include(Coroutines)
 enable_coroutines()
