@@ -77,4 +77,36 @@ TEST_CASE("XML with several child nodes with different types result in a single 
   CHECK(timestamp == *expected_time);
 }
 
+TEST_CASE("XML with multiple subnodes result in a single record with record object", "[XMLReader]") {
+  const std::string xml_input = "<root><node><subnode1>text1</subnode1><subnode2><subsub1>text2</subsub1><subsub2>text3</subsub2></subnode2></node></root>";
+  io::BufferStream buffer_stream;
+  buffer_stream.write(reinterpret_cast<const uint8_t*>(xml_input.data()), xml_input.size());
+
+  XMLReader xml_reader("XMLReader");
+  auto record_set = xml_reader.read(buffer_stream);
+  REQUIRE(record_set);
+  REQUIRE(record_set->size() == 1);
+  auto& record = record_set->at(0);
+  auto record_object = std::get<core::RecordObject>(record.at("node").value_);
+  REQUIRE(record_object.size() == 2);
+  CHECK(std::get<std::string>(record_object.at("subnode1").value_) == "text1");
+  CHECK(std::get<std::string>(std::get<core::RecordObject>(record_object.at("subnode2").value_).at("subsub1").value_) == "text2");
+  CHECK(std::get<std::string>(std::get<core::RecordObject>(record_object.at("subnode2").value_).at("subsub2").value_) == "text3");
+}
+
+TEST_CASE("XML with nodes and text data is parsed correctly", "[XMLReader]") {
+  const std::string xml_input = "<root>outtext1<node>nodetext<subnode>subtext</subnode></node>outtext2</root>";
+  io::BufferStream buffer_stream;
+  buffer_stream.write(reinterpret_cast<const uint8_t*>(xml_input.data()), xml_input.size());
+
+  XMLReader xml_reader("XMLReader");
+  auto record_set = xml_reader.read(buffer_stream);
+  REQUIRE(record_set);
+  REQUIRE(record_set->size() == 1);
+  auto& record = record_set->at(0);
+  CHECK(std::get<std::string>(std::get<core::RecordObject>(record.at("node").value_).at("subnode").value_) == "subtext");
+  CHECK(std::get<std::string>(std::get<core::RecordObject>(record.at("node").value_).at("value").value_) == "nodetext");
+  CHECK(std::get<std::string>(record.at("value").value_) == "outtext1outtext2");
+}
+
 }  // namespace org::apache::nifi::minifi::standard::test
