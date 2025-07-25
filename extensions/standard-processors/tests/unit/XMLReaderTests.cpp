@@ -28,6 +28,8 @@ TEST_CASE("Invalid XML input or empty input results in error", "[XMLReader]") {
   buffer_stream.write(reinterpret_cast<const uint8_t*>(xml_input.data()), xml_input.size());
 
   XMLReader xml_reader("XMLReader");
+  xml_reader.initialize();
+  xml_reader.onEnable();
   auto record_set = xml_reader.read(buffer_stream);
   REQUIRE_FALSE(record_set);
 }
@@ -38,6 +40,8 @@ TEST_CASE("XML with only root node results in empty record set", "[XMLReader]") 
   buffer_stream.write(reinterpret_cast<const uint8_t*>(xml_input.data()), xml_input.size());
 
   XMLReader xml_reader("XMLReader");
+  xml_reader.initialize();
+  xml_reader.onEnable();
   auto record_set = xml_reader.read(buffer_stream);
   REQUIRE(record_set);
   REQUIRE(record_set->empty());
@@ -49,6 +53,8 @@ TEST_CASE("XML with one empty node", "[XMLReader]") {
   buffer_stream.write(reinterpret_cast<const uint8_t*>(xml_input.data()), xml_input.size());
 
   XMLReader xml_reader("XMLReader");
+  xml_reader.initialize();
+  xml_reader.onEnable();
   auto record_set = xml_reader.read(buffer_stream);
   REQUIRE(record_set);
   REQUIRE(record_set->size() == 1);
@@ -62,6 +68,8 @@ TEST_CASE("XML with a single string child node results in a single record", "[XM
   buffer_stream.write(reinterpret_cast<const uint8_t*>(xml_input.data()), xml_input.size());
 
   XMLReader xml_reader("XMLReader");
+  xml_reader.initialize();
+  xml_reader.onEnable();
   auto record_set = xml_reader.read(buffer_stream);
   REQUIRE(record_set);
   REQUIRE(record_set->size() == 1);
@@ -75,6 +83,8 @@ TEST_CASE("XML with several child nodes with different types result in a single 
   buffer_stream.write(reinterpret_cast<const uint8_t*>(xml_input.data()), xml_input.size());
 
   XMLReader xml_reader("XMLReader");
+  xml_reader.initialize();
+  xml_reader.onEnable();
   auto record_set = xml_reader.read(buffer_stream);
   REQUIRE(record_set);
   REQUIRE(record_set->size() == 1);
@@ -96,6 +106,8 @@ TEST_CASE("XML with multiple subnodes result in a single record with record obje
   buffer_stream.write(reinterpret_cast<const uint8_t*>(xml_input.data()), xml_input.size());
 
   XMLReader xml_reader("XMLReader");
+  xml_reader.initialize();
+  xml_reader.onEnable();
   auto record_set = xml_reader.read(buffer_stream);
   REQUIRE(record_set);
   REQUIRE(record_set->size() == 1);
@@ -113,6 +125,8 @@ TEST_CASE("XML with nodes and text data is parsed correctly", "[XMLReader]") {
   buffer_stream.write(reinterpret_cast<const uint8_t*>(xml_input.data()), xml_input.size());
 
   XMLReader xml_reader("XMLReader");
+  xml_reader.initialize();
+  xml_reader.onEnable();
   auto record_set = xml_reader.read(buffer_stream);
   REQUIRE(record_set);
   REQUIRE(record_set->size() == 1);
@@ -128,6 +142,8 @@ TEST_CASE("XML with same nodes are converted to arrays", "[XMLReader]") {
   buffer_stream.write(reinterpret_cast<const uint8_t*>(xml_input.data()), xml_input.size());
 
   XMLReader xml_reader("XMLReader");
+  xml_reader.initialize();
+  xml_reader.onEnable();
   auto record_set = xml_reader.read(buffer_stream);
   REQUIRE(record_set);
   REQUIRE(record_set->size() == 1);
@@ -146,11 +162,30 @@ TEST_CASE("XML nodes with default value tag are ignored if text data is present"
   buffer_stream.write(reinterpret_cast<const uint8_t*>(xml_input.data()), xml_input.size());
 
   XMLReader xml_reader("XMLReader");
+  xml_reader.initialize();
+  xml_reader.onEnable();
   auto record_set = xml_reader.read(buffer_stream);
   REQUIRE(record_set);
   REQUIRE(record_set->size() == 1);
   auto& record = record_set->at(0);
   CHECK(std::get<std::string>(record.at("value").value_) == "s1");
+}
+
+TEST_CASE("Specify Field Name for Content property for tagless values", "[XMLReader]") {
+  const std::string xml_input = "<root>outtext<node>nodetext</node></root>";
+  io::BufferStream buffer_stream;
+  buffer_stream.write(reinterpret_cast<const uint8_t*>(xml_input.data()), xml_input.size());
+
+  XMLReader xml_reader("XMLReader");
+  xml_reader.initialize();
+  xml_reader.setProperty(XMLReader::FieldNameForContent.name, "tagvalue");
+  xml_reader.onEnable();
+  auto record_set = xml_reader.read(buffer_stream);
+  REQUIRE(record_set);
+  REQUIRE(record_set->size() == 1);
+  auto& record = record_set->at(0);
+  CHECK(std::get<std::string>(record.at("node").value_) == "nodetext");
+  CHECK(std::get<std::string>(record.at("tagvalue").value_) == "outtext");
 }
 
 }  // namespace org::apache::nifi::minifi::standard::test
