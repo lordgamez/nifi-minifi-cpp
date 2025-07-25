@@ -34,10 +34,6 @@ bool hasChildNodes(const pugi::xml_node& node) {
 }  // namespace
 
 void XMLReader::addRecordFieldToObject(core::RecordObject& record_object, const std::string& name, const core::RecordField& field) const {
-  if (name == field_name_for_content_) {
-    // If the name is the field name for content, we should not add it to the RecordObject, as it is a default tag for XML nodes.
-    return;
-  }
   auto it = record_object.find(name);
   if (it != record_object.end()) {
     if (std::holds_alternative<core::RecordArray>(it->second.value_)) {
@@ -53,23 +49,26 @@ void XMLReader::addRecordFieldToObject(core::RecordObject& record_object, const 
   }
 }
 
-void XMLReader::writeRecordFieldFromXmlNode(core::RecordObject& record_object, const pugi::xml_node& node) const {
-  std::string value = node.child_value();
+void XMLReader::writeRecordField(core::RecordObject& record_object, const std::string& name, const std::string& value, bool override_content_field) const {
+  if (!override_content_field && name == field_name_for_content_) {
+    // If the name is the field name for content, we should not add it to the RecordObject, as it is a default tag for XML nodes.
+    return;
+  }
   if (value == "true" || value == "false") {
-    addRecordFieldToObject(record_object, node.name(), core::RecordField(value == "true"));
+    addRecordFieldToObject(record_object, name, core::RecordField(value == "true"));
     return;
   } else if (auto date = utils::timeutils::parseDateTimeStr(value)) {
-    addRecordFieldToObject(record_object, node.name(), core::RecordField(*date));
+    addRecordFieldToObject(record_object, name, core::RecordField(*date));
     return;
   } else if (auto date = utils::timeutils::parseRfc3339(value)) {
-    addRecordFieldToObject(record_object, node.name(), core::RecordField(*date));
+    addRecordFieldToObject(record_object, name, core::RecordField(*date));
     return;
   }
 
   if (std::all_of(value.begin(), value.end(), ::isdigit)) {
     try {
       uint64_t value_as_uint64 = std::stoull(value);
-      addRecordFieldToObject(record_object, node.name(), core::RecordField(value_as_uint64));
+      addRecordFieldToObject(record_object, name, core::RecordField(value_as_uint64));
       return;
     } catch (const std::exception&) {
     }
@@ -78,7 +77,7 @@ void XMLReader::writeRecordFieldFromXmlNode(core::RecordObject& record_object, c
   if (value.starts_with('-') && std::all_of(value.begin() + 1, value.end(), ::isdigit)) {
     try {
       int64_t value_as_int64 = std::stoll(value);
-      addRecordFieldToObject(record_object, node.name(), core::RecordField(value_as_int64));
+      addRecordFieldToObject(record_object, name, core::RecordField(value_as_int64));
       return;
     } catch (const std::exception&) {
     }
@@ -86,25 +85,37 @@ void XMLReader::writeRecordFieldFromXmlNode(core::RecordObject& record_object, c
 
   try {
     auto value_as_double = std::stod(value);
-    addRecordFieldToObject(record_object, node.name(), core::RecordField(value_as_double));
+    addRecordFieldToObject(record_object, name, core::RecordField(value_as_double));
     return;
   } catch (const std::exception&) {
   }
 
-  addRecordFieldToObject(record_object, node.name(), core::RecordField(value));
+  addRecordFieldToObject(record_object, name, core::RecordField(value));
+}
+
+void XMLReader::writeRecordFieldFromXmlNode(core::RecordObject& record_object, const pugi::xml_node& node) const {
+  writeRecordField(record_object, node.name(), node.child_value());
 }
 
 void XMLReader::parseXmlNode(core::RecordObject& record_object, const pugi::xml_node& node) const {
   std::string pc_data_value;
   for (pugi::xml_node child : node.children()) {
     if (child.type() == pugi::node_element) {
-
-      if (hasChildNodes(child)) {
+      if (parse_xml_attributes_ && child.first_attribute()) {
         core::RecordObject child_record_object;
+        for (const pugi::xml_attribute& attr : child.attributes()) {
+          writeRecordField(child_record_object, attr.name(), attr.value());
+        }
         parseXmlNode(child_record_object, child);
         record_object.emplace(child.name(), core::RecordField(std::move(child_record_object)));
       } else {
-        writeRecordFieldFromXmlNode(record_object, child);
+        if (hasChildNodes(child)) {
+          core::RecordObject child_record_object;
+          parseXmlNode(child_record_object, child);
+          record_object.emplace(child.name(), core::RecordField(std::move(child_record_object)));
+        } else {
+          writeRecordFieldFromXmlNode(record_object, child);
+        }
       }
     } else if (child.type() == pugi::node_pcdata) {
       pc_data_value.append(child.value());
@@ -112,7 +123,7 @@ void XMLReader::parseXmlNode(core::RecordObject& record_object, const pugi::xml_
   }
 
   if (!pc_data_value.empty()) {
-    record_object.emplace(field_name_for_content_, core::RecordField(pc_data_value));
+    writeRecordField(record_object, field_name_for_content_, pc_data_value, true);
   }
 }
 
@@ -136,6 +147,7 @@ bool XMLReader::parseRecordsFromXml(core::RecordSet& record_set, const std::stri
 
 void XMLReader::onEnable() {
   field_name_for_content_ = getProperty(FieldNameForContent.name).value_or("value");
+  parse_xml_attributes_ = getProperty(ParseXMLAttributes.name).value_or("false") == "true";
 }
 
 nonstd::expected<core::RecordSet, std::error_code> XMLReader::read(io::InputStream& input_stream) {

@@ -188,4 +188,66 @@ TEST_CASE("Specify Field Name for Content property for tagless values", "[XMLRea
   CHECK(std::get<std::string>(record.at("tagvalue").value_) == "outtext");
 }
 
+TEST_CASE("Parse attributes as record fields if Parse XML Attributes property is set", "[XMLReader]") {
+  const std::string xml_input = "<root><node attribute=\"attr_value\">nodetext</node></root>";
+  io::BufferStream buffer_stream;
+  buffer_stream.write(reinterpret_cast<const uint8_t*>(xml_input.data()), xml_input.size());
+
+  XMLReader xml_reader("XMLReader");
+  xml_reader.initialize();
+  xml_reader.setProperty(XMLReader::ParseXMLAttributes.name, "true");
+  xml_reader.onEnable();
+  auto record_set = xml_reader.read(buffer_stream);
+  REQUIRE(record_set);
+  REQUIRE(record_set->size() == 1);
+  auto& record = record_set->at(0);
+  CHECK(std::get<std::string>(std::get<core::RecordObject>(record.at("node").value_).at("attribute").value_) == "attr_value");
+  CHECK(std::get<std::string>(std::get<core::RecordObject>(record.at("node").value_).at("value").value_) == "nodetext");
+}
+
+TEST_CASE("Parse attributes as in an XML with nested node array", "[XMLReader]") {
+  const std::string xml_input = "<root><node attribute=\"attr_value\"><subnode subattr=\"subattr_value\">1</subnode>nodetext<subnode>2</subnode></node></root>";
+  io::BufferStream buffer_stream;
+  buffer_stream.write(reinterpret_cast<const uint8_t*>(xml_input.data()), xml_input.size());
+
+  XMLReader xml_reader("XMLReader");
+  xml_reader.initialize();
+  xml_reader.setProperty(XMLReader::ParseXMLAttributes.name, "true");
+  xml_reader.onEnable();
+  auto record_set = xml_reader.read(buffer_stream);
+  REQUIRE(record_set);
+  REQUIRE(record_set->size() == 1);
+  auto& record = record_set->at(0);
+  auto& node_object = std::get<core::RecordObject>(record.at("node").value_);
+  CHECK(node_object.size() == 3);
+  CHECK(std::get<std::string>(node_object.at("attribute").value_) == "attr_value");
+  CHECK(std::get<std::string>(node_object.at("value").value_) == "nodetext");
+  auto& subnodes = std::get<core::RecordArray>(node_object.at("subnode").value_);
+  CHECK(subnodes.size() == 2);
+  CHECK(std::get<std::string>(std::get<core::RecordObject>(subnodes[0].value_).at("subattr").value_) == "subattr_value");
+  CHECK(std::get<uint64_t>(std::get<core::RecordObject>(subnodes[0].value_).at("value").value_) == 1);
+  CHECK(std::get<uint64_t>(subnodes[1].value_) == 2);
+}
+
+TEST_CASE("Attributes clashing with the content field name are ignored", "[XMLReader]") {
+  const std::string xml_input = "<root><node><subnode attr=\"attr_value\" tagvalue=\"attr_value2\">value</subnode></node></root>";
+  io::BufferStream buffer_stream;
+  buffer_stream.write(reinterpret_cast<const uint8_t*>(xml_input.data()), xml_input.size());
+
+  XMLReader xml_reader("XMLReader");
+  xml_reader.initialize();
+  xml_reader.setProperty(XMLReader::ParseXMLAttributes.name, "true");
+  xml_reader.setProperty(XMLReader::FieldNameForContent.name, "tagvalue");
+  xml_reader.onEnable();
+  auto record_set = xml_reader.read(buffer_stream);
+  REQUIRE(record_set);
+  REQUIRE(record_set->size() == 1);
+  auto& record = record_set->at(0);
+  auto& node_object = std::get<core::RecordObject>(record.at("node").value_);
+  auto& a_object = std::get<core::RecordObject>(node_object.at("subnode").value_);
+  CHECK(a_object.size() == 2);
+  CHECK(std::get<std::string>(a_object.at("attr").value_) == "attr_value");
+  CHECK(std::get<std::string>(a_object.at("tagvalue").value_) == "value");
+}
+
 }  // namespace org::apache::nifi::minifi::standard::test

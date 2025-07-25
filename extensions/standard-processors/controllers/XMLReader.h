@@ -34,7 +34,8 @@ class XMLReader final : public core::RecordSetReaderImpl {
 
   ~XMLReader() override = default;
 
-  EXTENSIONAPI static constexpr const char* Description = "Reads XML content and creates Record objects. Records are expected in the second level of XML data, embedded in an enclosing root tag.";
+  EXTENSIONAPI static constexpr const char* Description = "Reads XML content and creates Record objects. Records are expected in the second level of XML data, embedded in an enclosing root tag. "
+      "Types for records are inferred automatically based on the content of the XML tags. For timestamps, the format is expected to be ISO 8601 compliant.";
 
   EXTENSIONAPI static constexpr auto FieldNameForContent = core::PropertyDefinitionBuilder<>::createProperty("Field Name for Content")
       .withDescription("If tags with content (e. g. <field>content</field>) are defined as nested records in the schema, the name of the tag will be used as name for the record and the value of "
@@ -42,7 +43,14 @@ class XMLReader final : public core::RecordSetReaderImpl {
                        "we need to define a name for the text content, so that it can be distinguished from the subnodes. If this property is not set, the default name 'value' will be used "
                        "for the text content of the tag in this case.")
       .build();
-  EXTENSIONAPI static constexpr auto Properties = std::array<core::PropertyReference, 1>{FieldNameForContent};
+  EXTENSIONAPI static constexpr auto ParseXMLAttributes = core::PropertyDefinitionBuilder<>::createProperty("Parse XML Attributes")
+      .withDescription("When 'Schema Access Strategy' is 'Infer Schema' and this property is 'true' then XML attributes are parsed and added to the record as new fields. When the schema is "
+                       "inferred but this property is 'false', XML attributes and their values are ignored.")
+      .isRequired(true)
+      .withValidator(core::StandardPropertyValidators::BOOLEAN_VALIDATOR)
+      .withDefaultValue("false")
+      .build();
+  EXTENSIONAPI static constexpr auto Properties = std::array<core::PropertyReference, 2>{FieldNameForContent, ParseXMLAttributes};
 
   EXTENSIONAPI static constexpr bool SupportsDynamicProperties = false;
   ADD_COMMON_VIRTUAL_FUNCTIONS_FOR_CONTROLLER_SERVICES
@@ -59,11 +67,13 @@ class XMLReader final : public core::RecordSetReaderImpl {
 
  private:
   void addRecordFieldToObject(core::RecordObject& record_object, const std::string& name, const core::RecordField& field) const;
+  void writeRecordField(core::RecordObject& record_object, const std::string& name, const std::string& value, bool override_content_field = false) const;
   void writeRecordFieldFromXmlNode(core::RecordObject& record_object, const pugi::xml_node& node) const;
   void parseXmlNode(core::RecordObject& record_object, const pugi::xml_node& node) const;
   bool parseRecordsFromXml(core::RecordSet& record_set, const std::string& xml_content) const;
 
   std::string field_name_for_content_;
+  bool parse_xml_attributes_ = false;
 };
 
 }  // namespace org::apache::nifi::minifi::standard
