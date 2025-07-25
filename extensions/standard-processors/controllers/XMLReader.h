@@ -40,8 +40,8 @@ class XMLReader final : public core::RecordSetReaderImpl {
   EXTENSIONAPI static constexpr auto FieldNameForContent = core::PropertyDefinitionBuilder<>::createProperty("Field Name for Content")
       .withDescription("If tags with content (e. g. <field>content</field>) are defined as nested records in the schema, the name of the tag will be used as name for the record and the value of "
                        "this property will be used as name for the field. If the tag contains subnodes besides the content (e.g. <field>content<subfield>subcontent</subfield></field>), "
-                       "we need to define a name for the text content, so that it can be distinguished from the subnodes. If this property is not set, the default name 'value' will be used "
-                       "for the text content of the tag in this case.")
+                       "or a node attribute is present, we need to define a name for the text content, so that it can be distinguished from the subnodes. If this property is not set, the default "
+                       "name 'value' will be used for the text content of the tag in this case.")
       .build();
   EXTENSIONAPI static constexpr auto ParseXMLAttributes = core::PropertyDefinitionBuilder<>::createProperty("Parse XML Attributes")
       .withDescription("When 'Schema Access Strategy' is 'Infer Schema' and this property is 'true' then XML attributes are parsed and added to the record as new fields. When the schema is "
@@ -50,7 +50,10 @@ class XMLReader final : public core::RecordSetReaderImpl {
       .withValidator(core::StandardPropertyValidators::BOOLEAN_VALIDATOR)
       .withDefaultValue("false")
       .build();
-  EXTENSIONAPI static constexpr auto Properties = std::array<core::PropertyReference, 2>{FieldNameForContent, ParseXMLAttributes};
+  EXTENSIONAPI static constexpr auto AttributePrefix = core::PropertyDefinitionBuilder<>::createProperty("Attribute Prefix")
+      .withDescription("If this property is set, the name of attributes will be prepended with a prefix when they are added to a record.")
+      .build();
+  EXTENSIONAPI static constexpr auto Properties = std::array<core::PropertyReference, 3>{FieldNameForContent, ParseXMLAttributes, AttributePrefix};
 
   EXTENSIONAPI static constexpr bool SupportsDynamicProperties = false;
   ADD_COMMON_VIRTUAL_FUNCTIONS_FOR_CONTROLLER_SERVICES
@@ -74,6 +77,7 @@ class XMLReader final : public core::RecordSetReaderImpl {
 
   std::string field_name_for_content_;
   bool parse_xml_attributes_ = false;
+  std::string attribute_prefix_;
 };
 
 }  // namespace org::apache::nifi::minifi::standard

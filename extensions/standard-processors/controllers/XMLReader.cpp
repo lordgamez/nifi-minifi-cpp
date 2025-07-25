@@ -104,7 +104,7 @@ void XMLReader::parseXmlNode(core::RecordObject& record_object, const pugi::xml_
       if (parse_xml_attributes_ && child.first_attribute()) {
         core::RecordObject child_record_object;
         for (const pugi::xml_attribute& attr : child.attributes()) {
-          writeRecordField(child_record_object, attr.name(), attr.value());
+          writeRecordField(child_record_object, attribute_prefix_ + attr.name(), attr.value());
         }
         parseXmlNode(child_record_object, child);
         record_object.emplace(child.name(), core::RecordField(std::move(child_record_object)));
@@ -148,6 +148,7 @@ bool XMLReader::parseRecordsFromXml(core::RecordSet& record_set, const std::stri
 void XMLReader::onEnable() {
   field_name_for_content_ = getProperty(FieldNameForContent.name).value_or("value");
   parse_xml_attributes_ = getProperty(ParseXMLAttributes.name).value_or("false") == "true";
+  attribute_prefix_ = getProperty(AttributePrefix.name).value_or("");
 }
 
 nonstd::expected<core::RecordSet, std::error_code> XMLReader::read(io::InputStream& input_stream) {

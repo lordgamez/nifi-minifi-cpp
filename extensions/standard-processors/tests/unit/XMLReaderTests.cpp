@@ -250,4 +250,27 @@ TEST_CASE("Attributes clashing with the content field name are ignored", "[XMLRe
   CHECK(std::get<std::string>(a_object.at("tagvalue").value_) == "value");
 }
 
+TEST_CASE("Attributes are prefixed with the defined prefix", "[XMLReader]") {
+  const std::string xml_input = "<root><node><subnode mykey=\"myattrval\" fieldname=\"myattrval2\">value</subnode></node></root>";
+  io::BufferStream buffer_stream;
+  buffer_stream.write(reinterpret_cast<const uint8_t*>(xml_input.data()), xml_input.size());
+
+  XMLReader xml_reader("XMLReader");
+  xml_reader.initialize();
+  xml_reader.setProperty(XMLReader::ParseXMLAttributes.name, "true");
+  xml_reader.setProperty(XMLReader::FieldNameForContent.name, "fieldname");
+  xml_reader.setProperty(XMLReader::AttributePrefix.name, "attr_");
+  xml_reader.onEnable();
+  auto record_set = xml_reader.read(buffer_stream);
+  REQUIRE(record_set);
+  REQUIRE(record_set->size() == 1);
+  auto& record = record_set->at(0);
+  auto& node_object = std::get<core::RecordObject>(record.at("node").value_);
+  auto& a_object = std::get<core::RecordObject>(node_object.at("subnode").value_);
+  CHECK(a_object.size() == 3);
+  CHECK(std::get<std::string>(a_object.at("attr_mykey").value_) == "myattrval");
+  CHECK(std::get<std::string>(a_object.at("attr_fieldname").value_) == "myattrval2");
+  CHECK(std::get<std::string>(a_object.at("fieldname").value_) == "value");
+}
+
 }  // namespace org::apache::nifi::minifi::standard::test
