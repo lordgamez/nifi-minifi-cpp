@@ -43,6 +43,19 @@ TEST_CASE("XML with only root node results in empty record set", "[XMLReader]") 
   REQUIRE(record_set->empty());
 }
 
+TEST_CASE("XML with one empty node", "[XMLReader]") {
+  const std::string xml_input = "<root><node></node></root>";
+  io::BufferStream buffer_stream;
+  buffer_stream.write(reinterpret_cast<const uint8_t*>(xml_input.data()), xml_input.size());
+
+  XMLReader xml_reader("XMLReader");
+  auto record_set = xml_reader.read(buffer_stream);
+  REQUIRE(record_set);
+  REQUIRE(record_set->size() == 1);
+  auto& record = record_set->at(0);
+  CHECK(std::get<std::string>(record.at("node").value_) == "");
+}
+
 TEST_CASE("XML with a single string child node results in a single record", "[XMLReader]") {
   const std::string xml_input = "<root><child>text</child></root>";
   io::BufferStream buffer_stream;
@@ -107,6 +120,37 @@ TEST_CASE("XML with nodes and text data is parsed correctly", "[XMLReader]") {
   CHECK(std::get<std::string>(std::get<core::RecordObject>(record.at("node").value_).at("subnode").value_) == "subtext");
   CHECK(std::get<std::string>(std::get<core::RecordObject>(record.at("node").value_).at("value").value_) == "nodetext");
   CHECK(std::get<std::string>(record.at("value").value_) == "outtext1outtext2");
+}
+
+TEST_CASE("XML with same nodes are converted to arrays", "[XMLReader]") {
+  const std::string xml_input = "<root><array><item>value1</item><item>value2</item></array></root>";
+  io::BufferStream buffer_stream;
+  buffer_stream.write(reinterpret_cast<const uint8_t*>(xml_input.data()), xml_input.size());
+
+  XMLReader xml_reader("XMLReader");
+  auto record_set = xml_reader.read(buffer_stream);
+  REQUIRE(record_set);
+  REQUIRE(record_set->size() == 1);
+  auto& record = record_set->at(0);
+  auto& array_field = std::get<core::RecordObject>(record.at("array").value_);
+  REQUIRE(array_field.size() == 1);
+  auto& item_array = std::get<core::RecordArray>(array_field.at("item").value_);
+  REQUIRE(item_array.size() == 2);
+  CHECK(std::get<std::string>(item_array[0].value_) == "value1");
+  CHECK(std::get<std::string>(item_array[1].value_) == "value2");
+}
+
+TEST_CASE("XML nodes with default value tag are ignored if text data is present", "[XMLReader]") {
+  const std::string xml_input = "<root>s1<value>s2</value><value>s3</value></root>";
+  io::BufferStream buffer_stream;
+  buffer_stream.write(reinterpret_cast<const uint8_t*>(xml_input.data()), xml_input.size());
+
+  XMLReader xml_reader("XMLReader");
+  auto record_set = xml_reader.read(buffer_stream);
+  REQUIRE(record_set);
+  REQUIRE(record_set->size() == 1);
+  auto& record = record_set->at(0);
+  CHECK(std::get<std::string>(record.at("value").value_) == "s1");
 }
 
 }  // namespace org::apache::nifi::minifi::standard::test
