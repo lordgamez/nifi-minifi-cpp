@@ -127,21 +127,34 @@ void XMLReader::parseXmlNode(core::RecordObject& record_object, const pugi::xml_
   }
 }
 
+void XMLReader::addRecordFromXmlNode(const pugi::xml_node& node, core::RecordSet& record_set) const {
+  core::RecordObject record_object;
+  parseXmlNode(record_object, node);
+  core::Record record(std::move(record_object));
+  record_set.emplace_back(std::move(record));
+}
+
 bool XMLReader::parseRecordsFromXml(core::RecordSet& record_set, const std::string& xml_content) const {
   pugi::xml_document doc;
   if (!doc.load_string(xml_content.c_str())) {
+    logger_->log_error("Failed to parse XML content: {}", xml_content);
     return false;
+  }
+
+  if (expect_records_as_array_) {
+    pugi::xml_node root = doc.first_child();
+    for (pugi::xml_node record_node : root.children()) {
+      addRecordFromXmlNode(record_node, record_set);
+    }
+    return true;
   }
 
   pugi::xml_node root = doc.first_child();
   if (!root.first_child()) {
+    logger_->log_info("XML content does not contain any records: {}", xml_content);
     return true;
   }
-
-  core::RecordObject record_object;
-  parseXmlNode(record_object, root);
-  core::Record record(std::move(record_object));
-  record_set.emplace_back(std::move(record));
+  addRecordFromXmlNode(root, record_set);
   return true;
 }
 
@@ -149,6 +162,7 @@ void XMLReader::onEnable() {
   field_name_for_content_ = getProperty(FieldNameForContent.name).value_or("value");
   parse_xml_attributes_ = getProperty(ParseXMLAttributes.name).value_or("false") == "true";
   attribute_prefix_ = getProperty(AttributePrefix.name).value_or("");
+  expect_records_as_array_ = getProperty(ExpectRecordsAsArray.name).value_or("false") == "true";
 }
 
 nonstd::expected<core::RecordSet, std::error_code> XMLReader::read(io::InputStream& input_stream) {
@@ -165,8 +179,9 @@ nonstd::expected<core::RecordSet, std::error_code> XMLReader::read(io::InputStre
     }
     return read_ret;
   }(input_stream);
-  if (io::isError(read_result))
+  if (io::isError(read_result)) {
     return nonstd::make_unexpected(std::make_error_code(std::errc::invalid_argument));
+  }
   return record_set;
 }
 

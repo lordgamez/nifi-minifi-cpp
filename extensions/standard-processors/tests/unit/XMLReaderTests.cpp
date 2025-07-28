@@ -32,9 +32,11 @@ TEST_CASE("Invalid XML input or empty input results in error", "[XMLReader]") {
   xml_reader.onEnable();
   auto record_set = xml_reader.read(buffer_stream);
   REQUIRE_FALSE(record_set);
+  REQUIRE(LogTestController::getInstance().contains("Failed to parse XML content: " + xml_input));
 }
 
 TEST_CASE("XML with only root node results in empty record set", "[XMLReader]") {
+  LogTestController::getInstance().setDebug<XMLReader>();
   const std::string xml_input = "<root></root>";
   io::BufferStream buffer_stream;
   buffer_stream.write(reinterpret_cast<const uint8_t*>(xml_input.data()), xml_input.size());
@@ -45,6 +47,21 @@ TEST_CASE("XML with only root node results in empty record set", "[XMLReader]") 
   auto record_set = xml_reader.read(buffer_stream);
   REQUIRE(record_set);
   REQUIRE(record_set->empty());
+  REQUIRE(LogTestController::getInstance().contains("XML content does not contain any records: <root></root>"));
+}
+
+TEST_CASE("XML contains a single data node results in a single record with default content field name key", "[XMLReader]") {
+  const std::string xml_input = "<root>text</root>";
+  io::BufferStream buffer_stream;
+  buffer_stream.write(reinterpret_cast<const uint8_t*>(xml_input.data()), xml_input.size());
+
+  XMLReader xml_reader("XMLReader");
+  xml_reader.initialize();
+  xml_reader.onEnable();
+  auto record_set = xml_reader.read(buffer_stream);
+  REQUIRE(record_set->size() == 1);
+  auto& record = record_set->at(0);
+  CHECK(std::get<std::string>(record.at("value").value_) == "text");
 }
 
 TEST_CASE("XML with one empty node", "[XMLReader]") {
@@ -271,6 +288,28 @@ TEST_CASE("Attributes are prefixed with the defined prefix", "[XMLReader]") {
   CHECK(std::get<std::string>(a_object.at("attr_mykey").value_) == "myattrval");
   CHECK(std::get<std::string>(a_object.at("attr_fieldname").value_) == "myattrval2");
   CHECK(std::get<std::string>(a_object.at("fieldname").value_) == "value");
+}
+
+TEST_CASE("Read multiple records from XML", "[XMLReader]") {
+  const std::string xml_input = "<root><node><message><from>Tony</from><to>Bob</to><body>Hello</body></message></node><node>Hi!</node></root>";
+  io::BufferStream buffer_stream;
+  buffer_stream.write(reinterpret_cast<const uint8_t*>(xml_input.data()), xml_input.size());
+
+  XMLReader xml_reader("XMLReader");
+  xml_reader.initialize();
+  xml_reader.setProperty(XMLReader::ExpectRecordsAsArray.name, "true");
+  xml_reader.onEnable();
+  auto record_set = xml_reader.read(buffer_stream);
+  REQUIRE(record_set);
+  REQUIRE(record_set->size() == 2);
+  auto& record1 = record_set->at(0);
+  auto& message_record = std::get<core::RecordObject>(record1.at("message").value_);
+  CHECK(message_record.size() == 3);
+  CHECK(std::get<std::string>(message_record.at("from").value_) == "Tony");
+  CHECK(std::get<std::string>(message_record.at("to").value_) == "Bob");
+  CHECK(std::get<std::string>(message_record.at("body").value_) == "Hello");
+  auto& record2 = record_set->at(1);
+  CHECK(std::get<std::string>(record2.at("value").value_) == "Hi!");
 }
 
 }  // namespace org::apache::nifi::minifi::standard::test

@@ -16,10 +16,11 @@
  */
 #pragma once
 
-#include "pugixml.hpp"
-
 #include "controllers/RecordSetReader.h"
 #include "core/PropertyDefinitionBuilder.h"
+#include "core/logging/Logger.h"
+#include "core/logging/LoggerFactory.h"
+#include "pugixml.hpp"
 
 namespace org::apache::nifi::minifi::standard {
 
@@ -53,7 +54,17 @@ class XMLReader final : public core::RecordSetReaderImpl {
   EXTENSIONAPI static constexpr auto AttributePrefix = core::PropertyDefinitionBuilder<>::createProperty("Attribute Prefix")
       .withDescription("If this property is set, the name of attributes will be prepended with a prefix when they are added to a record.")
       .build();
-  EXTENSIONAPI static constexpr auto Properties = std::array<core::PropertyReference, 3>{FieldNameForContent, ParseXMLAttributes, AttributePrefix};
+  EXTENSIONAPI static constexpr auto ExpectRecordsAsArray = core::PropertyDefinitionBuilder<>::createProperty("Expect Records as Array")
+      .withDescription("This property defines whether the reader expects a FlowFile to consist of a single Record or a series of Records with a \"wrapper element\". Because XML does not provide "
+                       "for a way to read a series of XML documents from a stream directly, it is common to combine many XML documents by concatenating them and then wrapping the entire XML blob "
+                       "with a \"wrapper element\". This property dictates whether the reader expects a FlowFile to consist of a single Record or a series of Records with a \"wrapper element\" "
+                       "that will be ignored.")
+      .isRequired(true)
+      .withValidator(core::StandardPropertyValidators::BOOLEAN_VALIDATOR)
+      .withDefaultValue("false")
+      .build();
+
+  EXTENSIONAPI static constexpr auto Properties = std::array<core::PropertyReference, 4>{FieldNameForContent, ParseXMLAttributes, AttributePrefix, ExpectRecordsAsArray};
 
   EXTENSIONAPI static constexpr bool SupportsDynamicProperties = false;
   ADD_COMMON_VIRTUAL_FUNCTIONS_FOR_CONTROLLER_SERVICES
@@ -73,11 +84,14 @@ class XMLReader final : public core::RecordSetReaderImpl {
   void writeRecordField(core::RecordObject& record_object, const std::string& name, const std::string& value, bool override_content_field = false) const;
   void writeRecordFieldFromXmlNode(core::RecordObject& record_object, const pugi::xml_node& node) const;
   void parseXmlNode(core::RecordObject& record_object, const pugi::xml_node& node) const;
+  void addRecordFromXmlNode(const pugi::xml_node& node, core::RecordSet& record_set) const;
   bool parseRecordsFromXml(core::RecordSet& record_set, const std::string& xml_content) const;
 
   std::string field_name_for_content_;
   bool parse_xml_attributes_ = false;
   std::string attribute_prefix_;
+  bool expect_records_as_array_ = false;
+  std::shared_ptr<core::logging::Logger> logger_ = core::logging::LoggerFactory<XMLReader>::getLogger();
 };
 
 }  // namespace org::apache::nifi::minifi::standard
