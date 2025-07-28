@@ -17,6 +17,8 @@
 
 #include "XMLReader.h"
 
+#include <algorithm>
+
 #include "core/Resource.h"
 #include "utils/TimeUtil.h"
 
@@ -24,16 +26,12 @@ namespace org::apache::nifi::minifi::standard {
 
 namespace {
 bool hasChildNodes(const pugi::xml_node& node) {
-  for (pugi::xml_node child : node.children()) {
-    if (child.type() == pugi::node_element) {
-      return true;
-    }
-  }
-  return false;
+  return std::any_of(node.begin(), node.end(), [] (const pugi::xml_node& child) {
+    return child.type() == pugi::node_element;
+  });
 }
-}  // namespace
 
-void XMLReader::addRecordFieldToObject(core::RecordObject& record_object, const std::string& name, const core::RecordField& field) const {
+void addRecordFieldToObject(core::RecordObject& record_object, const std::string& name, const core::RecordField& field) {
   auto it = record_object.find(name);
   if (it != record_object.end()) {
     if (std::holds_alternative<core::RecordArray>(it->second.value_)) {
@@ -48,6 +46,7 @@ void XMLReader::addRecordFieldToObject(core::RecordObject& record_object, const 
     record_object.emplace(name, field);
   }
 }
+}  // namespace
 
 void XMLReader::writeRecordField(core::RecordObject& record_object, const std::string& name, const std::string& value, bool override_content_field) const {
   if (!override_content_field && name == field_name_for_content_) {

@@ -356,6 +356,11 @@ if (ENABLE_ALL OR ENABLE_PROMETHEUS OR ENABLE_GRAFANA_LOKI OR ENABLE_CIVET)
 endif()
 
 ## Add extensions
+
+# PugiXML required for standard processors and WEL extension
+include(BundledPugiXml)
+use_bundled_pugixml(${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR})
+
 file(GLOB extension-directories "extensions/*")
 foreach(extension-dir ${extension-directories})
     if (IS_DIRECTORY ${extension-dir} AND EXISTS ${extension-dir}/CMakeLists.txt)

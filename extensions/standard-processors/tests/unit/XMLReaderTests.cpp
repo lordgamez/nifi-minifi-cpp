@@ -76,7 +76,7 @@ TEST_CASE("XML with one empty node", "[XMLReader]") {
   REQUIRE(record_set);
   REQUIRE(record_set->size() == 1);
   auto& record = record_set->at(0);
-  CHECK(std::get<std::string>(record.at("node").value_) == "");
+  CHECK(std::get<std::string>(record.at("node").value_).empty());
 }
 
 TEST_CASE("XML with a single string child node results in a single record", "[XMLReader]") {
@@ -206,7 +206,7 @@ TEST_CASE("Specify Field Name for Content property for tagless values", "[XMLRea
 }
 
 TEST_CASE("Parse attributes as record fields if Parse XML Attributes property is set", "[XMLReader]") {
-  const std::string xml_input = "<root><node attribute=\"attr_value\">nodetext</node></root>";
+  const std::string xml_input = R"(<root><node attribute="attr_value">nodetext</node></root>)";
   io::BufferStream buffer_stream;
   buffer_stream.write(reinterpret_cast<const uint8_t*>(xml_input.data()), xml_input.size());
 
@@ -223,7 +223,7 @@ TEST_CASE("Parse attributes as record fields if Parse XML Attributes property is
 }
 
 TEST_CASE("Parse attributes as in an XML with nested node array", "[XMLReader]") {
-  const std::string xml_input = "<root><node attribute=\"attr_value\"><subnode subattr=\"subattr_value\">1</subnode>nodetext<subnode>2</subnode></node></root>";
+  const std::string xml_input = R"(<root><node attribute="attr_value"><subnode subattr="subattr_value">1</subnode>nodetext<subnode>2</subnode></node></root>)";
   io::BufferStream buffer_stream;
   buffer_stream.write(reinterpret_cast<const uint8_t*>(xml_input.data()), xml_input.size());
 
@@ -247,7 +247,7 @@ TEST_CASE("Parse attributes as in an XML with nested node array", "[XMLReader]")
 }
 
 TEST_CASE("Attributes clashing with the content field name are ignored", "[XMLReader]") {
-  const std::string xml_input = "<root><node><subnode attr=\"attr_value\" tagvalue=\"attr_value2\">value</subnode></node></root>";
+  const std::string xml_input = R"(<root><node><subnode attr="attr_value" tagvalue="attr_value2">value</subnode></node></root>)";
   io::BufferStream buffer_stream;
   buffer_stream.write(reinterpret_cast<const uint8_t*>(xml_input.data()), xml_input.size());
 
@@ -268,7 +268,7 @@ TEST_CASE("Attributes clashing with the content field name are ignored", "[XMLRe
 }
 
 TEST_CASE("Attributes are prefixed with the defined prefix", "[XMLReader]") {
-  const std::string xml_input = "<root><node><subnode mykey=\"myattrval\" fieldname=\"myattrval2\">value</subnode></node></root>";
+  const std::string xml_input = R"(<root><node><subnode mykey="myattrval" fieldname="myattrval2">value</subnode></node></root>)";
   io::BufferStream buffer_stream;
   buffer_stream.write(reinterpret_cast<const uint8_t*>(xml_input.data()), xml_input.size());
 

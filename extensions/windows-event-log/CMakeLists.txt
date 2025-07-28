@@ -21,9 +21,6 @@ if (NOT (WIN32 AND (ENABLE_ALL OR ENABLE_WEL)))
     return()
 endif()
 
-include(BundledPugiXml)
-use_bundled_pugixml(${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR})
-
 include(${CMAKE_SOURCE_DIR}/extensions/ExtensionHeader.txt)
 
 file(GLOB SOURCES  "*.cpp" "wel/*.cpp")

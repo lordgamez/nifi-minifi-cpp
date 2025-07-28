@@ -80,7 +80,6 @@ class XMLReader final : public core::RecordSetReaderImpl {
   bool isWorkAvailable() override { return false; }
 
  private:
-  void addRecordFieldToObject(core::RecordObject& record_object, const std::string& name, const core::RecordField& field) const;
   void writeRecordField(core::RecordObject& record_object, const std::string& name, const std::string& value, bool override_content_field = false) const;
   void writeRecordFieldFromXmlNode(core::RecordObject& record_object, const pugi::xml_node& node) const;
   void parseXmlNode(core::RecordObject& record_object, const pugi::xml_node& node) const;
