@@ -112,7 +112,7 @@ std::string XMLRecordSetWriter::convertRecordSetToXML(const core::RecordSet& rec
   if (omit_xml_declaration_) {
     xml_formatting_flags |= pugi::format_no_declaration;
   }
-  doc.save(oss, "  ", xml_formatting_flags);
+  doc.save(oss, "  ", gsl::narrow<unsigned int>(xml_formatting_flags));
   return oss.str();
 }
 
