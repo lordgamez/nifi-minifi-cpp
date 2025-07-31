@@ -62,6 +62,13 @@ class XMLRecordSetWriterTestFixture {
     return xml_content;
   }
 
+  void verifyXmlValue(const pugi::xml_node& node, const std::string& field_name, const std::string& expected_value) {
+    auto field_node = node.child(field_name.c_str());
+    REQUIRE(field_node);
+    std::string child_value = field_node.child_value();
+    CHECK(child_value == expected_value);
+  };
+
  private:
   void transferAndCommit(const std::shared_ptr<core::FlowFile>& flow_file) {
     process_session_->transfer(flow_file, Success);
@@ -140,23 +147,16 @@ TEST_CASE_METHOD(XMLRecordSetWriterTestFixture, "Test single record with primiti
 
   pugi::xml_document doc;
   REQUIRE(doc.load_string(xml_content.c_str()));
-  pugi::xml_node root_node = doc.child("root");
+  auto root_node = doc.child("root");
   REQUIRE(root_node);
-  pugi::xml_node record_node = root_node.child("record");
+  auto record_node = root_node.child("record");
   REQUIRE(record_node);
 
-  auto verifyValue = [&](const std::string& field_name, const std::string& expected_value) {
-    pugi::xml_node field_node = record_node.child(field_name.c_str());
-    REQUIRE(field_node);
-    std::string child_value = field_node.child_value();
-    CHECK(child_value == expected_value);
-  };
-
-  verifyValue("string_field", "value1");
-  verifyValue("uint_field", "42");
-  verifyValue("double_field", "2.3");
-  verifyValue("bool_field", "true");
-  verifyValue("time_point_field", "2025-01-01T00:00:00Z");
+  verifyXmlValue(record_node, "string_field", "value1");
+  verifyXmlValue(record_node, "uint_field", "42");
+  verifyXmlValue(record_node, "double_field", "2.3");
+  verifyXmlValue(record_node, "bool_field", "true");
+  verifyXmlValue(record_node, "time_point_field", "2025-01-01T00:00:00Z");
 }
 
 TEST_CASE_METHOD(XMLRecordSetWriterTestFixture, "Test single record with object value", "[XMLRecordSetWriter]") {
@@ -175,24 +175,15 @@ TEST_CASE_METHOD(XMLRecordSetWriterTestFixture, "Test single record with object 
 
   pugi::xml_document doc;
   REQUIRE(doc.load_string(xml_content.c_str()));
-  pugi::xml_node root_node = doc.child("root");
+  auto root_node = doc.child("root");
   REQUIRE(root_node);
-  pugi::xml_node record_node = root_node.child("record");
+  auto record_node = root_node.child("record");
   REQUIRE(record_node);
 
-  auto verifyValue = [&](const std::string& field_name, const std::string& expected_value) {
-    pugi::xml_node field_node = record_node.child(field_name.c_str());
-    REQUIRE(field_node);
-    std::string child_value = field_node.child_value();
-    CHECK(child_value == expected_value);
-  };
-
-  verifyValue("string_field", "value1");
-  pugi::xml_node field_node = record_node.child("inner_object");
+  verifyXmlValue(record_node, "string_field", "value1");
+  auto field_node = record_node.child("inner_object");
   REQUIRE(field_node);
-  field_node = field_node.child("inner_field");
-  REQUIRE(field_node);
-  CHECK(std::string(field_node.child_value()) == "inner_value");
+  verifyXmlValue(field_node, "inner_field", "inner_value");
 }
 
 TEST_CASE_METHOD(XMLRecordSetWriterTestFixture, "Test single record with object array", "[XMLRecordSetWriter]") {
@@ -214,24 +205,17 @@ TEST_CASE_METHOD(XMLRecordSetWriterTestFixture, "Test single record with object 
 
   pugi::xml_document doc;
   REQUIRE(doc.load_string(xml_content.c_str()));
-  pugi::xml_node root_node = doc.child("root");
+  auto root_node = doc.child("root");
   REQUIRE(root_node);
-  pugi::xml_node record_node = root_node.child("record");
+  auto record_node = root_node.child("record");
   REQUIRE(record_node);
 
-  auto verifyValue = [&](const std::string& field_name, const std::string& expected_value) {
-    pugi::xml_node field_node = record_node.child(field_name.c_str());
-    REQUIRE(field_node);
-    std::string child_value = field_node.child_value();
-    CHECK(child_value == expected_value);
-  };
-
-  verifyValue("string_field", "value1");
-  pugi::xml_node field_node = record_node.child("inner_object");
+  verifyXmlValue(record_node, "string_field", "value1");
+  auto field_node = record_node.child("inner_object");
   REQUIRE(field_node);
 
   size_t count = 0;
-  for (pugi::xml_node child : field_node.children("inner_field")) {
+  for (const auto& child : field_node.children("inner_field")) {
     ++count;
     REQUIRE(child);
     bool value_matches = std::string(child.child_value()) == "inner_value1" || std::string(child.child_value()) == "inner_value2";
@@ -259,21 +243,14 @@ TEST_CASE_METHOD(XMLRecordSetWriterTestFixture, "Test multiple records wrapped",
 
   pugi::xml_document doc;
   REQUIRE(doc.load_string(xml_content.c_str()));
-  pugi::xml_node root_node = doc.child("root");
+  auto root_node = doc.child("root");
   REQUIRE(root_node);
-
-  auto verifyValue = [&](const pugi::xml_node& record_node, const std::string& field_name, const std::string& expected_value) {
-    pugi::xml_node field_node = record_node.child(field_name.c_str());
-    REQUIRE(field_node);
-    std::string child_value = field_node.child_value();
-    CHECK(child_value == expected_value);
-  };
 
   size_t count = 0;
   for (const auto& record_node : root_node.children("record")) {
     REQUIRE(record_node);
-    verifyValue(record_node, "string_field", "value1");
-    verifyValue(record_node, "uint_field", "42");
+    verifyXmlValue(record_node, "string_field", "value1");
+    verifyXmlValue(record_node, "uint_field", "42");
     ++count;
   }
 

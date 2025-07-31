@@ -112,6 +112,7 @@ class XMLRecordSetWriter final : public core::RecordSetWriterImpl {
   bool isWorkAvailable() override { return false; }
 
  private:
+  std::string formatXmlOutput(pugi::xml_document& xml_doc) const;
   std::string convertRecordSetToXML(const core::RecordSet& record_set) const;
 
   WrapElementsOfArraysOptions wrap_elements_of_arrays_ = WrapElementsOfArraysOptions::NoWrapping;

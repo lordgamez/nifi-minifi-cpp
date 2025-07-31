@@ -84,25 +84,8 @@ void XMLRecordSetWriter::onEnable() {
   }
 }
 
-std::string XMLRecordSetWriter::convertRecordSetToXML(const core::RecordSet& record_set) const {
-  pugi::xml_document doc;
-  pugi::xml_node root_node = doc.append_child(name_of_root_tag_.c_str());
-
-  for (const auto& record : record_set) {
-    pugi::xml_node record_node;
-    if (name_of_root_tag_.empty()) {
-      record_node = doc.append_child(name_of_record_tag_.c_str());
-    } else {
-      record_node = root_node.append_child(name_of_record_tag_.c_str());
-    }
-
-    for (const auto& [key, field] : record) {
-      convertRecordField(key, field, record_node);
-    }
-  }
-
-  std::ostringstream oss;
-
+std::string XMLRecordSetWriter::formatXmlOutput(pugi::xml_document& xml_doc) const {
+  std::ostringstream xml_string_stream;
   uint64_t xml_formatting_flags = 0;
   if (pretty_print_xml_) {
     xml_formatting_flags |= pugi::format_indent;
@@ -112,12 +95,28 @@ std::string XMLRecordSetWriter::convertRecordSetToXML(const core::RecordSet& rec
   if (omit_xml_declaration_) {
     xml_formatting_flags |= pugi::format_no_declaration;
   }
-  doc.save(oss, "  ", gsl::narrow<unsigned int>(xml_formatting_flags));
-  return oss.str();
+  xml_doc.save(xml_string_stream, "  ", gsl::narrow<unsigned int>(xml_formatting_flags));
+  return xml_string_stream.str();
+}
+
+std::string XMLRecordSetWriter::convertRecordSetToXML(const core::RecordSet& record_set) const {
+  gsl_Expects(!name_of_record_tag_.empty() && !name_of_root_tag_.empty());
+  pugi::xml_document xml_doc;
+  auto root_node = xml_doc.append_child(name_of_root_tag_.c_str());
+
+  for (const auto& record : record_set) {
+    auto record_node = root_node.append_child(name_of_record_tag_.c_str());
+    for (const auto& [key, field] : record) {
+      convertRecordField(key, field, record_node);
+    }
+  }
+
+  return formatXmlOutput(xml_doc);
 }
 
 void XMLRecordSetWriter::write(const core::RecordSet& record_set, const std::shared_ptr<core::FlowFile>& flow_file, core::ProcessSession& session) {
   if (!flow_file) {
+    logger_->log_error("FlowFile is null, cannot write RecordSet to XML");
     return;
   }
 
