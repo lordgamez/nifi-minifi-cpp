@@ -282,7 +282,7 @@ In the list below, the names of required properties appear in bold. Any other pr
 
 ### Description
 
-Reads Sparkplug B messages and turns them into individual Record objects. The reader expects a single Sparkplug B payload in a read operation, which is a protobuf-encoded binary message. This reader is typically used with MQTT processors like ConsumeMQTT.
+Reads Sparkplug B messages and turns them into individual Record objects. The reader expects a single Sparkplug B payload in a read operation, which is a protobuf-encoded binary message. This reader is designed to be used with ConsumeMQTT, since Sparkplug B is an MQTT-based protocol.
 
 ### Properties
 

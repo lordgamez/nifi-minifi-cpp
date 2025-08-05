@@ -47,7 +47,8 @@ class ConsumeMQTT : public processors::AbstractMQTTProcessor {
   }
 
   EXTENSIONAPI static constexpr const char* Description = "This Processor gets the contents of a FlowFile from a MQTT broker for a specified topic. "
-      "The the payload of the MQTT message becomes content of a FlowFile";
+      "The the payload of the MQTT message becomes content of a FlowFile. If Record Reader and Record Writer are set, then the MQTT message specific attributes are not set in the flow file, "
+      "because different attributes can be set for different records. In this case if Add Attributes As Fields is set to true, the attributes will be added to each record as fields.";
 
   EXTENSIONAPI static constexpr auto Topic = core::PropertyDefinitionBuilder<>::createProperty("Topic")
       .withDescription("The topic to subscribe to.")
@@ -125,8 +126,8 @@ class ConsumeMQTT : public processors::AbstractMQTTProcessor {
   EXTENSIONAPI static constexpr auto IsRetainedOutputAttribute = core::OutputAttributeDefinition<0>{"mqtt.isRetained", {},
       "Whether or not this message was from a current publisher, or was \"retained\" by the server as the last message published on the topic."};
   EXTENSIONAPI static constexpr auto RecordCountOutputAttribute = core::OutputAttributeDefinition<0>{"record.count", {}, "The number of records received"};
-  EXTENSIONAPI static constexpr auto OutputAttributes = std::array<core::OutputAttributeReference, 7>{BrokerOutputAttribute, TopicOutputAttribute, TopicSegmentOutputAttribute,
-      QosOutputAttribute, IsDuplicateOutputAttribute, IsRetainedOutputAttribute, RecordCountOutputAttribute};
+  EXTENSIONAPI static constexpr auto OutputAttributes = std::to_array<core::OutputAttributeReference>({BrokerOutputAttribute, TopicOutputAttribute, TopicSegmentOutputAttribute,
+      QosOutputAttribute, IsDuplicateOutputAttribute, IsRetainedOutputAttribute, RecordCountOutputAttribute});
 
   EXTENSIONAPI static constexpr bool SupportsDynamicProperties = false;
   EXTENSIONAPI static constexpr bool SupportsDynamicRelationships = false;

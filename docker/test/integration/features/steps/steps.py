@@ -438,9 +438,9 @@ def step_impl(context):
 
 @given("a SparkplugBReader controller service is set up")
 def step_impl(context):
-    json_record_set_reader = SparkplugBReader("SparkplugBReader")
+    sparkplug_record_set_reader = SparkplugBReader("SparkplugBReader")
     container = context.test.acquire_container(context=context, name="minifi-cpp-flow")
-    container.add_controller(json_record_set_reader)
+    container.add_controller(sparkplug_record_set_reader)
 
 
 @when("a test Sparkplug payload is published to the topic \"{topic}\"")

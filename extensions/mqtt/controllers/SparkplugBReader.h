@@ -33,7 +33,8 @@ class SparkplugBReader final : public core::RecordSetReaderImpl {
   ~SparkplugBReader() override = default;
 
   EXTENSIONAPI static constexpr const char* Description = "Reads Sparkplug B messages and turns them into individual Record objects. "
-      "The reader expects a single Sparkplug B payload in a read operation, which is a protobuf-encoded binary message. This reader is typically used with MQTT processors like ConsumeMQTT.";
+      "The reader expects a single Sparkplug B payload in a read operation, which is a protobuf-encoded binary message. This reader is designed to be used with ConsumeMQTT, "
+      "since Sparkplug B is an MQTT-based protocol.";
 
   EXTENSIONAPI static constexpr auto Properties = std::array<core::PropertyReference, 0>{};
 
