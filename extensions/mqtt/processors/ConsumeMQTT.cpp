@@ -92,9 +92,11 @@ void ConsumeMQTT::addAttributesAsRecordFields(core::RecordSet& new_records, cons
   for (auto& record: new_records) {
     record.emplace("_topic", core::RecordField(msg_queue.front().topic));
     auto topic_segments = utils::string::split(msg_queue.front().topic, "/");
+    core::RecordArray topic_segments_array;
     for (size_t i = 0; i < topic_segments.size(); ++i) {
-      record.emplace("_topic.segment." + std::to_string(i), core::RecordField(topic_segments[i]));
+      topic_segments_array.emplace_back(core::RecordField(topic_segments[i]));
     }
+    record.emplace("_topicSegments", core::RecordField(std::move(topic_segments_array)));
     record.emplace("_qos", core::RecordField(msg_queue.front().contents->qos));
     record.emplace("_isDuplicate", core::RecordField(msg_queue.front().contents->dup > 0));
     record.emplace("_isRetained", core::RecordField(msg_queue.front().contents->retained > 0));

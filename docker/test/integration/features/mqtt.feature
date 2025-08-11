@@ -531,6 +531,6 @@ Feature: Sending data to MQTT streaming platform using PublishMQTT
     And a test message "<root><element>test</element></root>" is published to the MQTT broker on topic "test/my/topic"
 
     Then the MQTT broker has a log line matching "Received SUBSCRIBE from consumer-client"
-    And a flowfile with the JSON content '[{"_isRetained": false,"_isDuplicate": false,"_topic.segment.2": "topic","_topic.segment.1": "my","_qos": 0,"_topic.segment.0": "test","_topic": "test/my/topic","element": "test"}]' is placed in the monitored directory in less than 60 seconds
+    And a flowfile with the JSON content '[{"_isRetained": false, "_isDuplicate": false, "_qos": 0, "_topicSegments": ["test", "my", "topic"], "_topic": "test/my/topic", "element": "test"}]' is placed in the monitored directory in less than 60 seconds
     And the Minifi logs contain the following message: "key:record.count value:1" in less than 60 seconds
     And the Minifi logs contain the following message: "key:mqtt.broker value:mqtt-broker-" in less than 1 seconds
