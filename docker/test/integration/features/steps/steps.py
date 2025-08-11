@@ -25,6 +25,7 @@ from minifi.controllers.ODBCService import ODBCService
 from minifi.controllers.KubernetesControllerService import KubernetesControllerService
 from minifi.controllers.JsonRecordSetWriter import JsonRecordSetWriter
 from minifi.controllers.JsonTreeReader import JsonTreeReader
+from minifi.controllers.XMLReader import XMLReader
 from minifi.controllers.CouchbaseClusterService import CouchbaseClusterService
 
 from behave import given, then, when
@@ -403,6 +404,13 @@ def step_impl(context):
     json_record_set_reader = JsonTreeReader("JsonTreeReader")
     container = context.test.acquire_container(context=context, name="minifi-cpp-flow")
     container.add_controller(json_record_set_reader)
+
+
+@given("a XMLReader controller service is set up")
+def step_impl(context):
+    xml_reader = XMLReader("XMLReader")
+    container = context.test.acquire_container(context=context, name="minifi-cpp-flow")
+    container.add_controller(xml_reader)
 
 
 # Kubernetes
@@ -885,6 +893,11 @@ def step_impl(context, log_pattern):
 @then("the MQTT broker has {log_count} log lines matching \"{log_pattern}\"")
 def step_impl(context, log_count, log_pattern):
     context.test.check_container_log_matches_regex('mqtt-broker', log_pattern, 60, count=int(log_count))
+
+
+@when("a test message \"{message}\" is published to the MQTT broker on topic \"{topic}\"")
+def step_impl(context, message, topic):
+    context.test.publish_test_mqtt_message(topic, message)
 
 
 @then("the \"{minifi_container_name}\" flow has a log line matching \"{log_pattern}\" in less than {duration}")
