@@ -392,18 +392,28 @@ def step_impl(context, processor_name):
 
 
 # Record set reader and writer
+@given("a JsonRecordSetWriter controller service is set up with \"{}\" output grouping in the \"{minifi_container_name}\" flow")
+def step_impl(context, output_grouping: str, minifi_container_name: str):
+    json_record_set_writer = JsonRecordSetWriter(name="JsonRecordSetWriter", output_grouping=output_grouping)
+    container = context.test.acquire_container(context=context, name=minifi_container_name)
+    container.add_controller(json_record_set_writer)
+
+
+@given("a JsonTreeReader controller service is set up in the \"{minifi_container_name}\" flow")
+def step_impl(context, minifi_container_name: str):
+    json_record_set_reader = JsonTreeReader("JsonTreeReader")
+    container = context.test.acquire_container(context=context, name=minifi_container_name)
+    container.add_controller(json_record_set_reader)
+
+
 @given("a JsonRecordSetWriter controller service is set up with \"{}\" output grouping")
 def step_impl(context, output_grouping: str):
-    json_record_set_writer = JsonRecordSetWriter(name="JsonRecordSetWriter", output_grouping=output_grouping)
-    container = context.test.acquire_container(context=context, name="minifi-cpp-flow")
-    container.add_controller(json_record_set_writer)
+    context.execute_steps(f"given a JsonRecordSetWriter controller service is set up with \"{output_grouping}\" output grouping in the \"minifi-cpp-flow\" flow")
 
 
 @given("a JsonTreeReader controller service is set up")
 def step_impl(context):
-    json_record_set_reader = JsonTreeReader("JsonTreeReader")
-    container = context.test.acquire_container(context=context, name="minifi-cpp-flow")
-    container.add_controller(json_record_set_reader)
+    context.execute_steps("given a JsonTreeReader controller service is set up in the \"minifi-cpp-flow\" flow")
 
 
 @given("a XMLReader controller service is set up")
