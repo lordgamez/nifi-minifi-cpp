@@ -534,3 +534,27 @@ Feature: Sending data to MQTT streaming platform using PublishMQTT
     And a flowfile with the JSON content '[{"_isRetained": false, "_isDuplicate": false, "_qos": 0, "_topicSegments": ["test", "my", "topic"], "_topic": "test/my/topic", "element": "test"}]' is placed in the monitored directory in less than 60 seconds
     And the Minifi logs contain the following message: "key:record.count value:1" in less than 60 seconds
     And the Minifi logs contain the following message: "key:mqtt.broker value:mqtt-broker-" in less than 1 seconds
+
+  Scenario: A MiNiFi instance uses record reader and writer to convert and publish records to an MQTT broker
+    Given a JsonTreeReader controller service is set up
+    And a XMLRecordSetWriter controller service is set up
+    And the "Name of Record Tag" property of the XMLRecordSetWriter controller is set to "record"
+    And the "Name of Root Tag" property of the XMLRecordSetWriter controller is set to "root"
+    And a GetFile processor with the "Input Directory" property set to "/tmp/input"
+    And a file with the content '[{"string": "test"}, {"int": 42}]' is present in '/tmp/input'
+    And a PublishMQTT processor set up to communicate with an MQTT broker instance
+    And the "MQTT Version" property of the PublishMQTT processor is set to "3.x AUTO"
+    And the "Record Reader" property of the PublishMQTT processor is set to "JsonTreeReader"
+    And the "Record Writer" property of the PublishMQTT processor is set to "XMLRecordSetWriter"
+    And a UpdateAttribute processor with the "filename" property set to "${UUID()}.xml"
+    And a PutFile processor with the "Directory" property set to "/tmp/output"
+    And the "success" relationship of the GetFile processor is connected to the PublishMQTT
+    And the "success" relationship of the PublishMQTT processor is connected to the UpdateAttribute
+    And the "success" relationship of the UpdateAttribute processor is connected to the PutFile
+    And an MQTT broker is set up in correspondence with the PublishMQTT
+
+    When both instances start up
+
+    Then two flowfiles with the contents '<?xml version="1.0"?><root><record><string>test</string></record></root>' and '<?xml version="1.0"?><root><record><int>42</int></record></root>' are placed in the monitored directory in less than 60 seconds
+    And the MQTT broker has a log line matching "Received PUBLISH from .*testtopic.*\(72 bytes\)"
+    And the MQTT broker has a log line matching "Received PUBLISH from .*testtopic.*\(64 bytes\)"

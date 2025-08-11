@@ -26,6 +26,7 @@ from minifi.controllers.KubernetesControllerService import KubernetesControllerS
 from minifi.controllers.JsonRecordSetWriter import JsonRecordSetWriter
 from minifi.controllers.JsonTreeReader import JsonTreeReader
 from minifi.controllers.XMLReader import XMLReader
+from minifi.controllers.XMLRecordSetWriter import XMLRecordSetWriter
 from minifi.controllers.CouchbaseClusterService import CouchbaseClusterService
 
 from behave import given, then, when
@@ -177,6 +178,12 @@ def step_impl(context, property_name, processor_name, property_value):
         processor.unset_property(property_name)
     else:
         processor.set_property(property_name, property_value)
+
+
+@given("the \"{property_name}\" property of the {controller_name} controller is set to \"{property_value}\"")
+def step_impl(context, property_name, controller_name, property_value):
+    container = context.test.acquire_container(context=context, name="minifi-cpp-flow")
+    container.get_controller(controller_name).set_property(property_name, property_value)
 
 
 @given("the \"{property_name}\" properties of the {processor_name_one} and {processor_name_two} processors are set to the same random guid")
@@ -421,6 +428,13 @@ def step_impl(context):
     xml_reader = XMLReader("XMLReader")
     container = context.test.acquire_container(context=context, name="minifi-cpp-flow")
     container.add_controller(xml_reader)
+
+
+@given("a XMLRecordSetWriter controller service is set up")
+def step_impl(context):
+    xml_record_set_writer = XMLRecordSetWriter("XMLRecordSetWriter")
+    container = context.test.acquire_container(context=context, name="minifi-cpp-flow")
+    container.add_controller(xml_record_set_writer)
 
 
 # Kubernetes
@@ -747,6 +761,7 @@ def step_impl(context, content, duration):
 
 
 @then("two flowfiles with the contents \"{content_1}\" and \"{content_2}\" are placed in the monitored directory in less than {duration}")
+@then("two flowfiles with the contents '{content_1}' and '{content_2}' are placed in the monitored directory in less than {duration}")
 def step_impl(context, content_1, content_2, duration):
     context.test.check_for_multiple_files_generated(2, humanfriendly.parse_timespan(duration), [content_1, content_2])
 
