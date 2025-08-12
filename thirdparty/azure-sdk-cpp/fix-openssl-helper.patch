@@ -1,0 +1,13 @@
+diff --git a/sdk/attestation/azure-security-attestation/src/private/crypto/openssl/openssl_helpers.hpp b/sdk/attestation/azure-security-attestation/src/private/crypto/openssl/openssl_helpers.hpp
+index a52791cea..deaf3af5f 100644
+--- a/sdk/attestation/azure-security-attestation/src/private/crypto/openssl/openssl_helpers.hpp
++++ b/sdk/attestation/azure-security-attestation/src/private/crypto/openssl/openssl_helpers.hpp
+@@ -47,7 +47,7 @@ namespace Azure { namespace Security { namespace Attestation { namespace _detail
+     auto raw = OpensslApi(
+         forward<Args>(args)...); // forwarding is probably unnecessary, could use const Args&...
+     // check raw
+-    using T = remove_pointer_t<decltype(raw)>; // no need to request T when we can see
++    using T = std::remove_pointer_t<decltype(raw)>; // no need to request T when we can see
+                                                // what OpensslApi returned
+     return openssl_unique_ptr<T>{raw};
+   }

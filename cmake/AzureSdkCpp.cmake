@@ -36,10 +36,12 @@ set(BUILD_TESTING OFF CACHE INTERNAL "")
 set(BUILD_SAMPLES OFF CACHE INTERNAL "")
 set(DISABLE_AMQP ON CACHE INTERNAL "")
 
-set(PATCH_FILE "${CMAKE_SOURCE_DIR}/thirdparty/azure-sdk-cpp/wil.patch")
+set(PATCH_FILE_1 "${CMAKE_SOURCE_DIR}/thirdparty/azure-sdk-cpp/wil.patch")
+set(PATCH_FILE_2 "${CMAKE_SOURCE_DIR}/thirdparty/azure-sdk-cpp/fix-openssl-helper.patch")
 
 set(PC ${Bash_EXECUTABLE}  -c "set -x &&\
-        (\\\"${Patch_EXECUTABLE}\\\" -p1 -R -s -f --dry-run -i \\\"${PATCH_FILE}\\\" || \\\"${Patch_EXECUTABLE}\\\" -p1 -N -i \\\"${PATCH_FILE}\\\")")
+        (\\\"${Patch_EXECUTABLE}\\\" -p1 -R -s -f --dry-run -i \\\"${PATCH_FILE_1}\\\" || \\\"${Patch_EXECUTABLE}\\\" -p1 -N -i \\\"${PATCH_FILE_1}\\\") &&\
+        (\\\"${Patch_EXECUTABLE}\\\" -p1 -R -s -f --dry-run -i \\\"${PATCH_FILE_2}\\\" || \\\"${Patch_EXECUTABLE}\\\" -p1 -N -i \\\"${PATCH_FILE_2}\\\")")
 
 FetchContent_Declare(asdkext
     URL https://github.com/Azure/azure-sdk-for-cpp/archive/refs/tags/azure-identity_1.13.0.tar.gz
