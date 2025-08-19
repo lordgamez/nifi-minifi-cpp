@@ -57,8 +57,10 @@ AzureBlobStorageClient::AzureBlobStorageClient() {
 
 Azure::Storage::Blobs::BlobContainerClient AzureBlobStorageClient::createClient(const AzureStorageCredentials &credentials, const std::string &container_name) {
   if (credentials.getUseManagedIdentityCredentials()) {
+    auto chained_token_credential = std::make_shared<Azure::Identity::ChainedTokenCredential>(
+      Azure::Identity::ChainedTokenCredential::Sources{std::make_shared<Azure::Identity::WorkloadIdentityCredential>(), std::make_shared<Azure::Identity::ManagedIdentityCredential>()});
     auto storage_client = Azure::Storage::Blobs::BlobServiceClient(
-      "https://" + credentials.getStorageAccountName() + ".blob." + credentials.getEndpointSuffix(), std::make_shared<Azure::Identity::ManagedIdentityCredential>());
+      "https://" + credentials.getStorageAccountName() + ".blob." + credentials.getEndpointSuffix(), chained_token_credential);
     return storage_client.GetBlobContainerClient(container_name);
   } else {
     return Azure::Storage::Blobs::BlobContainerClient::CreateFromConnectionString(credentials.buildConnectionString(), container_name);
