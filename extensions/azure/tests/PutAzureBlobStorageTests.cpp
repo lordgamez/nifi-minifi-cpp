@@ -136,7 +136,7 @@ TEST_CASE_METHOD(PutAzureBlobStorageTestsFixture, "Test credentials settings", "
 
   SECTION("Account name and managed identity are used in properties") {
     plan_->setProperty(azure_blob_storage_processor_, "Storage Account Name", STORAGE_ACCOUNT_NAME);
-    plan_->setProperty(azure_blob_storage_processor_, "Use Managed Identity Credentials", "true");
+    plan_->setProperty(azure_blob_storage_processor_, "Credential Configuration Strategy", "Managed Identity");
     test_controller_.runSession(plan_, true);
     CHECK(getFailedFlowFileContents().empty());
     auto passed_params = mock_blob_storage_ptr_->getPassedPutParams();
@@ -149,7 +149,7 @@ TEST_CASE_METHOD(PutAzureBlobStorageTestsFixture, "Test credentials settings", "
   SECTION("Account name and managed identity are used from Azure Storage Credentials Service") {
     auto azure_storage_cred_service = plan_->addController("AzureStorageCredentialsService", "AzureStorageCredentialsService");
     plan_->setProperty(azure_storage_cred_service, "Storage Account Name", STORAGE_ACCOUNT_NAME);
-    plan_->setProperty(azure_storage_cred_service, "Use Managed Identity Credentials", "true");
+    plan_->setProperty(azure_storage_cred_service, "Credential Configuration Strategy", "Managed Identity");
     plan_->setProperty(azure_storage_cred_service, "Common Storage Account Endpoint Suffix", "core.chinacloudapi.cn");
     plan_->setProperty(azure_blob_storage_processor_, "Azure Storage Credentials Service", "AzureStorageCredentialsService");
     test_controller_.runSession(plan_, true);

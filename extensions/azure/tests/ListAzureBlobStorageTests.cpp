@@ -168,21 +168,52 @@ TEST_CASE_METHOD(ListAzureBlobStorageTestsFixture, "Test credentials settings", 
     REQUIRE(passed_params.credentials.buildConnectionString() == CONNECTION_STRING);
   }
 
-  SECTION("Account name and managed identity are used in properties") {
+  SECTION("Account name and Azure default identity sources are used in properties") {
+    minifi::azure::CredentialConfigurationStrategyOption expected_configuration_strategy_option{};
+    std::string credential_configuration_strategy_string;
+    SECTION("Managed Identity") {
+      expected_configuration_strategy_option = minifi::azure::CredentialConfigurationStrategyOption::managedIdentity;
+      credential_configuration_strategy_string = "Managed Identity";
+    }
+    SECTION("Default Credential") {
+      expected_configuration_strategy_option = minifi::azure::CredentialConfigurationStrategyOption::defaultCredential;
+      credential_configuration_strategy_string = "Default Credential";
+    }
+    SECTION("Workload Identity") {
+      expected_configuration_strategy_option = minifi::azure::CredentialConfigurationStrategyOption::workloadIdentity;
+      credential_configuration_strategy_string = "Workload Identity";
+    }
+
     plan_->setProperty(list_azure_blob_storage_, "Storage Account Name", STORAGE_ACCOUNT_NAME);
-    plan_->setProperty(list_azure_blob_storage_, "Use Managed Identity Credentials", "true");
+    plan_->setProperty(list_azure_blob_storage_, "Credential Configuration Strategy", credential_configuration_strategy_string);
     test_controller_.runSession(plan_, true);
     auto passed_params = mock_blob_storage_ptr_->getPassedListParams();
     CHECK(passed_params.credentials.buildConnectionString().empty());
     CHECK(passed_params.credentials.getStorageAccountName() == STORAGE_ACCOUNT_NAME);
     CHECK(passed_params.credentials.getEndpointSuffix() == "core.windows.net");
+    CHECK(passed_params.credentials.getCredentialConfigurationStrategy() == expected_configuration_strategy_option);
     CHECK(passed_params.container_name == CONTAINER_NAME);
   }
 
-  SECTION("Account name and managed identity are used from Azure Storage Credentials Service") {
+  SECTION("Account name and Azure default identity sources are used from Azure Storage Credentials Service") {
+    minifi::azure::CredentialConfigurationStrategyOption expected_configuration_strategy_option{};
+    std::string credential_configuration_strategy_string;
+    SECTION("Managed Identity") {
+      expected_configuration_strategy_option = minifi::azure::CredentialConfigurationStrategyOption::managedIdentity;
+      credential_configuration_strategy_string = "Managed Identity";
+    }
+    SECTION("Default Credential") {
+      expected_configuration_strategy_option = minifi::azure::CredentialConfigurationStrategyOption::defaultCredential;
+      credential_configuration_strategy_string = "Default Credential";
+    }
+    SECTION("Workload Identity") {
+      expected_configuration_strategy_option = minifi::azure::CredentialConfigurationStrategyOption::workloadIdentity;
+      credential_configuration_strategy_string = "Workload Identity";
+    }
+
     auto azure_storage_cred_service = plan_->addController("AzureStorageCredentialsService", "AzureStorageCredentialsService");
     plan_->setProperty(azure_storage_cred_service, "Storage Account Name", STORAGE_ACCOUNT_NAME);
-    plan_->setProperty(azure_storage_cred_service, "Use Managed Identity Credentials", "true");
+    plan_->setProperty(azure_storage_cred_service, "Credential Configuration Strategy", credential_configuration_strategy_string);
     plan_->setProperty(azure_storage_cred_service, "Common Storage Account Endpoint Suffix", "core.chinacloudapi.cn");
     plan_->setProperty(list_azure_blob_storage_, "Azure Storage Credentials Service", "AzureStorageCredentialsService");
     test_controller_.runSession(plan_, true);
@@ -190,6 +221,7 @@ TEST_CASE_METHOD(ListAzureBlobStorageTestsFixture, "Test credentials settings", 
     CHECK(passed_params.credentials.buildConnectionString().empty());
     CHECK(passed_params.credentials.getStorageAccountName() == STORAGE_ACCOUNT_NAME);
     CHECK(passed_params.credentials.getEndpointSuffix() == "core.chinacloudapi.cn");
+    CHECK(passed_params.credentials.getCredentialConfigurationStrategy() == expected_configuration_strategy_option);
     CHECK(passed_params.container_name == CONTAINER_NAME);
   }
 

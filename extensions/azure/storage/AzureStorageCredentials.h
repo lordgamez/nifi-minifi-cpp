@@ -21,6 +21,8 @@
 
 #include <string>
 
+#include "utils/AzureEnums.h"
+
 namespace org::apache::nifi::minifi::azure::storage {
 
 class AzureStorageCredentials {
@@ -28,13 +30,13 @@ class AzureStorageCredentials {
   void setStorageAccountName(const std::string& storage_account_name);
   void setStorageAccountKey(const std::string& storage_account_key);
   void setSasToken(const std::string& sas_token);
-  void setEndpontSuffix(const std::string& endpoint_suffix);
+  void setEndpointSuffix(const std::string& endpoint_suffix);
   void setConnectionString(const std::string& connection_string);
-  void setUseManagedIdentityCredentials(bool use_managed_identity_credentials);
+  void setCredentialConfigurationStrategy(CredentialConfigurationStrategyOption credential_configuration_strategy);
 
   std::string getStorageAccountName() const;
   std::string getEndpointSuffix() const;
-  bool getUseManagedIdentityCredentials() const;
+  CredentialConfigurationStrategyOption getCredentialConfigurationStrategy() const;
   std::string buildConnectionString() const;
   bool isValid() const;
 
@@ -46,7 +48,7 @@ class AzureStorageCredentials {
   std::string sas_token_;
   std::string endpoint_suffix_;
   std::string connection_string_;
-  bool use_managed_identity_credentials_ = false;
+  CredentialConfigurationStrategyOption credential_configuration_strategy_ = CredentialConfigurationStrategyOption::fromProperties;
 };
 
 }  // namespace org::apache::nifi::minifi::azure::storage

@@ -216,4 +216,30 @@ TEST_CASE_METHOD(ListAzureDataLakeStorageTestsFixture, "Throw on invalid path fi
   REQUIRE_THROWS_AS(test_controller_.runSession(plan_, true), minifi::Exception);
 }
 
+TEST_CASE_METHOD(ListAzureDataLakeStorageTestsFixture, "Test Azure credentials with Azure default identity sources", "[azureDataLakeStorageParameters]") {
+  minifi::azure::CredentialConfigurationStrategyOption expected_configuration_strategy_option{};
+  std::string credential_configuration_strategy_string;
+  SECTION("Managed Identity") {
+    expected_configuration_strategy_option = minifi::azure::CredentialConfigurationStrategyOption::managedIdentity;
+    credential_configuration_strategy_string = "Managed Identity";
+  }
+  SECTION("Default Credential") {
+    expected_configuration_strategy_option = minifi::azure::CredentialConfigurationStrategyOption::defaultCredential;
+    credential_configuration_strategy_string = "Default Credential";
+  }
+  SECTION("Workload Identity") {
+    expected_configuration_strategy_option = minifi::azure::CredentialConfigurationStrategyOption::workloadIdentity;
+    credential_configuration_strategy_string = "Workload Identity";
+  }
+  plan_->setProperty(azure_storage_cred_service_, minifi::azure::controllers::AzureStorageCredentialsService::ConnectionString, "test");
+  plan_->setProperty(azure_storage_cred_service_, minifi::azure::controllers::AzureStorageCredentialsService::CredentialConfigurationStrategy, credential_configuration_strategy_string);
+  plan_->setProperty(azure_storage_cred_service_, minifi::azure::controllers::AzureStorageCredentialsService::StorageAccountName, "TEST_ACCOUNT");
+  test_controller_.runSession(plan_, true);
+  auto passed_params = mock_data_lake_storage_client_ptr_->getPassedListParams();
+  CHECK(passed_params.credentials.buildConnectionString().empty());
+  CHECK(passed_params.credentials.getStorageAccountName() == "TEST_ACCOUNT");
+  CHECK(passed_params.credentials.getEndpointSuffix() == "core.windows.net");
+  CHECK(passed_params.credentials.getCredentialConfigurationStrategy() == expected_configuration_strategy_option);
+}
+
 }  // namespace
