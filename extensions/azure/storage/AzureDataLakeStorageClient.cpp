@@ -42,22 +42,14 @@ std::unique_ptr<Azure::Storage::Files::DataLake::DataLakeFileSystemClient> Azure
     options.Retry.MaxRetries = gsl::narrow<int32_t>(*number_of_retries);
   }
 
-  if (credentials.getCredentialConfigurationStrategy() == CredentialConfigurationStrategyOption::managedIdentity) {
-    auto datalake_service_client = Azure::Storage::Files::DataLake::DataLakeServiceClient(
-        "https://" + credentials.getStorageAccountName() + ".dfs." + credentials.getEndpointSuffix(), std::make_shared<Azure::Identity::ManagedIdentityCredential>(), options);
-    return std::make_unique<Azure::Storage::Files::DataLake::DataLakeFileSystemClient>(datalake_service_client.GetFileSystemClient(file_system_name));
-  } else if (credentials.getCredentialConfigurationStrategy() == CredentialConfigurationStrategyOption::defaultCredential) {
-    auto datalake_service_client = Azure::Storage::Files::DataLake::DataLakeServiceClient(
-        "https://" + credentials.getStorageAccountName() + ".dfs." + credentials.getEndpointSuffix(), std::make_shared<Azure::Identity::DefaultAzureCredential>(), options);
-    return std::make_unique<Azure::Storage::Files::DataLake::DataLakeFileSystemClient>(datalake_service_client.GetFileSystemClient(file_system_name));
-  } else if (credentials.getCredentialConfigurationStrategy() == CredentialConfigurationStrategyOption::workloadIdentity) {
-    auto datalake_service_client = Azure::Storage::Files::DataLake::DataLakeServiceClient(
-        "https://" + credentials.getStorageAccountName() + ".dfs." + credentials.getEndpointSuffix(), std::make_shared<Azure::Identity::WorkloadIdentityCredential>(), options);
-    return std::make_unique<Azure::Storage::Files::DataLake::DataLakeFileSystemClient>(datalake_service_client.GetFileSystemClient(file_system_name));
-  } else {
+  if (credentials.getCredentialConfigurationStrategy() == CredentialConfigurationStrategyOption::fromProperties) {
     return std::make_unique<Azure::Storage::Files::DataLake::DataLakeFileSystemClient>(
-        Azure::Storage::Files::DataLake::DataLakeFileSystemClient::CreateFromConnectionString(credentials.buildConnectionString(), file_system_name, options));
+      Azure::Storage::Files::DataLake::DataLakeFileSystemClient::CreateFromConnectionString(credentials.buildConnectionString(), file_system_name, options));
   }
+
+  auto datalake_service_client = Azure::Storage::Files::DataLake::DataLakeServiceClient(
+    "https://" + credentials.getStorageAccountName() + ".dfs." + credentials.getEndpointSuffix(), credentials.createAzureTokenCredential(), options);
+  return std::make_unique<Azure::Storage::Files::DataLake::DataLakeFileSystemClient>(datalake_service_client.GetFileSystemClient(file_system_name));
 }
 
 Azure::Storage::Files::DataLake::DataLakeDirectoryClient AzureDataLakeStorageClient::getDirectoryClient(const AzureDataLakeStorageParameters& params) {

@@ -82,6 +82,9 @@ storage::AzureStorageCredentials AzureBlobStorageProcessorBase::getAzureCredenti
   if (const auto value = context.getProperty(ConnectionString, flow_file)) {
     credentials.setConnectionString(*value);
   }
+  if (const auto value = context.getProperty(ManagedIdentityClientId, flow_file)) {
+    credentials.setManagedIdentityClientId(*value);
+  }
   return credentials;
 }
 

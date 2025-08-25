@@ -58,9 +58,11 @@ TEST_CASE_METHOD(DeleteAzureDataLakeStorageTestsFixture, "Test Azure credentials
   setDefaultProperties();
   minifi::azure::CredentialConfigurationStrategyOption expected_configuration_strategy_option{};
   std::string credential_configuration_strategy_string;
+  std::string managed_identity_client_id;
   SECTION("Managed Identity") {
     expected_configuration_strategy_option = minifi::azure::CredentialConfigurationStrategyOption::managedIdentity;
     credential_configuration_strategy_string = "Managed Identity";
+    managed_identity_client_id = "test-managed-identity-client-id";
   }
   SECTION("Default Credential") {
     expected_configuration_strategy_option = minifi::azure::CredentialConfigurationStrategyOption::defaultCredential;
@@ -73,12 +75,14 @@ TEST_CASE_METHOD(DeleteAzureDataLakeStorageTestsFixture, "Test Azure credentials
   plan_->setProperty(azure_storage_cred_service_, minifi::azure::controllers::AzureStorageCredentialsService::ConnectionString, "test");
   plan_->setProperty(azure_storage_cred_service_, minifi::azure::controllers::AzureStorageCredentialsService::CredentialConfigurationStrategy, credential_configuration_strategy_string);
   plan_->setProperty(azure_storage_cred_service_, minifi::azure::controllers::AzureStorageCredentialsService::StorageAccountName, "TEST_ACCOUNT");
+  plan_->setProperty(azure_storage_cred_service_, minifi::azure::controllers::AzureStorageCredentialsService::ManagedIdentityClientId, managed_identity_client_id);
   test_controller_.runSession(plan_, true);
   auto passed_params = mock_data_lake_storage_client_ptr_->getPassedDeleteParams();
   CHECK(passed_params.credentials.buildConnectionString().empty());
   CHECK(passed_params.credentials.getStorageAccountName() == "TEST_ACCOUNT");
   CHECK(passed_params.credentials.getEndpointSuffix() == "core.windows.net");
   CHECK(passed_params.credentials.getCredentialConfigurationStrategy() == expected_configuration_strategy_option);
+  CHECK(passed_params.credentials.getManagedIdentityClientId() == managed_identity_client_id);
   CHECK(getFailedFlowFileContents().empty());
 }
 

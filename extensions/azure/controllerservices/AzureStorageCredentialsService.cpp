@@ -48,6 +48,9 @@ void AzureStorageCredentialsService::onEnable() {
   if (auto connection_String = getProperty(ConnectionString.name)) {
     credentials_.setConnectionString(*connection_String);
   }
+  if (auto managed_identity_client_id = getProperty(ManagedIdentityClientId.name)) {
+    credentials_.setManagedIdentityClientId(*managed_identity_client_id);
+  }
 }
 
 REGISTER_RESOURCE(AzureStorageCredentialsService, ControllerService);

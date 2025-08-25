@@ -137,9 +137,11 @@ TEST_CASE_METHOD(DeleteAzureBlobStorageTestsFixture, "Test credentials settings"
   SECTION("Account name and Azure default identity sources are used in properties") {
     minifi::azure::CredentialConfigurationStrategyOption expected_configuration_strategy_option{};
     std::string credential_configuration_strategy_string;
+    std::string managed_identity_client_id;
     SECTION("Managed Identity") {
       expected_configuration_strategy_option = minifi::azure::CredentialConfigurationStrategyOption::managedIdentity;
       credential_configuration_strategy_string = "Managed Identity";
+      managed_identity_client_id = "test-managed-identity-client-id";
     }
     SECTION("Default Credential") {
       expected_configuration_strategy_option = minifi::azure::CredentialConfigurationStrategyOption::defaultCredential;
@@ -152,6 +154,7 @@ TEST_CASE_METHOD(DeleteAzureBlobStorageTestsFixture, "Test credentials settings"
 
     plan_->setProperty(azure_blob_storage_processor_, "Storage Account Name", STORAGE_ACCOUNT_NAME);
     plan_->setProperty(azure_blob_storage_processor_, "Credential Configuration Strategy", credential_configuration_strategy_string);
+    plan_->setProperty(azure_blob_storage_processor_, "Managed Identity Client ID", managed_identity_client_id);
     test_controller_.runSession(plan_, true);
     CHECK(getFailedFlowFileContents().empty());
     auto passed_params = mock_blob_storage_ptr_->getPassedDeleteParams();
@@ -159,15 +162,18 @@ TEST_CASE_METHOD(DeleteAzureBlobStorageTestsFixture, "Test credentials settings"
     CHECK(passed_params.credentials.getStorageAccountName() == STORAGE_ACCOUNT_NAME);
     CHECK(passed_params.credentials.getEndpointSuffix() == "core.windows.net");
     CHECK(passed_params.credentials.getCredentialConfigurationStrategy() == expected_configuration_strategy_option);
+    CHECK(passed_params.credentials.getManagedIdentityClientId() == managed_identity_client_id);
     CHECK(passed_params.container_name == CONTAINER_NAME);
   }
 
   SECTION("Account name and Azure default identity sources are used from Azure Storage Credentials Service") {
     minifi::azure::CredentialConfigurationStrategyOption expected_configuration_strategy_option{};
     std::string credential_configuration_strategy_string;
+    std::string managed_identity_client_id;
     SECTION("Managed Identity") {
       expected_configuration_strategy_option = minifi::azure::CredentialConfigurationStrategyOption::managedIdentity;
       credential_configuration_strategy_string = "Managed Identity";
+      managed_identity_client_id = "test-managed-identity-client-id";
     }
     SECTION("Default Credential") {
       expected_configuration_strategy_option = minifi::azure::CredentialConfigurationStrategyOption::defaultCredential;
@@ -182,6 +188,7 @@ TEST_CASE_METHOD(DeleteAzureBlobStorageTestsFixture, "Test credentials settings"
     plan_->setProperty(azure_storage_cred_service, "Storage Account Name", STORAGE_ACCOUNT_NAME);
     plan_->setProperty(azure_storage_cred_service, "Credential Configuration Strategy", credential_configuration_strategy_string);
     plan_->setProperty(azure_storage_cred_service, "Common Storage Account Endpoint Suffix", "core.chinacloudapi.cn");
+    plan_->setProperty(azure_storage_cred_service, "Managed Identity Client ID", managed_identity_client_id);
     plan_->setProperty(azure_blob_storage_processor_, "Azure Storage Credentials Service", "AzureStorageCredentialsService");
     test_controller_.runSession(plan_, true);
     CHECK(getFailedFlowFileContents().empty());
@@ -190,6 +197,7 @@ TEST_CASE_METHOD(DeleteAzureBlobStorageTestsFixture, "Test credentials settings"
     CHECK(passed_params.credentials.getStorageAccountName() == STORAGE_ACCOUNT_NAME);
     CHECK(passed_params.credentials.getEndpointSuffix() == "core.chinacloudapi.cn");
     CHECK(passed_params.credentials.getCredentialConfigurationStrategy() == expected_configuration_strategy_option);
+    CHECK(passed_params.credentials.getManagedIdentityClientId() == managed_identity_client_id);
     CHECK(passed_params.container_name == CONTAINER_NAME);
   }
 

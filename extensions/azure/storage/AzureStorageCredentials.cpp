@@ -46,6 +46,10 @@ void AzureStorageCredentials::setCredentialConfigurationStrategy(CredentialConfi
   credential_configuration_strategy_ = credential_configuration_strategy;
 }
 
+void AzureStorageCredentials::setManagedIdentityClientId(const std::string& managed_identity_client_id) {
+  managed_identity_client_id_ = managed_identity_client_id;
+}
+
 std::string AzureStorageCredentials::getStorageAccountName() const {
   return storage_account_name_;
 }
@@ -56,6 +60,10 @@ std::string AzureStorageCredentials::getEndpointSuffix() const {
 
 CredentialConfigurationStrategyOption AzureStorageCredentials::getCredentialConfigurationStrategy() const {
   return credential_configuration_strategy_;
+}
+
+std::string AzureStorageCredentials::getManagedIdentityClientId() const {
+  return managed_identity_client_id_;
 }
 
 std::string AzureStorageCredentials::buildConnectionString() const {
@@ -92,6 +100,23 @@ std::string AzureStorageCredentials::buildConnectionString() const {
 bool AzureStorageCredentials::isValid() const {
   return (credential_configuration_strategy_ != CredentialConfigurationStrategyOption::fromProperties && !getStorageAccountName().empty()) ||
          (credential_configuration_strategy_ == CredentialConfigurationStrategyOption::fromProperties && !buildConnectionString().empty());
+}
+
+std::shared_ptr<Azure::Core::Credentials::TokenCredential> AzureStorageCredentials::createAzureTokenCredential() const {
+  std::shared_ptr<Azure::Core::Credentials::TokenCredential> credential;
+  if (credential_configuration_strategy_ == CredentialConfigurationStrategyOption::managedIdentity) {
+    if (managed_identity_client_id_.empty()) {
+      credential = std::make_shared<Azure::Identity::ManagedIdentityCredential>();
+    } else {
+      credential = std::make_shared<Azure::Identity::ManagedIdentityCredential>(managed_identity_client_id_);
+    }
+  } else if (credential_configuration_strategy_ == CredentialConfigurationStrategyOption::defaultCredential) {
+    credential = std::make_shared<Azure::Identity::DefaultAzureCredential>();
+  } else if (credential_configuration_strategy_ == CredentialConfigurationStrategyOption::workloadIdentity) {
+    credential = std::make_shared<Azure::Identity::WorkloadIdentityCredential>();
+  }
+
+  return credential;
 }
 
 bool AzureStorageCredentials::operator==(const AzureStorageCredentials& other) const {

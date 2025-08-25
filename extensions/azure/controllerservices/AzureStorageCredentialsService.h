@@ -68,13 +68,19 @@ class AzureStorageCredentialsService : public core::controller::ControllerServic
       .withDefaultValue(magic_enum::enum_name(CredentialConfigurationStrategyOption::fromProperties))
       .withAllowedValues(magic_enum::enum_names<CredentialConfigurationStrategyOption>())
       .build();
+  EXTENSIONAPI static constexpr auto ManagedIdentityClientId = core::PropertyDefinitionBuilder<>::createProperty("Managed Identity Client ID")
+      .withDescription("Client ID of the managed identity. The property is required when User Assigned Managed Identity is used for authentication. "
+                       "It must be empty in case of System Assigned Managed Identity.")
+      .isSensitive(true)
+      .build();
   EXTENSIONAPI static constexpr auto Properties = std::to_array<core::PropertyReference>({
       StorageAccountName,
       StorageAccountKey,
       SASToken,
       CommonStorageAccountEndpointSuffix,
       ConnectionString,
-      CredentialConfigurationStrategy
+      CredentialConfigurationStrategy,
+      ManagedIdentityClientId
   });
 
 
