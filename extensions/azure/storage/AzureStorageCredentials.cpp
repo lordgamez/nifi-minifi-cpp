@@ -106,9 +106,13 @@ std::shared_ptr<Azure::Core::Credentials::TokenCredential> AzureStorageCredentia
   std::shared_ptr<Azure::Core::Credentials::TokenCredential> credential;
   if (credential_configuration_strategy_ == CredentialConfigurationStrategyOption::managedIdentity) {
     if (managed_identity_client_id_.empty()) {
-      credential = std::make_shared<Azure::Identity::ManagedIdentityCredential>();
+      Azure::Identity::ManagedIdentityCredentialOptions options;
+      options.IdentityId = Azure::Identity::ManagedIdentityId::SystemAssigned();
+      credential = std::make_shared<Azure::Identity::ManagedIdentityCredential>(options);
     } else {
-      credential = std::make_shared<Azure::Identity::ManagedIdentityCredential>(managed_identity_client_id_);
+      Azure::Identity::ManagedIdentityCredentialOptions options;
+      options.IdentityId = Azure::Identity::ManagedIdentityId::FromUserAssignedClientId(managed_identity_client_id_);
+      credential = std::make_shared<Azure::Identity::ManagedIdentityCredential>(options);
     }
   } else if (credential_configuration_strategy_ == CredentialConfigurationStrategyOption::defaultCredential) {
     credential = std::make_shared<Azure::Identity::DefaultAzureCredential>();
