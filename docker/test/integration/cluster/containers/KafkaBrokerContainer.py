@@ -123,23 +123,23 @@ Client {
                 "KAFKA_SSL_PROTOCOL=TLS",
                 "KAFKA_SSL_ENABLED_PROTOCOLS=TLSv1.2",
                 "KAFKA_SSL_KEYSTORE_TYPE=JKS",
-                "KAFKA_SSL_KEYSTORE_LOCATION=/opt/kafka/config/certs/kafka.keystore.jks",
+                "KAFKA_SSL_KEYSTORE_FILENAME=kafka.keystore.jks",
                 "KAFKA_SSL_KEYSTORE_PASSWORD=abcdefgh",
                 "KAFKA_SSL_KEY_PASSWORD=abcdefgh",
                 "KAFKA_SSL_TRUSTSTORE_TYPE=JKS",
-                "KAFKA_SSL_TRUSTSTORE_LOCATION=/opt/kafka/config/certs/kafka.truststore.jks",
+                "KAFKA_SSL_TRUSTSTORE_FILENAME=kafka.truststore.jks",
                 "KAFKA_SSL_CLIENT_AUTH=none"
             ],
             mounts=[
                 docker.types.Mount(
                     type='bind',
                     source=self.server_keystore_file_path,
-                    target='/opt/kafka/config/certs/kafka.keystore.jks'
+                    target='/etc/kafka/secrets/kafka.keystore.jks'
                 ),
                 docker.types.Mount(
                     type='bind',
                     source=self.server_truststore_file_path,
-                    target='/opt/kafka/config/certs/kafka.truststore.jks'
+                    target='/etc/kafka/secrets/kafka.truststore.jks'
                 ),
                 docker.types.Mount(
                     type='bind',
