@@ -40,6 +40,12 @@ class KafkaBrokerContainer(Container):
 
         os.chmod(self.server_keystore_file_path, 0o644)
 
+        with tempfile.NamedTemporaryFile(delete=False) as credentials_file:
+            credentials_file.write(b"abcdefgh")
+            self.credentials_file_path = credentials_file.name
+
+        os.chmod(self.credentials_file_path, 0o644)
+
         trusted_cert = jks.TrustedCertEntry.new(
             'root-ca',  # Alias for the certificate
             crypto.dump_certificate(crypto.FILETYPE_ASN1, feature_context.root_ca_cert)
@@ -74,7 +80,7 @@ Client {
         os.chmod(self.jaas_config_file_path, 0o644)
 
     def get_startup_finished_log_entry(self):
-        return "Kafka Server started"
+        return "Using provided cluster id"
 
     def deploy(self):
         if not self.set_deployed():
@@ -124,8 +130,9 @@ Client {
                 "KAFKA_SSL_ENABLED_PROTOCOLS=TLSv1.2",
                 "KAFKA_SSL_KEYSTORE_TYPE=JKS",
                 "KAFKA_SSL_KEYSTORE_FILENAME=kafka.keystore.jks",
-                "KAFKA_SSL_KEYSTORE_PASSWORD=abcdefgh",
-                "KAFKA_SSL_KEY_PASSWORD=abcdefgh",
+                "KAFKA_SSL_KEYSTORE_CREDENTIALS=credentials.conf",
+                "KAFKA_SSL_KEY_CREDENTIALS=credentials.conf",
+                "KAFKA_SSL_TRUSTSTORE_CREDENTIALS=credentials.conf",
                 "KAFKA_SSL_TRUSTSTORE_TYPE=JKS",
                 "KAFKA_SSL_TRUSTSTORE_FILENAME=kafka.truststore.jks",
                 "KAFKA_SSL_CLIENT_AUTH=none"
@@ -145,6 +152,11 @@ Client {
                     type='bind',
                     source=self.jaas_config_file_path,
                     target='/opt/kafka/config/kafka_jaas.conf'
+                ),
+                docker.types.Mount(
+                    type='bind',
+                    source=self.credentials_file_path,
+                    target='/etc/kafka/secrets/credentials.conf'
                 )
             ],
             entrypoint=self.command)
