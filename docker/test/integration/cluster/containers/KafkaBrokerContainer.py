@@ -82,69 +82,69 @@ Client {
 
         logging.info('Creating and running kafka broker docker container...')
         self.client.containers.run(
-            image="bitnamilegacy/kafka:3.9.0",
+            image="apache/kafka:4.1.0",
             detach=True,
             name=self.name,
             network=self.network.name,
             environment=[
-                "KAFKA_CFG_NODE_ID=1",
-                "KAFKA_CFG_PROCESS_ROLES=controller,broker",
-                "KAFKA_CFG_INTER_BROKER_LISTENER_NAME=PLAINTEXT",
-                "KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER",
+                "KAFKA_NODE_ID=1",
+                "KAFKA_PROCESS_ROLES=controller,broker",
+                "KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT",
+                "KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER",
 
-                f"KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@kafka-broker-{self.feature_context.id}:9096",
+                f"KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka-broker-{self.feature_context.id}:9096",
 
-                f"KAFKA_CFG_LISTENERS=PLAINTEXT://kafka-broker-{self.feature_context.id}:9092,"
+                f"KAFKA_LISTENERS=PLAINTEXT://kafka-broker-{self.feature_context.id}:9092,"
                 f"SASL_PLAINTEXT://kafka-broker-{self.feature_context.id}:9094,"
                 f"SSL://kafka-broker-{self.feature_context.id}:9093,"
                 f"SASL_SSL://kafka-broker-{self.feature_context.id}:9095,"
                 f"CONTROLLER://kafka-broker-{self.feature_context.id}:9096",
 
-                f"KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka-broker-{self.feature_context.id}:9092,"
+                f"KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka-broker-{self.feature_context.id}:9092,"
                 f"SASL_PLAINTEXT://kafka-broker-{self.feature_context.id}:9094,"
                 f"SSL://kafka-broker-{self.feature_context.id}:9093,"
                 f"SASL_SSL://kafka-broker-{self.feature_context.id}:9095,"
                 f"CONTROLLER://kafka-broker-{self.feature_context.id}:9096",
 
-                "KAFKA_CFG_LOG4J_ROOT_LOGLEVEL=DEBUG",
-                "KAFKA_CFG_LOG4J_LOGGERS=kafka.controller=DEBUG,kafka.server.KafkaApis=DEBUG",
+                "KAFKA_LOG4J_ROOT_LOGLEVEL=DEBUG",
+                "KAFKA_LOG4J_LOGGERS=kafka.controller=DEBUG,kafka.server.KafkaApis=DEBUG",
 
-                "KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,"
+                "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,"
                 "SASL_PLAINTEXT:SASL_PLAINTEXT,"
                 "SSL:SSL,"
                 "SASL_SSL:SASL_SSL,"
                 "CONTROLLER:PLAINTEXT",
 
                 # **If using SASL_PLAINTEXT, provide JAAS config**
-                'KAFKA_CFG_SASL_MECHANISM_INTER_BROKER_PROTOCOL=PLAIN',
-                'KAFKA_CFG_SASL_ENABLED_MECHANISMS=PLAIN',
-                'KAFKA_OPTS=-Djava.security.auth.login.config=/opt/bitnami/kafka/config/kafka_jaas.conf',
+                'KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL=PLAIN',
+                'KAFKA_SASL_ENABLED_MECHANISMS=PLAIN',
+                'KAFKA_OPTS=-Djava.security.auth.login.config=/opt/kafka/config/kafka_jaas.conf',
 
-                "KAFKA_CFG_SSL_PROTOCOL=TLS",
-                "KAFKA_CFG_SSL_ENABLED_PROTOCOLS=TLSv1.2",
-                "KAFKA_CFG_SSL_KEYSTORE_TYPE=JKS",
-                "KAFKA_CFG_SSL_KEYSTORE_LOCATION=/bitnami/kafka/config/certs/kafka.keystore.jks",
-                "KAFKA_CFG_SSL_KEYSTORE_PASSWORD=abcdefgh",
-                "KAFKA_CFG_SSL_KEY_PASSWORD=abcdefgh",
-                "KAFKA_CFG_SSL_TRUSTSTORE_TYPE=JKS",
-                "KAFKA_CFG_SSL_TRUSTSTORE_LOCATION=/bitnami/kafka/config/certs/kafka.truststore.jks",
-                "KAFKA_CFG_SSL_CLIENT_AUTH=none"
+                "KAFKA_SSL_PROTOCOL=TLS",
+                "KAFKA_SSL_ENABLED_PROTOCOLS=TLSv1.2",
+                "KAFKA_SSL_KEYSTORE_TYPE=JKS",
+                "KAFKA_SSL_KEYSTORE_LOCATION=/opt/kafka/config/certs/kafka.keystore.jks",
+                "KAFKA_SSL_KEYSTORE_PASSWORD=abcdefgh",
+                "KAFKA_SSL_KEY_PASSWORD=abcdefgh",
+                "KAFKA_SSL_TRUSTSTORE_TYPE=JKS",
+                "KAFKA_SSL_TRUSTSTORE_LOCATION=/opt/kafka/config/certs/kafka.truststore.jks",
+                "KAFKA_SSL_CLIENT_AUTH=none"
             ],
             mounts=[
                 docker.types.Mount(
                     type='bind',
                     source=self.server_keystore_file_path,
-                    target='/bitnami/kafka/config/certs/kafka.keystore.jks'
+                    target='/opt/kafka/config/certs/kafka.keystore.jks'
                 ),
                 docker.types.Mount(
                     type='bind',
                     source=self.server_truststore_file_path,
-                    target='/bitnami/kafka/config/certs/kafka.truststore.jks'
+                    target='/opt/kafka/config/certs/kafka.truststore.jks'
                 ),
                 docker.types.Mount(
                     type='bind',
                     source=self.jaas_config_file_path,
-                    target='/opt/bitnami/kafka/config/kafka_jaas.conf'
+                    target='/opt/kafka/config/kafka_jaas.conf'
                 )
             ],
             entrypoint=self.command)
