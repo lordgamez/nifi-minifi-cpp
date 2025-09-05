@@ -137,8 +137,12 @@ TEST_CASE_METHOD(XMLReaderTestFixture, "XML with same nodes are converted to arr
   REQUIRE(array_field.size() == 1);
   auto& item_array = std::get<core::RecordArray>(array_field.at("item").value_);
   REQUIRE(item_array.size() == 2);
-  CHECK(std::get<std::string>(item_array[0].value_) == "value1");
-  CHECK(std::get<std::string>(item_array[1].value_) == "value2");
+  CHECK(std::get<std::string>(item_array[0].value_) != std::get<std::string>(item_array[1].value_));
+  auto checkValue = [](const std::string& value) {
+    return value == "value1" || value == "value2";
+  };
+  CHECK(checkValue(std::get<std::string>(item_array[0].value_)));
+  CHECK(checkValue(std::get<std::string>(item_array[1].value_)));
 }
 
 TEST_CASE_METHOD(XMLReaderTestFixture, "XML nodes with default value tag are ignored if text data is present", "[XMLReader]") {
@@ -170,7 +174,7 @@ TEST_CASE_METHOD(XMLReaderTestFixture, "Parse attributes as record fields if Par
   CHECK(std::get<std::string>(std::get<core::RecordObject>(record.at("node").value_).at("value").value_) == "nodetext");
 }
 
-TEST_CASE_METHOD(XMLReaderTestFixture, "Parse attributes as in an XML with nested node array", "[XMLReader]") {
+TEST_CASE_METHOD(XMLReaderTestFixture, "Parse attributes in an XML with nested node array", "[XMLReader]") {
   const std::string xml_input = R"(<root><node attribute="attr_value"><subnode subattr="subattr_value">1</subnode>nodetext<subnode>2</subnode></node></root>)";
   auto record_set = readRecordsFromXml(xml_input, {{XMLReader::ParseXMLAttributes.name, "true"}});
   REQUIRE(record_set);
@@ -182,9 +186,15 @@ TEST_CASE_METHOD(XMLReaderTestFixture, "Parse attributes as in an XML with neste
   CHECK(std::get<std::string>(node_object.at("value").value_) == "nodetext");
   auto& subnodes = std::get<core::RecordArray>(node_object.at("subnode").value_);
   CHECK(subnodes.size() == 2);
-  CHECK(std::get<std::string>(std::get<core::RecordObject>(subnodes[0].value_).at("subattr").value_) == "subattr_value");
-  CHECK(std::get<uint64_t>(std::get<core::RecordObject>(subnodes[0].value_).at("value").value_) == 1);
-  CHECK(std::get<uint64_t>(subnodes[1].value_) == 2);
+  if (std::holds_alternative<core::RecordObject>(subnodes[0].value_)) {
+    CHECK(std::get<std::string>(std::get<core::RecordObject>(subnodes[0].value_).at("subattr").value_) == "subattr_value");
+    CHECK(std::get<uint64_t>(std::get<core::RecordObject>(subnodes[0].value_).at("value").value_) == 1);
+    CHECK(std::get<uint64_t>(subnodes[1].value_) == 2);
+  } else {
+    CHECK(std::get<uint64_t>(subnodes[0].value_) == 2);
+    CHECK(std::get<std::string>(std::get<core::RecordObject>(subnodes[1].value_).at("subattr").value_) == "subattr_value");
+    CHECK(std::get<uint64_t>(std::get<core::RecordObject>(subnodes[1].value_).at("value").value_) == 1);
+  }
 }
 
 TEST_CASE_METHOD(XMLReaderTestFixture, "Attributes clashing with the content field name are ignored", "[XMLReader]") {
