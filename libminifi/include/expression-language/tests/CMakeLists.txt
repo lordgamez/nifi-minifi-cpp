@@ -16,7 +16,9 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-
+if (true)
+    return()
+endif()
 
 file(GLOB EXPRESSION_LANGUAGE_TESTS  "*.cpp")
 

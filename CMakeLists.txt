@@ -757,7 +757,6 @@ set(EXTENSIONS_ENABLED_BY_DEFAULT (
     minifi-azure
     minifi-civet-extensions
     minifi-elasticsearch
-    minifi-expression-language-extensions
     minifi-gcp
     minifi-grafana-loki
     minifi-archive-extensions

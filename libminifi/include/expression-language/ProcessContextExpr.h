@@ -22,7 +22,7 @@
 #include <string>
 
 #include "core/ProcessContext.h"
-#include "impl/expression/Expression.h"
+#include "expression-language/Expression.h"
 
 namespace org::apache::nifi::minifi::core {
 

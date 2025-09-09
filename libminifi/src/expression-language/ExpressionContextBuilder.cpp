@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-#include "ExpressionContextBuilder.h"
+#include "expression-language/ExpressionContextBuilder.h"
 
 #include <memory>
 #include <string>
 
-#include "ProcessContextExpr.h"
+#include "expression-language/ProcessContextExpr.h"
 #include "core/Resource.h"
 
 namespace org::apache::nifi::minifi::core::expressions {
