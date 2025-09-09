@@ -37,6 +37,7 @@
 #include "core/Relationship.h"
 #include "minifi-cpp/core/logging/Logger.h"
 #include "io/BufferStream.h"
+#include "io/validation.h"
 #include "utils/ByteArrayCallback.h"
 #include "utils/StringUtils.h"
 #include "utils/ProcessorConfigUtils.h"

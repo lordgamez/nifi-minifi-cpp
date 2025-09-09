@@ -31,6 +31,7 @@
 #include "minifi-cpp/core/ProcessSessionFactory.h"
 #include "utils/Cron.h"
 #include "ThreadedSchedulingAgent.h"
+#include "minifi-cpp/core/ProcessContext.h"
 
 namespace org::apache::nifi::minifi {
 
