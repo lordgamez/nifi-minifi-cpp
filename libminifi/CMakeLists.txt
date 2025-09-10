@@ -34,8 +34,6 @@ include_directories(include)
 
 include(ExpressionLanguage)
 
-include_directories(${EL_GENERATED_INCLUDE_DIR})
-
 set(TLS_SOURCES "src/utils/tls/*.cpp" "src/io/tls/*.cpp")
 set(EL_GENERATED_SOURCES "${EL_GENERATED_INCLUDE_DIR}/*.cpp")
 
@@ -66,6 +64,11 @@ file(GLOB PROCESSOR_SOURCES  "src/processors/*.cpp" )
 
 
 add_minifi_library(core-minifi SHARED ${SOURCES} ${BISON_el-parser_OUTPUTS} ${FLEX_el-scanner_OUTPUTS})
+target_include_directories(core-minifi SYSTEM PRIVATE ${EL_GENERATED_INCLUDE_DIR})
+if (BREW_FLEX_INCLUDE)
+    target_include_directories(core-minifi SYSTEM PRIVATE ${BREW_FLEX_INCLUDE})
+endif()
+
 target_compile_definitions(core-minifi PRIVATE "LIBMINIFI=1")
 if(WIN32)
     set_target_properties(core-minifi PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS TRUE)

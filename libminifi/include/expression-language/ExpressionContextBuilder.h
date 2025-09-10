@@ -40,9 +40,9 @@ class ExpressionContextBuilder : public core::ProcessContextBuilderImpl {
 
   ~ExpressionContextBuilder() override;
 
-  EXTENSIONAPI static constexpr auto Properties = std::array<core::PropertyReference, 0>{};
-  EXTENSIONAPI static constexpr bool SupportsDynamicProperties = false;
-  EXTENSIONAPI static constexpr bool SupportsDynamicRelationships = false;
+  MINIFIAPI static constexpr auto Properties = std::array<core::PropertyReference, 0>{};
+  MINIFIAPI static constexpr bool SupportsDynamicProperties = false;
+  MINIFIAPI static constexpr bool SupportsDynamicRelationships = false;
 
   std::shared_ptr<core::ProcessContext> build(Processor& processor) override;
 };
