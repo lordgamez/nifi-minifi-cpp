@@ -33,7 +33,6 @@
 #include <vector>
 
 #include "core/logging/LoggerFactory.h"
-#include "core/ProcessContext.h"
 #include "core/ProcessSession.h"
 #include "core/Property.h"
 #include "FlowFileRecord.h"
@@ -43,6 +42,7 @@
 #include "SiteToSite.h"
 #include "SiteToSiteClient.h"
 #include "utils/Id.h"
+#include "minifi-cpp/core/ProcessContext.h"
 
 namespace org::apache::nifi::minifi::sitetosite {
 

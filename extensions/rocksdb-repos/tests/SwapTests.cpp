@@ -23,6 +23,7 @@
 #include "io/StreamPipe.h"
 #include "unit/TestUtils.h"
 #include "core/ProcessorImpl.h"
+#include "core/ProcessContextImpl.h"
 #include "core/ProcessSession.h"
 #include "core/PropertyDefinition.h"
 #include "core/RelationshipDefinition.h"

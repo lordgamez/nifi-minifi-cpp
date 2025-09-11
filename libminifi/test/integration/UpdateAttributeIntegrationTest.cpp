@@ -19,7 +19,7 @@
 #include <chrono>
 #include <memory>
 #include <string>
-#include "core/ProcessContext.h"
+#include "core/ProcessContextImpl.h"
 #include "processors/LogAttribute.h"
 #include "integration/IntegrationBase.h"
 #include "unit/TestBase.h"

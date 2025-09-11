@@ -35,7 +35,6 @@
 
 #include "core/Processor.h"
 #include "core/logging/LoggerFactory.h"
-#include "core/ProcessContext.h"
 #include "core/ProcessSession.h"
 #include "core/ProcessGroup.h"
 #include "core/state/nodes/FlowInformation.h"
@@ -45,6 +44,7 @@
 #include "ParameterContext.h"
 #include "ParameterProvider.h"
 #include "core/BulletinStore.h"
+#include "minifi-cpp/core/ProcessContext.h"
 
 namespace org::apache::nifi::minifi::core {
 

@@ -32,7 +32,7 @@
 #include "core/ClassLoader.h"
 #include "core/Connectable.h"
 #include "core/Processor.h"
-#include "core/ProcessContext.h"
+#include "core/ProcessContextImpl.h"
 #include "core/ProcessSessionFactory.h"
 #include "utils/ValueParser.h"
 

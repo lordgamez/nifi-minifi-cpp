@@ -27,8 +27,8 @@
 #include "core/logging/LoggerFactory.h"
 #include "core/Processor.h"
 #include "core/Repository.h"
-#include "core/ProcessContext.h"
 #include "SchedulingAgent.h"
+#include "minifi-cpp/core/ProcessContext.h"
 
 namespace org::apache::nifi::minifi {
 

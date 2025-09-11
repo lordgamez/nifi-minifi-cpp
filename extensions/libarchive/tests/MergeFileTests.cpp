@@ -28,7 +28,7 @@
 #include "core/Relationship.h"
 #include "core/Core.h"
 #include "core/Processor.h"
-#include "minifi-cpp/core/ProcessContext.h"
+#include "core/ProcessContextImpl.h"
 #include "core/ProcessSession.h"
 #include "FlowController.h"
 #include "../../include/core/FlowFile.h"

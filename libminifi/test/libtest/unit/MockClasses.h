@@ -22,12 +22,12 @@
 
 #include "core/controller/ControllerService.h"
 #include "core/ProcessorImpl.h"
-#include "core/ProcessContext.h"
 #include "core/ProcessSession.h"
 #include "core/PropertyDefinition.h"
 #include "core/PropertyDefinitionBuilder.h"
 #include "core/RelationshipDefinition.h"
 #include "Catch.h"
+#include "minifi-cpp/core/ProcessContext.h"
 
 namespace minifi = org::apache::nifi::minifi;
 

@@ -29,7 +29,6 @@
 
 #include "Exception.h"
 #include "controllers/SSLContextService.h"
-#include "core/ProcessContext.h"
 #include "core/Processor.h"
 #include "core/logging/Logger.h"
 #include "http/BaseHTTPClient.h"
@@ -37,6 +36,7 @@
 #include "sitetosite/Peer.h"
 #include "sitetosite/SiteToSiteFactory.h"
 #include "utils/net/DNS.h"
+#include "minifi-cpp/core/ProcessContext.h"
 
 #undef GetObject  // windows.h #defines GetObject = GetObjectA or GetObjectW, which conflicts with rapidjson
 

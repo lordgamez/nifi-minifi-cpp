@@ -30,7 +30,6 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include "core/ProcessContext.h"
 #include "FlowFileRecord.h"
 #include "Exception.h"
 #include "core/logging/LoggerFactory.h"
@@ -40,6 +39,7 @@
 #include "utils/gsl.h"
 #include "minifi-cpp/core/ProcessorMetrics.h"
 #include "minifi-cpp/core/ProcessSession.h"
+#include "minifi-cpp/core/ProcessContext.h"
 
 namespace org::apache::nifi::minifi::core::detail {
 

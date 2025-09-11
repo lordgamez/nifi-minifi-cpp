@@ -26,11 +26,11 @@
 #include <utility>
 
 #include "core/logging/Logger.h"
-#include "core/ProcessContext.h"
 #include "core/Processor.h"
 #include "core/ProcessSessionFactory.h"
 #include "utils/Cron.h"
 #include "ThreadedSchedulingAgent.h"
+#include "minifi-cpp/core/ProcessContext.h"
 
 namespace org::apache::nifi::minifi {
 

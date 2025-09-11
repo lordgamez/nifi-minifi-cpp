@@ -25,7 +25,7 @@
 #include <utility>
 
 #include "core/Processor.h"
-#include "core/ProcessContext.h"
+#include "core/ProcessContextImpl.h"
 #include "core/PropertyDefinition.h"
 #include "core/logging/LoggerConfiguration.h"
 #include "core/state/nodes/FlowInformation.h"

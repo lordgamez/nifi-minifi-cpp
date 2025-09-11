@@ -27,7 +27,7 @@
 #include "utils/Enum.h"
 #include "utils/Id.h"
 #include "unit/TestUtils.h"
-#include "core/ProcessContext.h"
+#include "core/ProcessContextImpl.h"
 
 namespace org::apache::nifi::minifi::core {
 namespace {

@@ -18,7 +18,7 @@
 #include <memory>
 #include <string>
 
-#include "core/ProcessContext.h"
+#include "core/ProcessContextImpl.h"
 #include "core/Resource.h"
 #include "core/ProcessorImpl.h"
 #include "core/PropertyDefinition.h"

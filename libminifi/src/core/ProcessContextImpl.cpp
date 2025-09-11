@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-#include "core/ProcessContext.h"
+#include "core/ProcessContextImpl.h"
 #include "core/Processor.h"
 #include "utils/PropertyErrors.h"
 

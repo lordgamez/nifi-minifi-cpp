@@ -23,6 +23,7 @@
 #include <optional>
 
 #include "core/Core.h"
+#include "core/ProcessContextImpl.h"
 #include "core/repository/AtomicRepoEntries.h"
 #include "core/RepositoryFactory.h"
 #include "FlowFileRecord.h"

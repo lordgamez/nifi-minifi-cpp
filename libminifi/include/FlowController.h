@@ -38,7 +38,6 @@
 #include "core/controller/ForwardingControllerServiceProvider.h"
 #include "core/FlowConfiguration.h"
 #include "core/logging/Logger.h"
-#include "core/ProcessContext.h"
 #include "core/ProcessGroup.h"
 #include "core/Processor.h"
 #include "core/ProcessSession.h"
@@ -62,6 +61,7 @@
 #include "RootProcessGroupWrapper.h"
 #include "c2/ControllerSocketProtocol.h"
 #include "core/BulletinStore.h"
+#include "minifi-cpp/core/ProcessContext.h"
 
 namespace org::apache::nifi::minifi {
 
