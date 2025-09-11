@@ -41,7 +41,7 @@
 #include "core/Core.h"
 #include "core/FlowFile.h"
 #include "core/Processor.h"
-#include "core/ProcessContext.h"
+#include "minifi-cpp/core/ProcessContext.h"
 #include "core/ProcessSession.h"
 #include "core/reporting/SiteToSiteProvenanceReportingTask.h"
 #include "core/Resource.h"

@@ -23,7 +23,7 @@
 #include <string>
 
 #include "core/ProcessSession.h"
-#include "core/ProcessContext.h"
+#include "minifi-cpp/core/ProcessContext.h"
 #include "core/PropertyDefinition.h"
 #include "core/PropertyDefinitionBuilder.h"
 #include "SQLProcessor.h"

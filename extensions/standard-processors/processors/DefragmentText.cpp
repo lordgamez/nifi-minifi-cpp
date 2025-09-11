@@ -20,7 +20,7 @@
 #include <vector>
 #include <utility>
 
-#include "core/ProcessContext.h"
+#include "minifi-cpp/core/ProcessContext.h"
 #include "core/ProcessSession.h"
 #include "core/Resource.h"
 #include "serialization/PayloadSerializer.h"

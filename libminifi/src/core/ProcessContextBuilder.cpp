@@ -15,9 +15,55 @@
  * limitations under the License.
  */
 #include "core/ProcessContextBuilder.h"
+#include <memory>
+#include <string>
+#include "core/logging/LoggerFactory.h"
+#include "core/Resource.h"
+#include "minifi-cpp/core/repository/FileSystemRepository.h"
 #include "core/Resource.h"
 
 namespace org::apache::nifi::minifi::core {
+
+ProcessContextBuilderImpl::ProcessContextBuilderImpl(std::string_view name, const minifi::utils::Identifier &uuid)
+    : core::CoreComponentImpl(name, uuid),
+      configuration_{minifi::Configure::create()},
+      content_repo_{repository::createFileSystemRepository()}
+{}
+
+ProcessContextBuilderImpl::ProcessContextBuilderImpl(std::string_view name)
+    : core::CoreComponentImpl(name),
+      configuration_{minifi::Configure::create()},
+      content_repo_{repository::createFileSystemRepository()}
+{}
+
+std::shared_ptr<ProcessContextBuilder> ProcessContextBuilderImpl::withProvider(core::controller::ControllerServiceProvider* controller_service_provider) {
+  controller_service_provider_ = controller_service_provider;
+  return sharedFromThis<ProcessContextBuilder>();
+}
+
+std::shared_ptr<ProcessContextBuilder> ProcessContextBuilderImpl::withProvenanceRepository(const std::shared_ptr<core::Repository> &repo) {
+  prov_repo_ = repo;
+  return sharedFromThis<ProcessContextBuilder>();
+}
+
+std::shared_ptr<ProcessContextBuilder> ProcessContextBuilderImpl::withFlowFileRepository(const std::shared_ptr<core::Repository> &repo) {
+  flow_repo_ = repo;
+  return sharedFromThis<ProcessContextBuilder>();
+}
+
+std::shared_ptr<ProcessContextBuilder> ProcessContextBuilderImpl::withContentRepository(const std::shared_ptr<core::ContentRepository> &repo) {
+  content_repo_ = repo;
+  return sharedFromThis<ProcessContextBuilder>();
+}
+
+std::shared_ptr<ProcessContextBuilder> ProcessContextBuilderImpl::withConfiguration(const std::shared_ptr<minifi::Configure> &configuration) {
+  configuration_ = configuration;
+  return sharedFromThis<ProcessContextBuilder>();
+}
+
+std::shared_ptr<core::ProcessContext> ProcessContextBuilderImpl::build(Processor& processor) {
+  return std::make_shared<core::ProcessContextImpl>(processor, controller_service_provider_, prov_repo_, flow_repo_, configuration_, content_repo_);
+}
 
 REGISTER_RESOURCE_IMPLEMENTATION(ProcessContextBuilderImpl, "ProcessContextBuilder", InternalResource);
 

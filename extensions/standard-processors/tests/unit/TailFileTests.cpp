@@ -30,7 +30,7 @@
 #include "TextFragmentUtils.h"
 #include "catch2/generators/catch_generators.hpp"
 #include "core/Core.h"
-#include "core/ProcessContext.h"
+#include "minifi-cpp/core/ProcessContext.h"
 #include "core/ProcessSession.h"
 #include "core/Processor.h"
 #include "core/Resource.h"

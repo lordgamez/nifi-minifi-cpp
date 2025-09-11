@@ -33,10 +33,11 @@
 
 #include "ResourceClaim.h"
 #include "core/FlowFile.h"
-#include "core/ProcessContext.h"
+#include "minifi-cpp/core/ProcessContext.h"
 #include "core/Relationship.h"
 #include "core/logging/Logger.h"
 #include "io/BufferStream.h"
+#include "io/validation.h"
 #include "utils/ByteArrayCallback.h"
 #include "utils/StringUtils.h"
 #include "utils/ProcessorConfigUtils.h"

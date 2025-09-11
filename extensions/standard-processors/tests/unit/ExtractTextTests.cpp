@@ -32,7 +32,7 @@
 
 #include "core/FlowFile.h"
 #include "core/Processor.h"
-#include "core/ProcessContext.h"
+#include "minifi-cpp/core/ProcessContext.h"
 #include "core/ProcessSession.h"
 
 #include "GetFile.h"

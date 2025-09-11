@@ -17,6 +17,7 @@
 
 #include "core/ProcessContext.h"
 #include "core/Processor.h"
+#include "utils/PropertyErrors.h"
 
 namespace org::apache::nifi::minifi::core {
 
