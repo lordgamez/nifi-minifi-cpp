@@ -21,7 +21,7 @@
 #include <string>
 #include <memory>
 
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 #include "utils/Enum.h"
 #include "io/StreamPipe.h"
 

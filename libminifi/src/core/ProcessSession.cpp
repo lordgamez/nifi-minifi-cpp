@@ -33,7 +33,7 @@
 #include "core/ProcessSessionReadCallback.h"
 #include "io/StreamSlice.h"
 #include "io/StreamPipe.h"
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 #include "core/Processor.h"
 
 /* This implementation is only for native Windows systems.  */

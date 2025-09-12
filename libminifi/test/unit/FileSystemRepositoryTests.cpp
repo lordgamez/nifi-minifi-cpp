@@ -22,7 +22,7 @@
 
 #include <list>
 
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 #include "utils/OsUtils.h"
 #include "unit/TestUtils.h"
 #include "unit/TestBase.h"

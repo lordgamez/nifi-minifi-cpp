@@ -25,7 +25,7 @@
 #include <utility>
 
 #include "core/logging/LoggerConfiguration.h"
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 
 namespace org::apache::nifi::minifi::core {
 

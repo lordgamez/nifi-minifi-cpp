@@ -39,7 +39,7 @@
 #include "core/logging/LoggerFactory.h"
 #include "io/ZlibStream.h"
 #include "utils/Enum.h"
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 #include "utils/Export.h"
 #include "WriteArchiveStream.h"
 #include "ReadArchiveStream.h"

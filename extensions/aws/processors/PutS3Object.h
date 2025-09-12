@@ -34,7 +34,7 @@
 #include "io/StreamPipe.h"
 #include "S3Processor.h"
 #include "utils/ArrayUtils.h"
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 #include "utils/Id.h"
 #include "utils/Enum.h"
 

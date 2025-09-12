@@ -26,7 +26,7 @@
 #include "core/Resource.h"
 #include "utils/ConfigurationUtils.h"
 #include "utils/ProcessorConfigUtils.h"
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 
 namespace org::apache::nifi::minifi::processors {
 void SplitContent::initialize() {

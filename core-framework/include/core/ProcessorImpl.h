@@ -36,7 +36,7 @@
 #include "minifi-cpp/core/Scheduling.h"
 #include "minifi-cpp/core/state/nodes/MetricsBase.h"
 #include "minifi-cpp/core/ProcessorMetrics.h"
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 #include "utils/Id.h"
 #include "minifi-cpp/core/OutputAttributeDefinition.h"
 #include "minifi-cpp/core/ProcessorApi.h"

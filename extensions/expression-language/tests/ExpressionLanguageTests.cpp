@@ -38,7 +38,7 @@
 #include <UpdateAttribute.h>
 #include "minifi-cpp/core/FlowFile.h"
 #include <LogAttribute.h>
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 #include "unit/TestBase.h"
 #include "unit/Catch.h"
 #include "catch2/catch_approx.hpp"

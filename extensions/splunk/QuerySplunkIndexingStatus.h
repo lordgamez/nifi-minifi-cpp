@@ -27,7 +27,7 @@
 #include "minifi-cpp/core/PropertyValidator.h"
 #include "core/RelationshipDefinition.h"
 #include "utils/ArrayUtils.h"
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 #include "http/HTTPClient.h"
 #include "rapidjson/stringbuffer.h"
 

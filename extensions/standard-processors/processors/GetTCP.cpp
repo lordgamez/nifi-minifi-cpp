@@ -28,7 +28,7 @@
 #include "core/ProcessSession.h"
 #include "core/Resource.h"
 #include "utils/StringUtils.h"
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 #include "utils/net/AsioCoro.h"
 #include "utils/ProcessorConfigUtils.h"
 

@@ -26,7 +26,7 @@
 #include "sitetosite/RawSocketProtocol.h"
 #include "io/CRCStream.h"
 #include "sitetosite/Peer.h"
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 #include "utils/Enum.h"
 
 using namespace std::literals::chrono_literals;

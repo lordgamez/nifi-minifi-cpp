@@ -33,7 +33,7 @@
 #include "utils/ConfigurationUtils.h"
 #include "utils/Environment.h"
 #include "utils/StringUtils.h"
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 #include "utils/ProcessorConfigUtils.h"
 
 using namespace std::literals::chrono_literals;

@@ -43,7 +43,7 @@
 #include "unit/TestBase.h"
 #include "unit/TestUtils.h"
 #include "utils/file/FileUtils.h"
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 
 class ReadCallback {
  public:

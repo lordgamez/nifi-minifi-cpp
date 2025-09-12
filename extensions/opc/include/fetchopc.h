@@ -34,7 +34,7 @@
 #include "core/logging/LoggerFactory.h"
 #include "utils/ArrayUtils.h"
 #include "utils/Id.h"
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 #include "minifi-cpp/core/StateManager.h"
 
 namespace org::apache::nifi::minifi::processors {

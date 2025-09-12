@@ -28,7 +28,7 @@
 #include "core/RelationshipDefinition.h"
 #include "utils/ArrayUtils.h"
 #include "utils/ResourceQueue.h"
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 
 namespace org::apache::nifi::minifi::extensions::splunk {
 

@@ -32,7 +32,7 @@
 #include "range/v3/view/filter.hpp"
 #include "utils/OptionalUtils.h"
 #include "utils/ProcessorConfigUtils.h"
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 
 using namespace std::literals::chrono_literals;
 

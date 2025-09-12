@@ -30,7 +30,7 @@
 #include "core/logging/Logger.h"
 #include "core/logging/LoggerFactory.h"
 #include "core/FlowConfiguration.h"
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 #include "utils/Id.h"
 #include "utils/expected.h"
 #include "core/RepositoryMetricsSource.h"

@@ -32,7 +32,7 @@
 #include "minifi-cpp/core/PropertyValidator.h"
 #include "core/RelationshipDefinition.h"
 #include "core/Core.h"
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 #include "utils/Export.h"
 
 namespace org::apache::nifi::minifi::processors {

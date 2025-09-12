@@ -41,7 +41,7 @@
 #include "serialization/FlowFileV3Serializer.h"
 #include "serialization/PayloadSerializer.h"
 #include "unit/TestUtils.h"
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 #include "utils/span.h"
 
 std::string FLOW_FILE;

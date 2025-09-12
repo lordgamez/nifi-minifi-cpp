@@ -33,7 +33,7 @@
 #include "minifi-cpp/core/PropertyValidator.h"
 #include "core/RelationshipDefinition.h"
 #include "core/logging/LoggerFactory.h"
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 #include "utils/Id.h"
 #include "utils/Export.h"
 #include "core/FlowFileStore.h"

@@ -27,7 +27,7 @@
 #include <iostream>
 
 #include "utils/file/FileManager.h"
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 #include "minifi-cpp/Exception.h"
 
 #include "rapidjson/writer.h"

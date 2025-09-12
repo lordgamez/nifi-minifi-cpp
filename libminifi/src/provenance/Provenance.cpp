@@ -30,7 +30,7 @@
 #include "core/logging/Logger.h"
 #include "core/Relationship.h"
 #include "FlowController.h"
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 
 namespace org::apache::nifi::minifi::provenance {
 

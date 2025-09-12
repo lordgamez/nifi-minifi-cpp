@@ -31,7 +31,7 @@
 #include "rocksdb/slice.h"
 #include "utils/Locations.h"
 #include "utils/OptionalUtils.h"
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 
 using namespace std::literals::chrono_literals;
 

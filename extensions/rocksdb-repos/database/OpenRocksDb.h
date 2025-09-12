@@ -22,7 +22,7 @@
 #include <string>
 #include <vector>
 #include <optional>
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 
 #include "rocksdb/db.h"
 #include "rocksdb/utilities/checkpoint.h"

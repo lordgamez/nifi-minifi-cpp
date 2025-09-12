@@ -16,7 +16,7 @@
  */
 #include <openssl/x509v3.h>
 
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 #include "utils/tls/ExtendedKeyUsage.h"
 #include "unit/Catch.h"
 

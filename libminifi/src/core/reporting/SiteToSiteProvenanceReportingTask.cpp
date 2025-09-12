@@ -40,7 +40,7 @@
 #include "core/ProcessSession.h"
 #include "provenance/Provenance.h"
 #include "FlowController.h"
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 
 namespace org::apache::nifi::minifi::core::reporting {
 

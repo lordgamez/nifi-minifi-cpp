@@ -37,7 +37,7 @@
 #include "core/RelationshipDefinition.h"
 #include "libwrapper/LibWrapper.h"
 #include "utils/Deleters.h"
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 #include "utils/FifoExecutor.h"
 
 namespace org::apache::nifi::minifi::extensions::systemd {

@@ -28,7 +28,7 @@
 #include "../ProcFsJsonSerialization.h"
 #include "utils/JsonCallback.h"
 #include "utils/OpenTelemetryLogDataModelUtils.h"
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 #include "utils/ProcessorConfigUtils.h"
 
 using namespace std::literals::chrono_literals;

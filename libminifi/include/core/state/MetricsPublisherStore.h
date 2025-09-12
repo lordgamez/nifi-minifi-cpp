@@ -25,7 +25,7 @@
 
 #include "minifi-cpp/core/state/MetricsPublisher.h"
 #include "core/state/nodes/ResponseNodeLoader.h"
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 #include "core/ProcessGroup.h"
 #include "utils/file/AssetManager.h"
 #include "core/BulletinStore.h"

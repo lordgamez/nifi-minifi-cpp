@@ -37,7 +37,7 @@
 // #include "rapidjson/error/en.h"
 #include "utils/HTTPUtils.h"
 #include "ServerAwareHandler.h"
-// #include "utils/gsl.h"
+// #include "minifi-cpp/utils/gsl.h"
 // #include "agent/build_description.h"
 #include "c2/C2Payload.h"
 #include "properties/Configuration.h"

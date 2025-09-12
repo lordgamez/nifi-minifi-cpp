@@ -23,7 +23,7 @@
 #include <memory>
 
 #include "database/RocksDatabase.h"
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 #include "core/ContentRepository.h"
 #include "minifi-cpp/SwapManager.h"
 #include "utils/ThreadPool.h"

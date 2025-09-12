@@ -26,7 +26,7 @@
 #include "rapidjson/document.h"
 #include "rapidjson/prettywriter.h"
 #include "RemoteProcessorGroupPort.h"
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 
 #include "range/v3/view/filter.hpp"
 #include "range/v3/view/transform.hpp"

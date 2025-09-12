@@ -33,7 +33,7 @@
 #include "properties/Configuration.h"
 #include "utils/file/FileSystem.h"
 #include "utils/file/FileUtils.h"
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 #include "utils/StringUtils.h"
 #include "core/Resource.h"
 

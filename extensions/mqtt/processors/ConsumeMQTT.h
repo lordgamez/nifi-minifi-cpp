@@ -33,7 +33,7 @@
 #include "concurrentqueue.h"
 #include "AbstractMQTTProcessor.h"
 #include "utils/ArrayUtils.h"
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 
 namespace org::apache::nifi::minifi::processors {
 

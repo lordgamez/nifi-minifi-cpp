@@ -26,7 +26,7 @@
 #include "io/validation.h"
 #include "io/FileStream.h"
 #include "io/InputStream.h"
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 
 namespace org::apache::nifi::minifi::io {
 

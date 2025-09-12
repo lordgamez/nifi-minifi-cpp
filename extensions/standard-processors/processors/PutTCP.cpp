@@ -25,7 +25,7 @@
 #include "core/Resource.h"
 #include "core/logging/Logger.h"
 #include "range/v3/range/conversion.hpp"
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 #include "utils/net/AsioCoro.h"
 #include "utils/net/AsioSocketUtils.h"
 #include "utils/ProcessorConfigUtils.h"

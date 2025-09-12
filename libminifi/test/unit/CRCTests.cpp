@@ -22,7 +22,7 @@
 #include "io/OutputStream.h"
 #include "unit/TestBase.h"
 #include "unit/Catch.h"
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 
 TEST_CASE("Test CRC1", "[testcrc1]") {
   org::apache::nifi::minifi::io::BufferStream base;

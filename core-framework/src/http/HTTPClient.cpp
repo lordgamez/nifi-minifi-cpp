@@ -31,7 +31,7 @@
 #include "magic_enum.hpp"
 #include "range/v3/algorithm/all_of.hpp"
 #include "range/v3/action/transform.hpp"
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 #include "utils/HTTPUtils.h"
 #include "utils/Literals.h"
 #include "utils/StringUtils.h"

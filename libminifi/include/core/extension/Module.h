@@ -22,7 +22,7 @@
 #include <vector>
 
 #include "core/logging/Logger.h"
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 #include "properties/Configure.h"
 #include "core/extension/Extension.h"
 

@@ -39,7 +39,7 @@
 #include "utils/Deleters.h"
 #include "core/logging/LoggerFactory.h"
 
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 #include "utils/RegexUtils.h"
 #include "utils/StringUtils.h"
 #include "utils/UnicodeConversion.h"

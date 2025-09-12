@@ -45,7 +45,7 @@
 #include "core/ProcessSession.h"
 #include "core/reporting/SiteToSiteProvenanceReportingTask.h"
 #include "core/Resource.h"
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 #include "utils/PropertyExceptions.h"
 #include "unit/TestUtils.h"
 #include "io/BufferStream.h"

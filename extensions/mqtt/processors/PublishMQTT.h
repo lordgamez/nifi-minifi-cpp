@@ -32,7 +32,7 @@
 #include "core/logging/LoggerFactory.h"
 #include "AbstractMQTTProcessor.h"
 #include "utils/ArrayUtils.h"
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 #include "core/ProcessorMetrics.h"
 
 namespace org::apache::nifi::minifi::processors {

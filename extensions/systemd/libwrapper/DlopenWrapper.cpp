@@ -19,7 +19,7 @@
 #include <dlfcn.h>
 
 #include "minifi-cpp/Exception.h"
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 #include "utils/StringUtils.h"
 
 struct sd_journal;

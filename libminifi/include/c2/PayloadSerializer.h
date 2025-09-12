@@ -29,7 +29,7 @@
 #include "io/OutputStream.h"
 #include "io/InputStream.h"
 #include "io/BufferStream.h"
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 
 namespace org {
 namespace apache {

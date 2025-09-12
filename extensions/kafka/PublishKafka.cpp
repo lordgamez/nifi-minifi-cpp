@@ -28,7 +28,7 @@
 #include "rdkafka_utils.h"
 #include "utils/ProcessorConfigUtils.h"
 #include "utils/StringUtils.h"
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 
 namespace org::apache::nifi::minifi::processors {
 

@@ -25,7 +25,7 @@
 #include "unit/TestUtils.h"
 #include "unit/Catch.h"
 #include "unit/ProvenanceTestHelper.h"
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 
 namespace org::apache::nifi::minifi::test {
 

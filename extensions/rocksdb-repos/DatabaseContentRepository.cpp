@@ -31,7 +31,7 @@
 #include "database/StringAppender.h"
 #include "encryption/RocksDbEncryptionProvider.h"
 #include "utils/Locations.h"
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 
 namespace org::apache::nifi::minifi::core::repository {
 

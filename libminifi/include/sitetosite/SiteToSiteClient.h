@@ -31,7 +31,7 @@
 #include "core/ProcessSession.h"
 #include "core/ProcessContext.h"
 #include "core/Connectable.h"
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 
 namespace org::apache::nifi::minifi::sitetosite {
 

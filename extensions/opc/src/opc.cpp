@@ -28,7 +28,7 @@
 #include "core/logging/Logger.h"
 #include "minifi-cpp/Exception.h"
 
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 
 #include "open62541/client_highlevel.h"
 #include "open62541/client_config_default.h"

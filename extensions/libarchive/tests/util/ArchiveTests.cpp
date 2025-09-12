@@ -28,7 +28,7 @@
 
 #include "unit/TestBase.h"
 #include "unit/Catch.h"
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 #include "SmartArchivePtrs.h"
 
 
