@@ -30,7 +30,7 @@
 #include "LogCompressorSink.h"
 #include "core/logging/LoggerProperties.h"
 #include "io/InputStream.h"
-#include "utils/Literals.h"
+#include "minifi-cpp/utils/Literals.h"
 
 class LoggerTestAccessor;
 

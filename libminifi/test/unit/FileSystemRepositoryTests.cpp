@@ -27,7 +27,7 @@
 #include "unit/TestUtils.h"
 #include "unit/TestBase.h"
 #include "unit/Catch.h"
-#include "utils/Literals.h"
+#include "minifi-cpp/utils/Literals.h"
 #include "core/repository/FileSystemRepository.h"
 #include "utils/file/FileUtils.h"
 #include "ResourceClaim.h"

@@ -36,7 +36,7 @@
 #include "core/logging/LoggerFactory.h"
 #include "core/RepositoryMetricsSource.h"
 #include "utils/BackTrace.h"
-#include "utils/Literals.h"
+#include "minifi-cpp/utils/Literals.h"
 #include "utils/StringUtils.h"
 #include "utils/TimeUtil.h"
 #include "core/Core.h"

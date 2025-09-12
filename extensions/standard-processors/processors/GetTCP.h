@@ -24,7 +24,7 @@
 #include <vector>
 #include <atomic>
 #include <asio/io_context.hpp>
-#include "utils/Literals.h"
+#include "minifi-cpp/utils/Literals.h"
 
 #include "minifi-cpp/core/OutputAttributeDefinition.h"
 #include "core/ProcessorImpl.h"

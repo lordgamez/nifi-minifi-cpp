@@ -33,7 +33,7 @@
 #include "range/v3/action/transform.hpp"
 #include "minifi-cpp/utils/gsl.h"
 #include "utils/HTTPUtils.h"
-#include "utils/Literals.h"
+#include "minifi-cpp/utils/Literals.h"
 #include "utils/StringUtils.h"
 
 using namespace std::literals::chrono_literals;
