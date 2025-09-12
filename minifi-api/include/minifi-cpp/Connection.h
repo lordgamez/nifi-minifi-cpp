@@ -29,7 +29,7 @@
 #include <algorithm>
 #include <utility>
 #include "core/Core.h"
-#include "core/Connectable.h"
+#include "minifi-cpp/core/Connectable.h"
 #include "minifi-cpp/core/logging/Logger.h"
 #include "core/Relationship.h"
 #include "minifi-cpp/core/FlowFile.h"

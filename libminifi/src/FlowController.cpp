@@ -34,7 +34,7 @@
 #include "core/controller/ControllerServiceProvider.h"
 #include "core/controller/ForwardingControllerServiceProvider.h"
 #include "core/logging/LoggerConfiguration.h"
-#include "core/Connectable.h"
+#include "minifi-cpp/core/Connectable.h"
 #include "utils/file/PathUtils.h"
 #include "utils/file/FileSystem.h"
 #include "http/BaseHTTPClient.h"

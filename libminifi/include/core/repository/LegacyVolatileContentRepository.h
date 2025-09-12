@@ -26,7 +26,6 @@
 #include "io/AtomicEntryStream.h"
 #include "core/ContentRepository.h"
 #include "properties/Configure.h"
-#include "core/Connectable.h"
 #include "core/logging/LoggerFactory.h"
 #include "utils/GeneralUtils.h"
 #include "VolatileRepositoryData.h"

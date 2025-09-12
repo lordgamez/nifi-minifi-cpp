@@ -30,7 +30,7 @@
 #include <utility>
 #include <vector>
 
-#include "core/Connectable.h"
+#include "minifi-cpp/core/Connectable.h"
 #include "core/ContentRepository.h"
 #include "minifi-cpp/core/Property.h"
 #include "core/logging/LoggerFactory.h"

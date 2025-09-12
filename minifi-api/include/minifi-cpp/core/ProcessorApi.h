@@ -24,7 +24,6 @@
 #include <unordered_map>
 
 #include "ConfigurableComponent.h"
-#include "Connectable.h"
 #include "Property.h"
 #include "DynamicProperty.h"
 #include "Core.h"

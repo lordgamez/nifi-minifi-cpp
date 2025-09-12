@@ -30,7 +30,6 @@
 #include <vector>
 
 #include "core/ClassLoader.h"
-#include "core/Connectable.h"
 #include "core/Processor.h"
 #include "core/ProcessContext.h"
 #include "core/ProcessContextBuilder.h"

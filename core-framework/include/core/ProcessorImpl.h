@@ -28,7 +28,6 @@
 #include <string>
 
 #include "core/ConfigurableComponentImpl.h"
-#include "core/Connectable.h"
 #include "minifi-cpp/core/Property.h"
 #include "core/Core.h"
 #include "minifi-cpp/core/Annotation.h"
