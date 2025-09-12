@@ -29,7 +29,7 @@
 #include "core/Core.h"
 #include "minifi-cpp/core/controller/ControllerServiceLookup.h"
 #include "core/ConfigurableComponentImpl.h"
-#include "ControllerServiceNode.h"
+#include "minifi-cpp/core/controller/ControllerServiceNode.h"
 #include "ControllerServiceNodeMap.h"
 #include "core/ClassLoader.h"
 #include "utils/Monitors.h"

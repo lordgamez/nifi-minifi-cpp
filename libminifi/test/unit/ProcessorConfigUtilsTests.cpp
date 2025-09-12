@@ -18,7 +18,7 @@
 #include "unit/TestBase.h"
 #include "unit/Catch.h"
 #include "core/controller/ControllerService.h"
-#include "core/controller/ControllerServiceNode.h"
+#include "minifi-cpp/core/controller/ControllerServiceNode.h"
 #include "core/controller/ControllerServiceProvider.h"
 #include "minifi-cpp/core/PropertyDefinition.h"
 #include "core/ProcessorImpl.h"

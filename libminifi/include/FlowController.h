@@ -32,7 +32,6 @@
 #include <utility>
 #include <vector>
 
-#include "core/controller/ControllerServiceNode.h"
 #include "core/controller/ControllerServiceProvider.h"
 #include "core/controller/ForwardingControllerServiceProvider.h"
 #include "core/FlowConfiguration.h"

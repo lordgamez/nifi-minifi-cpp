@@ -28,7 +28,7 @@
 #include "core/Core.h"
 #include "minifi-cpp/Connection.h"
 #include "RemoteProcessorGroupPort.h"
-#include "core/controller/ControllerServiceNode.h"
+#include "minifi-cpp/core/controller/ControllerServiceNode.h"
 #include "core/controller/StandardControllerServiceProvider.h"
 #include "provenance/Provenance.h"
 #include "core/reporting/SiteToSiteProvenanceReportingTask.h"
