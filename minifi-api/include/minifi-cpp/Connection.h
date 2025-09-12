@@ -32,7 +32,7 @@
 #include "core/Connectable.h"
 #include "core/logging/Logger.h"
 #include "core/Relationship.h"
-#include "core/FlowFile.h"
+#include "minifi-cpp/core/FlowFile.h"
 #include "core/Repository.h"
 #include "minifi-cpp/utils/Literals.h"
 

@@ -30,7 +30,7 @@
 #include "archive_entry.h"
 #include "archive.h"
 
-#include "FlowFileRecord.h"
+#include "minifi-cpp/FlowFileRecord.h"
 #include "core/ProcessorImpl.h"
 #include "core/ProcessSession.h"
 #include "core/Core.h"

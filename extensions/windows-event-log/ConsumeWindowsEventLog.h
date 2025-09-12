@@ -42,7 +42,7 @@
 #include "utils/OsUtils.h"
 #include "wel/WindowsEventLog.h"
 #include "wel/EventPath.h"
-#include "FlowFileRecord.h"
+#include "minifi-cpp/FlowFileRecord.h"
 #include "concurrentqueue.h"
 #include "pugixml.hpp"
 #include "utils/Enum.h"

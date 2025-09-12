@@ -28,7 +28,6 @@
 
 #include "http/BaseHTTPClient.h"
 #include "concurrentqueue.h"
-#include "FlowFileRecord.h"
 #include "core/ProcessorImpl.h"
 #include "core/ProcessSession.h"
 #include "core/PropertyDefinition.h"

@@ -34,7 +34,6 @@
 #include "core/Property.h"
 #include "properties/Configure.h"
 #include "Connection.h"
-#include "FlowFileRecord.h"
 #include "core/logging/LoggerFactory.h"
 #include "ResourceClaim.h"
 #include "utils/gsl.h"

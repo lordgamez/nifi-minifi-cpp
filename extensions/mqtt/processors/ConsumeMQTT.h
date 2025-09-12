@@ -23,7 +23,7 @@
 #include <unordered_map>
 #include <utility>
 
-#include "FlowFileRecord.h"
+#include "minifi-cpp/FlowFileRecord.h"
 #include "core/Core.h"
 #include "core/OutputAttributeDefinition.h"
 #include "core/ProcessorImpl.h"

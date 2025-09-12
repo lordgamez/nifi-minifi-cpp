@@ -21,7 +21,7 @@
 #include <optional>
 #include <string_view>
 
-#include "FlowFileRecord.h"
+#include "minifi-cpp/FlowFileRecord.h"
 #include "core/ProcessSession.h"
 #include "core/ProcessorImpl.h"
 #include "core/PropertyDefinition.h"

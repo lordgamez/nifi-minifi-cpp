@@ -23,6 +23,7 @@
 
 #include "utils/gsl.h"
 #include "utils/Enum.h"
+#include "io/StreamPipe.h"
 
 namespace org::apache::nifi::minifi::sitetosite {
 

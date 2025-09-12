@@ -30,6 +30,7 @@
 #include "utils/Literals.h"
 #include "core/repository/FileSystemRepository.h"
 #include "utils/file/FileUtils.h"
+#include "ResourceClaim.h"
 
 using namespace std::literals::chrono_literals;
 

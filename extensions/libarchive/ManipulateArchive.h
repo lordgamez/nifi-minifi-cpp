@@ -23,7 +23,7 @@
 #include <string>
 #include <utility>
 
-#include "FlowFileRecord.h"
+#include "minifi-cpp/FlowFileRecord.h"
 #include "ArchiveMetadata.h"
 #include "core/ProcessorImpl.h"
 #include "core/ProcessSession.h"

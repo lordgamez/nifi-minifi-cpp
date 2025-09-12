@@ -29,6 +29,7 @@
 #include "unit/TestBase.h"
 #include "unit/Catch.h"
 #include "processors/SQLProcessor.h"
+#include "FlowFileRecord.h"
 
 #ifdef MINIFI_USE_REAL_ODBC_TEST_DRIVER
 static const std::string ODBC_SERVICE = "ODBCService";

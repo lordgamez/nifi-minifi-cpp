@@ -42,7 +42,7 @@
 #include "core/PropertyDefinitionBuilder.h"
 #include "minifi-cpp/core/PropertyValidator.h"
 #include "core/RelationshipDefinition.h"
-#include "FlowFileRecord.h"
+#include "minifi-cpp/FlowFileRecord.h"
 
 namespace org::apache::nifi::minifi::processors {
 

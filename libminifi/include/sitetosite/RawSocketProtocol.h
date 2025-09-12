@@ -36,7 +36,6 @@
 #include "core/ProcessContext.h"
 #include "core/ProcessSession.h"
 #include "core/Property.h"
-#include "FlowFileRecord.h"
 #include "io/CRCStream.h"
 #include "Peer.h"
 #include "properties/Configure.h"

@@ -21,7 +21,7 @@
 #include <algorithm>
 #include <utility>
 
-#include "core/FlowFile.h"
+#include "minifi-cpp/core/FlowFile.h"
 #include "MinMaxHeap.h"
 #include "minifi-cpp/SwapManager.h"
 #include "utils/TimeUtil.h"

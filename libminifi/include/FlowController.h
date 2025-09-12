@@ -50,7 +50,6 @@
 #include "c2/C2Agent.h"
 #include "CronDrivenSchedulingAgent.h"
 #include "EventDrivenSchedulingAgent.h"
-#include "FlowFileRecord.h"
 #include "properties/Configure.h"
 #include "TimerDrivenSchedulingAgent.h"
 #include "utils/Id.h"

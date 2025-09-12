@@ -31,7 +31,6 @@
 #include <unordered_set>
 
 #include "core/ProcessContext.h"
-#include "FlowFileRecord.h"
 #include "Exception.h"
 #include "core/logging/LoggerFactory.h"
 #include "FlowFile.h"

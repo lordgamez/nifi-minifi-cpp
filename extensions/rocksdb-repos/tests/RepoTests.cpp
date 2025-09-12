@@ -25,7 +25,7 @@
 #include "core/Core.h"
 #include "core/repository/AtomicRepoEntries.h"
 #include "core/RepositoryFactory.h"
-#include "FlowFileRecord.h"
+#include "minifi-cpp/FlowFileRecord.h"
 #include "FlowFileRepository.h"
 #include "ProvenanceRepository.h"
 #include "provenance/Provenance.h"
