@@ -26,7 +26,7 @@
 #include "controllers/SSLContextServiceInterface.h"
 #include "NetworkListenerProcessor.h"
 #include "core/logging/LoggerFactory.h"
-#include "core/OutputAttributeDefinition.h"
+#include "minifi-cpp/core/OutputAttributeDefinition.h"
 #include "minifi-cpp/core/PropertyDefinition.h"
 #include "core/PropertyDefinitionBuilder.h"
 #include "minifi-cpp/core/PropertyValidator.h"

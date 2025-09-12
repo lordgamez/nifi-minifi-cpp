@@ -25,7 +25,7 @@
 
 #include "minifi-cpp/FlowFileRecord.h"
 #include "core/Core.h"
-#include "core/OutputAttributeDefinition.h"
+#include "minifi-cpp/core/OutputAttributeDefinition.h"
 #include "core/ProcessorImpl.h"
 #include "core/ProcessSession.h"
 #include "minifi-cpp/core/PropertyDefinition.h"

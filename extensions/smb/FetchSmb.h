@@ -28,7 +28,7 @@
 #include "core/Property.h"
 #include "minifi-cpp/core/PropertyDefinition.h"
 #include "core/PropertyDefinitionBuilder.h"
-#include "core/OutputAttributeDefinition.h"
+#include "minifi-cpp/core/OutputAttributeDefinition.h"
 #include "core/logging/LoggerFactory.h"
 #include "utils/Enum.h"
 #include "utils/ListingStateManager.h"
