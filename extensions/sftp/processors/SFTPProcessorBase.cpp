@@ -32,7 +32,7 @@
 #include <vector>
 
 #include "ResourceClaim.h"
-#include "core/FlowFile.h"
+#include "minifi-cpp/core/FlowFile.h"
 #include "core/ProcessContext.h"
 #include "core/Relationship.h"
 #include "core/logging/Logger.h"

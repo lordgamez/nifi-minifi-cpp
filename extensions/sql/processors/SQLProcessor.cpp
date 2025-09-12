@@ -20,7 +20,7 @@
 #include <vector>
 #include <memory>
 
-#include "core/FlowFile.h"
+#include "minifi-cpp/core/FlowFile.h"
 #include "core/ProcessContext.h"
 #include "core/ProcessSession.h"
 #include "Exception.h"

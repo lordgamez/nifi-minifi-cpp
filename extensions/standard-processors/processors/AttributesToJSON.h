@@ -28,7 +28,7 @@
 #include <vector>
 
 #include "rapidjson/document.h"
-#include "core/FlowFile.h"
+#include "minifi-cpp/core/FlowFile.h"
 #include "core/logging/LoggerFactory.h"
 #include "core/ProcessorImpl.h"
 #include "core/PropertyDefinition.h"

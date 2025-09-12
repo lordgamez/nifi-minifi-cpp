@@ -36,7 +36,7 @@
 #include <GetFile.h>
 #include <PutFile.h>
 #include <UpdateAttribute.h>
-#include "core/FlowFile.h"
+#include "minifi-cpp/core/FlowFile.h"
 #include <LogAttribute.h>
 #include "utils/gsl.h"
 #include "unit/TestBase.h"

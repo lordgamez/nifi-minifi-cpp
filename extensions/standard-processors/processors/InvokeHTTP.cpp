@@ -24,7 +24,7 @@
 #include <utility>
 #include <vector>
 
-#include "core/FlowFile.h"
+#include "minifi-cpp/core/FlowFile.h"
 #include "core/ProcessContext.h"
 #include "core/Resource.h"
 #include "io/BufferStream.h"

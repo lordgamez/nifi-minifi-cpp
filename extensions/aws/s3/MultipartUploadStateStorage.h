@@ -31,7 +31,7 @@
 #include "core/logging/LoggerFactory.h"
 #include "aws/core/utils/DateTime.h"
 #include "utils/file/FileUtils.h"
-#include "properties/Configure.h"
+#include "minifi-cpp/properties/Configure.h"
 
 namespace org::apache::nifi::minifi::aws::s3 {
 

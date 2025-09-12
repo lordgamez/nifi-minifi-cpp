@@ -24,7 +24,7 @@
 #include "core/Core.h"
 #include "http/HTTPClient.h"
 #include "InvokeHTTP.h"
-#include "core/FlowFile.h"
+#include "minifi-cpp/core/FlowFile.h"
 #include "unit/ProvenanceTestHelper.h"
 #include "core/Processor.h"
 #include "core/ProcessContext.h"

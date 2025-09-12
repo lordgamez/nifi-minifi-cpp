@@ -20,7 +20,7 @@
 #include <algorithm>
 #include <ranges>
 
-#include "core/FlowFile.h"
+#include "minifi-cpp/core/FlowFile.h"
 #include "core/ProcessSession.h"
 #include "minifi-cpp/core/PropertyValidator.h"
 #include "core/Resource.h"

@@ -39,7 +39,7 @@
 #include "unit/ProvenanceTestHelper.h"
 #include "utils/file/FileUtils.h"
 #include "core/Core.h"
-#include "core/FlowFile.h"
+#include "minifi-cpp/core/FlowFile.h"
 #include "core/Processor.h"
 #include "core/ProcessContext.h"
 #include "core/ProcessSession.h"

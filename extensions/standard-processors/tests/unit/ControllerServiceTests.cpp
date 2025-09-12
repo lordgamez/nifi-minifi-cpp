@@ -25,7 +25,7 @@
 #include "GetFile.h"
 #include "core/Core.h"
 #include "Exception.h"
-#include "core/FlowFile.h"
+#include "minifi-cpp/core/FlowFile.h"
 #include "unit/MockClasses.h"
 #include "unit/ProvenanceTestHelper.h"
 #include "core/Processor.h"

@@ -30,7 +30,7 @@
 #include "Exception.h"
 #include "core/ProcessContext.h"
 #include "core/ProcessSession.h"
-#include "core/FlowFile.h"
+#include "minifi-cpp/core/FlowFile.h"
 #include "core/Resource.h"
 #include "utils/file/FileManager.h"
 #include "FocusArchiveEntry.h"

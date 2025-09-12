@@ -28,7 +28,7 @@
 #include "core/logging/LoggerFactory.h"
 #include "core/Property.h"
 #include "database/RocksDatabase.h"
-#include "properties/Configure.h"
+#include "minifi-cpp/properties/Configure.h"
 #include "utils/StoppableThread.h"
 
 namespace org::apache::nifi::minifi::core::repository {

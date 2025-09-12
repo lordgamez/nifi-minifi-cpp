@@ -30,7 +30,7 @@
 #include "repository/VolatileContentRepository.h"
 #include "unit/TestUtils.h"
 
-#include "core/FlowFile.h"
+#include "minifi-cpp/core/FlowFile.h"
 #include "core/Processor.h"
 #include "core/ProcessContext.h"
 #include "core/ProcessSession.h"

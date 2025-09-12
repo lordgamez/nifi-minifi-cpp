@@ -23,7 +23,7 @@
 #include <utility>
 
 #include "core/Core.h"
-#include "properties/Configure.h"
+#include "minifi-cpp/properties/Configure.h"
 #include "core/logging/Logger.h"
 #include "core/logging/LoggerFactory.h"
 #include "core/PropertyDefinition.h"

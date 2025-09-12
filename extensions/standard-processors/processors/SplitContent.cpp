@@ -20,7 +20,7 @@
 
 #include <range/v3/view/split.hpp>
 
-#include "core/FlowFile.h"
+#include "minifi-cpp/core/FlowFile.h"
 #include "core/ProcessContext.h"
 #include "core/ProcessSession.h"
 #include "core/Resource.h"
