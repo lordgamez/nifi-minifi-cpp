@@ -24,7 +24,7 @@
 #include "minifi-cpp/core/logging/Logger.h"
 #include "minifi-cpp/utils/gsl.h"
 #include "properties/Configure.h"
-#include "core/extension/Extension.h"
+#include "minifi-cpp/core/extension/Extension.h"
 
 namespace org {
 namespace apache {
