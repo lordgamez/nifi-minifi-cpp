@@ -51,7 +51,7 @@
 #include "Fips.h"
 #include "FlowController.h"
 #include "MainHelper.h"
-#include "ResourceClaim.h"
+#include "minifi-cpp/ResourceClaim.h"
 #include "agent/JsonSchema.h"
 #include "agent/agent_version.h"
 #include "argparse/argparse.hpp"

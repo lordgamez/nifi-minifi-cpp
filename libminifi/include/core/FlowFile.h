@@ -27,7 +27,7 @@
 #include <vector>
 
 #include "utils/TimeUtil.h"
-#include "ResourceClaim.h"
+#include "minifi-cpp/ResourceClaim.h"
 #include "core/Connectable.h"
 #include "WeakReference.h"
 #include "utils/Export.h"

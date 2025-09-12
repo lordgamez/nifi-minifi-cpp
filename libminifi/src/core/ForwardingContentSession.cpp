@@ -21,7 +21,7 @@
 #include <memory>
 
 #include "core/ContentRepository.h"
-#include "ResourceClaim.h"
+#include "minifi-cpp/ResourceClaim.h"
 #include "io/BaseStream.h"
 #include "Exception.h"
 #include "io/StreamPipe.h"

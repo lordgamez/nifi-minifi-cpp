@@ -31,7 +31,7 @@
 #include <utility>
 #include <vector>
 
-#include "ResourceClaim.h"
+#include "minifi-cpp/ResourceClaim.h"
 #include "minifi-cpp/core/FlowFile.h"
 #include "core/ProcessContext.h"
 #include "core/Relationship.h"
