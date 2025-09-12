@@ -35,7 +35,7 @@
 #include "unit/TestBase.h"
 #include "unit/Catch.h"
 #include "utils/file/FileUtils.h"
-#include "core/logging/Logger.h"
+#include "minifi-cpp/core/logging/Logger.h"
 #include "core/ProcessGroup.h"
 #include "FlowController.h"
 #include "unit/ProvenanceTestHelper.h"

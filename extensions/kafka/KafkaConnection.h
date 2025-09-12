@@ -25,7 +25,7 @@
 #include <unordered_map>
 
 #include "core/logging/LoggerFactory.h"
-#include "core/logging/Logger.h"
+#include "minifi-cpp/core/logging/Logger.h"
 #include "rdkafka.h"
 #include "KafkaTopic.h"
 #include "minifi-cpp/utils/gsl.h"

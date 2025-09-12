@@ -26,7 +26,7 @@
 #include <string>
 #include <vector>
 
-#include "core/logging/Logger.h"
+#include "minifi-cpp/core/logging/Logger.h"
 #include "LogCompressorSink.h"
 #include "core/logging/LoggerProperties.h"
 #include "io/InputStream.h"

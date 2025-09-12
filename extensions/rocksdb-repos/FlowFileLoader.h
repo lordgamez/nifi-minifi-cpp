@@ -27,7 +27,7 @@
 #include "core/ContentRepository.h"
 #include "minifi-cpp/SwapManager.h"
 #include "utils/ThreadPool.h"
-#include "core/logging/Logger.h"
+#include "minifi-cpp/core/logging/Logger.h"
 
 namespace org::apache::nifi::minifi {
 

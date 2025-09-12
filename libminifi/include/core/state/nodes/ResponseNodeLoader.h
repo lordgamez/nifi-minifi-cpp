@@ -27,7 +27,7 @@
 
 #include "MetricsBase.h"
 #include "core/ProcessGroup.h"
-#include "core/logging/Logger.h"
+#include "minifi-cpp/core/logging/Logger.h"
 #include "core/logging/LoggerFactory.h"
 #include "core/FlowConfiguration.h"
 #include "minifi-cpp/utils/gsl.h"

@@ -25,7 +25,7 @@
 #include <string>
 #include <utility>
 
-#include "core/logging/Logger.h"
+#include "minifi-cpp/core/logging/Logger.h"
 #include "core/ProcessContext.h"
 #include "core/Processor.h"
 #include "core/ProcessSessionFactory.h"

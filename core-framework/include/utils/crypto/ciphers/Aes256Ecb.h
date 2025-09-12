@@ -23,7 +23,7 @@
 
 #include "utils/crypto/EncryptionUtils.h"
 #include "minifi-cpp/Exception.h"
-#include "core/logging/Logger.h"
+#include "minifi-cpp/core/logging/Logger.h"
 
 namespace org {
 namespace apache {

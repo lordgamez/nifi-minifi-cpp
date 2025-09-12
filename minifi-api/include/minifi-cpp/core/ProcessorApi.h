@@ -33,7 +33,7 @@
 #include "minifi-cpp/core/state/nodes/MetricsBase.h"
 #include "ProcessorMetrics.h"
 #include "minifi-cpp/utils/gsl.h"
-#include "core/logging/Logger.h"
+#include "minifi-cpp/core/logging/Logger.h"
 
 namespace org::apache::nifi::minifi {
 

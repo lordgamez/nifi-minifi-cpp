@@ -35,7 +35,7 @@
 #include "minifi-cpp/core/FlowFile.h"
 #include "core/ProcessContext.h"
 #include "core/Relationship.h"
-#include "core/logging/Logger.h"
+#include "minifi-cpp/core/logging/Logger.h"
 #include "io/BufferStream.h"
 #include "utils/ByteArrayCallback.h"
 #include "utils/StringUtils.h"

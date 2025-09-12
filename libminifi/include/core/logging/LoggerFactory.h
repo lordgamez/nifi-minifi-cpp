@@ -22,7 +22,7 @@
 #include <memory>
 
 #include "minifi-cpp/core/logging/LoggerFactory.h"
-#include "core/logging/Logger.h"
+#include "minifi-cpp/core/logging/Logger.h"
 #include "core/Core.h"
 
 namespace org::apache::nifi::minifi::core::logging {

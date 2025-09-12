@@ -25,7 +25,7 @@
 #include <array>
 
 #include "utils/StringUtils.h"
-#include "core/logging/Logger.h"
+#include "minifi-cpp/core/logging/Logger.h"
 #include "minifi-cpp/Exception.h"
 
 #include "minifi-cpp/utils/gsl.h"

@@ -18,7 +18,7 @@
 #include "DiskSpaceWatchdog.h"
 
 #include "core/Property.h"
-#include "core/logging/Logger.h"
+#include "minifi-cpp/core/logging/Logger.h"
 #include "properties/Configure.h"
 #include "utils/file/PathUtils.h"
 #include "utils/TimeUtil.h"

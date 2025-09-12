@@ -38,7 +38,7 @@
 #include "core/Core.h"
 #include "core/logging/LoggerFactory.h"
 #include "properties/Configure.h"
-#include "core/logging/Logger.h"
+#include "minifi-cpp/core/logging/Logger.h"
 #include "core/Processor.h"
 #include "core/ProcessContext.h"
 #include "core/controller/ControllerServiceProvider.h"

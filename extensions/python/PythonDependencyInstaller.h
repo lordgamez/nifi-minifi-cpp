@@ -20,7 +20,7 @@
 #include <memory>
 #include <filesystem>
 
-#include "core/logging/Logger.h"
+#include "minifi-cpp/core/logging/Logger.h"
 #include "core/logging/LoggerFactory.h"
 #include "minifi-cpp/properties/Configure.h"
 

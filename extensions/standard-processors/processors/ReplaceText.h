@@ -28,7 +28,7 @@
 #include "core/PropertyDefinition.h"
 #include "core/PropertyDefinitionBuilder.h"
 #include "core/RelationshipDefinition.h"
-#include "core/logging/Logger.h"
+#include "minifi-cpp/core/logging/Logger.h"
 #include "utils/Enum.h"
 #include "utils/Export.h"
 

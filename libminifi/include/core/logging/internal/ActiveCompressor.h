@@ -22,7 +22,7 @@
 #include <utility>
 #include "LogBuffer.h"
 #include "LogCompressor.h"
-#include "core/logging/Logger.h"
+#include "minifi-cpp/core/logging/Logger.h"
 
 namespace org {
 namespace apache {

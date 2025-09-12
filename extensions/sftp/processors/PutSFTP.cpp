@@ -26,7 +26,7 @@
 #include "minifi-cpp/core/FlowFile.h"
 #include "core/ProcessContext.h"
 #include "core/Resource.h"
-#include "core/logging/Logger.h"
+#include "minifi-cpp/core/logging/Logger.h"
 #include "io/BufferStream.h"
 #include "utils/ConfigurationUtils.h"
 #include "utils/StringUtils.h"

@@ -29,7 +29,7 @@
 #include "SQLProcessor.h"
 #include "FlowFileSource.h"
 #include "utils/ArrayUtils.h"
-#include "core/logging/Logger.h"
+#include "minifi-cpp/core/logging/Logger.h"
 
 namespace org::apache::nifi::minifi::processors {
 

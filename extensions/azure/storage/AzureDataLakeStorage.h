@@ -25,7 +25,7 @@
 #include <optional>
 #include <utility>
 
-#include "core/logging/Logger.h"
+#include "minifi-cpp/core/logging/Logger.h"
 #include "core/logging/LoggerFactory.h"
 #include "DataLakeStorageClient.h"
 #include "utils/ListingStateManager.h"

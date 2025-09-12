@@ -21,7 +21,7 @@
 #include <utility>
 
 #include "core/ProcessorImpl.h"
-#include "core/logging/Logger.h"
+#include "minifi-cpp/core/logging/Logger.h"
 #include "core/ProcessContext.h"
 #include "core/ProcessSession.h"
 #include "core/Property.h"

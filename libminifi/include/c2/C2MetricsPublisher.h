@@ -29,7 +29,7 @@
 #include "c2/C2Agent.h"
 #include "core/controller/ControllerServiceProvider.h"
 #include "properties/Configure.h"
-#include "core/logging/Logger.h"
+#include "minifi-cpp/core/logging/Logger.h"
 #include "core/state/nodes/MetricsBase.h"
 #include "core/ProcessGroup.h"
 #include "core/Core.h"

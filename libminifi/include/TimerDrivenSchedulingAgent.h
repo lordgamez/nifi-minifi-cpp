@@ -21,7 +21,7 @@
 
 #include <memory>
 
-#include "core/logging/Logger.h"
+#include "minifi-cpp/core/logging/Logger.h"
 #include "core/Processor.h"
 #include "core/ProcessContext.h"
 #include "core/Repository.h"

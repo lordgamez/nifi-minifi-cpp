@@ -22,7 +22,7 @@
 #include <optional>
 
 #include "../controllerservices/GCPCredentialsControllerService.h"
-#include "core/logging/Logger.h"
+#include "minifi-cpp/core/logging/Logger.h"
 #include "core/ProcessorImpl.h"
 #include "core/PropertyDefinition.h"
 #include "core/PropertyDefinitionBuilder.h"

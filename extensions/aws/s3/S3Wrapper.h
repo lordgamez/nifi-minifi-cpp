@@ -35,7 +35,7 @@
 #include "aws/s3/model/StorageClass.h"
 #include "aws/s3/model/ChecksumAlgorithm.h"
 
-#include "core/logging/Logger.h"
+#include "minifi-cpp/core/logging/Logger.h"
 #include "core/logging/LoggerFactory.h"
 #include "io/InputStream.h"
 #include "io/OutputStream.h"

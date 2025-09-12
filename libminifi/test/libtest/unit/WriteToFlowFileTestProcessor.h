@@ -25,7 +25,7 @@
 #include "core/PropertyDefinition.h"
 #include "core/RelationshipDefinition.h"
 #include "core/Resource.h"
-#include "core/logging/Logger.h"
+#include "minifi-cpp/core/logging/Logger.h"
 #include "core/logging/LoggerConfiguration.h"
 
 #pragma once

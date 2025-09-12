@@ -27,7 +27,7 @@
 #include <azure/storage/files/datalake.hpp>
 
 #include "DataLakeStorageClient.h"
-#include "core/logging/Logger.h"
+#include "minifi-cpp/core/logging/Logger.h"
 #include "core/logging/LoggerFactory.h"
 #include "utils/span.h"
 

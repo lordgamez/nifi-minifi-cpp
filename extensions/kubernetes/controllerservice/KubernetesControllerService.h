@@ -24,7 +24,7 @@
 #include "../ApiClient.h"
 #include "../ContainerInfo.h"
 #include "controllers/AttributeProviderService.h"
-#include "core/logging/Logger.h"
+#include "minifi-cpp/core/logging/Logger.h"
 #include "core/PropertyDefinition.h"
 #include "core/PropertyDefinitionBuilder.h"
 #include "utils/RegexUtils.h"

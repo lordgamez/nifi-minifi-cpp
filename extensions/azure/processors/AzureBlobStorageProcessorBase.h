@@ -28,7 +28,7 @@
 #include "core/Property.h"
 #include "core/PropertyDefinition.h"
 #include "minifi-cpp/core/PropertyValidator.h"
-#include "core/logging/Logger.h"
+#include "minifi-cpp/core/logging/Logger.h"
 #include "storage/AzureBlobStorage.h"
 #include "AzureStorageProcessorBase.h"
 #include "storage/AzureStorageCredentials.h"

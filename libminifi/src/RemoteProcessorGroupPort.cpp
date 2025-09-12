@@ -31,7 +31,7 @@
 #include "controllers/SSLContextService.h"
 #include "core/ProcessContext.h"
 #include "core/Processor.h"
-#include "core/logging/Logger.h"
+#include "minifi-cpp/core/logging/Logger.h"
 #include "http/BaseHTTPClient.h"
 #include "rapidjson/document.h"
 #include "sitetosite/Peer.h"
