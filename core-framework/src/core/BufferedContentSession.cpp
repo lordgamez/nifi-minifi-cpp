@@ -18,7 +18,7 @@
 
 #include "core/BufferedContentSession.h"
 #include <memory>
-#include "core/ContentRepository.h"
+#include "minifi-cpp/core/ContentRepository.h"
 #include "minifi-cpp/io/BaseStream.h"
 #include "io/StreamPipe.h"
 #include "io/StreamSlice.h"

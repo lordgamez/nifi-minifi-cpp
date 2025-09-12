@@ -24,7 +24,7 @@
 
 #include "database/RocksDatabase.h"
 #include "minifi-cpp/utils/gsl.h"
-#include "core/ContentRepository.h"
+#include "minifi-cpp/core/ContentRepository.h"
 #include "minifi-cpp/SwapManager.h"
 #include "utils/ThreadPool.h"
 #include "minifi-cpp/core/logging/Logger.h"

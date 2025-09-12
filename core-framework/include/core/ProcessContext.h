@@ -29,7 +29,7 @@
 #include <vector>
 
 #include "core/ConfigurableComponentImpl.h"
-#include "core/ContentRepository.h"
+#include "minifi-cpp/core/ContentRepository.h"
 #include "core/Core.h"
 #include "minifi-cpp/core/Property.h"
 #include "core/VariableRegistry.h"

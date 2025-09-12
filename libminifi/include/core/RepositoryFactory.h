@@ -21,7 +21,7 @@
 #include <memory>
 #include <string>
 
-#include "core/ContentRepository.h"
+#include "minifi-cpp/core/ContentRepository.h"
 #include "core/Repository.h"
 #include "core/Core.h"
 

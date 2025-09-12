@@ -18,7 +18,6 @@
 #include <memory>
 #include <string>
 #include <algorithm>
-#include "core/ContentRepository.h"
 #include "core/repository/VolatileContentRepository.h"
 #include "core/Repository.h"
 #include "core/ClassLoader.h"

@@ -31,7 +31,7 @@
 #include <vector>
 
 #include "minifi-cpp/core/Connectable.h"
-#include "core/ContentRepository.h"
+#include "minifi-cpp/core/ContentRepository.h"
 #include "minifi-cpp/core/Property.h"
 #include "core/logging/LoggerFactory.h"
 #include "core/RepositoryMetricsSource.h"

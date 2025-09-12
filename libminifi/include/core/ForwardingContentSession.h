@@ -22,6 +22,7 @@
 #include <memory>
 #include "ResourceClaim.h"
 #include "minifi-cpp/io/BaseStream.h"
+#include "minifi-cpp/core/ContentRepository.h"
 #include "core/ContentSession.h"
 
 namespace org::apache::nifi::minifi::core {
