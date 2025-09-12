@@ -27,7 +27,7 @@
 #include <vector>
 #include <optional>
 
-#include "controllers/AttributeProviderService.h"
+#include "minifi-cpp/controllers/AttributeProviderService.h"
 #include "core/Core.h"
 #include "core/ProcessorImpl.h"
 #include "core/ProcessSession.h"

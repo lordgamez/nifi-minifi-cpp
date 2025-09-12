@@ -41,6 +41,7 @@
 #include "unit/TestUtils.h"
 #include "utils/StringUtils.h"
 #include "utils/file/FileUtils.h"
+#include "controllers/AttributeProviderService.h"
 
 using namespace std::literals::chrono_literals;
 
