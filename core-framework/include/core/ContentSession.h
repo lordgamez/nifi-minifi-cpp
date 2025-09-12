@@ -21,7 +21,7 @@
 #include <memory>
 #include <utility>
 #include <map>
-#include "io/BaseStream.h"
+#include "minifi-cpp/io/BaseStream.h"
 #include "minifi-cpp/core/ContentSession.h"
 #include "ContentRepository.h"
 

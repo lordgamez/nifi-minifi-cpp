@@ -20,8 +20,8 @@
 
 #include <unordered_set>
 #include <memory>
-#include "minifi-cpp/ResourceClaim.h"
-#include "io/BaseStream.h"
+#include "ResourceClaim.h"
+#include "minifi-cpp/io/BaseStream.h"
 #include "core/ContentSession.h"
 
 namespace org::apache::nifi::minifi::core {

@@ -22,7 +22,7 @@
 
 #include "core/ContentRepository.h"
 #include "ResourceClaim.h"
-#include "io/BaseStream.h"
+#include "minifi-cpp/io/BaseStream.h"
 #include "minifi-cpp/Exception.h"
 #include "io/StreamPipe.h"
 #include "io/StreamSlice.h"

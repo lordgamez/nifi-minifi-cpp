@@ -29,7 +29,7 @@
 
 #include "core/logging/LoggerFactory.h"
 #include "minifi-cpp/core/Property.h"
-#include "io/BaseStream.h"
+#include "minifi-cpp/io/BaseStream.h"
 #include "io/BufferStream.h"
 #include "properties/Configure.h"
 #include "http/BaseHTTPClient.h"
