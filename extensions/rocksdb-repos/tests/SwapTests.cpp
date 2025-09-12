@@ -28,6 +28,7 @@
 #include "minifi-cpp/core/RelationshipDefinition.h"
 #include "unit/ProvenanceTestHelper.h"
 #include "core/repository/FileSystemRepository.h"
+#include "Connection.h"
 
 namespace org::apache::nifi::minifi::test {
 

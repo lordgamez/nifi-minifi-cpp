@@ -21,7 +21,7 @@
 #include <vector>
 #include <unordered_map>
 
-#include "Connection.h"
+#include "minifi-cpp/Connection.h"
 #include "minifi-cpp/utils/gsl.h"
 
 namespace org::apache::nifi::minifi::state {

@@ -28,6 +28,7 @@
 
 #include "CompressContent.h"
 #include "FlowController.h"
+#include "Connection.h"
 #include "catch2/generators/catch_generators.hpp"
 #include "core/Core.h"
 #include "minifi-cpp/core/FlowFile.h"

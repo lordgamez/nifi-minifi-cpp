@@ -33,7 +33,6 @@
 #include "core/Repository.h"
 #include "minifi-cpp/core/Property.h"
 #include "properties/Configure.h"
-#include "Connection.h"
 #include "core/logging/LoggerFactory.h"
 #include "ResourceClaim.h"
 #include "minifi-cpp/utils/gsl.h"

@@ -35,7 +35,6 @@
 #include "utils/TimeUtil.h"
 #include "core/logging/LoggerFactory.h"
 #include "ResourceClaim.h"
-#include "Connection.h"
 #include "io/OutputStream.h"
 #include "io/StreamPipe.h"
 #include "minifi-cpp/FlowFileRecord.h"

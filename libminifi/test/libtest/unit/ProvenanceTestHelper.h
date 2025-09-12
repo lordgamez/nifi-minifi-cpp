@@ -31,7 +31,6 @@
 #include "core/repository/VolatileFlowFileRepository.h"
 #include "core/Processor.h"
 #include "core/ThreadedRepository.h"
-#include "Connection.h"
 #include "FlowController.h"
 #include "properties/Configure.h"
 #include "provenance/Provenance.h"

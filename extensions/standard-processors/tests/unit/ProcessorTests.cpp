@@ -51,6 +51,7 @@
 #include "io/BufferStream.h"
 #include "fmt/format.h"
 #include "processors/TailFile.h"
+#include "Connection.h"
 
 TEST_CASE("Test Creation of GetFile", "[getfileCreate]") {
   TestController testController;

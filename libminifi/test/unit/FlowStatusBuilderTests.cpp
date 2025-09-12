@@ -24,6 +24,7 @@
 #include "core/BulletinStore.h"
 #include "properties/Configure.h"
 #include "unit/ProcessorUtils.h"
+#include "Connection.h"
 
 #undef GetObject  // windows.h #defines GetObject = GetObjectA or GetObjectW, which conflicts with rapidjson
 

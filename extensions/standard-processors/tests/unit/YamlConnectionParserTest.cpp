@@ -24,6 +24,7 @@
 #include "unit/Catch.h"
 #include "unit/TestUtils.h"
 #include "core/yaml/YamlNode.h"
+#include "Connection.h"
 
 using namespace std::literals::chrono_literals;
 

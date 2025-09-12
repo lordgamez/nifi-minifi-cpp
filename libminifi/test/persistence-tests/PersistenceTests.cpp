@@ -37,6 +37,7 @@
 #include "unit/TestUtils.h"
 #include "core/repository/FileSystemRepository.h"
 #include "core/ProcessorImpl.h"
+#include "Connection.h"
 
 using ConnectionImpl = minifi::ConnectionImpl;
 using Connection = minifi::Connection;

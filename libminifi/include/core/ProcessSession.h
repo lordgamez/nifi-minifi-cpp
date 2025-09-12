@@ -36,6 +36,7 @@
 #include "FlowFile.h"
 #include "WeakReference.h"
 #include "provenance/Provenance.h"
+#include "core/Relationship.h"
 #include "minifi-cpp/utils/gsl.h"
 #include "minifi-cpp/core/ProcessorMetrics.h"
 #include "minifi-cpp/core/ProcessSession.h"

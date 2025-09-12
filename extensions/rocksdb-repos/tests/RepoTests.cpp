@@ -41,6 +41,7 @@
 #include "catch2/generators/catch_generators.hpp"
 #include "core/repository/FileSystemRepository.h"
 #include "core/Processor.h"
+#include "Connection.h"
 
 using namespace std::literals::chrono_literals;
 

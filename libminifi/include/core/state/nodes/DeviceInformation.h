@@ -47,7 +47,6 @@
 #include <optional>
 
 #include "core/state/nodes/MetricsBase.h"
-#include "Connection.h"
 #include "utils/SystemCpuUsageTracker.h"
 #include "utils/Export.h"
 

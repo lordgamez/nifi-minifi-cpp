@@ -31,6 +31,7 @@
 #include "core/ProcessContext.h"
 #include "core/ProcessSession.h"
 #include "FlowController.h"
+#include "Connection.h"
 #include "../../include/core/FlowFile.h"
 #include "MergeContent.h"
 #include "processors/LogAttribute.h"

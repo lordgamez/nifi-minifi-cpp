@@ -26,7 +26,7 @@
 #include <filesystem>
 
 #include "core/Core.h"
-#include "Connection.h"
+#include "minifi-cpp/Connection.h"
 #include "RemoteProcessorGroupPort.h"
 #include "core/controller/ControllerServiceNode.h"
 #include "core/controller/StandardControllerServiceProvider.h"
