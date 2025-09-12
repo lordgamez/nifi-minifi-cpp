@@ -27,7 +27,7 @@
 #include "state/Value.h"
 #include "utils/StringUtils.h"
 #include "utils/ValueParser.h"
-#include "utils/PropertyExceptions.h"
+#include "minifi-cpp/utils/PropertyExceptions.h"
 #include "minifi-cpp/utils/Literals.h"
 #include "utils/TimeUtil.h"
 #include "minifi-cpp/core/logging/Logger.h"
