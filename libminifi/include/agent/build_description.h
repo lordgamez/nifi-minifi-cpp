@@ -23,7 +23,6 @@
 #include <utility>
 #include <vector>
 #include "agent/agent_docs.h"
-#include "core/controller/ControllerService.h"
 #include "core/ClassLoader.h"
 #include "core/expect.h"
 #include "minifi-cpp/core/Property.h"

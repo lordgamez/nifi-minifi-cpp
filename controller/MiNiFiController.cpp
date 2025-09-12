@@ -30,7 +30,7 @@
 #include "c2/ControllerSocketProtocol.h"
 #include "controllers/SSLContextService.h"
 #include "core/ConfigurationFactory.h"
-#include "core/controller/ControllerService.h"
+#include "minifi-cpp/core/controller/ControllerService.h"
 #include "core/extension/ExtensionManager.h"
 #include "properties/Configure.h"
 #include "range/v3/algorithm/contains.hpp"
