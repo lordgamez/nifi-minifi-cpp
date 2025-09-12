@@ -27,7 +27,7 @@
 
 #include "io/InputStream.h"
 #include "core/ProcessorImpl.h"
-#include "utils/Export.h"
+#include "minifi-cpp/utils/Export.h"
 #include "asio/io_context.hpp"
 #include "asio/ssl/context.hpp"
 #include "minifi-cpp/controllers/SSLContextServiceInterface.h"

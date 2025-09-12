@@ -33,7 +33,7 @@
 #include "minifi-cpp/core/PropertyValidator.h"
 #include "minifi-cpp/core/RelationshipDefinition.h"
 #include "core/logging/LoggerFactory.h"
-#include "utils/Export.h"
+#include "minifi-cpp/utils/Export.h"
 
 namespace org::apache::nifi::minifi::processors {
 

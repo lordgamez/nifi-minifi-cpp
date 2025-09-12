@@ -30,7 +30,7 @@
 #include "minifi-cpp/core/RelationshipDefinition.h"
 #include "minifi-cpp/core/logging/Logger.h"
 #include "utils/Enum.h"
-#include "utils/Export.h"
+#include "minifi-cpp/utils/Export.h"
 
 namespace org::apache::nifi::minifi::processors {
 

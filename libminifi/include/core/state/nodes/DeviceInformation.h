@@ -48,7 +48,7 @@
 
 #include "core/state/nodes/MetricsBase.h"
 #include "utils/SystemCpuUsageTracker.h"
-#include "utils/Export.h"
+#include "minifi-cpp/utils/Export.h"
 
 namespace org::apache::nifi::minifi::state::response {
 

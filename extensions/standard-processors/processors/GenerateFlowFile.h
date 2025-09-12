@@ -33,7 +33,7 @@
 #include "minifi-cpp/core/RelationshipDefinition.h"
 #include "core/Core.h"
 #include "minifi-cpp/utils/gsl.h"
-#include "utils/Export.h"
+#include "minifi-cpp/utils/Export.h"
 
 namespace org::apache::nifi::minifi::processors {
 

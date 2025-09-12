@@ -35,7 +35,7 @@
 #include "core/logging/LoggerFactory.h"
 #include "minifi-cpp/utils/gsl.h"
 #include "utils/Id.h"
-#include "utils/Export.h"
+#include "minifi-cpp/utils/Export.h"
 #include "core/FlowFileStore.h"
 
 namespace org::apache::nifi::minifi::processors {

@@ -28,7 +28,7 @@
 #include "io/CRCStream.h"
 #include "utils/Id.h"
 #include "http/BaseHTTPClient.h"
-#include "utils/Export.h"
+#include "minifi-cpp/utils/Export.h"
 
 namespace org::apache::nifi::minifi::sitetosite {
 #if defined(__GNUC__) || defined(__GNUG__)

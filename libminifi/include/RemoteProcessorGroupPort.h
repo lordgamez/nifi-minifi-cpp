@@ -36,7 +36,7 @@
 #include "sitetosite/SiteToSiteClient.h"
 #include "minifi-cpp/controllers/SSLContextServiceInterface.h"
 #include "core/logging/LoggerFactory.h"
-#include "utils/Export.h"
+#include "minifi-cpp/utils/Export.h"
 #include "core/ClassLoader.h"
 
 namespace org::apache::nifi::minifi {

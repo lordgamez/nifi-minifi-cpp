@@ -32,7 +32,7 @@
 #include "minifi-cpp/core/PropertyValidator.h"
 #include "ThreadManagementService.h"
 #include "io/NetworkPrioritizer.h"
-#include "utils/Export.h"
+#include "minifi-cpp/utils/Export.h"
 
 namespace org::apache::nifi::minifi::controllers {
 

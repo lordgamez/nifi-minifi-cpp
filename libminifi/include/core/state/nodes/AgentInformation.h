@@ -28,7 +28,7 @@
 #include "core/state/nodes/StateMonitor.h"
 #include "utils/ProcessCpuUsageTracker.h"
 #include "minifi-cpp/core/AgentIdentificationProvider.h"
-#include "utils/Export.h"
+#include "minifi-cpp/utils/Export.h"
 #include "core/RepositoryMetricsSource.h"
 #include "controllers/UpdatePolicyControllerService.h"
 #include "RepositoryMetricsSourceStore.h"

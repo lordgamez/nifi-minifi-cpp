@@ -39,7 +39,7 @@
 #include "utils/Id.h"
 #include "utils/ResourceQueue.h"
 #include "http/HTTPClient.h"
-#include "utils/Export.h"
+#include "minifi-cpp/utils/Export.h"
 #include "utils/Enum.h"
 #include "utils/RegexUtils.h"
 

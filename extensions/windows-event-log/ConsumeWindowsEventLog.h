@@ -46,7 +46,7 @@
 #include "concurrentqueue.h"
 #include "pugixml.hpp"
 #include "utils/Enum.h"
-#include "utils/Export.h"
+#include "minifi-cpp/utils/Export.h"
 #include "utils/RegexUtils.h"
 
 namespace org::apache::nifi::minifi::wel {

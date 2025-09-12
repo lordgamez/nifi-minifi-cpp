@@ -38,7 +38,7 @@
 #include "core/logging/LoggerFactory.h"
 #include "minifi-cpp/controllers/SSLContextServiceInterface.h"
 #include "minifi-cpp/utils/gsl.h"
-#include "utils/Export.h"
+#include "minifi-cpp/utils/Export.h"
 #include "utils/net/AsioSocketUtils.h"
 #include "utils/net/Message.h"
 

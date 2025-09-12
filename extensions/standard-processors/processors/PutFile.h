@@ -30,7 +30,7 @@
 #include "core/Core.h"
 #include "core/logging/LoggerFactory.h"
 #include "utils/Id.h"
-#include "utils/Export.h"
+#include "minifi-cpp/utils/Export.h"
 #include "utils/Enum.h"
 
 namespace org::apache::nifi::minifi::processors {

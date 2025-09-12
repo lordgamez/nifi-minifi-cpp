@@ -36,7 +36,7 @@
 #include "core/logging/LoggerFactory.h"
 #include "utils/MinifiConcurrentQueue.h"
 #include "minifi-cpp/utils/gsl.h"
-#include "utils/Export.h"
+#include "minifi-cpp/utils/Export.h"
 #include "utils/RegexUtils.h"
 #include "core/FlowFileStore.h"
 #include "core/ProcessorImpl.h"

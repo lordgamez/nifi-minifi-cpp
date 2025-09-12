@@ -30,7 +30,7 @@
 #include "minifi-cpp/ResourceClaim.h"
 #include "core/Core.h"
 #include "WeakReference.h"
-#include "utils/Export.h"
+#include "minifi-cpp/utils/Export.h"
 #include "minifi-cpp/core/FlowFile.h"
 
 namespace org::apache::nifi::minifi::core {

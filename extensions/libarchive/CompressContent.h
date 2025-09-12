@@ -40,7 +40,7 @@
 #include "io/ZlibStream.h"
 #include "utils/Enum.h"
 #include "minifi-cpp/utils/gsl.h"
-#include "utils/Export.h"
+#include "minifi-cpp/utils/Export.h"
 #include "WriteArchiveStream.h"
 #include "ReadArchiveStream.h"
 

@@ -38,7 +38,7 @@
 #include "minifi-cpp/core/RelationshipDefinition.h"
 #include "core/ProcessSession.h"
 #include "utils/StringUtils.h"
-#include "utils/Export.h"
+#include "minifi-cpp/utils/Export.h"
 
 using HashReturnType = std::pair<std::string, int64_t>;
 

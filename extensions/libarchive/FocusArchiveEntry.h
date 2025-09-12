@@ -32,7 +32,7 @@
 #include "core/Core.h"
 #include "core/logging/LoggerFactory.h"
 #include "utils/file/FileManager.h"
-#include "utils/Export.h"
+#include "minifi-cpp/utils/Export.h"
 
 namespace org::apache::nifi::minifi::processors {
 

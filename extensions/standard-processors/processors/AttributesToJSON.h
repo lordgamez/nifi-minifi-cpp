@@ -37,7 +37,7 @@
 #include "minifi-cpp/core/RelationshipDefinition.h"
 #include "io/StreamPipe.h"
 #include "utils/Enum.h"
-#include "utils/Export.h"
+#include "minifi-cpp/utils/Export.h"
 #include "utils/RegexUtils.h"
 
 namespace org::apache::nifi::minifi::processors::attributes_to_json {
