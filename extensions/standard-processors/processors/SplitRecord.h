@@ -22,7 +22,7 @@
 #include "minifi-cpp/core/ProcessSessionFactory.h"
 #include "minifi-cpp/core/PropertyDefinition.h"
 #include "core/PropertyDefinitionBuilder.h"
-#include "core/RelationshipDefinition.h"
+#include "minifi-cpp/core/RelationshipDefinition.h"
 #include "minifi-cpp/core/logging/Logger.h"
 #include "controllers/RecordSetReader.h"
 #include "controllers/RecordSetWriter.h"

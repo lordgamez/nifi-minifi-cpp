@@ -27,7 +27,7 @@
 #include "AzureDataLakeStorageFileProcessorBase.h"
 #include "io/StreamPipe.h"
 #include "core/PropertyDefinitionBuilder.h"
-#include "core/RelationshipDefinition.h"
+#include "minifi-cpp/core/RelationshipDefinition.h"
 #include "utils/ArrayUtils.h"
 #include "utils/Enum.h"
 #include "utils/Export.h"

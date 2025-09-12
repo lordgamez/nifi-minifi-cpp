@@ -24,7 +24,7 @@
 
 #include "core/ProcessSession.h"
 #include "core/PropertyDefinitionBuilder.h"
-#include "core/RelationshipDefinition.h"
+#include "minifi-cpp/core/RelationshipDefinition.h"
 #include "SQLProcessor.h"
 #include "utils/ArrayUtils.h"
 #include "minifi-cpp/core/logging/Logger.h"

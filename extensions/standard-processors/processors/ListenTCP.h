@@ -26,7 +26,7 @@
 #include "core/OutputAttributeDefinition.h"
 #include "minifi-cpp/core/PropertyDefinition.h"
 #include "core/PropertyDefinitionBuilder.h"
-#include "core/RelationshipDefinition.h"
+#include "minifi-cpp/core/RelationshipDefinition.h"
 #include "core/logging/LoggerFactory.h"
 #include "minifi-cpp/core/PropertyValidator.h"
 #include "utils/Enum.h"

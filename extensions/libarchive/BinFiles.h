@@ -31,7 +31,7 @@
 #include "core/ProcessSession.h"
 #include "core/PropertyDefinitionBuilder.h"
 #include "minifi-cpp/core/PropertyValidator.h"
-#include "core/RelationshipDefinition.h"
+#include "minifi-cpp/core/RelationshipDefinition.h"
 #include "core/logging/LoggerFactory.h"
 #include "minifi-cpp/utils/gsl.h"
 #include "utils/Id.h"

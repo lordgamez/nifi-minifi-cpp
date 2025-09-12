@@ -32,7 +32,7 @@
 #include "core/ProcessSession.h"
 #include "minifi-cpp/core/PropertyDefinition.h"
 #include "core/PropertyDefinitionBuilder.h"
-#include "core/RelationshipDefinition.h"
+#include "minifi-cpp/core/RelationshipDefinition.h"
 #include "sitetosite/SiteToSiteClient.h"
 #include "minifi-cpp/controllers/SSLContextServiceInterface.h"
 #include "core/logging/LoggerFactory.h"

@@ -25,7 +25,7 @@
 #include "core/ProcessorImpl.h"
 #include "core/ProcessSession.h"
 #include "minifi-cpp/core/PropertyDefinition.h"
-#include "core/RelationshipDefinition.h"
+#include "minifi-cpp/core/RelationshipDefinition.h"
 #include "unit/ProvenanceTestHelper.h"
 #include "core/repository/FileSystemRepository.h"
 

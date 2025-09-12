@@ -24,7 +24,7 @@
 #include "core/ProcessorImpl.h"
 #include "minifi-cpp/core/PropertyDefinition.h"
 #include "core/PropertyDefinitionBuilder.h"
-#include "core/RelationshipDefinition.h"
+#include "minifi-cpp/core/RelationshipDefinition.h"
 #include "unit/TestBase.h"
 #include "unit/Catch.h"
 

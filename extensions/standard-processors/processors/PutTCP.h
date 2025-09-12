@@ -34,7 +34,7 @@
 #include "core/Core.h"
 #include "minifi-cpp/core/PropertyDefinition.h"
 #include "core/PropertyDefinitionBuilder.h"
-#include "core/RelationshipDefinition.h"
+#include "minifi-cpp/core/RelationshipDefinition.h"
 #include "minifi-cpp/core/PropertyValidator.h"
 #include "utils/StringUtils.h"  // for string <=> on libc++
 #include "utils/net/AsioSocketUtils.h"

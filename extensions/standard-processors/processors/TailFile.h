@@ -34,7 +34,7 @@
 #include "minifi-cpp/core/PropertyDefinition.h"
 #include "core/PropertyDefinitionBuilder.h"
 #include "minifi-cpp/core/PropertyValidator.h"
-#include "core/RelationshipDefinition.h"
+#include "minifi-cpp/core/RelationshipDefinition.h"
 #include "core/logging/LoggerFactory.h"
 #include "utils/Enum.h"
 #include "utils/Export.h"

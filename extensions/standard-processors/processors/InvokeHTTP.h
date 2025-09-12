@@ -33,7 +33,7 @@
 #include "core/ProcessSession.h"
 #include "core/PropertyDefinitionBuilder.h"
 #include "minifi-cpp/core/PropertyValidator.h"
-#include "core/RelationshipDefinition.h"
+#include "minifi-cpp/core/RelationshipDefinition.h"
 #include "controllers/SSLContextServiceInterface.h"
 #include "core/logging/LoggerFactory.h"
 #include "utils/Id.h"

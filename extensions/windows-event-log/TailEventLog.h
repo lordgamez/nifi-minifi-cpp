@@ -30,7 +30,7 @@
 #include "core/ProcessSession.h"
 #include "minifi-cpp/core/PropertyDefinition.h"
 #include "core/PropertyDefinitionBuilder.h"
-#include "core/RelationshipDefinition.h"
+#include "minifi-cpp/core/RelationshipDefinition.h"
 
 namespace org {
 namespace apache {
