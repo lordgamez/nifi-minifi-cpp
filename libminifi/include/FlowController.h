@@ -43,7 +43,7 @@
 #include "minifi-cpp/core/Property.h"
 #include "core/Relationship.h"
 #include "core/state/nodes/FlowInformation.h"
-#include "core/state/nodes/MetricsBase.h"
+#include "minifi-cpp/core/state/nodes/MetricsBase.h"
 #include "core/state/UpdateController.h"
 #include "c2/C2Agent.h"
 #include "CronDrivenSchedulingAgent.h"

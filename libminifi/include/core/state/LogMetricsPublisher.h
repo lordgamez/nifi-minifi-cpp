@@ -24,7 +24,7 @@
 #include "minifi-cpp/core/logging/Logger.h"
 #include "core/logging/LoggerFactory.h"
 #include "core/state/MetricsPublisher.h"
-#include "core/state/nodes/MetricsBase.h"
+#include "minifi-cpp/core/state/nodes/MetricsBase.h"
 #include "utils/LogUtils.h"
 #include "utils/StoppableThread.h"
 

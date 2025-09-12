@@ -20,7 +20,7 @@
 #include <memory>
 #include <map>
 #include "c2/C2MetricsPublisher.h"
-#include "core/state/nodes/MetricsBase.h"
+#include "minifi-cpp/core/state/nodes/MetricsBase.h"
 #include "core/state/nodes/QueueMetrics.h"
 #include "core/state/nodes/AgentInformation.h"
 #include "core/state/nodes/ConfigurationChecksums.h"

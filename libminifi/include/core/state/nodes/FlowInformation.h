@@ -22,7 +22,7 @@
 #include <vector>
 
 #include "core/state/FlowIdentifier.h"
-#include "core/state/nodes/MetricsBase.h"
+#include "minifi-cpp/core/state/nodes/MetricsBase.h"
 #include "core/state/nodes/StateMonitor.h"
 #include "minifi-cpp/Connection.h"
 #include "core/state/ConnectionStore.h"
