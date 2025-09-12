@@ -30,6 +30,7 @@
 #include "minifi-cpp/core/logging/Logger.h"
 #include "core/logging/LoggerFactory.h"
 #include "utils/span.h"
+#include "io/InputStream.h"
 
 namespace org::apache::nifi::minifi::azure::storage {
 

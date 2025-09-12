@@ -25,7 +25,7 @@
 #include <map>
 #include "utils/ThreadPool.h"
 #include "utils/BackTrace.h"
-#include "io/InputStream.h"
+#include "minifi-cpp/io/InputStream.h"
 #include "utils/expected.h"
 
 namespace org {

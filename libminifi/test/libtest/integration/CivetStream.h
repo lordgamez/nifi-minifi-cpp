@@ -21,6 +21,7 @@
 
 #include "civetweb.h"
 #include "minifi-cpp/utils/gsl.h"
+#include "io/InputStream.h"
 
 namespace org::apache::nifi::minifi::io {
 

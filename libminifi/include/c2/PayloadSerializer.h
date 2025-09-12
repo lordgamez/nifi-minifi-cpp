@@ -27,7 +27,7 @@
 #include "core/state/Value.h"
 #include "c2/C2Protocol.h"
 #include "io/OutputStream.h"
-#include "io/InputStream.h"
+#include "minifi-cpp/io/InputStream.h"
 #include "io/BufferStream.h"
 #include "minifi-cpp/utils/gsl.h"
 

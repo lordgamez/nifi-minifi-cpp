@@ -23,7 +23,7 @@
 #include <vector>
 
 #include "minifi-cpp/core/logging/Logger.h"
-#include "io/InputStream.h"
+#include "minifi-cpp/io/InputStream.h"
 #include "io/OutputStream.h"
 #include "io/StreamPipe.h"
 

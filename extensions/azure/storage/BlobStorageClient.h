@@ -29,7 +29,7 @@
 #include "AzureStorageCredentials.h"
 #include "minifi-cpp/utils/gsl.h"
 #include "utils/Enum.h"
-#include "io/InputStream.h"
+#include "minifi-cpp/io/InputStream.h"
 
 namespace org::apache::nifi::minifi::azure::storage {
 

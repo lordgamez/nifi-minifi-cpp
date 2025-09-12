@@ -25,7 +25,7 @@
 #include <utility>
 #include <vector>
 
-#include "io/InputStream.h"
+#include "minifi-cpp/io/InputStream.h"
 #include "core/ProcessorImpl.h"
 #include "minifi-cpp/utils/Export.h"
 #include "asio/io_context.hpp"
