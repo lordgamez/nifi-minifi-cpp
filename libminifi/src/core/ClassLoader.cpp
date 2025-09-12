@@ -24,6 +24,7 @@
 #include "range/v3/action/sort.hpp"
 #include "range/v3/action/unique.hpp"
 #include "core/Processor.h"
+#include "core/ObjectFactory.h"
 
 namespace org::apache::nifi::minifi::core {
 

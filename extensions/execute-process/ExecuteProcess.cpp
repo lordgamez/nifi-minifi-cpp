@@ -26,14 +26,14 @@
 #include <memory>
 #include <string>
 
-#include "core/ProcessContext.h"
+#include "minifi-cpp/core/ProcessContext.h"
 #include "core/ProcessSession.h"
 #include "core/Resource.h"
 #include "core/TypedValues.h"
 #include "utils/ConfigurationUtils.h"
 #include "utils/Environment.h"
 #include "utils/StringUtils.h"
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 #include "utils/ProcessorConfigUtils.h"
 
 using namespace std::literals::chrono_literals;

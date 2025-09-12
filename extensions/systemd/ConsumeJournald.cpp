@@ -24,7 +24,7 @@
 #include "fmt/format.h"
 #include "utils/GeneralUtils.h"
 #include "utils/OptionalUtils.h"
-#include "core/ProcessContext.h"
+#include "minifi-cpp/core/ProcessContext.h"
 #include "core/ProcessSession.h"
 #include "core/Resource.h"
 #include "utils/ProcessorConfigUtils.h"

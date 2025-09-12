@@ -21,6 +21,7 @@
 #include "unit/Catch.h"
 #include "processors/RouteText.h"
 #include "unit/TestUtils.h"
+#include "Connection.h"
 
 namespace processors = minifi::processors;
 

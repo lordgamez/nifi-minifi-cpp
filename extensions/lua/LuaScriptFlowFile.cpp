@@ -20,7 +20,7 @@
 #include <memory>
 #include <string>
 
-#include "core/FlowFile.h"
+#include "minifi-cpp/core/FlowFile.h"
 
 #include "LuaScriptFlowFile.h"
 

@@ -21,6 +21,7 @@
 
 #include "FlowFileRecord.h"
 #include "range/v3/algorithm/all_of.hpp"
+#include "Connection.h"
 
 namespace org::apache::nifi::minifi::test {
 

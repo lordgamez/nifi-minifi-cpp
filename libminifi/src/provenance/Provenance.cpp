@@ -25,12 +25,12 @@
 #include <list>
 #include <utility>
 
-#include "core/Repository.h"
+#include "minifi-cpp/core/Repository.h"
 #include "io/BufferStream.h"
-#include "core/logging/Logger.h"
+#include "minifi-cpp/core/logging/Logger.h"
 #include "core/Relationship.h"
 #include "FlowController.h"
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 
 namespace org::apache::nifi::minifi::provenance {
 

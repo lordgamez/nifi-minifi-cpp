@@ -30,7 +30,9 @@
 #include "core/Processor.h"
 #include "core/ProcessContext.h"
 #include "core/ProcessSession.h"
+#include "core/ProcessSessionFactory.h"
 #include "FlowController.h"
+#include "Connection.h"
 #include "../../include/core/FlowFile.h"
 #include "MergeContent.h"
 #include "processors/LogAttribute.h"
@@ -41,7 +43,7 @@
 #include "serialization/FlowFileV3Serializer.h"
 #include "serialization/PayloadSerializer.h"
 #include "unit/TestUtils.h"
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 #include "utils/span.h"
 
 std::string FLOW_FILE;

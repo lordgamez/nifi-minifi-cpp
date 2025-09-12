@@ -20,12 +20,12 @@
 #include <vector>
 #include <utility>
 
-#include "core/ProcessContext.h"
+#include "minifi-cpp/core/ProcessContext.h"
 #include "core/ProcessSession.h"
 #include "core/Resource.h"
 #include "serialization/PayloadSerializer.h"
 #include "TextFragmentUtils.h"
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 #include "utils/StringUtils.h"
 #include "utils/ProcessorConfigUtils.h"
 

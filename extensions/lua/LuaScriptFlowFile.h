@@ -21,7 +21,7 @@
 #include <string>
 #include <memory>
 
-#include "core/FlowFile.h"
+#include "minifi-cpp/core/FlowFile.h"
 
 namespace org::apache::nifi::minifi::extensions::lua {
 

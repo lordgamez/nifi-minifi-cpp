@@ -20,12 +20,12 @@
 #include <algorithm>
 
 #include "SplitText.h"
-#include "core/ProcessContext.h"
+#include "minifi-cpp/core/ProcessContext.h"
 #include "core/ProcessSession.h"
 #include "core/Resource.h"
-#include "core/FlowFile.h"
+#include "minifi-cpp/core/FlowFile.h"
 #include "utils/ConfigurationUtils.h"
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 #include "utils/ProcessorConfigUtils.h"
 #include "io/StreamPipe.h"
 

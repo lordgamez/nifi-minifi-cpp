@@ -22,8 +22,8 @@
 #include <map>
 
 #include "fmt/format.h"
-#include "utils/gsl.h"
-#include "Exception.h"
+#include "minifi-cpp/utils/gsl.h"
+#include "minifi-cpp/Exception.h"
 
 #ifdef __linux__
 #include <sys/sysinfo.h>

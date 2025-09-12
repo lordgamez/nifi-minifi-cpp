@@ -18,9 +18,9 @@
 
 #include "range/v3/range/conversion.hpp"
 
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 #include "utils/expected.h"
-#include "core/ProcessContext.h"
+#include "minifi-cpp/core/ProcessContext.h"
 #include "core/ProcessSession.h"
 #include "core/Resource.h"
 #include "core/logging/LoggerFactory.h"

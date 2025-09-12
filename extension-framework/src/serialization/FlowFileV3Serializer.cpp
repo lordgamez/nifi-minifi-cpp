@@ -18,8 +18,8 @@
 
 #include "serialization/FlowFileV3Serializer.h"
 #include "io/StreamPipe.h"
-#include "utils/gsl.h"
-#include "core/FlowFile.h"
+#include "minifi-cpp/utils/gsl.h"
+#include "minifi-cpp/core/FlowFile.h"
 
 namespace org::apache::nifi::minifi {
 

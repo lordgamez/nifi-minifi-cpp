@@ -26,6 +26,7 @@
 #include "utils/Id.h"
 #include "unit/ProvenanceTestHelper.h"
 #include "unit/TestUtils.h"
+#include "Connection.h"
 
 namespace org::apache::nifi::minifi::test {
 

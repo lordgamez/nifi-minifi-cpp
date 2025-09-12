@@ -24,8 +24,6 @@
 #include "core/Core.h"
 #include "core/repository/AtomicRepoEntries.h"
 #include "core/RepositoryFactory.h"
-#include "FlowFileRecord.h"
-#include "provenance/Provenance.h"
 #include "properties/Configure.h"
 #include "unit/ProvenanceTestHelper.h"
 #include "unit/TestBase.h"

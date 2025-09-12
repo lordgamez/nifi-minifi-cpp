@@ -21,10 +21,10 @@
 #include <memory>
 
 #include "AWSCredentialsService.h"
-#include "properties/Properties.h"
+#include "minifi-cpp/properties/Properties.h"
 #include "utils/StringUtils.h"
 #include "utils/MapUtils.h"
-#include "core/ProcessContext.h"
+#include "minifi-cpp/core/ProcessContext.h"
 #include "core/ProcessSession.h"
 #include "core/Resource.h"
 #include "range/v3/algorithm/contains.hpp"

@@ -31,7 +31,7 @@
 
 #include "core/ProcessContext.h"
 #include "core/state/UpdateController.h"
-#include "core/logging/Logger.h"
+#include "minifi-cpp/core/logging/Logger.h"
 #include "core/logging/LoggerConfiguration.h"
 #include "utils/file/FileUtils.h"
 #include "utils/file/FileSystem.h"
@@ -40,12 +40,13 @@
 #include "utils/Environment.h"
 #include "utils/Monitors.h"
 #include "utils/StringUtils.h"
-#include "io/ArchiveStream.h"
+#include "minifi-cpp/io/ArchiveStream.h"
 #include "io/StreamPipe.h"
 #include "utils/Id.h"
 #include "c2/C2Utils.h"
 #include "c2/protocols/RESTSender.h"
 #include "rapidjson/error/en.h"
+#include "core/ClassLoader.h"
 
 using namespace std::literals::chrono_literals;
 

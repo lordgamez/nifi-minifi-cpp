@@ -30,8 +30,9 @@
 #include "FlowFileRecord.h"
 #include "core/logging/LoggerConfiguration.h"
 #include "core/Relationship.h"
-#include "core/Repository.h"
-#include "utils/gsl.h"
+#include "minifi-cpp/core/Repository.h"
+#include "minifi-cpp/utils/gsl.h"
+#include "ResourceClaim.h"
 
 namespace org::apache::nifi::minifi {
 

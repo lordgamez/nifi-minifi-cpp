@@ -24,7 +24,7 @@
 
 #include "utils/Environment.h"
 #include "utils/file/PathUtils.h"
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 #include "unit/TestBase.h"
 #include "unit/Catch.h"
 

@@ -16,7 +16,7 @@
  */
 
 #include "utils/SystemCpuUsageTracker.h"
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 
 namespace org::apache::nifi::minifi::utils {
 #ifdef __linux__

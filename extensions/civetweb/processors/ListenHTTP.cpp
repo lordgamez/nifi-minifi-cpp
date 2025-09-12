@@ -27,8 +27,9 @@
 #include <vector>
 
 #include "core/Resource.h"
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 #include "utils/ProcessorConfigUtils.h"
+#include "io/StreamPipe.h"
 
 namespace org::apache::nifi::minifi::processors {
 

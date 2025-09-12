@@ -24,7 +24,7 @@
 #include <aclapi.h>
 #endif
 
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 
 #ifdef WIN32
 namespace {

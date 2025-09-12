@@ -29,9 +29,9 @@
 #include "utils/file/FileUtils.h"
 #include "utils/file/FileWriterCallback.h"
 #include "utils/ProcessorConfigUtils.h"
-#include "utils/gsl.h"
+#include "minifi-cpp/utils/gsl.h"
 #include "core/Resource.h"
-#include "core/ProcessContext.h"
+#include "minifi-cpp/core/ProcessContext.h"
 
 namespace org::apache::nifi::minifi::processors {
 

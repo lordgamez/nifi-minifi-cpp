@@ -23,7 +23,6 @@
 #include <string>
 #include <vector>
 #include <memory>
-#include "core/StreamManager.h"
 #include "utils/Id.h"
 #include "core/logging/LoggerFactory.h"
 #include "core/ContentRepository.h"

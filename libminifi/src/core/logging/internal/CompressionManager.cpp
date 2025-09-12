@@ -22,7 +22,7 @@
 
 #include "core/logging/internal/CompressionManager.h"
 #include "core/logging/internal/LogCompressorSink.h"
-#include "core/logging/Logger.h"
+#include "minifi-cpp/core/logging/Logger.h"
 #include "core/logging/LoggerProperties.h"
 #include "core/TypedValues.h"
 #include "core/Core.h"
