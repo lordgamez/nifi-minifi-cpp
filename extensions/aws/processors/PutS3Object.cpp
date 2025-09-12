@@ -21,7 +21,7 @@
 #include <memory>
 
 #include "AWSCredentialsService.h"
-#include "properties/Properties.h"
+#include "minifi-cpp/properties/Properties.h"
 #include "utils/StringUtils.h"
 #include "utils/MapUtils.h"
 #include "core/ProcessContext.h"

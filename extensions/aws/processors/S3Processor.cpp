@@ -24,7 +24,6 @@
 #include "AWSCredentialsService.h"
 #include "S3Wrapper.h"
 #include "core/ProcessContext.h"
-#include "properties/Properties.h"
 #include "range/v3/algorithm/contains.hpp"
 #include "utils/HTTPUtils.h"
 #include "utils/StringUtils.h"
