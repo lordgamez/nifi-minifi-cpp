@@ -22,7 +22,7 @@
 #include "io/BaseStream.h"
 #include "io/StreamPipe.h"
 #include "io/StreamSlice.h"
-#include "Exception.h"
+#include "minifi-cpp/Exception.h"
 
 namespace org::apache::nifi::minifi::core {
 

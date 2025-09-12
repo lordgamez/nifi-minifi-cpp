@@ -24,7 +24,7 @@
 #include <string>
 #include <ctime>
 
-#include "Exception.h"
+#include "minifi-cpp/Exception.h"
 #include "data/DatabaseConnectors.h"
 #include "core/logging/Logger.h"
 

@@ -42,7 +42,7 @@
 #include "minifi-cpp/core/ProcessorApi.h"
 #include "utils/PropertyErrors.h"
 #include "minifi-cpp/core/ProcessorMetadata.h"
-#include "Exception.h"
+#include "minifi-cpp/Exception.h"
 
 #define ADD_GET_PROCESSOR_NAME \
   std::string getProcessorType() const override { \

@@ -17,7 +17,7 @@
 
 #include "JoltUtils.h"
 #include "rapidjson/error/en.h"
-#include "Exception.h"
+#include "minifi-cpp/Exception.h"
 
 namespace org::apache::nifi::minifi::utils::jolt {
 

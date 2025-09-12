@@ -27,7 +27,7 @@
 #include <utility>
 #include <vector>
 
-#include "Exception.h"
+#include "minifi-cpp/Exception.h"
 #include "MultipartUploadStateStorage.h"
 #include "S3RequestSender.h"
 #include "aws/s3/model/ObjectCannedACL.h"

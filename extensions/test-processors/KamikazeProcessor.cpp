@@ -21,7 +21,7 @@
 
 #include <string>
 
-#include "Exception.h"
+#include "minifi-cpp/Exception.h"
 #include "core/ProcessContext.h"
 #include "core/Resource.h"
 #include "utils/ProcessorConfigUtils.h"

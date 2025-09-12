@@ -31,7 +31,7 @@
 #include <unordered_set>
 
 #include "core/ProcessContext.h"
-#include "Exception.h"
+#include "minifi-cpp/Exception.h"
 #include "core/logging/LoggerFactory.h"
 #include "FlowFile.h"
 #include "WeakReference.h"

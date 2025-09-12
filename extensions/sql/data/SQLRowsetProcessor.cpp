@@ -18,7 +18,7 @@
 
 #include "SQLRowsetProcessor.h"
 
-#include "Exception.h"
+#include "minifi-cpp/Exception.h"
 #include "utils/StringUtils.h"
 
 namespace org {

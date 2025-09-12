@@ -30,7 +30,7 @@
 
 #include "open62541/client.h"
 #include "core/logging/Logger.h"
-#include "Exception.h"
+#include "minifi-cpp/Exception.h"
 
 namespace org::apache::nifi::minifi::opc {
 

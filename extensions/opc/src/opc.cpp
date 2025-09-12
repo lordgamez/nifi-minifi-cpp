@@ -26,7 +26,7 @@
 
 #include "utils/StringUtils.h"
 #include "core/logging/Logger.h"
-#include "Exception.h"
+#include "minifi-cpp/Exception.h"
 
 #include "utils/gsl.h"
 

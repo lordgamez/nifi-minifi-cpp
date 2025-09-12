@@ -22,7 +22,7 @@
 #include <utility>
 
 #include "utils/crypto/EncryptionUtils.h"
-#include "Exception.h"
+#include "minifi-cpp/Exception.h"
 #include "core/logging/Logger.h"
 
 namespace org {

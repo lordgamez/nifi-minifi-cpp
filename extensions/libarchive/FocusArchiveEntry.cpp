@@ -32,7 +32,7 @@
 #include "core/ProcessContext.h"
 #include "core/ProcessSession.h"
 #include "core/Resource.h"
-#include "Exception.h"
+#include "minifi-cpp/Exception.h"
 #include "SmartArchivePtrs.h"
 #include "utils/ConfigurationUtils.h"
 #include "utils/gsl.h"

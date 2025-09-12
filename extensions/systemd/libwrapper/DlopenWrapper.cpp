@@ -18,7 +18,7 @@
 
 #include <dlfcn.h>
 
-#include "Exception.h"
+#include "minifi-cpp/Exception.h"
 #include "utils/gsl.h"
 #include "utils/StringUtils.h"
 

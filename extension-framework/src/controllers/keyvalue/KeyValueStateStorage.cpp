@@ -17,7 +17,7 @@
 
 #include <memory>
 
-#include "Exception.h"
+#include "minifi-cpp/Exception.h"
 #include "controllers/keyvalue/KeyValueStateManager.h"
 #include "controllers/keyvalue/KeyValueStateStorage.h"
 #include "rapidjson/rapidjson.h"

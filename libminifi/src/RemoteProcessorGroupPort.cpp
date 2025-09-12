@@ -27,7 +27,7 @@
 #include <utility>
 #include <vector>
 
-#include "Exception.h"
+#include "minifi-cpp/Exception.h"
 #include "controllers/SSLContextService.h"
 #include "core/ProcessContext.h"
 #include "core/Processor.h"

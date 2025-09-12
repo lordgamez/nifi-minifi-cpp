@@ -22,7 +22,7 @@
 #include <string>
 #include <utility>
 
-#include "Exception.h"
+#include "minifi-cpp/Exception.h"
 #include "io/validation.h"
 #include "io/FileStream.h"
 #include "io/InputStream.h"

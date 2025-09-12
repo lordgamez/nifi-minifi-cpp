@@ -23,7 +23,7 @@
 
 #include "Controller.h"
 #include "Defaults.h"
-#include "Exception.h"
+#include "minifi-cpp/Exception.h"
 #include "MainHelper.h"
 #include "agent/agent_version.h"
 #include "argparse/argparse.hpp"

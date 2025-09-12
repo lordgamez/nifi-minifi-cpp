@@ -23,7 +23,7 @@
 #include <utility>
 #include <vector>
 
-#include "Exception.h"
+#include "minifi-cpp/Exception.h"
 #include "RocksDbStream.h"
 #include "core/Resource.h"
 #include "core/TypedValues.h"

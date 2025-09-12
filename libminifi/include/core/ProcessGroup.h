@@ -30,7 +30,7 @@
 #include <tuple>
 
 #include "core/Processor.h"
-#include "Exception.h"
+#include "minifi-cpp/Exception.h"
 #include "TimerDrivenSchedulingAgent.h"
 #include "EventDrivenSchedulingAgent.h"
 #include "CronDrivenSchedulingAgent.h"

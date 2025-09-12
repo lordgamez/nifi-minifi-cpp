@@ -28,7 +28,7 @@
 
 #include "utils/file/FileManager.h"
 #include "utils/gsl.h"
-#include "Exception.h"
+#include "minifi-cpp/Exception.h"
 
 #include "rapidjson/writer.h"
 #include "rapidjson/error/en.h"

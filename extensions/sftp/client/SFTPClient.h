@@ -28,7 +28,7 @@
 #include <tuple>
 #include <vector>
 
-#include "Exception.h"
+#include "minifi-cpp/Exception.h"
 #include "core/logging/Logger.h"
 #include "http/BaseHTTPClient.h"
 #include "utils/Enum.h"
