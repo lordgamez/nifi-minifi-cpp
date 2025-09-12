@@ -31,7 +31,6 @@
 #include "core/ProcessGroup.h"
 #include "core/Core.h"
 #include "SchedulingAgent.h"
-#include "core/controller/ControllerServiceProvider.h"
 #include "core/controller/ForwardingControllerServiceProvider.h"
 #include "core/logging/LoggerConfiguration.h"
 #include "minifi-cpp/core/Connectable.h"

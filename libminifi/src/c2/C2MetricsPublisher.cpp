@@ -27,7 +27,6 @@
 #include "core/state/nodes/RepositoryMetrics.h"
 #include "properties/Configure.h"
 #include "core/state/UpdateController.h"
-#include "core/controller/ControllerServiceProvider.h"
 #include "c2/C2Agent.h"
 #include "core/state/nodes/FlowInformation.h"
 #include "properties/Configuration.h"

@@ -46,6 +46,7 @@
 #include "c2/C2Utils.h"
 #include "c2/protocols/RESTSender.h"
 #include "rapidjson/error/en.h"
+#include "core/ClassLoader.h"
 
 using namespace std::literals::chrono_literals;
 
