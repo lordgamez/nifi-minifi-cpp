@@ -19,7 +19,7 @@
 
 #include <fstream>
 
-#include "agent/agent_version.h"
+#include "minifi-cpp/agent/agent_version.h"
 #include "unit/TestBase.h"
 #include "unit/Catch.h"
 #include "unit/TestControllerWithFlow.h"

@@ -21,7 +21,7 @@
 #include <string>
 #include <utility>
 
-#include "core/Annotation.h"
+#include "minifi-cpp/core/Annotation.h"
 #include "core/ProcessorImpl.h"
 #include "core/ProcessContext.h"
 #include "core/ProcessSession.h"

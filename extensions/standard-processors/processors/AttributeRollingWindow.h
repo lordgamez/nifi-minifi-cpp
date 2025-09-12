@@ -24,7 +24,7 @@
 #include <string_view>
 
 #include "core/AbstractProcessor.h"
-#include "core/Annotation.h"
+#include "minifi-cpp/core/Annotation.h"
 #include "core/logging/LoggerFactory.h"
 #include "core/PropertyDefinitionBuilder.h"
 #include "minifi-cpp/core/PropertyValidator.h"

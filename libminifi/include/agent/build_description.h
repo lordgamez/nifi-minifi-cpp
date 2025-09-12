@@ -29,7 +29,7 @@
 #include "core/Property.h"
 #include "core/Relationship.h"
 #include "core/Processor.h"
-#include "core/Annotation.h"
+#include "minifi-cpp/core/Annotation.h"
 #include "io/validation.h"
 #include "minifi-cpp/agent/build_description.h"
 

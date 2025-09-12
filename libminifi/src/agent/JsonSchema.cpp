@@ -21,7 +21,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "agent/agent_version.h"
+#include "minifi-cpp/agent/agent_version.h"
 #include "agent/build_description.h"
 #include "rapidjson/document.h"
 #include "rapidjson/prettywriter.h"

@@ -25,7 +25,7 @@
 #include "Defaults.h"
 #include "minifi-cpp/Exception.h"
 #include "MainHelper.h"
-#include "agent/agent_version.h"
+#include "minifi-cpp/agent/agent_version.h"
 #include "argparse/argparse.hpp"
 #include "c2/ControllerSocketProtocol.h"
 #include "controllers/SSLContextService.h"
