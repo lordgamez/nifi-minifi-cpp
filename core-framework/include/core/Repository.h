@@ -32,7 +32,7 @@
 
 #include "core/Connectable.h"
 #include "core/ContentRepository.h"
-#include "core/Property.h"
+#include "minifi-cpp/core/Property.h"
 #include "core/logging/LoggerFactory.h"
 #include "core/RepositoryMetricsSource.h"
 #include "utils/BackTrace.h"

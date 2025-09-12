@@ -42,7 +42,7 @@
 #include "core/ProcessGroup.h"
 #include "core/Processor.h"
 #include "core/ProcessSession.h"
-#include "core/Property.h"
+#include "minifi-cpp/core/Property.h"
 #include "core/Relationship.h"
 #include "core/state/nodes/FlowInformation.h"
 #include "core/state/nodes/MetricsBase.h"

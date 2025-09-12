@@ -27,7 +27,7 @@
 #include <tuple>
 
 #include "minifi-cpp/core/PropertyDefinition.h"
-#include "core/Property.h"
+#include "minifi-cpp/core/Property.h"
 #include "core/PropertyDefinitionBuilder.h"
 #include "core/ProcessorImpl.h"
 #include "minifi-cpp/core/logging/Logger.h"

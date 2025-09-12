@@ -26,7 +26,7 @@
 #include "opcbase.h"
 #include "minifi-cpp/FlowFileRecord.h"
 #include "core/ProcessSession.h"
-#include "core/Property.h"
+#include "minifi-cpp/core/Property.h"
 #include "core/PropertyDefinitionBuilder.h"
 #include "minifi-cpp/core/PropertyValidator.h"
 #include "minifi-cpp/core/RelationshipDefinition.h"

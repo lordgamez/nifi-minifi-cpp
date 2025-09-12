@@ -26,7 +26,7 @@
 #include <string>
 #include <utility>
 
-#include "core/Property.h"
+#include "minifi-cpp/core/Property.h"
 #include "core/ProcessorImpl.h"
 #include "core/ProcessSession.h"
 #include "core/ProcessContext.h"

@@ -28,7 +28,7 @@
 #include "core/ProcessSession.h"
 #include "core/PropertyDefinitionBuilder.h"
 #include "core/Core.h"
-#include "core/Property.h"
+#include "minifi-cpp/core/Property.h"
 #include "core/logging/LoggerFactory.h"
 #include "AbstractMQTTProcessor.h"
 #include "utils/ArrayUtils.h"

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "core/Property.h"
+#include "minifi-cpp/core/Property.h"
 
 #include <utility>
 

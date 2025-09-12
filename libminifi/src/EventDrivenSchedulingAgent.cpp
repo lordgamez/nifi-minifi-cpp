@@ -22,7 +22,7 @@
 #include "core/Processor.h"
 #include "core/ProcessContext.h"
 #include "core/ProcessSessionFactory.h"
-#include "core/Property.h"
+#include "minifi-cpp/core/Property.h"
 
 using namespace std::literals::chrono_literals;
 

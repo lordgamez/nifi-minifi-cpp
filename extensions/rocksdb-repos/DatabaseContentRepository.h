@@ -26,7 +26,7 @@
 #include "core/ContentRepository.h"
 #include "core/BufferedContentSession.h"
 #include "core/logging/LoggerFactory.h"
-#include "core/Property.h"
+#include "minifi-cpp/core/Property.h"
 #include "database/RocksDatabase.h"
 #include "minifi-cpp/properties/Configure.h"
 #include "utils/StoppableThread.h"

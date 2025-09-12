@@ -31,7 +31,7 @@
 #include "core/Core.h"
 #include "core/SerializableComponent.h"
 #include "core/Repository.h"
-#include "core/Property.h"
+#include "minifi-cpp/core/Property.h"
 #include "properties/Configure.h"
 #include "Connection.h"
 #include "core/logging/LoggerFactory.h"

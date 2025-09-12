@@ -23,7 +23,7 @@
 
 #include "minifi-cpp/controllers/SSLContextServiceInterface.h"
 #include "Peer.h"
-#include "core/Property.h"
+#include "minifi-cpp/core/Property.h"
 #include "properties/Configure.h"
 #include "io/CRCStream.h"
 #include "utils/Id.h"

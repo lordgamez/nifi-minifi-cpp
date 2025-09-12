@@ -28,7 +28,7 @@
 #include <utility>
 
 #include "core/logging/LoggerFactory.h"
-#include "core/Property.h"
+#include "minifi-cpp/core/Property.h"
 #include "io/BaseStream.h"
 #include "io/BufferStream.h"
 #include "properties/Configure.h"

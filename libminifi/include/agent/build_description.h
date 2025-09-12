@@ -26,7 +26,7 @@
 #include "core/controller/ControllerService.h"
 #include "core/ClassLoader.h"
 #include "core/expect.h"
-#include "core/Property.h"
+#include "minifi-cpp/core/Property.h"
 #include "core/Relationship.h"
 #include "core/Processor.h"
 #include "minifi-cpp/core/Annotation.h"
