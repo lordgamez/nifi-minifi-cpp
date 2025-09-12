@@ -21,7 +21,7 @@
 #include <vector>
 
 #include "MetricsExposer.h"
-#include "controllers/SSLContextServiceInterface.h"
+#include "minifi-cpp/controllers/SSLContextServiceInterface.h"
 #include "minifi-cpp/core/logging/Logger.h"
 #include "core/logging/LoggerFactory.h"
 #include "prometheus/exposer.h"

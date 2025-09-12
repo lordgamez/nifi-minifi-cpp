@@ -32,7 +32,7 @@
 #include "minifi-cpp/core/PropertyDefinition.h"
 #include "core/PropertyDefinitionBuilder.h"
 #include "minifi-cpp/core/PropertyValidator.h"
-#include "controllers/SSLContextServiceInterface.h"
+#include "minifi-cpp/controllers/SSLContextServiceInterface.h"
 #include "utils/Id.h"
 #include "../client/SFTPClient.h"
 

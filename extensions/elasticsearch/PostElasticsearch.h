@@ -22,7 +22,7 @@
 #include <memory>
 #include <vector>
 
-#include "controllers/SSLContextServiceInterface.h"
+#include "minifi-cpp/controllers/SSLContextServiceInterface.h"
 #include "ElasticsearchCredentialsControllerService.h"
 #include "core/ProcessorImpl.h"
 #include "minifi-cpp/core/PropertyDefinition.h"

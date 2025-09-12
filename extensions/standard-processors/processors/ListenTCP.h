@@ -21,7 +21,7 @@
 #include <utility>
 
 #include "NetworkListenerProcessor.h"
-#include "controllers/SSLContextServiceInterface.h"
+#include "minifi-cpp/controllers/SSLContextServiceInterface.h"
 #include "core/Core.h"
 #include "minifi-cpp/core/OutputAttributeDefinition.h"
 #include "minifi-cpp/core/PropertyDefinition.h"

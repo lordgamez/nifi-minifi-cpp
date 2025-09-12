@@ -30,7 +30,7 @@
 #include "utils/Export.h"
 #include "asio/io_context.hpp"
 #include "asio/ssl/context.hpp"
-#include "controllers/SSLContextServiceInterface.h"
+#include "minifi-cpp/controllers/SSLContextServiceInterface.h"
 #include "core/Core.h"
 #include "minifi-cpp/core/PropertyDefinition.h"
 #include "core/PropertyDefinitionBuilder.h"

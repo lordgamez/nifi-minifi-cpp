@@ -31,7 +31,7 @@
 #include "couchbase/cluster.hxx"
 #include "core/ProcessContext.h"
 #include "core/logging/LoggerFactory.h"
-#include "controllers/SSLContextServiceInterface.h"
+#include "minifi-cpp/controllers/SSLContextServiceInterface.h"
 
 namespace org::apache::nifi::minifi::couchbase {
 

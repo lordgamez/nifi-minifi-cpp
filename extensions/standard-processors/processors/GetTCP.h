@@ -36,7 +36,7 @@
 #include "concurrentqueue.h"
 #include "utils/ThreadPool.h"
 #include "core/logging/LoggerFactory.h"
-#include "controllers/SSLContextServiceInterface.h"
+#include "minifi-cpp/controllers/SSLContextServiceInterface.h"
 #include "minifi-cpp/utils/gsl.h"
 #include "utils/Export.h"
 #include "utils/net/AsioSocketUtils.h"

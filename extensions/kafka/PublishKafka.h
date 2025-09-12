@@ -29,7 +29,7 @@
 
 #include "KafkaConnection.h"
 #include "KafkaProcessorBase.h"
-#include "controllers/SSLContextServiceInterface.h"
+#include "minifi-cpp/controllers/SSLContextServiceInterface.h"
 #include "core/Core.h"
 #include "minifi-cpp/core/FlowFile.h"
 #include "core/ProcessSession.h"

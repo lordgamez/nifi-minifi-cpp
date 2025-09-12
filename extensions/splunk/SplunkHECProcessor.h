@@ -20,7 +20,7 @@
 #include <string>
 #include <utility>
 
-#include "controllers/SSLContextServiceInterface.h"
+#include "minifi-cpp/controllers/SSLContextServiceInterface.h"
 #include "core/Core.h"
 #include "core/ProcessorImpl.h"
 #include "minifi-cpp/core/PropertyDefinition.h"

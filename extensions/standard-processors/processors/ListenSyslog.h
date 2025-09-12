@@ -23,7 +23,7 @@
 #include <memory>
 #include <regex>
 
-#include "controllers/SSLContextServiceInterface.h"
+#include "minifi-cpp/controllers/SSLContextServiceInterface.h"
 #include "NetworkListenerProcessor.h"
 #include "core/logging/LoggerFactory.h"
 #include "minifi-cpp/core/OutputAttributeDefinition.h"
