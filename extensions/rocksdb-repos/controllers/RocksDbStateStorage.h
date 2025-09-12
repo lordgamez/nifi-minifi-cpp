@@ -25,7 +25,7 @@
 #include "core/Core.h"
 #include "minifi-cpp/core/logging/Logger.h"
 #include "core/logging/LoggerFactory.h"
-#include "core/PropertyDefinition.h"
+#include "minifi-cpp/core/PropertyDefinition.h"
 #include "core/PropertyDefinitionBuilder.h"
 #include "minifi-cpp/core/PropertyValidator.h"
 #include "../database/RocksDatabase.h"

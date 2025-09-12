@@ -23,7 +23,7 @@
 #include "controllers/SSLContextServiceInterface.h"
 #include "core/Core.h"
 #include "core/ProcessorImpl.h"
-#include "core/PropertyDefinition.h"
+#include "minifi-cpp/core/PropertyDefinition.h"
 #include "core/PropertyDefinitionBuilder.h"
 #include "http/HTTPClient.h"
 #include "minifi-cpp/core/PropertyValidator.h"

@@ -26,7 +26,7 @@
 #include "io/validation.h"
 #include "core/controller/ControllerService.h"
 #include "core/logging/LoggerFactory.h"
-#include "core/PropertyDefinition.h"
+#include "minifi-cpp/core/PropertyDefinition.h"
 #include "core/PropertyDefinitionBuilder.h"
 #include "minifi-cpp/core/PropertyValidator.h"
 #include "core/state/UpdatePolicy.h"

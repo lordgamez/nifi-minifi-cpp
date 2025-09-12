@@ -20,7 +20,7 @@
 #include "core/controller/ControllerService.h"
 #include "core/controller/ControllerServiceNode.h"
 #include "core/controller/ControllerServiceProvider.h"
-#include "core/PropertyDefinition.h"
+#include "minifi-cpp/core/PropertyDefinition.h"
 #include "core/ProcessorImpl.h"
 #include "core/PropertyDefinitionBuilder.h"
 #include "utils/ProcessorConfigUtils.h"

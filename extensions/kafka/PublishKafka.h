@@ -33,7 +33,7 @@
 #include "core/Core.h"
 #include "minifi-cpp/core/FlowFile.h"
 #include "core/ProcessSession.h"
-#include "core/PropertyDefinition.h"
+#include "minifi-cpp/core/PropertyDefinition.h"
 #include "core/PropertyDefinitionBuilder.h"
 #include "core/RelationshipDefinition.h"
 #include "minifi-cpp/core/logging/Logger.h"

@@ -20,7 +20,7 @@
 
 #include <utility>
 
-#include "core/PropertyDefinition.h"
+#include "minifi-cpp/core/PropertyDefinition.h"
 #include "minifi-cpp/core/PropertyValidator.h"
 #include "utils/PropertyErrors.h"
 #include "range/v3/algorithm/none_of.hpp"

@@ -29,7 +29,7 @@
 #include "core/ProcessSession.h"
 #include "core/ProcessContext.h"
 #include "core/PropertyDefinitionBuilder.h"
-#include "core/PropertyDefinition.h"
+#include "minifi-cpp/core/PropertyDefinition.h"
 #include "minifi-cpp/core/PropertyValidator.h"
 #include "core/RelationshipDefinition.h"
 #include "utils/Export.h"

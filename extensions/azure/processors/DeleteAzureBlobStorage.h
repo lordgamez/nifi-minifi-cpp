@@ -27,7 +27,7 @@
 #include <vector>
 
 #include "core/Property.h"
-#include "core/PropertyDefinition.h"
+#include "minifi-cpp/core/PropertyDefinition.h"
 #include "core/PropertyDefinitionBuilder.h"
 #include "AzureBlobStorageSingleBlobProcessorBase.h"
 #include "core/logging/LoggerFactory.h"

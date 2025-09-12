@@ -24,7 +24,7 @@
 
 #include "core/ProcessSession.h"
 #include "core/ProcessContext.h"
-#include "core/PropertyDefinition.h"
+#include "minifi-cpp/core/PropertyDefinition.h"
 #include "core/PropertyDefinitionBuilder.h"
 #include "SQLProcessor.h"
 #include "FlowFileSource.h"

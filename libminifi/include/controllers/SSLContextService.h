@@ -35,7 +35,7 @@
 #include "openssl/pkcs12.h"
 #include "openssl/ssl.h"
 
-#include "core/PropertyDefinition.h"
+#include "minifi-cpp/core/PropertyDefinition.h"
 #include "core/PropertyDefinitionBuilder.h"
 #include "core/controller/ControllerService.h"
 #include "core/logging/LoggerFactory.h"

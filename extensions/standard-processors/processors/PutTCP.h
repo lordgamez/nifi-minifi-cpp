@@ -32,7 +32,7 @@
 #include "asio/ssl/context.hpp"
 #include "controllers/SSLContextServiceInterface.h"
 #include "core/Core.h"
-#include "core/PropertyDefinition.h"
+#include "minifi-cpp/core/PropertyDefinition.h"
 #include "core/PropertyDefinitionBuilder.h"
 #include "core/RelationshipDefinition.h"
 #include "minifi-cpp/core/PropertyValidator.h"

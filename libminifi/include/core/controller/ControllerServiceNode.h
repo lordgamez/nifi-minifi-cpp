@@ -26,7 +26,7 @@
 #include "core/ConfigurableComponentImpl.h"
 #include "minifi-cpp/core/logging/Logger.h"
 #include "minifi-cpp/core/controller/ControllerServiceNode.h"
-#include "core/PropertyDefinition.h"
+#include "minifi-cpp/core/PropertyDefinition.h"
 #include "core/PropertyDefinitionBuilder.h"
 #include "properties/Configure.h"
 #include "minifi-cpp/core/controller/ControllerService.h"

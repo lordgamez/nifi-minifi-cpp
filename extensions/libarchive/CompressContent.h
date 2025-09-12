@@ -34,7 +34,7 @@
 #include "core/ProcessorImpl.h"
 #include "core/ProcessSession.h"
 #include "core/Core.h"
-#include "core/PropertyDefinition.h"
+#include "minifi-cpp/core/PropertyDefinition.h"
 #include "core/PropertyDefinitionBuilder.h"
 #include "core/logging/LoggerFactory.h"
 #include "io/ZlibStream.h"

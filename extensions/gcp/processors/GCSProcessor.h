@@ -24,7 +24,7 @@
 #include "../controllerservices/GCPCredentialsControllerService.h"
 #include "minifi-cpp/core/logging/Logger.h"
 #include "core/ProcessorImpl.h"
-#include "core/PropertyDefinition.h"
+#include "minifi-cpp/core/PropertyDefinition.h"
 #include "core/PropertyDefinitionBuilder.h"
 #include "minifi-cpp/core/PropertyValidator.h"
 #include "google/cloud/storage/oauth2/credentials.h"

@@ -22,7 +22,7 @@
 
 #include "core/ProcessorImpl.h"
 #include "core/ProcessSession.h"
-#include "core/PropertyDefinition.h"
+#include "minifi-cpp/core/PropertyDefinition.h"
 #include "core/PropertyDefinitionBuilder.h"
 #include "core/RelationshipDefinition.h"
 #include "utils/Enum.h"

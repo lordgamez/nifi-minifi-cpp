@@ -23,7 +23,7 @@
 
 #include "../GCPAttributes.h"
 #include "GCSProcessor.h"
-#include "core/PropertyDefinition.h"
+#include "minifi-cpp/core/PropertyDefinition.h"
 #include "minifi-cpp/core/PropertyValidator.h"
 #include "core/RelationshipDefinition.h"
 #include "core/logging/LoggerFactory.h"

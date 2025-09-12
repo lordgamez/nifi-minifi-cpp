@@ -27,7 +27,7 @@
 #include <vector>
 
 #include "core/ProcessContext.h"
-#include "core/PropertyDefinition.h"
+#include "minifi-cpp/core/PropertyDefinition.h"
 #include "minifi-cpp/core/PropertyValidator.h"
 #include "core/Property.h"
 #include "core/logging/LoggerFactory.h"

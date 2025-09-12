@@ -26,7 +26,7 @@
 
 #include "core/Processor.h"
 #include "core/ProcessContextBuilder.h"
-#include "core/PropertyDefinition.h"
+#include "minifi-cpp/core/PropertyDefinition.h"
 #include "core/logging/LoggerConfiguration.h"
 #include "core/state/nodes/FlowInformation.h"
 #include "core/controller/StandardControllerServiceProvider.h"
