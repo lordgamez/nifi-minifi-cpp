@@ -35,7 +35,7 @@
 #include "FlowController.h"
 #include "properties/Configure.h"
 #include "provenance/Provenance.h"
-#include "SwapManager.h"
+#include "minifi-cpp/SwapManager.h"
 #include "io/BufferStream.h"
 
 using namespace std::literals::chrono_literals;
