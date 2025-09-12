@@ -40,7 +40,7 @@
 #include "utils/Environment.h"
 #include "utils/Monitors.h"
 #include "utils/StringUtils.h"
-#include "io/ArchiveStream.h"
+#include "minifi-cpp/io/ArchiveStream.h"
 #include "io/StreamPipe.h"
 #include "utils/Id.h"
 #include "c2/C2Utils.h"

@@ -22,7 +22,7 @@
 #include <utility>
 
 #include "io/OutputStream.h"
-#include "io/ArchiveStream.h"
+#include "minifi-cpp/io/ArchiveStream.h"
 #include "io/InputStream.h"
 #include "core/logging/LoggerFactory.h"
 #include "archive_entry.h"
