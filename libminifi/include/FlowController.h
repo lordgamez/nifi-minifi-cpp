@@ -54,7 +54,6 @@
 #include "utils/file/FileSystem.h"
 #include "utils/file/AssetManager.h"
 #include "core/state/nodes/ResponseNodeLoader.h"
-#include "core/state/MetricsPublisher.h"
 #include "core/state/MetricsPublisherStore.h"
 #include "RootProcessGroupWrapper.h"
 #include "c2/ControllerSocketProtocol.h"
