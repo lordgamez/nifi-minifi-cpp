@@ -24,7 +24,7 @@
 
 #include "minifi-cpp/core/logging/Logger.h"
 #include "minifi-cpp/io/InputStream.h"
-#include "io/OutputStream.h"
+#include "minifi-cpp/io/OutputStream.h"
 #include "io/StreamPipe.h"
 
 namespace org::apache::nifi::minifi::utils {

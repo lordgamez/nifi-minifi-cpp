@@ -23,7 +23,7 @@
 #include "core/Core.h"
 #include "minifi-cpp/utils/gsl.h"
 #include "minifi-cpp/io/InputStream.h"
-#include "io/OutputStream.h"
+#include "minifi-cpp/io/OutputStream.h"
 
 namespace org::apache::nifi::minifi::core {
 

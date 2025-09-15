@@ -38,7 +38,7 @@
 #include "minifi-cpp/core/logging/Logger.h"
 #include "core/logging/LoggerFactory.h"
 #include "minifi-cpp/io/InputStream.h"
-#include "io/OutputStream.h"
+#include "minifi-cpp/io/OutputStream.h"
 #include "range/v3/algorithm/find.hpp"
 #include "utils/AWSInitializer.h"
 #include "utils/ConfigurationUtils.h"

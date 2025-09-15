@@ -19,7 +19,7 @@
 #include <string>
 #include <vector>
 #include "io/CRCStream.h"
-#include "io/OutputStream.h"
+#include "minifi-cpp/io/OutputStream.h"
 #include "unit/TestBase.h"
 #include "unit/Catch.h"
 #include "minifi-cpp/utils/gsl.h"

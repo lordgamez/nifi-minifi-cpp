@@ -30,7 +30,7 @@
 #include "core/logging/LoggerFactory.h"
 #include "minifi-cpp/utils/gsl.h"
 #include "utils/ListingStateManager.h"
-#include "io/OutputStream.h"
+#include "minifi-cpp/io/OutputStream.h"
 
 namespace org::apache::nifi::minifi::azure::storage {
 
