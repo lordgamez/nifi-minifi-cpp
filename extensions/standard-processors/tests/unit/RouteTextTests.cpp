@@ -95,7 +95,7 @@ struct RouteTextController : public TestController {
       }
       verifyOutputRelationship(rel, files);
     }
-    if (patterns.find("original") == patterns.end()) {
+    if (!patterns.contains("original")) {
       // expectations on "original" were implicit
       verifyOutputRelationship("original", all);
     }

@@ -557,7 +557,7 @@ bool RawSiteToSiteClient::transmitPayload(core::ProcessContext& context, core::P
                                           std::map<std::string, std::string> attributes) {
   std::shared_ptr<Transaction> transaction;
 
-  if (payload.length() <= 0)
+  if (payload.empty())
     return false;
 
   if (peer_state_ != READY) {

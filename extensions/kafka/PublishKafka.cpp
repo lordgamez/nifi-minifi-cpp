@@ -112,7 +112,7 @@ class PublishKafka::Messages {
   }
 
   template<typename Func>
-  auto modifyResult(size_t index, Func fun) -> decltype(fun(flow_files_.at(index))) {
+  auto modifyResult(size_t index, const Func& fun) -> decltype(fun(flow_files_.at(index))) {
     std::unique_lock<std::mutex> lock(mutex_);
     const auto notifier = gsl::finally([this] { cv_.notify_all(); });
     try {
@@ -219,7 +219,7 @@ class ReadCallback {
       // in case of success, rd_kafka_producev takes ownership of the headers, so we no longer need to delete it
       std::ignore = callback_ptr.release();
     }
-    logger_->log_trace("produce enqueued flow file #{}/segment #{}: {}",
+    logger_->log_trace("produce enqueued flow file #{}/segment #{}: {}",  // NOLINT(clang-analyzer-cplusplus.NewDeleteLeaks)
         flow_file_index_,
         segment_num,
         rd_kafka_err2str(err));
@@ -353,7 +353,7 @@ void PublishKafka::onSchedule(core::ProcessContext& context, core::ProcessSessio
 
   // Attributes to Send as Headers
   attributeNameRegex_ = context.getProperty(AttributeNameRegex)
-    | utils::transform([](const auto pattern_str) { return utils::Regex{std::move(pattern_str)}; })
+    | utils::transform([](auto pattern_str) { return utils::Regex{std::move(pattern_str)}; })
     | utils::toOptional();
 
   key_.brokers_ = brokers;

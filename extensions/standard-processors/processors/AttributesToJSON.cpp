@@ -38,11 +38,11 @@ void AttributesToJSON::initialize() {
 
 void AttributesToJSON::onSchedule(core::ProcessContext& context, core::ProcessSessionFactory&) {
   attribute_list_ = context.getProperty(AttributesList)
-      | utils::transform([](const auto attributes_list_str) { return utils::string::splitAndTrimRemovingEmpty(attributes_list_str, ","); })
+      | utils::transform([](const auto& attributes_list_str) { return utils::string::splitAndTrimRemovingEmpty(attributes_list_str, ","); })
       | utils::valueOrElse([] { return std::vector<std::string>{}; });
 
   attributes_regular_expression_ = context.getProperty(AttributesRegularExpression)
-      | utils::transform([](const auto s) { return utils::Regex{s}; })
+      | utils::transform([](auto s) { return utils::Regex{std::move(s)}; })
       | utils::toOptional();
 
   write_destination_ = utils::parseEnumProperty<attributes_to_json::WriteDestination>(context, Destination);

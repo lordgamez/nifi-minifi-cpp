@@ -83,7 +83,7 @@ void build_test_archive(const std::filesystem::path& path, const TAE_MAP_T& entr
   }
 
   for (const std::string& name : order) {
-    TestArchiveEntry test_entry = entries.at(name);
+    const TestArchiveEntry& test_entry = entries.at(name);
 
     std::cout << "Adding entry: " << name << std::endl;
 

@@ -123,7 +123,7 @@ struct NodeData {
   UA_Variant* var_;
 
   explicit NodeData(UA_Variant * var = nullptr) {
-    var_ = var;
+    var_ = var;  // NOLINT(clang-analyzer-optin.cplusplus.UninitializedObject)
   }
   void addVariant(UA_Variant * var) {
     if (var_) {

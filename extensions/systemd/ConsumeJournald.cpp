@@ -78,7 +78,7 @@ void ConsumeJournald::onSchedule(core::ProcessContext& context, core::ProcessSes
     return process_old_messages ? journal.seekHead() : journal.seekTail();
   };
   worker_->enqueue([this, &seek_default] {
-    const auto cursor = state_manager_->get() | utils::transform([](std::unordered_map<std::string, std::string>&& m) { return m.at(CURSOR_KEY); });
+    const auto cursor = state_manager_->get() | utils::transform([](const std::unordered_map<std::string, std::string>& m) { return m.at(CURSOR_KEY); });
     if (!cursor) {
       seek_default(*journal_);
     } else {

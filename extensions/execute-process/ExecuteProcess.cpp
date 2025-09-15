@@ -158,7 +158,7 @@ void ExecuteProcess::readOutput(core::ProcessSession& session) const {
   std::shared_ptr<core::FlowFile> flow_file;
   auto num_read = read(pipefd_[0], buf_ptr, buffer.size());
   while (num_read > 0) {
-    if (num_read == static_cast<ssize_t>(buffer.size() - read_to_buffer)) {
+    if (num_read == static_cast<ssize_t>(buffer.size() - read_to_buffer)) {  // NOLINT(modernize-use-integer-sign-comparison)
       // we reach the max buffer size
       logger_->log_debug("Execute Command Max Respond {}", buffer.size());
       if (!writeToFlowFile(session, flow_file, buffer)) {

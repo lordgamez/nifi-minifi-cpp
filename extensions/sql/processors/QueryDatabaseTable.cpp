@@ -143,7 +143,7 @@ bool QueryDatabaseTable::loadMaxValuesFromStoredState(const std::unordered_map<s
     }
   }
   for (auto& column : max_value_columns_) {
-    if (new_max_values.find(column) == new_max_values.end()) {
+    if (!new_max_values.contains(column)) {
       logger_->log_info("New maximum-value column \"{}\" specified, resetting state.", column.str());
       return false;
     }

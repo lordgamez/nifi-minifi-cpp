@@ -36,7 +36,7 @@ using namespace std::literals::chrono_literals;
 TEST_CASE("Test Provenance record create", "[Testprovenance::ProvenanceEventRecord]") {
   auto record1 = std::make_shared<provenance::ProvenanceEventRecordImpl>(provenance::ProvenanceEventRecord::ProvenanceEventType::CREATE, "blah", "blahblah");
   REQUIRE(record1->getAttributes().empty());
-  REQUIRE(record1->getAlternateIdentifierUri().length() == 0);
+  REQUIRE(record1->getAlternateIdentifierUri().empty());
 }
 
 TEST_CASE("Test Provenance record serialization", "[Testprovenance::ProvenanceEventRecordSerializeDeser]") {

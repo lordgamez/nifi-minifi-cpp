@@ -357,7 +357,7 @@ void C2Agent::handle_c2_server_response(const C2ContentResponse &resp) {
         }
       });
 
-      if (resp.ident.length() > 0) {
+      if (!resp.ident.empty()) {
         C2Payload response(Operation::acknowledge, resp.ident, true);
         enqueue_c2_response(std::move(response));
       }
@@ -538,7 +538,6 @@ void C2Agent::handle_describe(const C2ContentResponse &resp) {
         for (const auto &trace : traces) {
           C2Payload options(Operation::acknowledge, resp.ident, true);
           options.setLabel(trace.getName());
-          std::string value;
           for (const auto &line : trace.getTraces()) {
             C2ContentResponse option(Operation::acknowledge);
             option.name = line;
@@ -886,7 +885,7 @@ utils::TaskRescheduleInfo C2Agent::produce() {
     std::for_each(
         std::make_move_iterator(payload_batch.begin()),
         std::make_move_iterator(payload_batch.end()),
-        [&] (C2Payload&& payload) {
+        [&] (const C2Payload& payload) {
           try {
             C2Payload response = protocol_->consumePayload(payload);
             enqueue_c2_server_response(std::move(response));
@@ -923,7 +922,7 @@ utils::TaskRescheduleInfo C2Agent::produce() {
 
 utils::TaskRescheduleInfo C2Agent::consume() {
   if (!responses.empty()) {
-    const auto consume_success = responses.consume([this] (C2Payload&& payload) {
+    const auto consume_success = responses.consume([this] (const C2Payload& payload) {
       extractPayload(payload);
     });
     if (!consume_success) {

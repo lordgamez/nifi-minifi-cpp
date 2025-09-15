@@ -74,7 +74,7 @@ class GCPCredentialsTests : public ::testing::Test {
     ASSERT_TRUE(gcp_credentials_);
     plan_->addProcessor("DummyProcessor", "dummy_processor");
   }
-  TestController test_controller_{};
+  TestController test_controller_;
   std::shared_ptr<TestPlan> plan_ = test_controller_.createPlan();
   std::shared_ptr<minifi::core::controller::ControllerServiceNode> gcp_credentials_node_ = plan_->addController("GCPCredentialsControllerService", "gcp_credentials_controller_service");
   std::shared_ptr<GCPCredentialsControllerService> gcp_credentials_ = std::dynamic_pointer_cast<GCPCredentialsControllerService>(gcp_credentials_node_->getControllerServiceImplementation());

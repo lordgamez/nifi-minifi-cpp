@@ -123,7 +123,7 @@ int64_t PutAzureDataLakeStorage::ReadCallback::operator()(const std::shared_ptr<
   }
 
   result_ = azure_data_lake_storage_.uploadFile(params_, buffer);
-  return read_ret;
+  return gsl::narrow<int64_t>(read_ret);
 }
 
 REGISTER_RESOURCE(PutAzureDataLakeStorage, Processor);

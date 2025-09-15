@@ -90,7 +90,7 @@ Controller Services:
 )";
 
 template<typename Fn>
-bool verifyWithBusyWait(std::chrono::milliseconds timeout, Fn&& fn) {
+bool verifyWithBusyWait(std::chrono::milliseconds timeout, const Fn& fn) {
   auto start = std::chrono::steady_clock::now();
   while (std::chrono::steady_clock::now() - start < timeout) {
     if (fn()) {

@@ -21,6 +21,7 @@
 #include <vector>
 #include <string>
 #include <utility>
+#include <algorithm>
 
 #include "minifi-cpp/Exception.h"
 #include "io/validation.h"
@@ -124,9 +125,7 @@ size_t FileStream::write(const uint8_t *value, size_t size) {
     return STREAM_ERROR;
   }
   offset_ += size;
-  if (offset_ > length_) {
-    length_ = offset_;
-  }
+  length_ = std::max(offset_, length_);
   if (!file_stream_->flush()) {
     logger_->log_error("{}{}", WRITE_ERROR_MSG, FLUSH_CALL_ERROR_MSG);
     return STREAM_ERROR;

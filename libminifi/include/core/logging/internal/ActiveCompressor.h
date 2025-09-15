@@ -24,13 +24,7 @@
 #include "LogCompressor.h"
 #include "minifi-cpp/core/logging/Logger.h"
 
-namespace org {
-namespace apache {
-namespace nifi {
-namespace minifi {
-namespace core {
-namespace logging {
-namespace internal {
+namespace org::apache::nifi::minifi::core::logging::internal {
 
 class ActiveCompressor {
  public:
@@ -63,10 +57,4 @@ class ActiveCompressor {
   std::unique_ptr<LogCompressor> compressor_;
 };
 
-}  // namespace internal
-}  // namespace logging
-}  // namespace core
-}  // namespace minifi
-}  // namespace nifi
-}  // namespace apache
-}  // namespace org
+}  // namespace org::apache::nifi::minifi::core::logging::internal

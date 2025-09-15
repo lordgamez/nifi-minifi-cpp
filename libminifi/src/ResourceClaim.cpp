@@ -64,7 +64,7 @@ ResourceClaimImpl::~ResourceClaimImpl() {
 }
 
 std::shared_ptr<ResourceClaim> ResourceClaim::create(std::shared_ptr<core::ContentRepository> repository) {
-  return std::make_shared<ResourceClaimImpl>(repository);
+  return std::make_shared<ResourceClaimImpl>(std::move(repository));
 }
 
 }  // namespace org::apache::nifi::minifi

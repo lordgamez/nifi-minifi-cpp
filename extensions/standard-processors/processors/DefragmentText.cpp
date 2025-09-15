@@ -52,7 +52,7 @@ void DefragmentText::onSchedule(core::ProcessContext& context, core::ProcessSess
   pattern_location_ = utils::parseEnumProperty<defragment_text::PatternLocation>(context, PatternLoc);
 
   pattern_ = context.getProperty(Pattern)
-    | utils::transform([](const auto pattern_str) { return utils::Regex{pattern_str}; })
+    | utils::transform([](auto pattern_str) { return utils::Regex{std::move(pattern_str)}; })
     | utils::orThrow("Pattern property missing or invalid");
 }
 

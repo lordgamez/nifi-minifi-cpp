@@ -486,7 +486,7 @@ void ListenHTTP::Handler::writeBody(core::ProcessSession* payload_reader, mg_con
 }
 
 bool ListenHTTP::isSecure() const {
-  return (listeningPort.length() > 0) && *listeningPort.rbegin() == 's';
+  return !listeningPort.empty() && *listeningPort.rbegin() == 's';
 }
 
 std::string ListenHTTP::getPort() const {

@@ -93,7 +93,7 @@ ClassLoader& ClassLoaderImpl::getClassLoader(const std::string& child_name) {
 
 void ClassLoaderImpl::registerClass(const std::string &clazz, std::unique_ptr<ObjectFactory> factory) {
     std::lock_guard<std::mutex> lock(internal_mutex_);
-    if (loaded_factories_.find(clazz) != loaded_factories_.end()) {
+    if (loaded_factories_.contains(clazz)) {
       logger_->log_error("Class '{}' is already registered at '{}'", clazz, name_);
       return;
     }
@@ -122,7 +122,7 @@ class ProcessorFactoryWrapper : public ObjectFactoryImpl {
 
   [[nodiscard]] CoreComponent* createRaw(const std::string &name, const utils::Identifier &uuid) override {
     auto logger = logging::LoggerFactoryBase::getAliasedLogger(getClassName(), uuid);
-    return new Processor(name, uuid, factory_->create({.uuid = uuid, .name = name, .logger = logger}));
+    return new Processor(name, uuid, factory_->create({.uuid = uuid, .name = name, .logger = logger}));  // NOLINT(cppcoreguidelines-owning-memory)
   }
 
   [[nodiscard]] std::string getGroupName() const override {

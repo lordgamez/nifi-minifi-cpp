@@ -84,7 +84,7 @@ int64_t FlowFileV3Serializer::serialize(const std::shared_ptr<core::FlowFile>& f
     }
   }
   {
-    const auto ret = out->write(static_cast<uint64_t>(flowFile->getSize()));
+    const auto ret = out->write(flowFile->getSize());
     if (io::isError(ret)) return -1;
     sum += ret;
   }

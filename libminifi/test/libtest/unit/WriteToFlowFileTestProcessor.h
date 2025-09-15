@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+#pragma once
+
 #include <string>
 #include <memory>
 #include <utility>
@@ -27,8 +29,6 @@
 #include "core/Resource.h"
 #include "minifi-cpp/core/logging/Logger.h"
 #include "core/logging/LoggerConfiguration.h"
-
-#pragma once
 
 namespace org::apache::nifi::minifi::processors {
 

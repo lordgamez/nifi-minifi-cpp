@@ -86,7 +86,7 @@ void ThreadedSchedulingAgent::schedule(core::Processor* processor) {
   std::vector<std::thread *> threads;
 
   ThreadedSchedulingAgent *agent = this;
-  for (int i = 0; i < processor->getMaxConcurrentTasks(); i++) {
+  for (uint8_t i = 0; i < processor->getMaxConcurrentTasks(); i++) {
     // reference the disable function from serviceNode
     processor->incrementActiveTasks();
 

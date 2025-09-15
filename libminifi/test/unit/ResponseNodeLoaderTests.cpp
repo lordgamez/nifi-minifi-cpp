@@ -50,7 +50,7 @@ class ResponseNodeLoaderTestFixture {
   }
 
  protected:
-  template<typename T, typename = typename std::enable_if_t<std::is_base_of_v<minifi::core::ProcessorImpl, T>>>
+  template<typename T> requires(std::is_base_of_v<minifi::core::ProcessorImpl, T>)
   minifi::utils::Identifier addProcessor(const std::string& name) {
     auto processor = minifi::test::utils::make_processor<T>(name);
     auto uuid = processor->getUUID();
