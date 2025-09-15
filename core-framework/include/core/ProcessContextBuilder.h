@@ -31,7 +31,6 @@
 #include "core/logging/LoggerFactory.h"
 #include "ProcessContext.h"
 #include "minifi-cpp/core/FlowFile.h"
-#include "VariableRegistry.h"
 #include "minifi-cpp/core/ProcessContextBuilder.h"
 #include "utils/GeneralUtils.h"
 
