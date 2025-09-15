@@ -28,7 +28,6 @@
 #include "minifi-cpp/FlowFileRecord.h"
 #include "FlowFileRepository.h"
 #include "ProvenanceRepository.h"
-#include "provenance/Provenance.h"
 #include "properties/Configure.h"
 #include "unit/ProvenanceTestHelper.h"
 #include "unit/TestBase.h"

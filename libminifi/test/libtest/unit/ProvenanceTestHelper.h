@@ -33,7 +33,6 @@
 #include "core/ThreadedRepository.h"
 #include "FlowController.h"
 #include "properties/Configure.h"
-#include "provenance/Provenance.h"
 #include "minifi-cpp/SwapManager.h"
 #include "io/BufferStream.h"
 

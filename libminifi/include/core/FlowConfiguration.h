@@ -30,7 +30,6 @@
 #include "RemoteProcessorGroupPort.h"
 #include "minifi-cpp/core/controller/ControllerServiceNode.h"
 #include "core/controller/StandardControllerServiceProvider.h"
-#include "provenance/Provenance.h"
 #include "core/reporting/SiteToSiteProvenanceReportingTask.h"
 
 #include "core/Processor.h"

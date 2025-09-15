@@ -23,7 +23,6 @@
 #include "DatabaseContentRepository.h"
 #include "minifi-cpp/FlowFileRecord.h"
 #include "properties/Configure.h"
-#include "provenance/Provenance.h"
 #include "unit/TestBase.h"
 #include "unit/Catch.h"
 #include "unit/ProvenanceTestHelper.h"

@@ -26,7 +26,6 @@
 #include "core/repository/VolatileProvenanceRepository.h"
 #include "core/RepositoryFactory.h"
 #include "minifi-cpp/FlowFileRecord.h"
-#include "provenance/Provenance.h"
 #include "unit/ProvenanceTestHelper.h"
 #include "unit/TestBase.h"
 #include "unit/Catch.h"

@@ -38,7 +38,7 @@
 #include "utils/TimeUtil.h"
 #include "minifi-cpp/core/ProcessContext.h"
 #include "core/ProcessSession.h"
-#include "provenance/Provenance.h"
+#include "minifi-cpp/provenance/Provenance.h"
 #include "FlowController.h"
 #include "minifi-cpp/utils/gsl.h"
 
