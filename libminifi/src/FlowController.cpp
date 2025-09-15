@@ -40,7 +40,7 @@
 #include "io/NetworkPrioritizer.h"
 #include "io/FileStream.h"
 #include "core/ClassLoader.h"
-#include "core/ThreadedRepository.h"
+#include "minifi-cpp/core/ThreadedRepository.h"
 #include "c2/C2MetricsPublisher.h"
 #include "c2/ControllerSocketMetricsPublisher.h"
 

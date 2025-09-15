@@ -30,7 +30,6 @@
 #include "minifi-cpp/core/PropertyDefinition.h"
 #include "core/PropertyDefinitionBuilder.h"
 #include "minifi-cpp/core/PropertyValidator.h"
-#include "ThreadManagementService.h"
 #include "io/NetworkPrioritizer.h"
 #include "minifi-cpp/utils/Export.h"
 
