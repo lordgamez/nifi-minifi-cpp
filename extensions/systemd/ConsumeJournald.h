@@ -29,7 +29,7 @@
 #include <utility>
 #include <vector>
 
-#include "core/StateManager.h"
+#include "minifi-cpp/core/StateManager.h"
 #include "core/ProcessorImpl.h"
 #include "minifi-cpp/core/PropertyDefinition.h"
 #include "core/PropertyDefinitionBuilder.h"

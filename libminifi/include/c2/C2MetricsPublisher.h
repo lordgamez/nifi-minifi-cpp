@@ -33,7 +33,6 @@
 #include "core/ProcessGroup.h"
 #include "core/Core.h"
 #include "utils/file/FileSystem.h"
-#include "core/state/nodes/ResponseNodeLoader.h"
 #include "utils/Id.h"
 #include "core/state/MetricsPublisher.h"
 

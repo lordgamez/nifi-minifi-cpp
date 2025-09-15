@@ -25,7 +25,7 @@
 #include <chrono>
 #include <utility>
 
-#include "core/StateManager.h"
+#include "minifi-cpp/core/StateManager.h"
 #include "minifi-cpp/core/logging/Logger.h"
 #include "core/logging/LoggerFactory.h"
 

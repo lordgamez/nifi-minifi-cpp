@@ -27,7 +27,7 @@
 #include "core/PropertyDefinitionBuilder.h"
 #include "minifi-cpp/core/PropertyValidator.h"
 #include "minifi-cpp/core/RelationshipDefinition.h"
-#include "core/StateManager.h"
+#include "minifi-cpp/core/StateManager.h"
 #include "utils/ArrayUtils.h"
 
 namespace org::apache::nifi::minifi::extensions::grafana::loki {

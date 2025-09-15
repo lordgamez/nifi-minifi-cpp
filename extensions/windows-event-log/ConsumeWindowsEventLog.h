@@ -38,7 +38,7 @@
 #include "core/PropertyDefinitionBuilder.h"
 #include "minifi-cpp/core/PropertyValidator.h"
 #include "minifi-cpp/core/RelationshipDefinition.h"
-#include "core/StateManager.h"
+#include "minifi-cpp/core/StateManager.h"
 #include "utils/OsUtils.h"
 #include "wel/WindowsEventLog.h"
 #include "wel/EventPath.h"
