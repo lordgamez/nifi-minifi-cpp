@@ -38,7 +38,7 @@
 #include "range/v3/algorithm/any_of.hpp"
 #include "fmt/format.h"
 #include "minifi-cpp/Exception.h"
-#include "core/ProcessorMetrics.h"
+#include "minifi-cpp/core/ProcessorMetrics.h"
 
 using namespace std::literals::chrono_literals;
 
