@@ -33,13 +33,14 @@
 
 #include "minifi-cpp/ResourceClaim.h"
 #include "minifi-cpp/core/FlowFile.h"
-#include "core/ProcessContext.h"
+#include "minifi-cpp/core/ProcessContext.h"
 #include "core/Relationship.h"
 #include "minifi-cpp/core/logging/Logger.h"
 #include "io/BufferStream.h"
 #include "utils/ByteArrayCallback.h"
 #include "utils/StringUtils.h"
 #include "utils/ProcessorConfigUtils.h"
+#include "io/validation.h"
 
 namespace org::apache::nifi::minifi::processors {
 

@@ -38,6 +38,7 @@
 #include "core/repository/FileSystemRepository.h"
 #include "core/ProcessorImpl.h"
 #include "Connection.h"
+#include "core/ProcessContext.h"
 
 using ConnectionImpl = minifi::ConnectionImpl;
 using Connection = minifi::Connection;

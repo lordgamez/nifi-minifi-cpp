@@ -40,7 +40,7 @@
 #include "properties/Configure.h"
 #include "minifi-cpp/core/logging/Logger.h"
 #include "core/Processor.h"
-#include "core/ProcessContext.h"
+#include "minifi-cpp/core/ProcessContext.h"
 #include "minifi-cpp/core/controller/ControllerServiceProvider.h"
 
 constexpr std::chrono::milliseconds SCHEDULING_WATCHDOG_CHECK_PERIOD = std::chrono::seconds(1);

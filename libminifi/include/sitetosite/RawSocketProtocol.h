@@ -33,7 +33,7 @@
 #include <vector>
 
 #include "core/logging/LoggerFactory.h"
-#include "core/ProcessContext.h"
+#include "minifi-cpp/core/ProcessContext.h"
 #include "core/ProcessSession.h"
 #include "minifi-cpp/core/Property.h"
 #include "io/CRCStream.h"

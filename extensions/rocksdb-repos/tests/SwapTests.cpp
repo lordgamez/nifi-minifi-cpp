@@ -29,6 +29,7 @@
 #include "unit/ProvenanceTestHelper.h"
 #include "core/repository/FileSystemRepository.h"
 #include "Connection.h"
+#include "core/ProcessContext.h"
 
 namespace org::apache::nifi::minifi::test {
 

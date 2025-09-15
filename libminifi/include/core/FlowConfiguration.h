@@ -35,7 +35,7 @@
 
 #include "core/Processor.h"
 #include "core/logging/LoggerFactory.h"
-#include "core/ProcessContext.h"
+#include "minifi-cpp/core/ProcessContext.h"
 #include "core/ProcessSession.h"
 #include "core/ProcessGroup.h"
 #include "core/state/nodes/FlowInformation.h"

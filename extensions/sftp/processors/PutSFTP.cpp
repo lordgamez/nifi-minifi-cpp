@@ -24,7 +24,7 @@
 #include <utility>
 
 #include "minifi-cpp/core/FlowFile.h"
-#include "core/ProcessContext.h"
+#include "minifi-cpp/core/ProcessContext.h"
 #include "core/Resource.h"
 #include "minifi-cpp/core/logging/Logger.h"
 #include "io/BufferStream.h"
@@ -32,6 +32,7 @@
 #include "utils/StringUtils.h"
 #include "utils/file/FileUtils.h"
 #include "utils/ProcessorConfigUtils.h"
+#include "io/validation.h"
 
 namespace org::apache::nifi::minifi::processors {
 

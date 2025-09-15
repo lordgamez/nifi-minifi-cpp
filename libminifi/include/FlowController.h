@@ -36,7 +36,7 @@
 #include "core/controller/ForwardingControllerServiceProvider.h"
 #include "core/FlowConfiguration.h"
 #include "minifi-cpp/core/logging/Logger.h"
-#include "core/ProcessContext.h"
+#include "minifi-cpp/core/ProcessContext.h"
 #include "core/ProcessGroup.h"
 #include "core/Processor.h"
 #include "core/ProcessSession.h"

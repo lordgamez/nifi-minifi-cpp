@@ -20,7 +20,7 @@
 #include "EventDrivenSchedulingAgent.h"
 #include <chrono>
 #include "core/Processor.h"
-#include "core/ProcessContext.h"
+#include "minifi-cpp/core/ProcessContext.h"
 #include "core/ProcessSessionFactory.h"
 #include "minifi-cpp/core/Property.h"
 

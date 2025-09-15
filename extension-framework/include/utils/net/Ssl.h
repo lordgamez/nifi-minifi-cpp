@@ -20,7 +20,7 @@
 #include <memory>
 #include <optional>
 
-#include "core/ProcessContext.h"
+#include "minifi-cpp/core/ProcessContext.h"
 #include "minifi-cpp/core/Property.h"
 #include "minifi-cpp/core/logging/Logger.h"
 #include "utils/Enum.h"

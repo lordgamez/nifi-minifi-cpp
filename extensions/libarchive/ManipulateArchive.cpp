@@ -28,7 +28,7 @@
 
 #include "ManipulateArchive.h"
 #include "minifi-cpp/Exception.h"
-#include "core/ProcessContext.h"
+#include "minifi-cpp/core/ProcessContext.h"
 #include "core/ProcessSession.h"
 #include "minifi-cpp/core/FlowFile.h"
 #include "core/Resource.h"

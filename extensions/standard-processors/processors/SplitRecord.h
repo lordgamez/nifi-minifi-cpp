@@ -17,7 +17,7 @@
 #pragma once
 
 #include "minifi-cpp/core/Annotation.h"
-#include "core/ProcessContext.h"
+#include "minifi-cpp/core/ProcessContext.h"
 #include "core/ProcessSession.h"
 #include "minifi-cpp/core/ProcessSessionFactory.h"
 #include "minifi-cpp/core/PropertyDefinition.h"

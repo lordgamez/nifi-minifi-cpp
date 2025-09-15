@@ -29,7 +29,7 @@
 #include "core/PropertyDefinitionBuilder.h"
 #include "minifi-cpp/core/PropertyValidator.h"
 #include "couchbase/cluster.hxx"
-#include "core/ProcessContext.h"
+#include "minifi-cpp/core/ProcessContext.h"
 #include "core/logging/LoggerFactory.h"
 #include "minifi-cpp/controllers/SSLContextServiceInterface.h"
 

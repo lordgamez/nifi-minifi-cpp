@@ -31,7 +31,7 @@
 
 #include "core/ClassLoader.h"
 #include "core/Processor.h"
-#include "core/ProcessContext.h"
+#include "minifi-cpp/core/ProcessContext.h"
 #include "core/ProcessSessionFactory.h"
 #include "minifi-cpp/core/ProcessContextBuilder.h"
 #include "utils/ValueParser.h"

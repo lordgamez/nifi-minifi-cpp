@@ -26,7 +26,7 @@
 #include "utils/ProcessorConfigUtils.h"
 #include "range/v3/algorithm/find.hpp"
 #include "core/ProcessSession.h"
-#include "core/ProcessContext.h"
+#include "minifi-cpp/core/ProcessContext.h"
 #include "core/Resource.h"
 
 namespace org::apache::nifi::minifi::processors {

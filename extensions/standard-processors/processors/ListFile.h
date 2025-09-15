@@ -24,7 +24,7 @@
 
 #include "minifi-cpp/core/OutputAttributeDefinition.h"
 #include "core/ProcessorImpl.h"
-#include "core/ProcessContext.h"
+#include "minifi-cpp/core/ProcessContext.h"
 #include "core/ProcessSession.h"
 #include "minifi-cpp/core/PropertyDefinition.h"
 #include "core/PropertyDefinitionBuilder.h"

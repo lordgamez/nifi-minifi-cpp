@@ -20,7 +20,7 @@
 
 #include "minifi-cpp/Exception.h"
 #include "core/Resource.h"
-#include "core/ProcessContext.h"
+#include "minifi-cpp/core/ProcessContext.h"
 
 namespace org::apache::nifi::minifi::processors {
 

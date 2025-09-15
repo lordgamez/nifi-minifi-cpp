@@ -27,7 +27,7 @@
 
 #include "core/ProcessorImpl.h"
 #include "core/ProcessSession.h"
-#include "core/ProcessContext.h"
+#include "minifi-cpp/core/ProcessContext.h"
 #include "core/PropertyDefinitionBuilder.h"
 #include "minifi-cpp/core/PropertyDefinition.h"
 #include "minifi-cpp/core/PropertyValidator.h"

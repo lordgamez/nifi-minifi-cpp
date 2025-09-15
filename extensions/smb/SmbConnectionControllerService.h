@@ -23,7 +23,7 @@
 #include "Windows.h"
 #include "winnetwk.h"
 
-#include "core/ProcessContext.h"
+#include "minifi-cpp/core/ProcessContext.h"
 #include "minifi-cpp/core/PropertyDefinition.h"
 #include "core/PropertyDefinitionBuilder.h"
 #include "core/controller/ControllerService.h"

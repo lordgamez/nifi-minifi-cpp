@@ -36,7 +36,7 @@
 #include "core/Repository.h"
 #include "core/reporting/SiteToSiteProvenanceReportingTask.h"
 #include "utils/TimeUtil.h"
-#include "core/ProcessContext.h"
+#include "minifi-cpp/core/ProcessContext.h"
 #include "core/ProcessSession.h"
 #include "provenance/Provenance.h"
 #include "FlowController.h"

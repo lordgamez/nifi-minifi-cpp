@@ -39,6 +39,7 @@
 #include "LogUtils.h"
 #include "utils/GeneralUtils.h"
 #include "Connection.h"
+#include "core/ProcessContext.h"
 
 #include "fmt/format.h"
 #include "spdlog/sinks/stdout_sinks.h"

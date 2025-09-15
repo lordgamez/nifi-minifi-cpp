@@ -29,7 +29,7 @@
 #include "minifi-cpp/core/Property.h"
 #include "core/ProcessorImpl.h"
 #include "core/ProcessSession.h"
-#include "core/ProcessContext.h"
+#include "minifi-cpp/core/ProcessContext.h"
 #include "core/PropertyDefinitionBuilder.h"
 #include "core/Core.h"
 #include "core/logging/LoggerFactory.h"

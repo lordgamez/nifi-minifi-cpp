@@ -27,7 +27,7 @@
 #include "minifi-cpp/core/FlowFile.h"
 #include "unit/ProvenanceTestHelper.h"
 #include "core/Processor.h"
-#include "core/ProcessContext.h"
+#include "minifi-cpp/core/ProcessContext.h"
 #include "core/ProcessSession.h"
 #include "processors/LogAttribute.h"
 #include "unit/SingleProcessorTestController.h"

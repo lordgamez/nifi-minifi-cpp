@@ -42,6 +42,7 @@
 #include "core/repository/FileSystemRepository.h"
 #include "core/Processor.h"
 #include "Connection.h"
+#include "core/ProcessContext.h"
 
 using namespace std::literals::chrono_literals;
 

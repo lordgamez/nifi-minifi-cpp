@@ -23,6 +23,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <future>
 
 #include <CivetServer.h>
 

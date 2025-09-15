@@ -25,7 +25,7 @@
 #include <vector>
 
 #include "minifi-cpp/core/FlowFile.h"
-#include "core/ProcessContext.h"
+#include "minifi-cpp/core/ProcessContext.h"
 #include "core/Resource.h"
 #include "io/BufferStream.h"
 #include "range/v3/algorithm/any_of.hpp"

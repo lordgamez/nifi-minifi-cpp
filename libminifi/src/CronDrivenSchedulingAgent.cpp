@@ -20,7 +20,7 @@
 #include "CronDrivenSchedulingAgent.h"
 #include <chrono>
 #include "core/Processor.h"
-#include "core/ProcessContext.h"
+#include "minifi-cpp/core/ProcessContext.h"
 #include "core/ProcessSessionFactory.h"
 
 namespace org::apache::nifi::minifi {

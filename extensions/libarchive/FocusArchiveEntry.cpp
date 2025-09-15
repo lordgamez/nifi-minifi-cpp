@@ -29,7 +29,7 @@
 
 #include <memory>
 
-#include "core/ProcessContext.h"
+#include "minifi-cpp/core/ProcessContext.h"
 #include "core/ProcessSession.h"
 #include "core/Resource.h"
 #include "minifi-cpp/Exception.h"

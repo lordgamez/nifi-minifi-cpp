@@ -22,6 +22,7 @@
 #include <utility>
 #include <vector>
 #include <shared_mutex>
+#include <future>
 
 #include "minifi-cpp/core/PropertyDefinition.h"
 #include "core/ProcessorImpl.h"
