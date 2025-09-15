@@ -24,8 +24,8 @@
 #include "core/PropertyDefinitionBuilder.h"
 #include "minifi-cpp/core/RelationshipDefinition.h"
 #include "minifi-cpp/core/logging/Logger.h"
-#include "controllers/RecordSetReader.h"
-#include "controllers/RecordSetWriter.h"
+#include "minifi-cpp/controllers/RecordSetReader.h"
+#include "minifi-cpp/controllers/RecordSetWriter.h"
 #include "core/AbstractProcessor.h"
 
 namespace org::apache::nifi::minifi::processors {

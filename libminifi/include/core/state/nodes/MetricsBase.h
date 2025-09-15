@@ -24,7 +24,6 @@
 #include <optional>
 #include <unordered_map>
 
-#include "core/state/PublishedMetricProvider.h"
 #include "core/Core.h"
 #include "minifi-cpp/core/state/nodes/MetricsBase.h"
 #include "core/state/nodes/ResponseNode.h"
