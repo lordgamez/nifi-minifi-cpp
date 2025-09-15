@@ -39,6 +39,7 @@
 #include "core/ProcessorImpl.h"
 #include "Connection.h"
 #include "core/ProcessContext.h"
+#include "core/ProcessSessionFactory.h"
 
 using ConnectionImpl = minifi::ConnectionImpl;
 using Connection = minifi::Connection;

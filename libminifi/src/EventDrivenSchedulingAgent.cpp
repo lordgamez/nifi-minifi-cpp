@@ -21,7 +21,7 @@
 #include <chrono>
 #include "core/Processor.h"
 #include "minifi-cpp/core/ProcessContext.h"
-#include "core/ProcessSessionFactory.h"
+#include "minifi-cpp/core/ProcessSessionFactory.h"
 #include "minifi-cpp/core/Property.h"
 
 using namespace std::literals::chrono_literals;

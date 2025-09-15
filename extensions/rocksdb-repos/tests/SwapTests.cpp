@@ -24,6 +24,7 @@
 #include "unit/TestUtils.h"
 #include "core/ProcessorImpl.h"
 #include "core/ProcessSession.h"
+#include "core/ProcessSessionFactory.h"
 #include "minifi-cpp/core/PropertyDefinition.h"
 #include "minifi-cpp/core/RelationshipDefinition.h"
 #include "unit/ProvenanceTestHelper.h"

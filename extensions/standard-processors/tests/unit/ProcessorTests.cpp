@@ -43,6 +43,7 @@
 #include "core/Processor.h"
 #include "core/ProcessContext.h"
 #include "core/ProcessSession.h"
+#include "core/ProcessSessionFactory.h"
 #include "core/reporting/SiteToSiteProvenanceReportingTask.h"
 #include "core/Resource.h"
 #include "minifi-cpp/utils/gsl.h"

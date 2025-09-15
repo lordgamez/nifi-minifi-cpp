@@ -34,6 +34,7 @@
 #include "minifi-cpp/core/FlowFile.h"
 #include "core/ProcessContext.h"
 #include "core/ProcessSession.h"
+#include "core/ProcessSessionFactory.h"
 #include "core/Processor.h"
 #include "io/FileStream.h"
 #include "processors/GetFile.h"

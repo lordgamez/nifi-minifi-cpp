@@ -28,7 +28,7 @@ constexpr auto DEFAULT_TIME_SLICE = std::chrono::milliseconds(500);
 #include "minifi-cpp/core/logging/Logger.h"
 #include "core/Processor.h"
 #include "minifi-cpp/core/ProcessContext.h"
-#include "core/ProcessSessionFactory.h"
+#include "minifi-cpp/core/ProcessSessionFactory.h"
 #include "ThreadedSchedulingAgent.h"
 
 namespace org::apache::nifi::minifi {

@@ -30,6 +30,7 @@
 #include "core/Processor.h"
 #include "core/ProcessContext.h"
 #include "core/ProcessSession.h"
+#include "core/ProcessSessionFactory.h"
 #include "FlowController.h"
 #include "Connection.h"
 #include "../../include/core/FlowFile.h"
