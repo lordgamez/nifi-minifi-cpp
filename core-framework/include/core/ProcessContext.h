@@ -31,7 +31,6 @@
 #include "core/ConfigurableComponentImpl.h"
 #include "minifi-cpp/core/ContentRepository.h"
 #include "core/Core.h"
-#include "minifi-cpp/core/Property.h"
 #include "core/VariableRegistry.h"
 #include "core/logging/LoggerFactory.h"
 #include "minifi-cpp/controllers/keyvalue/KeyValueStateStorage.h"
