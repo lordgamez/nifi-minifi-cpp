@@ -25,7 +25,7 @@
 #include <list>
 #include <utility>
 
-#include "core/Repository.h"
+#include "minifi-cpp/core/Repository.h"
 #include "io/BufferStream.h"
 #include "minifi-cpp/core/logging/Logger.h"
 #include "core/Relationship.h"

@@ -27,7 +27,7 @@
 #include "rocksdb/db.h"
 #include "rocksdb/utilities/checkpoint.h"
 #include "WriteBatch.h"
-#include "core/RepositoryMetricsSource.h"
+#include "minifi-cpp/core/RepositoryMetricsSource.h"
 #include "core/logging/LoggerFactory.h"
 
 namespace org::apache::nifi::minifi::internal {

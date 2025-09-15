@@ -42,6 +42,7 @@
 #include "core/Processor.h"
 #include "Connection.h"
 #include "core/ProcessContext.h"
+#include "ResourceClaim.h"
 
 using namespace std::literals::chrono_literals;
 

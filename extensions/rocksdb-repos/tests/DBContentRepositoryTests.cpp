@@ -28,6 +28,7 @@
 #include "unit/ProvenanceTestHelper.h"
 #include "unit/ContentRepositoryDependentTests.h"
 #include "unit/TestUtils.h"
+#include "ResourceClaim.h"
 
 class TestDatabaseContentRepository : public core::repository::DatabaseContentRepository {
  public:

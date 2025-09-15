@@ -33,7 +33,7 @@
 #include "minifi-cpp/utils/gsl.h"
 #include "utils/Id.h"
 #include "utils/expected.h"
-#include "core/RepositoryMetricsSource.h"
+#include "minifi-cpp/core/RepositoryMetricsSource.h"
 #include "utils/file/AssetManager.h"
 #include "minifi-cpp/core/state/nodes/ResponseNodeLoader.h"
 #include "core/BulletinStore.h"

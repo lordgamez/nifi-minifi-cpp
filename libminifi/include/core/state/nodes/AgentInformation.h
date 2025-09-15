@@ -29,7 +29,7 @@
 #include "utils/ProcessCpuUsageTracker.h"
 #include "minifi-cpp/core/AgentIdentificationProvider.h"
 #include "minifi-cpp/utils/Export.h"
-#include "core/RepositoryMetricsSource.h"
+#include "minifi-cpp/core/RepositoryMetricsSource.h"
 #include "controllers/UpdatePolicyControllerService.h"
 #include "RepositoryMetricsSourceStore.h"
 

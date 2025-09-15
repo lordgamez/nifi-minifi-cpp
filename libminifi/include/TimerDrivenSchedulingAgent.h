@@ -24,7 +24,7 @@
 #include "minifi-cpp/core/logging/Logger.h"
 #include "core/Processor.h"
 #include "minifi-cpp/core/ProcessContext.h"
-#include "core/Repository.h"
+#include "minifi-cpp/core/Repository.h"
 #include "ThreadedSchedulingAgent.h"
 
 namespace org::apache::nifi::minifi {

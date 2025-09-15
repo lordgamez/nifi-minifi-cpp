@@ -41,6 +41,7 @@
 #include "Connection.h"
 #include "core/ProcessContext.h"
 #include "core/ProcessSessionFactory.h"
+#include "ResourceClaim.h"
 
 #include "fmt/format.h"
 #include "spdlog/sinks/stdout_sinks.h"

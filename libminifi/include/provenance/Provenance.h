@@ -30,11 +30,10 @@
 #include <vector>
 #include "core/Core.h"
 #include "core/SerializableComponent.h"
-#include "core/Repository.h"
+#include "minifi-cpp/core/Repository.h"
 #include "minifi-cpp/core/Property.h"
 #include "properties/Configure.h"
 #include "core/logging/LoggerFactory.h"
-#include "ResourceClaim.h"
 #include "minifi-cpp/utils/gsl.h"
 #include "utils/Id.h"
 #include "utils/TimeUtil.h"

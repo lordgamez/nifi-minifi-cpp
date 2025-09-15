@@ -26,7 +26,7 @@
 #include "properties/Configure.h"
 #include "core/logging/LoggerFactory.h"
 #include "core/Processor.h"
-#include "core/Repository.h"
+#include "minifi-cpp/core/Repository.h"
 #include "minifi-cpp/core/ProcessContext.h"
 #include "SchedulingAgent.h"
 

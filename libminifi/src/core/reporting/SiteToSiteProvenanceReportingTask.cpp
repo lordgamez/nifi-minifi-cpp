@@ -33,7 +33,7 @@
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/prettywriter.h"
 
-#include "core/Repository.h"
+#include "minifi-cpp/core/Repository.h"
 #include "core/reporting/SiteToSiteProvenanceReportingTask.h"
 #include "utils/TimeUtil.h"
 #include "minifi-cpp/core/ProcessContext.h"

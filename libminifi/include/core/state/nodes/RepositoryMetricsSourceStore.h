@@ -22,7 +22,7 @@
 #include <utility>
 #include <vector>
 
-#include "core/RepositoryMetricsSource.h"
+#include "minifi-cpp/core/RepositoryMetricsSource.h"
 #include "core/state/Value.h"
 #include "minifi-cpp/core/state/PublishedMetricProvider.h"
 
