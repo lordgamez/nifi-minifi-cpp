@@ -30,6 +30,7 @@ namespace org::apache::nifi::minifi::extensions::python {
 
 static PyMethodDef PyProcessContext_methods[] = {  // NOLINT(cppcoreguidelines-avoid-c-arrays)
     {"getProperty", (PyCFunction) PyProcessContext::getProperty, METH_VARARGS, nullptr},
+    {"getDynamicProperty", (PyCFunction) PyProcessContext::getDynamicProperty, METH_VARARGS, nullptr},
     {"getStateManager", (PyCFunction) PyProcessContext::getStateManager, METH_VARARGS, nullptr},
     {"getControllerService", (PyCFunction) PyProcessContext::getControllerService, METH_VARARGS, nullptr},
     {"getName", (PyCFunction) PyProcessContext::getName, METH_VARARGS, nullptr},
@@ -95,6 +96,38 @@ PyObject* PyProcessContext::getProperty(PyProcessContext* self, PyObject* args) 
   core::Property property{property_name, ""};
   property.setSupportsExpressionLanguage(true);
   if (const auto property_value = context->getProperty(property, flow_file.get())) {
+    return object::returnReference(*property_value);
+  }
+  Py_RETURN_NONE;
+}
+
+PyObject* PyProcessContext::getDynamicProperty(PyProcessContext* self, PyObject* args) {
+  auto context = self->process_context_;
+  if (!context) {
+    PyErr_SetString(PyExc_AttributeError, "tried reading process context outside 'on_trigger'");
+    return nullptr;
+  }
+
+  const char* property_name = nullptr;
+  PyObject* script_flow_file = nullptr;
+  if (!PyArg_ParseTuple(args, "s|O", &property_name, &script_flow_file)) {
+    return nullptr;
+  }
+
+  if (!script_flow_file) {
+    if (const auto property_value = context->getDynamicProperty(property_name, nullptr)) {
+      return object::returnReference(*property_value);
+    }
+    Py_RETURN_NONE;
+  }
+  auto py_flow = reinterpret_cast<PyScriptFlowFile*>(script_flow_file);
+  const auto flow_file = py_flow->script_flow_file_.lock();
+  if (!flow_file) {
+    PyErr_SetString(PyExc_AttributeError, "tried reading FlowFile outside 'on_trigger'");
+    return nullptr;
+  }
+
+  if (const auto property_value = context->getDynamicProperty(property_name, flow_file.get())) {
     return object::returnReference(*property_value);
   }
   Py_RETURN_NONE;
