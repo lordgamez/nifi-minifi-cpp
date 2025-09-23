@@ -690,7 +690,7 @@ void ListSFTP::listByTrackingEntities(
 
   time_t now = time(nullptr);
   uint64_t min_timestamp_to_list = (!initial_listing_complete_ && entity_tracking_initial_listing_target_ == ENTITY_TRACKING_INITIAL_LISTING_TARGET_ALL_AVAILABLE)
-      ? 0U : ((now * 1000) - entity_tracking_time_window.count());
+      ? 0U : (now * 1000 - entity_tracking_time_window.count());
 
   /* Skip files not in the tracking window */
   for (auto it = files.begin(); it != files.end(); ) {

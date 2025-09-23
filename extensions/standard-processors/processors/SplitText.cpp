@@ -53,7 +53,7 @@ uint8_t LineReader::getEndLineSize(size_t newline_position) {
 }
 
 void LineReader::setLastLineInfoAttributes(uint8_t endline_size, const std::optional<std::string>& starts_with) {
-  const uint64_t size_from_beginning_of_stream = ((current_buffer_count_ - 1) * buffer_size_) + buffer_offset_;
+  const uint64_t size_from_beginning_of_stream = (current_buffer_count_ - 1) * buffer_size_ + buffer_offset_;
   if (last_line_info_) {
     LineInfo previous_line_info = *last_line_info_;
     last_line_info_->offset = previous_line_info.offset + previous_line_info.size;
