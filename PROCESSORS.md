@@ -35,7 +35,6 @@ limitations under the License.
 - [DeleteS3Object](#DeleteS3Object)
 - [EvaluateJsonPath](#EvaluateJsonPath)
 - [ExecuteProcess](#ExecuteProcess)
-- [ExecutePythonProcessor](#ExecutePythonProcessor)
 - [ExecuteScript](#ExecuteScript)
 - [ExecuteSQL](#ExecuteSQL)
 - [ExtractText](#ExtractText)
@@ -716,32 +715,6 @@ In the list below, the names of required properties appear in bold. Any other pr
 | Name    | Description                                            |
 |---------|--------------------------------------------------------|
 | success | All created FlowFiles are routed to this relationship. |
-
-
-## ExecutePythonProcessor
-
-### Description
-
-Executes a script given the flow file and a process session. The script is responsible for handling the incoming flow file (transfer to SUCCESS or remove, e.g.) as well as any flow files created by the script. If the handling is incomplete or incorrect, the session will be rolled back.Scripts must define an onTrigger function which accepts NiFi Context and Property objects. For efficiency, scripts are executed once when the processor is run, then the onTrigger method is called for each incoming flowfile. This enables scripts to keep state if they wish, although there will be a script context per concurrent task of the processor. In order to, e.g., compute an arithmetic sum based on incoming flow file information, set the concurrent tasks to 1. The python script files are expected to contain `describe(procesor)` and `onTrigger(context, session)`.
-
-### Properties
-
-In the list below, the names of required properties appear in bold. Any other properties (not in bold) are considered optional. The table also indicates any default values, and whether a property supports the NiFi Expression Language.
-
-| Name                        | Default Value | Allowable Values | Description                                                                                                                                                  |
-|-----------------------------|---------------|------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Script File                 |               |                  | Path to script file to execute. Only one of Script File or Script Body may be used                                                                           |
-| Script Body                 |               |                  | Script to execute. Only one of Script File or Script Body may be used                                                                                        |
-| Module Directory            |               |                  | Comma-separated list of paths to files and/or directories which contain modules required by the script                                                       |
-| **Reload on Script Change** | true          | true<br/>false   | If true and Script File property is used, then script file will be reloaded if it has changed, otherwise the first loaded version will be used at all times. |
-
-### Relationships
-
-| Name     | Description        |
-|----------|--------------------|
-| success  | Script succeeds    |
-| failure  | Script fails       |
-| original | Original flow file |
 
 
 ## ExecuteScript

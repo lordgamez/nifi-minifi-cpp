@@ -241,11 +241,14 @@ TestPlan::~TestPlan() {
 }
 
 minifi::core::Processor* TestPlan::addProcessor(std::unique_ptr<minifi::core::Processor> processor, const std::string& /*name*/,
-    const std::initializer_list<minifi::core::Relationship>& relationships, bool linkToPrevious) {
+    const std::initializer_list<minifi::core::Relationship>& relationships, bool linkToPrevious, const std::function<void(minifi::core::ProcessorApi&)>& pre_initialize) {
   if (finalized) {
     return nullptr;
   }
   std::lock_guard<std::recursive_mutex> guard(mutex);
+  if (pre_initialize) {
+    pre_initialize(processor->getImpl());
+  }
   // initialize the processor
   processor->initialize();
   processor->setFlowIdentifier(flow_version_->getFlowIdentifier());
@@ -295,7 +298,7 @@ minifi::core::Processor* TestPlan::addProcessor(std::unique_ptr<minifi::core::Pr
 }
 
 minifi::core::Processor* TestPlan::addProcessor(const std::string &processor_name, const minifi::utils::Identifier &uuid, const std::string &name,
-    const std::initializer_list<minifi::core::Relationship> &relationships, bool linkToPrevious) {
+    const std::initializer_list<minifi::core::Relationship> &relationships, bool linkToPrevious, const std::function<void(minifi::core::ProcessorApi&)>& pre_initialize) {
   if (finalized) {
     return nullptr;
   }
@@ -312,16 +315,16 @@ minifi::core::Processor* TestPlan::addProcessor(const std::string &processor_nam
 
   processor->setName(name);
 
-  return addProcessor(std::move(processor), name, relationships, linkToPrevious);
+  return addProcessor(std::move(processor), name, relationships, linkToPrevious, pre_initialize);
 }
 
 minifi::core::Processor* TestPlan::addProcessor(const std::string &processor_name, const std::string &name, const std::initializer_list<minifi::core::Relationship>& relationships,
-    bool linkToPrevious) {
+    bool linkToPrevious, const std::function<void(minifi::core::ProcessorApi&)>& pre_initialize) {
   if (finalized) {
     return nullptr;
   }
   std::lock_guard<std::recursive_mutex> guard(mutex);
-  return addProcessor(processor_name, minifi::utils::IdGenerator::getIdGenerator()->generate(), name, relationships, linkToPrevious);
+  return addProcessor(processor_name, minifi::utils::IdGenerator::getIdGenerator()->generate(), name, relationships, linkToPrevious, pre_initialize);
 }
 
 minifi::Connection* TestPlan::addConnection(minifi::core::Processor* source_proc, const minifi::core::Relationship& source_relationship,

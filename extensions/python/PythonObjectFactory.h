@@ -57,7 +57,7 @@ class PythonObjectFactory : public org::apache::nifi::minifi::core::ProcessorFac
     }
     ptr->setQualifiedModuleName(qualified_module_name_);
     ptr->setScriptFilePath(file_);
-    ptr->initializeScript();
+    // ptr->initializeScript();
     return ptr;
   }
 

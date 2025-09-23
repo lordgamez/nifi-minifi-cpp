@@ -37,26 +37,14 @@
 namespace org::apache::nifi::minifi::extensions::python::processors {
 
 void ExecutePythonProcessor::initializeScript() {
-  if (processor_initialized_) {
-    logger_->log_debug("Processor has already been initialized, returning...");
-    return;
-  }
-
-  try {
-    loadScript();
-  } catch(const std::runtime_error&) {
-    return;
-  }
-
-  // In case of native python processors we require initialization before onSchedule
-  // so that we can provide manifest of processor identity on C2
+  loadScript();
   python_script_engine_ = createScriptEngine();
   initalizeThroughScriptEngine();
 }
 
 void ExecutePythonProcessor::initialize() {
   initializeScript();
-  std::vector<core::PropertyReference> all_properties{Properties.begin(), Properties.end()};
+  std::vector<core::PropertyReference> all_properties;
   ranges::transform(python_properties_, std::back_inserter(all_properties), &core::Property::getReference);
   setSupportedProperties(all_properties);
   setSupportedRelationships(Relationships);
@@ -65,7 +53,6 @@ void ExecutePythonProcessor::initialize() {
 
 void ExecutePythonProcessor::initalizeThroughScriptEngine() {
   try {
-    appendPathForImportModules();
     python_script_engine_->appendModulePaths(python_paths_);
     python_script_engine_->setModuleAttributes(qualified_module_name_);
     python_script_engine_->eval(script_to_exec_);
@@ -74,7 +61,6 @@ void ExecutePythonProcessor::initalizeThroughScriptEngine() {
     }
     python_script_engine_->describe(this);
     python_script_engine_->onInitialize(this);
-    processor_initialized_ = true;
   } catch (const PythonScriptWarning&) {
     throw;
   } catch (const std::exception& e) {
@@ -86,25 +72,14 @@ void ExecutePythonProcessor::initalizeThroughScriptEngine() {
 
 void ExecutePythonProcessor::onSchedule(core::ProcessContext& context, core::ProcessSessionFactory& /*sessionFactory*/) {
   context.addAutoTerminatedRelationship(Original);
-  if (!processor_initialized_) {
-    script_file_path_ = context.getProperty(ScriptFile.name).value_or("");
-    script_to_exec_ = context.getProperty(ScriptBody.name).value_or("");
-    module_directory_ = context.getProperty(ModuleDirectory.name).value_or("");
-    loadScript();
-    python_script_engine_ = createScriptEngine();
-    initalizeThroughScriptEngine();
-  } else {
-    reloadScriptIfUsingScriptFileProperty();
-    if (script_to_exec_.empty()) {
-      throw std::runtime_error("Neither Script Body nor Script File is available to execute");
-    }
+  reloadScriptIfUsingScriptFileProperty();
+  if (script_to_exec_.empty()) {
+    throw std::runtime_error("Neither Script Body nor Script File is available to execute");
   }
 
   gsl_Expects(python_script_engine_);
   python_script_engine_->eval(script_to_exec_);
   python_script_engine_->onSchedule(context);
-
-  reload_on_script_change_ = utils::parseBoolProperty(context, ReloadOnScriptChange);
 }
 
 void ExecutePythonProcessor::onTrigger(core::ProcessContext& context, core::ProcessSession& session) {
@@ -114,12 +89,6 @@ void ExecutePythonProcessor::onTrigger(core::ProcessContext& context, core::Proc
   }
 
   python_script_engine_->onTrigger(context, session);
-}
-
-void ExecutePythonProcessor::appendPathForImportModules() const {
-  if (!module_directory_.empty()) {
-    python_script_engine_->appendModulePaths(utils::string::splitAndTrimRemovingEmpty(module_directory_, ",") | ranges::to<std::vector<std::filesystem::path>>());
-  }
 }
 
 void ExecutePythonProcessor::loadScriptFromFile() {
@@ -146,7 +115,7 @@ void ExecutePythonProcessor::loadScript() {
 }
 
 void ExecutePythonProcessor::reloadScriptIfUsingScriptFileProperty() {
-  if (script_file_path_.empty() || !reload_on_script_change_) {
+  if (script_file_path_.empty()) {
     return;
   }
   auto file_write_time = utils::file::last_write_time(script_file_path_);
