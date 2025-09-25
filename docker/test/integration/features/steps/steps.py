@@ -438,13 +438,6 @@ def step_impl(context):
     container.add_controller(xml_record_set_writer)
 
 
-@given("a XMLReader controller service is set up")
-def step_impl(context):
-    xml_reader = XMLReader("XMLReader")
-    container = context.test.acquire_container(context=context, name="minifi-cpp-flow")
-    container.add_controller(xml_reader)
-
-
 # Kubernetes
 def __set_up_the_kubernetes_controller_service(context, processor_name, service_property_name, properties):
     kubernetes_controller_service = KubernetesControllerService("Kubernetes Controller Service", properties)
