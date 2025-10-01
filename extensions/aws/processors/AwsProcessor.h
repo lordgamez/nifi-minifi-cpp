@@ -33,6 +33,7 @@
 #include "core/PropertyDefinitionBuilder.h"
 #include "minifi-cpp/core/PropertyValidator.h"
 #include "core/ProcessorImpl.h"
+#include "minifi-cpp/controllers/ProxyConfigurationServiceInterface.h"
 
 
 namespace org::apache::nifi::minifi::aws::processors {
@@ -149,6 +150,11 @@ class AwsProcessor : public core::ProcessorImpl {  // NOLINT(cppcoreguidelines-s
       .supportsExpressionLanguage(true)
       .isSensitive(true)
       .build();
+  EXTENSIONAPI static constexpr auto ProxyConfigurationService = core::PropertyDefinitionBuilder<>::createProperty("Proxy Configuration Service")
+      .withDescription("Specifies the Proxy Configuration Controller Service to proxy network requests. When used, "
+          "this will override any values specified for Proxy Host, Proxy Port, Proxy Username, and Proxy Password properties.")
+      .withAllowedTypes<minifi::controllers::ProxyConfigurationServiceInterface>()
+      .build();
   EXTENSIONAPI static constexpr auto UseDefaultCredentials = core::PropertyDefinitionBuilder<>::createProperty("Use Default Credentials")
       .withDescription("If true, uses the Default Credential chain, including EC2 instance profiles or roles, environment variables, default user credentials, etc.")
       .withValidator(core::StandardPropertyValidators::BOOLEAN_VALIDATOR)
@@ -167,6 +173,7 @@ class AwsProcessor : public core::ProcessorImpl {  // NOLINT(cppcoreguidelines-s
       ProxyPort,
       ProxyUsername,
       ProxyPassword,
+      ProxyConfigurationService,
       UseDefaultCredentials
   });
 
