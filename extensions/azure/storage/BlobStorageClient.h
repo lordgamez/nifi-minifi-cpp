@@ -30,6 +30,7 @@
 #include "utils/gsl.h"
 #include "utils/Enum.h"
 #include "io/InputStream.h"
+#include "minifi-cpp/controllers/ProxyConfigurationServiceInterface.h"
 
 namespace org::apache::nifi::minifi::azure::storage {
 
@@ -62,6 +63,7 @@ namespace org::apache::nifi::minifi::azure::storage {
 struct AzureBlobStorageParameters {
   AzureStorageCredentials credentials;
   std::string container_name;
+  std::optional<minifi::controllers::ProxyConfiguration> proxy_configuration;
 };
 
 struct AzureBlobStorageBlobOperationParameters : public AzureBlobStorageParameters {
