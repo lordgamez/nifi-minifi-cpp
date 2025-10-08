@@ -59,6 +59,7 @@ AzureBlobStorageClient::AzureBlobStorageClient() {
 Azure::Storage::Blobs::BlobContainerClient AzureBlobStorageClient::createClient(const AzureStorageCredentials &credentials, const std::string &container_name,
     const std::optional<minifi::controllers::ProxyConfiguration>& proxy_configuration) {
   Azure::Storage::Blobs::BlobClientOptions client_options;
+
   if (proxy_configuration) {
     client_options.Transport.HttpProxy = proxy_configuration->proxy_host + (proxy_configuration->proxy_port ? (":" + std::to_string(*proxy_configuration->proxy_port)) : "");
     if (proxy_configuration->proxy_user) {
@@ -70,11 +71,11 @@ Azure::Storage::Blobs::BlobContainerClient AzureBlobStorageClient::createClient(
   }
 
   if (credentials.getCredentialConfigurationStrategy() == CredentialConfigurationStrategyOption::FromProperties) {
-    return Azure::Storage::Blobs::BlobContainerClient::CreateFromConnectionString(credentials.buildConnectionString(), container_name);
+    return Azure::Storage::Blobs::BlobContainerClient::CreateFromConnectionString(credentials.buildConnectionString(), container_name, client_options);
   }
 
   auto storage_client = Azure::Storage::Blobs::BlobServiceClient("https://" + credentials.getStorageAccountName() + ".blob." + credentials.getEndpointSuffix(),
-      credentials.createAzureTokenCredential());
+      credentials.createAzureTokenCredential(), client_options);
   return storage_client.GetBlobContainerClient(container_name);
 }
 
