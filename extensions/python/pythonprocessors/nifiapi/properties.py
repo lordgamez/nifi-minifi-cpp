@@ -197,10 +197,8 @@ class FlowFile:
 class PythonPropertyValue:
     def __init__(self, cpp_context: CppProcessContext, name: str, string_value: str, el_supported: bool, controller_service_definition: str, is_dynamic: bool = False):
         self.cpp_context = cpp_context
-        self.value = ""
+        self.value = string_value
         self.name = name
-        if string_value is not None:
-            self.value = string_value
         self.el_supported = el_supported
         self.controller_service_definition = controller_service_definition
         self.is_dynamic = is_dynamic
@@ -265,10 +263,10 @@ class PythonPropertyValue:
     def evaluateAttributeExpressions(self, flow_file: FlowFile = None):
         # If Expression Language is supported, evaluate it and return a new PropertyValue.
         # Otherwise just return self, in order to avoid the cost of making the call to cpp for getProperty
-        if not self.el_supported:
+        if not self.el_supported or not self.value:
             return self
 
-        new_string_value = ""
+        new_string_value = None
         if self.is_dynamic:
             new_string_value = self.cpp_context.getDynamicProperty(self.name, flow_file.cpp_flow_file)
         else:
