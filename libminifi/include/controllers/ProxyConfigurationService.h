@@ -20,7 +20,6 @@
 
 #include "minifi-cpp/controllers/ProxyConfigurationServiceInterface.h"
 #include "core/controller/ControllerService.h"
-#include "core/PropertyDefinition.h"
 #include "core/PropertyDefinitionBuilder.h"
 #include "minifi-cpp/core/PropertyValidator.h"
 
