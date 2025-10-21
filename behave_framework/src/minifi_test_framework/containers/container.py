@@ -29,21 +29,24 @@ import docker
 
 
 class Container:
-    def __init__(self, image_name: str, container_name: str, network: Network):
+    def __init__(self, image_name: str, container_name: str, network: Network, command: str | None = None):
         self.image_name: str = image_name
         self.container_name: str = container_name
         self.network: Network = network
         self.user: str = "0:0"
-        self.client = docker.from_env()
+        self.client : docker.DockerClient = docker.from_env()
         self.container = None
         self.files: List[File] = []
         self.dirs: List[Directory] = []
         self.host_files: List[HostFile] = []
-        self.volumes = {}
-        self.command = None
-        self._temp_dir = None
+        self.volumes: Dict[str, Dict[str, str]] = {}
+        self.command = command
+        self._temp_dir : tempfile.TemporaryDirectory | None = None
         self.ports = None
         self.environment: List[str] = []
+
+    def add_host_file(self, host_path: str, container_path: str, mode: str = "ro"):
+        self.host_files.append(HostFile(container_path, host_path, mode))
 
     def deploy(self) -> bool:
         self._temp_dir = tempfile.TemporaryDirectory()
@@ -69,8 +72,8 @@ class Container:
                     "mode": directory.mode
                 }
             for host_file in self.host_files:
-                self.volumes[host_file.container_path] = {
-                    "bind": host_file.host_path,
+                self.volumes[host_file.host_path] = {
+                    "bind": host_file.container_path,
                     "mode": host_file.mode
                 }
 
@@ -82,6 +85,7 @@ class Container:
             pass
         try:
             print(f"Creating and starting container '{self.container_name}'...")
+            print (f"Volumes: {self.volumes}")
             self.container = self.client.containers.run(
                 image=self.image_name,
                 name=self.container_name,
@@ -100,7 +104,10 @@ class Container:
 
     def clean_up(self):
         if self.container is not None:
-            self.container.remove(force=True)
+            try:
+                self.container.remove(force=True)
+            except Exception as e:
+                logging.error(f"Error cleaning up container '{self.container_name}': {e}")
 
     def exec_run(self, command):
         if self.container:
@@ -116,7 +123,7 @@ class Container:
 
         command = f"sh -c \"grep -l -F -- '{escaped_content}' {directory_path}/*\""
 
-        exit_code, output = self.exec_run(command)
+        exit_code, _ = self.exec_run(command)
 
         return exit_code == 0
 
@@ -132,7 +139,7 @@ class Container:
             f"xargs -0 -r grep -l -E -- {safe_regex_str}"
         )
 
-        exit_code, output = self.exec_run(f"sh -c \"{command}\"")
+        exit_code, _ = self.exec_run(f"sh -c \"{command}\"")
 
         return exit_code == 0
 

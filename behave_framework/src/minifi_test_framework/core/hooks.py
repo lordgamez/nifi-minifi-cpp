@@ -16,9 +16,9 @@
 
 import logging
 import os
+import types
 from behave.model import Scenario
 from behave.runner import Context
-from minifi_test_framework.containers.minifi_container import MinifiContainer
 from minifi_test_framework.core.minifi_test_context import MinifiTestContext
 
 import docker
@@ -31,10 +31,31 @@ def get_minifi_container_image():
         return 'apacheminificpp:' + minifi_tag_prefix + minifi_version
     return "apacheminificpp:behave"
 
+def inject_scenario_id(context, step):
+    if "${scenario_id}" in step.name:
+        step.name = step.name.replace("${scenario_id}", context.scenario_id)
+    if step.table:
+        for row in step.table:
+            for i in range(len(row.cells)):
+                if "${scenario_id}" in row.cells[i]:
+                    row.cells[i] = row.cells[i].replace("${scenario_id}", context.scenario_id)
+
 
 def common_before_scenario(context: Context, scenario: Scenario):
     if not hasattr(context, "minifi_container_image"):
         context.minifi_container_image = get_minifi_container_image()
+
+    if not hasattr(context, "get_or_create_minifi_container"):
+        context.get_or_create_minifi_container = types.MethodType(MinifiTestContext.get_or_create_minifi_container, context)
+
+    if not hasattr(context, "get_or_create_default_minifi_container"):
+        context.get_or_create_default_minifi_container = types.MethodType(MinifiTestContext.get_or_create_default_minifi_container, context)
+
+    if not hasattr(context, "get_minifi_container"):
+        context.get_minifi_container = types.MethodType(MinifiTestContext.get_minifi_container, context)
+
+    if not hasattr(context, "get_default_minifi_container"):
+        context.get_default_minifi_container = types.MethodType(MinifiTestContext.get_default_minifi_container, context)
 
     logging.info("Running scenario: %s", scenario)
     context.scenario_id = scenario.filename.rsplit("/", 1)[1].split(".")[0] + "-" + str(
@@ -48,12 +69,14 @@ def common_before_scenario(context: Context, scenario: Scenario):
     except docker.errors.NotFound:
         pass  # No existing network found, which is good.
     context.network = docker_client.networks.create(network_name)
-    context.minifi_container = MinifiContainer(context.minifi_container_image, context.scenario_id, context.network)
-    context.containers = []
+    context.containers = {}
+    context.resource_dir = None
+
+    for step in scenario.steps:
+        inject_scenario_id(context, step)
 
 
 def common_after_scenario(context: MinifiTestContext, scenario: Scenario):
-    for container in context.containers:
+    for container in context.containers.values():
         container.clean_up()
-    context.minifi_container.clean_up()
     context.network.remove()
