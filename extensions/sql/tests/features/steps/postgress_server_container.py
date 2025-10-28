@@ -39,6 +39,6 @@ class PostgresContainer(Container):
             bail_condition=lambda: self.exited,
             context=None)
 
-    def check_query_results(self, query, number_of_rows):
+    def check_query_results(self, query: str, number_of_rows: int) -> bool:
         (code, output) = self.exec_run(["psql", "-U", "postgres", "-c", query])
-        return code == 0 and str(number_of_rows) + " row" in output
+        return code == 0 and (str(number_of_rows) + (" row" if number_of_rows == 1 else " rows")) in output
