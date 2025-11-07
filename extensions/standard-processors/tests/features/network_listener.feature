@@ -12,25 +12,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import logging
-from .Container import Container
 
+@CORE
+Feature: Minifi C++ can act as a network listener
 
-class DiagSlave(Container):
-    def __init__(self, feature_context, name, vols, network, image_store, command=None):
-        super().__init__(feature_context, name, 'diag-slave-tcp', vols, network, image_store, command)
+  Scenario: A TCP client can send messages to Minifi
+    Given a ListenTCP processor
+    And the "Listening Port" property of the ListenTCP processor is set to "10254"
+    And a PutFile processor with the "Directory" property set to "/tmp/output"
+    And PutFile is EVENT_DRIVEN
+    And a TCP client is set up to send a test TCP message to minifi
+    And the "success" relationship of the ListenTCP processor is connected to the PutFile
+    And PutFile's "success" relationship is auto-terminated
 
-    def get_startup_finished_log_entry(self):
-        return "Server started up successfully."
-
-    def deploy(self):
-        if not self.set_deployed():
-            return
-
-        logging.info('Creating and running a DiagSlave docker container...')
-        self.client.containers.run(
-            self.image_store.get_image(self.get_engine()),
-            detach=True,
-            name=self.name,
-            network=self.network.name)
-        logging.info('Added container \'%s\'', self.name)
+    When all instances start up
+    Then at least one file with the content "test_tcp_message" is placed in the "/tmp/output" directory in less than 20 seconds
