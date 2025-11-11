@@ -33,7 +33,7 @@ from minifi_test_framework.core.minifi_test_context import DEFAULT_MINIFI_CONTAI
 @when("all instances start up")
 def step_impl(context: MinifiTestContext):
     for container in context.containers.values():
-        assert container.deploy() or container.get_logs()
+        assert container.deploy() or container.log_app_output()
     logging.debug("All instances started up")
 
 
