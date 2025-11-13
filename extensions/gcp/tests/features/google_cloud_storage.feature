@@ -16,38 +16,54 @@
 @ENABLE_GCP
 Feature: Sending data to Google Cloud Storage using PutGCSObject
 
-  Background:
-    Given the content of "/tmp/output" is monitored
-
   Scenario: A MiNiFi instance can upload data to Google Cloud storage
     Given a GetFile processor with the "Input Directory" property set to "/tmp/input"
     And a file with the content "hello_gcs" is present in "/tmp/input"
     And a Google Cloud storage server is set up
     And a PutGCSObject processor
-    And the PutGCSObject processor is set up with a GCPCredentialsControllerService to communicate with the Google Cloud storage server
+    And PutGCSObject is EVENT_DRIVEN
+    And a GCPCredentialsControllerService controller service is set up
+    And the "Credentials Location" property of the GCPCredentialsControllerService controller service is set to "Use Anonymous credentials"
+    And the "GCP Credentials Provider Service" property of the PutGCSObject processor is set to "GCPCredentialsControllerService"
+    And the "Bucket" property of the PutGCSObject processor is set to "test-bucket"
+    And the "Number of retries" property of the PutGCSObject processor is set to "2"
+    And the "Endpoint Override URL" property of the PutGCSObject processor is set to "fake-gcs-server-${scenario_id}:4443"
     And a PutFile processor with the "Directory" property set to "/tmp/output"
+    And PutFile is EVENT_DRIVEN
     And the "success" relationship of the GetFile processor is connected to the PutGCSObject
     And the "success" relationship of the PutGCSObject processor is connected to the PutFile
     And the "failure" relationship of the PutGCSObject processor is connected to the PutGCSObject
+    And PutFile's success relationship is auto-terminated
 
-    When all instances start up
+    When the MiNiFi instance starts up
 
-    Then a flowfile with the content "hello_gcs" is placed in the monitored directory in less than 45 seconds
+    Then there is a single file with "hello_gcs" content in the "/tmp/output" directory in less than 45 seconds
     And an object with the content "hello_gcs" is present in the Google Cloud storage
 
   Scenario: A MiNiFi instance can fetch the listed objects from Google Cloud storage bucket
     Given a Google Cloud storage server is set up and a single object with contents "preloaded data" is present
+    And a GCPCredentialsControllerService controller service is set up
+    And the "Credentials Location" property of the GCPCredentialsControllerService controller service is set to "Use Anonymous credentials"
     And a ListGCSBucket processor
+    And the "Bucket" property of the ListGCSBucket processor is set to "test-bucket"
+    And the "Number of retries" property of the ListGCSBucket processor is set to "2"
+    And the "Endpoint Override URL" property of the ListGCSBucket processor is set to "fake-gcs-server-${scenario_id}:4443"
+    And the "GCP Credentials Provider Service" property of the ListGCSBucket processor is set to "GCPCredentialsControllerService"
     And a FetchGCSObject processor
-    And the ListGCSBucket and the FetchGCSObject processors are set up with a GCPCredentialsControllerService to communicate with the Google Cloud storage server
+    And FetchGCSObject is EVENT_DRIVEN
+    And the "Bucket" property of the FetchGCSObject processor is set to "test-bucket"
+    And the "Number of retries" property of the FetchGCSObject processor is set to "2"
+    And the "Endpoint Override URL" property of the FetchGCSObject processor is set to "fake-gcs-server-${scenario_id}:4443"
+    And the "GCP Credentials Provider Service" property of the FetchGCSObject processor is set to "GCPCredentialsControllerService"
     And a PutFile processor with the "Directory" property set to "/tmp/output"
+    And PutFile is EVENT_DRIVEN
     And the "success" relationship of the ListGCSBucket processor is connected to the FetchGCSObject
     And the "success" relationship of the FetchGCSObject processor is connected to the PutFile
+    And PutFile's success relationship is auto-terminated
 
-    When all instances start up
+    When the MiNiFi instance starts up
 
-    Then a flowfile with the content "preloaded data" is placed in the monitored directory in less than 10 seconds
-
+    Then there is a single file with "preloaded data" content in the "/tmp/output" directory in less than 10 seconds
 
   Scenario: A MiNiFi instance can delete the listed objects from Google Cloud storage bucket
     Given a Google Cloud storage server is set up with some test data
@@ -61,4 +77,4 @@ Feature: Sending data to Google Cloud Storage using PutGCSObject
     When all instances start up
 
     Then the test bucket of Google Cloud Storage is empty
-    And at least one empty flowfile is placed in the monitored directory in less than 10 seconds
+    And at least one empty file is placed in the "/tmp/output" directory in less than 10 seconds
