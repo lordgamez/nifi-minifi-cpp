@@ -26,6 +26,7 @@ from minifi_test_framework.core.ssl_utils import make_server_cert
 class SplunkContainer(Container):
     def __init__(self, test_context: MinifiTestContext):
         super().__init__("splunk/splunk:9.2.1-patch2", f"splunk-{test_context.scenario_id}", test_context.network)
+        self.user = None
 
         self.environment = ["SPLUNK_LICENSE_URI=Free",
                             "SPLUNK_START_ARGS=--accept-license",
@@ -53,8 +54,8 @@ splunk:
         finished_str = "Ansible playbook complete, will begin streaming splunkd_stderr.log"
         return wait_for_condition(
             condition=lambda: finished_str in self.get_logs(),
-            timeout_seconds=360,
-            bail_condition=lambda: self.exited,
+            timeout_seconds=600,
+            bail_condition=lambda: False,
             context=None)
 
     @retry_check()
