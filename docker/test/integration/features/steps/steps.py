@@ -1068,12 +1068,6 @@ def step_impl(context, remote_process_group: str):
     setUpSslContextServiceForRPG(context, remote_process_group)
 
 
-# Nginx reverse proxy
-@given(u'a reverse proxy is set up to forward requests to the Grafana Loki server')
-def step_impl(context):
-    context.test.acquire_container(context=context, name="reverse-proxy", engine="reverse-proxy")
-
-
 # Python
 @given("python with langchain is installed on the MiNiFi agent {install_mode}")
 def step_impl(context, install_mode):
