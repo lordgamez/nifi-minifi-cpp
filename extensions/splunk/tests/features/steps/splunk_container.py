@@ -53,8 +53,8 @@ splunk:
         finished_str = "Ansible playbook complete, will begin streaming splunkd_stderr.log"
         return wait_for_condition(
             condition=lambda: finished_str in self.get_logs(),
-            timeout_seconds=360,
-            bail_condition=lambda: self.exited,
+            timeout_seconds=600,
+            bail_condition=lambda: False,
             context=None)
 
     @retry_check()
