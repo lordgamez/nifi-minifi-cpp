@@ -419,3 +419,14 @@ class Container:
                 continue
 
         return False
+
+    def directory_contains_file_with_minimum_size(self, directory_path: str, expected_size: int) -> bool:
+        if not self.container or not self.not_empty_dir_exists(directory_path):
+            return False
+
+        quoted_content = shlex.quote(expected_content)
+        command = "sh -c {}".format(shlex.quote(f"grep -l -F -- {quoted_content} {directory_path}/*"))
+
+        exit_code, _ = self.exec_run(command)
+
+        return exit_code == 0

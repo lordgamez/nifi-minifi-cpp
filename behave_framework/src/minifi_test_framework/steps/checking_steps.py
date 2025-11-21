@@ -218,3 +218,11 @@ def step_impl(context, container_name, directory, duration):
     assert wait_for_condition(
         condition=lambda: context.get_minifi_container(container_name).directory_contains_empty_file(directory),
         timeout_seconds=timeout_in_seconds, bail_condition=lambda: context.get_minifi_container(container_name).exited, context=context)
+
+
+@then("in the \"{container_name}\" container at least one file with minimum size of \"{size}\" is placed in the \"{directory}\" directory in less than {duration}")
+def step_impl(context, container_name: str, directory: str, size: str, duration: str):
+    timeout_in_seconds = humanfriendly.parse_timespan(duration)
+    assert wait_for_condition(
+        condition=lambda: context.get_minifi_container(container_name).directory_contains_file_with_minimum_size(directory),
+        timeout_seconds=timeout_in_seconds, bail_condition=lambda: context.get_minifi_container(container_name).exited, context=context)
