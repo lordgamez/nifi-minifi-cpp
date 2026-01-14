@@ -17,10 +17,13 @@
 
 from textwrap import dedent
 
+from OpenSSL import crypto
 from minifi_test_framework.containers.container import Container
 from minifi_test_framework.containers.docker_image_builder import DockerImageBuilder
 from minifi_test_framework.core.helpers import wait_for_condition
 from minifi_test_framework.core.minifi_test_context import MinifiTestContext
+from minifi_test_framework.core.ssl_utils import make_server_cert
+from minifi_test_framework.containers.file import File
 
 
 class HttpProxy(Container):
@@ -32,10 +35,14 @@ class HttpProxy(Container):
                 RUN echo 'auth_param basic program /usr/lib/squid/basic_ncsa_auth /etc/squid/.squid_users'  > /etc/squid/squid.conf && \
                     echo 'auth_param basic realm proxy' >> /etc/squid/squid.conf && \
                     echo 'acl authenticated proxy_auth REQUIRED' >> /etc/squid/squid.conf && \
+                    echo 'acl SSL_ports port 443' >> /etc/squid/squid.conf && \
+                    echo 'acl SSL_ports port 3002' >> /etc/squid/squid.conf && \
+                    echo 'acl Safe_ports port 80' >> /etc/squid/squid.conf && \
                     echo 'http_access allow authenticated' >> /etc/squid/squid.conf && \
-                    echo 'http_port {proxy_port}' >> /etc/squid/squid.conf
+                    echo 'http_port {proxy_port}' >> /etc/squid/squid.conf && \
+                    echo 'https_port {proxy_ssl_port} tls-cert=/etc/squid/certs/squid-ca-cert-key.pem' >> /etc/squid/squid.conf
                 """.format(base_image='ubuntu/squid:5.2-22.04_beta', proxy_username='admin', proxy_password='test101',
-                           proxy_port='3128'))
+                           proxy_port='3128', proxy_ssl_port='3129'))
 
         builder = DockerImageBuilder(
             image_tag="minifi-http-proxy:latest",
@@ -44,6 +51,10 @@ class HttpProxy(Container):
         builder.build()
 
         super().__init__("minifi-http-proxy:latest", f"http-proxy-{test_context.scenario_id}", test_context.network)
+        squid_cert, squid_key = make_server_cert(self.container_name, test_context.root_ca_cert, test_context.root_ca_key)
+
+        squid_combined_content = crypto.dump_certificate(type=crypto.FILETYPE_PEM, cert=squid_cert) + crypto.dump_privatekey(type=crypto.FILETYPE_PEM, pkey=squid_key)
+        self.files.append(File("/etc/squid/certs/squid-ca-cert-key.pem", squid_combined_content, permissions=0o666))
 
     def deploy(self):
         super().deploy()

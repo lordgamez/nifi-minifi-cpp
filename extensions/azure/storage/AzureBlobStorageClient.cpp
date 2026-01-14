@@ -28,6 +28,7 @@
 #include "utils/AzureSdkLogger.h"
 #include "utils/span.h"
 #include "io/InputStream.h"
+#include "utils/StringUtils.h"
 
 namespace org::apache::nifi::minifi::azure::storage {
 
@@ -61,7 +62,13 @@ Azure::Storage::Blobs::BlobContainerClient AzureBlobStorageClient::createClient(
   Azure::Storage::Blobs::BlobClientOptions client_options;
 
   if (proxy_configuration) {
-    client_options.Transport.HttpProxy = proxy_configuration->proxy_host + (proxy_configuration->proxy_port ? (":" + std::to_string(*proxy_configuration->proxy_port)) : "");
+    std::string protocol_prefix;
+    if (proxy_configuration->proxy_type == controllers::ProxyType::HTTP && !minifi::utils::string::startsWith(proxy_configuration->proxy_host, "http://")) {
+      protocol_prefix = "http://";
+    } else if (proxy_configuration->proxy_type == controllers::ProxyType::HTTPS && !minifi::utils::string::startsWith(proxy_configuration->proxy_host, "https://")) {
+      protocol_prefix = "https://";
+    }
+    client_options.Transport.HttpProxy = protocol_prefix + proxy_configuration->proxy_host + (proxy_configuration->proxy_port ? (":" + std::to_string(*proxy_configuration->proxy_port)) : "");
     if (proxy_configuration->proxy_user) {
       client_options.Transport.ProxyUserName = *proxy_configuration->proxy_user;
     }
