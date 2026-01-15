@@ -53,6 +53,8 @@ class HttpProxy(Container):
         super().__init__("minifi-http-proxy:latest", f"http-proxy-{test_context.scenario_id}", test_context.network)
         squid_cert, squid_key = make_server_cert(self.container_name, test_context.root_ca_cert, test_context.root_ca_key)
 
+        self.files.append(File("/etc/ssl/certs/ca-certificates.crt", crypto.dump_certificate(type=crypto.FILETYPE_PEM, cert=test_context.root_ca_cert)))
+
         squid_combined_content = crypto.dump_certificate(type=crypto.FILETYPE_PEM, cert=squid_cert) + crypto.dump_privatekey(type=crypto.FILETYPE_PEM, pkey=squid_key)
         self.files.append(File("/etc/squid/certs/squid-ca-cert-key.pem", squid_combined_content, permissions=0o666))
 

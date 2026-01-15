@@ -73,7 +73,14 @@ class Container:
                 self._write_content_to_file(file_path, None, content)
             self.volumes[temp_path] = {"bind": directory.path, "mode": directory.mode}
 
+    def is_deployed(self) -> bool:
+        return self.container is not None
+
     def deploy(self) -> bool:
+        if self.is_deployed():
+            logging.info(f"Container '{self.container_name}' is already deployed.")
+            return True
+
         self._temp_dir = tempfile.TemporaryDirectory()
         self._configure_volumes_of_container_files()
         self._configure_volumes_of_container_dirs()

@@ -17,21 +17,36 @@
 
 import logging
 
+from OpenSSL import crypto
 from docker.errors import ContainerError
 from minifi_test_framework.containers.container import Container
 from minifi_test_framework.core.helpers import run_cmd_in_docker_image
 from minifi_test_framework.core.helpers import wait_for_condition
 from minifi_test_framework.core.minifi_test_context import MinifiTestContext
+from minifi_test_framework.core.ssl_utils import make_server_cert
+from minifi_test_framework.containers.file import File
 
 
 class AzureServerContainer(Container):
     def __init__(self, test_context: MinifiTestContext):
         super().__init__("mcr.microsoft.com/azure-storage/azurite:3.35.0",
                          f"azure-storage-server-{test_context.scenario_id}",
-                         test_context.network)
+                         test_context.network, command=["azurite", "--cert", "/workspace/azure.pem", "--key", "/workspace/azure-key.pem", "--oauth", "basic"])
         azure_storage_hostname = f"azure-storage-server-{test_context.scenario_id}"
-        self.azure_connection_string = "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;" \
-                                       f"BlobEndpoint=http://{azure_storage_hostname}:10000/devstoreaccount1;QueueEndpoint=http://{azure_storage_hostname}:10001/devstoreaccount1;"
+
+        self.azure_connection_string = "DefaultEndpointsProtocol=https;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;" \
+                                       f"BlobEndpoint=https://{azure_storage_hostname}:10000/devstoreaccount1;QueueEndpoint=https://{azure_storage_hostname}:10001/devstoreaccount1;TableEndpoint=https://{azure_storage_hostname}:10002/devstoreaccount1"
+        print(f"Azure connection string: {self.azure_connection_string}")
+
+        azure_pem, azure_key = make_server_cert(self.container_name, test_context.root_ca_cert, test_context.root_ca_key)
+        # self.files.append(File("/workspace/root_ca.crt", crypto.dump_certificate(type=crypto.FILETYPE_PEM, cert=test_context.root_ca_cert)))
+        self.files.append(File("/etc/ssl/certs/ca-certificates.crt", crypto.dump_certificate(type=crypto.FILETYPE_PEM, cert=test_context.root_ca_cert)))
+
+        azure_pem_content = crypto.dump_certificate(type=crypto.FILETYPE_PEM, cert=azure_pem)
+        self.files.append(File("/workspace/azure.pem", azure_pem_content, permissions=0o644))
+
+        azure_key_content = crypto.dump_privatekey(type=crypto.FILETYPE_PEM, pkey=azure_key)
+        self.files.append(File("/workspace/azure-key.pem", azure_key_content, permissions=0o644))
 
     def deploy(self):
         super().deploy()
