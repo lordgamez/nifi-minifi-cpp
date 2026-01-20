@@ -100,15 +100,20 @@ def step_impl(context: MinifiTestContext):
 
 
 @given("OpenSSL FIPS mode is enabled in MiNiFi")
-def step_impl(context):
+def step_impl(context: MinifiTestContext):
     context.get_or_create_default_minifi_container().enable_openssl_fips_mode()
 
 
 @step("the http proxy server is set up")
-def step_impl(context):
+def step_impl(context: MinifiTestContext):
     context.containers["http-proxy"] = HttpProxy(context)
 
 
 @step("a NiFi container is set up")
-def step_impl(context):
+def step_impl(context: MinifiTestContext):
     context.containers["nifi"] = NifiContainer(context)
+
+
+@given("flow configuration path is set up in flow url property")
+def step_impl(context: MinifiTestContext):
+    context.get_or_create_default_minifi_container().fetch_flow_config_from_flow_url()
