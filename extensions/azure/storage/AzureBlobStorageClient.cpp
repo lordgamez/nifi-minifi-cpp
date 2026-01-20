@@ -58,22 +58,26 @@ AzureBlobStorageClient::AzureBlobStorageClient() {
 }
 
 Azure::Storage::Blobs::BlobContainerClient AzureBlobStorageClient::createClient(const AzureStorageCredentials &credentials, const std::string &container_name,
-    const std::optional<minifi::controllers::ProxyConfiguration>& proxy_configuration) {
+    const std::optional<minifi::controllers::ProxyConfiguration>& proxy_configuration) const {
   Azure::Storage::Blobs::BlobClientOptions client_options;
 
   if (proxy_configuration) {
     std::string protocol_prefix;
-    if (proxy_configuration->proxy_type == controllers::ProxyType::HTTP && !minifi::utils::string::startsWith(proxy_configuration->proxy_host, "http://")) {
+    const bool starts_with_http = minifi::utils::string::startsWith(proxy_configuration->proxy_host, "http://") || minifi::utils::string::startsWith(proxy_configuration->proxy_host, "https://");
+    if (proxy_configuration->proxy_type == controllers::ProxyType::HTTP && !starts_with_http) {
       protocol_prefix = "http://";
-    } else if (proxy_configuration->proxy_type == controllers::ProxyType::HTTPS && !minifi::utils::string::startsWith(proxy_configuration->proxy_host, "https://")) {
+    } else if (proxy_configuration->proxy_type == controllers::ProxyType::HTTPS && !starts_with_http) {
       protocol_prefix = "https://";
     }
     client_options.Transport.HttpProxy = protocol_prefix + proxy_configuration->proxy_host + (proxy_configuration->proxy_port ? (":" + std::to_string(*proxy_configuration->proxy_port)) : "");
+    logger_->log_info("Using proxy host: {}", *client_options.Transport.HttpProxy);
     if (proxy_configuration->proxy_user) {
       client_options.Transport.ProxyUserName = *proxy_configuration->proxy_user;
+      logger_->log_info("Using proxy user: {}", *client_options.Transport.ProxyUserName);
     }
     if (proxy_configuration->proxy_password) {
       client_options.Transport.ProxyPassword = *proxy_configuration->proxy_password;
+      logger_->log_info("Using proxy password: {}", *client_options.Transport.ProxyPassword);
     }
   }
 

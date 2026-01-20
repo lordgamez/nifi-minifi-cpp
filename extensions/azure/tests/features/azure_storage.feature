@@ -112,7 +112,7 @@ Feature: Sending data from MiNiFi-C++ to an Azure storage server
   Scenario Outline: A MiNiFi instance can upload data to Azure blob storage through a proxy
     Given a GetFile processor with the "Input Directory" property set to "/tmp/input"
     And a file with the content "#test_data$123$#" is present in "/tmp/input"
-    And a PutAzureBlobStorage processor set up to communicate with an Azure blob storage
+    And a PutAzureBlobStorage processor set up to communicate with an Azure blob storage through <proxy type>
     And the "Proxy Configuration Service" property of the PutAzureBlobStorage processor is set to "ProxyConfigurationService"
     And a PutFile processor with the "Directory" property set to "/tmp/output"
     And the "success" relationship of the GetFile processor is connected to the PutAzureBlobStorage

@@ -28,7 +28,19 @@ from minifi_test_framework.steps import flow_building_steps  # noqa: F401
 from azure_server_container import AzureServerContainer
 
 
-@step("a {processor_name} processor set up to communicate with an Azure blob storage")
+@step("a {processor_name} processor set up to communicate with an Azure blob storage through HTTP")
+def step_impl(context: MinifiTestContext, processor_name: str):
+    processor = Processor(processor_name, processor_name)
+    hostname = f"http://azure-storage-server-{context.scenario_id}"
+    processor.add_property('Container Name', 'test-container')
+    processor.add_property('Connection String',
+                           f"DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint={hostname}:10000/devstoreaccount1;QueueEndpoint={hostname}:10001/devstoreaccount1;TableEndpoint={hostname}:10002/devstoreaccount1")
+    processor.add_property('Blob', 'test-blob')
+    processor.add_property('Create Container', 'true')
+    context.get_or_create_default_minifi_container().flow_definition.add_processor(processor)
+
+
+@step("a {processor_name} processor set up to communicate with an Azure blob storage through HTTPS")
 def step_impl(context: MinifiTestContext, processor_name: str):
     processor = Processor(processor_name, processor_name)
     hostname = f"https://azure-storage-server-{context.scenario_id}"

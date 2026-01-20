@@ -36,11 +36,13 @@ class HttpProxy(Container):
                     echo 'auth_param basic realm proxy' >> /etc/squid/squid.conf && \
                     echo 'acl authenticated proxy_auth REQUIRED' >> /etc/squid/squid.conf && \
                     echo 'acl SSL_ports port 443' >> /etc/squid/squid.conf && \
-                    echo 'acl SSL_ports port 3002' >> /etc/squid/squid.conf && \
+                    echo 'acl SSL_ports port 10000' >> /etc/squid/squid.conf && \
                     echo 'acl Safe_ports port 80' >> /etc/squid/squid.conf && \
-                    echo 'http_access allow authenticated' >> /etc/squid/squid.conf && \
+                    echo 'acl CONNECT method CONNECT' >> /etc/squid/squid.conf && \
                     echo 'http_port {proxy_port}' >> /etc/squid/squid.conf && \
-                    echo 'https_port {proxy_ssl_port} tls-cert=/etc/squid/certs/squid-ca-cert-key.pem' >> /etc/squid/squid.conf
+                    echo 'https_port {proxy_ssl_port} tls-cert=/etc/squid/certs/squid-cert.pem tls-key=/etc/squid/certs/squid-key.pem' >> /etc/squid/squid.conf && \
+                    echo 'http_access allow all' >> /etc/squid/squid.conf && \
+                    echo 'ssl_bump none all' >> /etc/squid/squid.conf
                 """.format(base_image='ubuntu/squid:5.2-22.04_beta', proxy_username='admin', proxy_password='test101',
                            proxy_port='3128', proxy_ssl_port='3129'))
 
@@ -55,8 +57,12 @@ class HttpProxy(Container):
 
         self.files.append(File("/etc/ssl/certs/ca-certificates.crt", crypto.dump_certificate(type=crypto.FILETYPE_PEM, cert=test_context.root_ca_cert)))
 
-        squid_combined_content = crypto.dump_certificate(type=crypto.FILETYPE_PEM, cert=squid_cert) + crypto.dump_privatekey(type=crypto.FILETYPE_PEM, pkey=squid_key)
-        self.files.append(File("/etc/squid/certs/squid-ca-cert-key.pem", squid_combined_content, permissions=0o666))
+        # squid_combined_content = crypto.dump_certificate(type=crypto.FILETYPE_PEM, cert=squid_cert) + crypto.dump_privatekey(type=crypto.FILETYPE_PEM, pkey=squid_key)
+        # self.files.append(File("/etc/squid/certs/squid-ca-cert-key.pem", squid_combined_content, permissions=0o666))
+        self.files.append(File("/etc/squid/certs/squid-cert.pem", crypto.dump_certificate(type=crypto.FILETYPE_PEM, cert=squid_cert), permissions=0o777))
+        self.files.append(File("/etc/squid/certs/squid-key.pem", crypto.dump_privatekey(type=crypto.FILETYPE_PEM, pkey=squid_key), permissions=0o777))
+
+        self.ports = {"3128/tcp": 3128, "3129/tcp": 3129}
 
     def deploy(self):
         super().deploy()

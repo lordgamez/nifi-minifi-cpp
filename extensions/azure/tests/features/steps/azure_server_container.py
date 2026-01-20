@@ -31,7 +31,7 @@ class AzureServerContainer(Container):
     def __init__(self, test_context: MinifiTestContext):
         super().__init__("mcr.microsoft.com/azure-storage/azurite:3.35.0",
                          f"azure-storage-server-{test_context.scenario_id}",
-                         test_context.network, command=["azurite", "--cert", "/workspace/azure.pem", "--key", "/workspace/azure-key.pem", "--oauth", "basic"])
+                         test_context.network)
         azure_storage_hostname = f"azure-storage-server-{test_context.scenario_id}"
 
         self.azure_connection_string = "DefaultEndpointsProtocol=https;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;" \
@@ -39,7 +39,6 @@ class AzureServerContainer(Container):
         print(f"Azure connection string: {self.azure_connection_string}")
 
         azure_pem, azure_key = make_server_cert(self.container_name, test_context.root_ca_cert, test_context.root_ca_key)
-        # self.files.append(File("/workspace/root_ca.crt", crypto.dump_certificate(type=crypto.FILETYPE_PEM, cert=test_context.root_ca_cert)))
         self.files.append(File("/etc/ssl/certs/ca-certificates.crt", crypto.dump_certificate(type=crypto.FILETYPE_PEM, cert=test_context.root_ca_cert)))
 
         azure_pem_content = crypto.dump_certificate(type=crypto.FILETYPE_PEM, cert=azure_pem)
