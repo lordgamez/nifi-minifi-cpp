@@ -50,6 +50,11 @@ def step_impl(context: MinifiTestContext):
     context.get_or_create_default_minifi_container().fetch_flow_config_from_flow_url()
 
 
+@given("SSL properties are set in MiNiFi")
+def step_impl(context: MinifiTestContext):
+    context.get_or_create_default_minifi_container().set_up_ssl_proprties()
+
+
 @given("ssl properties are set up for MiNiFi C2 server")
 def step_impl(context: MinifiTestContext):
     context.get_or_create_default_minifi_container().enable_c2_with_ssl()
