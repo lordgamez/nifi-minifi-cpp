@@ -124,6 +124,7 @@ class NifiFlowDefinition(FlowDefinition):
                 source_proc = input_ports_by_name.get(conn.source_name)
                 source_type = "INPUT_PORT"
                 conn.source_relationship = ""
+            dest_type = "PROCESSOR"
             dest_proc = processors_by_name.get(conn.target_name)
             if not dest_proc:
                 dest_proc = output_ports_by_name.get(conn.target_name)
