@@ -136,6 +136,7 @@ class Minifi_flow_yaml_serializer:
                         'url': group.url,
                         'timeout': '30 sec',
                         'yield period': '3 sec',
+                        'transport protocol': group.transport_protocol,
                         'Output Ports': []
                     }
 

@@ -25,6 +25,7 @@
 #include <utility>
 #include <vector>
 #include <optional>
+#include <expected>
 
 #include "Peer.h"
 #include "SiteToSite.h"
@@ -171,6 +172,9 @@ class SiteToSiteClient {
   std::atomic<std::chrono::milliseconds> batch_duration_{0s};
   std::atomic<std::chrono::milliseconds> timeout_{0s};
 
+ protected:
+  virtual std::pair<uint64_t, uint64_t> readFlowFiles(const std::shared_ptr<Transaction>& transaction, core::ProcessSession& session);
+
  private:
   struct ReceiveFlowFileHeaderResult {
     std::map<std::string, std::string> attributes;
@@ -187,9 +191,8 @@ class SiteToSiteClient {
   bool completeReceive(const std::shared_ptr<Transaction>& transaction, const utils::Identifier& transaction_id);
   bool completeSend(const std::shared_ptr<Transaction>& transaction, const utils::Identifier& transaction_id, core::ProcessContext& context);
 
-  bool readFlowFileHeaderData(io::InputStream& stream, const std::string& transaction_id, SiteToSiteClient::ReceiveFlowFileHeaderResult& result);
-  std::optional<ReceiveFlowFileHeaderResult> receiveFlowFileHeader(io::InputStream& stream, const std::shared_ptr<Transaction>& transaction);
-  std::pair<uint64_t, uint64_t> readFlowFiles(const std::shared_ptr<Transaction>& transaction, core::ProcessSession& session);
+  std::expected<void, std::string> readFlowFileHeaderData(io::InputStream& stream, const std::string& transaction_id, SiteToSiteClient::ReceiveFlowFileHeaderResult& result);
+  std::expected<ReceiveFlowFileHeaderResult, std::string> receiveFlowFileHeader(io::InputStream& stream, const std::shared_ptr<Transaction>& transaction);
 
   std::shared_ptr<core::logging::Logger> logger_{core::logging::LoggerFactory<SiteToSiteClient>::getLogger()};
 };

@@ -77,6 +77,9 @@ class HttpSiteToSiteClient final : public SiteToSiteClient {
   void deleteTransaction(const utils::Identifier& transaction_id) override;
   void tearDown() override;
 
+ protected:
+  std::pair<uint64_t, uint64_t> readFlowFiles(const std::shared_ptr<Transaction>& transaction, core::ProcessSession& session) override;
+
  private:
   void setSiteToSiteHeaders(minifi::http::HTTPClient& client);
   void closeTransaction(const utils::Identifier &transaction_id);
