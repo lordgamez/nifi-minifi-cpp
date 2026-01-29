@@ -388,4 +388,25 @@ void HttpSiteToSiteClient::setSiteToSiteHeaders(minifi::http::HTTPClient& client
   }
 }
 
+std::pair<uint64_t, uint64_t> HttpSiteToSiteClient::readFlowFiles(const std::shared_ptr<Transaction>& transaction, core::ProcessSession& session) {
+  auto http_stream = dynamic_cast<http::HttpStream*>(peer_->getStream());
+  if (!http_stream) {
+    throw Exception(SITE2SITE_EXCEPTION, "Reading flow files failed: stream cannot be cast to HTTP stream");
+  }
+
+  const auto& client = http_stream->getClientRef();
+  if (client->getResponseCode() != 201) {
+    // No content to read
+    logger_->log_debug("No content to read, response code {}", client->getResponseCode());
+    return {0, 0};
+  }
+
+  client
+
+  std::string message(client->getResponseBody().data(), client->getResponseBody().size());
+  io::BufferStream buffer(message);
+
+  return SiteToSiteClient::readFlowFiles(transaction, session, buffer);
+}
+
 }  // namespace org::apache::nifi::minifi::sitetosite

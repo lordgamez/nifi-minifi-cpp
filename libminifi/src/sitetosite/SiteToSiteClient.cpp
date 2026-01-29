@@ -670,16 +670,20 @@ std::optional<SiteToSiteClient::ReceiveFlowFileHeaderResult> SiteToSiteClient::r
 }
 
 std::pair<uint64_t, uint64_t> SiteToSiteClient::readFlowFiles(const std::shared_ptr<Transaction>& transaction, core::ProcessSession& session) {
+  return readFlowFiles(transaction, session, transaction->getStream());
+}
+
+std::pair<uint64_t, uint64_t> SiteToSiteClient::readFlowFiles(const std::shared_ptr<Transaction>& transaction, core::ProcessSession& session, io::InputStream& input_stream) {
   uint64_t transfers = 0;
   uint64_t bytes = 0;
 
   std::unique_ptr<CompressionInputStream> compression_stream;
   std::unique_ptr<io::CRCStream<io::InputStream>> compression_wrapper_crc_stream;
   if (use_compression_) {
-    compression_stream = std::make_unique<CompressionInputStream>(transaction->getStream());
+    compression_stream = std::make_unique<CompressionInputStream>(input_stream);
     compression_wrapper_crc_stream = std::make_unique<io::CRCStream<io::InputStream>>(gsl::make_not_null(compression_stream.get()));
   }
-  io::InputStream& stream = use_compression_ ?  static_cast<io::InputStream&>(*compression_wrapper_crc_stream) : static_cast<io::InputStream&>(transaction->getStream());
+  io::InputStream& stream = use_compression_ ?  static_cast<io::InputStream&>(*compression_wrapper_crc_stream) : input_stream;
 
   while (true) {
     auto start_time = std::chrono::steady_clock::now();
