@@ -133,6 +133,7 @@ class Minifi_flow_json_serializer:
                         'targetUri': group.url,
                         'communicationsTimeout': '30 sec',
                         'yieldDuration': '3 sec',
+                        'transportProtocol': group.transport_protocol,
                         'outputPorts': []
                     }
 

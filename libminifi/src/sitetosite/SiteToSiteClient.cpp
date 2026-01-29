@@ -559,11 +559,10 @@ bool SiteToSiteClient::sendPacket(const DataPacket& packet) {
   return true;
 }
 
-bool SiteToSiteClient::readFlowFileHeaderData(io::InputStream& stream, const std::string& transaction_id_str, SiteToSiteClient::ReceiveFlowFileHeaderResult& result) {
+std::expected<void, std::string> SiteToSiteClient::readFlowFileHeaderData(io::InputStream& stream, const std::string& transaction_id_str, SiteToSiteClient::ReceiveFlowFileHeaderResult& result) {
   uint32_t num_attributes = 0;
   if (const auto ret = stream.read(num_attributes); ret == 0 || io::isError(ret) || num_attributes > MAX_NUM_ATTRIBUTES) {
-    logger_->log_error("Site2Site failed to read number of attributes with return code {}, or number of attributes is invalid: {}", ret, num_attributes);
-    return false;
+    return std::unexpected(fmt::format("Site2Site failed to read number of attributes with return code {}, or number of attributes is invalid: {}", ret, num_attributes));
   }
 
   logger_->log_debug("Site2Site transaction {} receives {} attributes", transaction_id_str, num_attributes);
@@ -571,13 +570,11 @@ bool SiteToSiteClient::readFlowFileHeaderData(io::InputStream& stream, const std
     std::string key;
     std::string value;
     if (const auto ret = stream.read(key, true); ret == 0 || io::isError(ret)) {
-      logger_->log_error("Site2Site transaction {} failed to read attribute key", transaction_id_str);
-      return false;
+      return std::unexpected(fmt::format("Site2Site transaction {} failed to read attribute key", transaction_id_str));
     }
 
     if (const auto ret = stream.read(value, true); ret == 0 || io::isError(ret)) {
-      logger_->log_error("Site2Site transaction {} failed to read attribute value for key {}", transaction_id_str, key);
-      return false;
+      return std::unexpected(fmt::format("Site2Site transaction {} failed to read attribute value for key {}", transaction_id_str, key));
     }
 
     result.attributes[key] = value;
@@ -586,32 +583,29 @@ bool SiteToSiteClient::readFlowFileHeaderData(io::InputStream& stream, const std
 
   uint64_t len = 0;
   if (const auto ret = stream.read(len); ret == 0 || io::isError(ret)) {
-    logger_->log_error("Site2Site transaction {} failed to read flow file data size", transaction_id_str);
-    return false;
+    return std::unexpected(fmt::format("Site2Site transaction {} failed to read flow file data size", transaction_id_str));
   }
 
   result.flow_file_data_size = len;
-  return true;
+  return {};
 }
 
-std::optional<SiteToSiteClient::ReceiveFlowFileHeaderResult> SiteToSiteClient::receiveFlowFileHeader(io::InputStream& stream, const std::shared_ptr<Transaction>& transaction) {
+std::expected<SiteToSiteClient::ReceiveFlowFileHeaderResult, std::string> SiteToSiteClient::receiveFlowFileHeader(io::InputStream& stream, const std::shared_ptr<Transaction>& transaction) {
   if (peer_state_ != PeerState::READY) {
     bootstrap();
   }
 
   if (peer_state_ != PeerState::READY) {
-    return std::nullopt;
+    return std::unexpected("Peer state is not ready");
   }
 
   const auto transaction_id_str = transaction->getUUIDStr();
   if (transaction->getState() != TransactionState::TRANSACTION_STARTED && transaction->getState() != TransactionState::DATA_EXCHANGED) {
-    logger_->log_warn("Site2Site transaction {} is not at started or exchanged state", transaction_id_str);
-    return std::nullopt;
+    return std::unexpected(fmt::format("Site2Site transaction {} is not at started or exchanged state", transaction_id_str));
   }
 
   if (transaction->getDirection() != TransferDirection::RECEIVE) {
-    logger_->log_warn("Site2Site transaction {} direction is wrong", transaction_id_str);
-    return std::nullopt;
+    return std::unexpected(fmt::format("Site2Site transaction {} direction is wrong", transaction_id_str));
   }
 
   ReceiveFlowFileHeaderResult result;
@@ -624,7 +618,7 @@ std::optional<SiteToSiteClient::ReceiveFlowFileHeaderResult> SiteToSiteClient::r
     // if we already have transferred a flow file before, check to see whether another one is available
     auto response = readResponse(transaction);
     if (!response) {
-      return std::nullopt;
+      return std::unexpected("Failed to read response");
     }
     if (response->code == ResponseCode::CONTINUE_TRANSACTION) {
       logger_->log_debug("Site2Site transaction {} peer indicate continue transaction", transaction_id_str);
@@ -635,8 +629,7 @@ std::optional<SiteToSiteClient::ReceiveFlowFileHeaderResult> SiteToSiteClient::r
       result.eof = true;
       return result;
     } else {
-      logger_->log_debug("Site2Site transaction {} peer indicate wrong response code {}", transaction_id_str, magic_enum::enum_underlying(response->code));
-      return std::nullopt;
+      return std::unexpected(fmt::format("Site2Site transaction {} peer indicate wrong response code {}", transaction_id_str, magic_enum::enum_underlying(response->code)));
     }
   }
 
@@ -646,9 +639,8 @@ std::optional<SiteToSiteClient::ReceiveFlowFileHeaderResult> SiteToSiteClient::r
     return result;
   }
 
-  if (!readFlowFileHeaderData(stream, transaction_id_str, result)) {
-    logger_->log_error("Site2Site transaction {} failed to read flow file header data", transaction_id_str);
-    return std::nullopt;
+  if (auto ret = readFlowFileHeaderData(stream, transaction_id_str, result); !ret.has_value()) {
+    return std::unexpected(fmt::format("Site2Site transaction {} failed to read flow file header data: {}", transaction_id_str, ret.error()));
   }
 
   if (result.flow_file_data_size > 0 || !result.attributes.empty()) {
@@ -679,14 +671,14 @@ std::pair<uint64_t, uint64_t> SiteToSiteClient::readFlowFiles(const std::shared_
     compression_stream = std::make_unique<CompressionInputStream>(transaction->getStream());
     compression_wrapper_crc_stream = std::make_unique<io::CRCStream<io::InputStream>>(gsl::make_not_null(compression_stream.get()));
   }
-  io::InputStream& stream = use_compression_ ?  static_cast<io::InputStream&>(*compression_wrapper_crc_stream) : static_cast<io::InputStream&>(transaction->getStream());
+  io::InputStream& stream = use_compression_ ?  static_cast<io::InputStream&>(*compression_wrapper_crc_stream) : transaction->getStream();
 
   while (true) {
     auto start_time = std::chrono::steady_clock::now();
 
     auto receive_header_result = receiveFlowFileHeader(stream, transaction);
     if (!receive_header_result) {
-      throw Exception(SITE2SITE_EXCEPTION, "Receive Failed " + transaction->getUUIDStr());
+      throw Exception(SITE2SITE_EXCEPTION, fmt::format("Receive Failed for {}: {}", transaction->getUUIDStr(), receive_header_result.error()));
     }
 
     if (receive_header_result->eof) {
