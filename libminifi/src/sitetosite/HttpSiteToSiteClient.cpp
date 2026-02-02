@@ -394,19 +394,33 @@ std::pair<uint64_t, uint64_t> HttpSiteToSiteClient::readFlowFiles(const std::sha
     throw Exception(SITE2SITE_EXCEPTION, "Reading flow files failed: stream cannot be cast to HTTP stream");
   }
 
+  std::array<std::byte, utils::configuration::DEFAULT_BUFFER_SIZE> buffer{};
+  io::BufferStream buffer_stream;
+  while (true) {
+    auto bytes_read = http_stream->read(buffer);
+    if (io::isError(bytes_read)) {
+      throw Exception(SITE2SITE_EXCEPTION, "Error reading flow files from HTTP stream");
+    }
+    if (bytes_read == 0) {
+      break;
+    }
+    buffer_stream.write(reinterpret_cast<const uint8_t*>(buffer.data()), bytes_read);
+  }
+
   const auto& client = http_stream->getClientRef();
-  if (client->getResponseCode() != 201) {
-    // No content to read
-    logger_->log_debug("No content to read, response code {}", client->getResponseCode());
+  auto response_code = client->getResponseCode();
+  if (response_code >= 300 || response_code < 200) {
+    logger_->log_error("Error received while reading flow files: {}", response_code);
     return {0, 0};
   }
 
-  client
+  if (response_code != 202) {
+    logger_->log_debug("No content to read, response code {}", response_code);
+    transaction->setDataAvailable(false);
+    return {0, 0};
+  }
 
-  std::string message(client->getResponseBody().data(), client->getResponseBody().size());
-  io::BufferStream buffer(message);
-
-  return SiteToSiteClient::readFlowFiles(transaction, session, buffer);
+  return SiteToSiteClient::readFlowFiles(transaction, session, buffer_stream);
 }
 
 }  // namespace org::apache::nifi::minifi::sitetosite
