@@ -141,7 +141,6 @@ std::shared_ptr<Transaction> HttpSiteToSiteClient::createTransaction(TransferDir
   } else {
     transaction_client = openConnectionForReceive(transaction);
     transaction->setDataAvailable(true);
-    // 201 tells us that data is available. 200 would mean that nothing is available.
   }
   gsl_Assert(transaction_client);
 

@@ -48,24 +48,34 @@ class HttpStream : public io::BaseStreamImpl {
   }
 
   const std::shared_ptr<HTTPClient>& getClient() {
-    http_client_future_.get();
+    if (http_client_read_future_.valid()) {
+      http_client_read_future_.get();
+    }
+    if (http_client_write_future_.valid()) {
+      http_client_write_future_.get();
+    }
     return http_client_;
   }
 
   void forceClose() {
-    if (started_) {
-      // lock shouldn't be needed here as call paths currently guarantee
-      // flow, but we should be safe anyway.
-      std::lock_guard<std::mutex> lock(mutex_);
+    if (read_started_ || write_started_) {
+      // Close the callbacks first to unblock any waiting I/O operations
       close();
       http_client_->forceClose();
-      if (http_client_future_.valid()) {
-        http_client_future_.get();
-      } else {
+
+      // Now wait for futures to complete
+      if (http_client_read_future_.valid()) {
+        http_client_read_future_.get();
+      }
+      if (http_client_write_future_.valid()) {
+        http_client_write_future_.get();
+      }
+      if (!http_client_read_future_.valid() && !http_client_write_future_.valid()) {
         logger_->log_warn("Future status already cleared for {}, continuing", http_client_->getURL());
       }
 
-      started_ = false;
+      read_started_ = false;
+      write_started_ = false;
     }
   }
 
@@ -114,7 +124,7 @@ class HttpStream : public io::BaseStreamImpl {
   }
 
   inline bool isFinished(int seconds = 0) {
-    return http_client_future_.wait_for(std::chrono::seconds(seconds)) == std::future_status::ready
+    return http_client_read_future_.wait_for(std::chrono::seconds(seconds)) == std::future_status::ready
         && http_client_->getReadCallback()
         && http_client_->getReadCallback()->getSize() == 0
         && http_client_->getReadCallback()->waitingOps();
@@ -126,7 +136,7 @@ class HttpStream : public io::BaseStreamImpl {
   bool waitForDataAvailable() {
     do {
       logger_->log_trace("Waiting for more data");
-    } while (http_client_future_.wait_for(std::chrono::seconds(0)) != std::future_status::ready
+    } while (http_client_read_future_.wait_for(std::chrono::seconds(0)) != std::future_status::ready
         && http_client_->getReadCallback()
         && http_client_->getReadCallback()->getSize() == 0);
 
@@ -138,13 +148,16 @@ class HttpStream : public io::BaseStreamImpl {
   std::vector<uint8_t> array;
 
   std::shared_ptr<HTTPClient> http_client_;
-  std::future<bool> http_client_future_;
+  std::future<bool> http_client_read_future_;
+  std::future<bool> http_client_write_future_;
 
   size_t written{0};
 
-  std::mutex mutex_;
+  std::mutex read_mutex_;
+  std::mutex write_mutex_;
 
-  std::atomic<bool> started_{false};
+  std::atomic<bool> read_started_{false};
+  std::atomic<bool> write_started_{false};
 
  private:
   std::shared_ptr<core::logging::Logger> logger_ = core::logging::LoggerFactory<HttpStream>::getLogger();

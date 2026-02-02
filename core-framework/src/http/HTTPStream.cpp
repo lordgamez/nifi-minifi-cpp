@@ -56,13 +56,13 @@ size_t HttpStream::write(const uint8_t* value, size_t size) {
   if (IsNullOrEmpty(value)) {
     return io::STREAM_ERROR;
   }
-  if (!started_) {
-    std::lock_guard<std::mutex> lock(mutex_);
-    if (!started_) {
+  if (!write_started_) {
+    std::lock_guard<std::mutex> lock(write_mutex_);
+    if (!write_started_) {
       auto callback = std::make_unique<HttpStreamingCallback>();
       http_client_->setUploadCallback(std::move(callback));
-      http_client_future_ = std::async(std::launch::async, submit_client, http_client_);
-      started_ = true;
+      http_client_write_future_ = std::async(std::launch::async, submit_client, http_client_);
+      write_started_ = true;
     }
   }
   if (auto http_callback = dynamic_cast<HttpStreamingCallback*>(http_client_->getUploadCallback()))
@@ -75,16 +75,21 @@ size_t HttpStream::write(const uint8_t* value, size_t size) {
 size_t HttpStream::read(std::span<std::byte> buf) {
   if (buf.empty()) { return 0; }
   if (!IsNullOrEmpty(buf)) {
-    if (!started_) {
-      std::lock_guard<std::mutex> lock(mutex_);
-      if (!started_) {
+    if (!read_started_) {
+      std::lock_guard<std::mutex> lock(read_mutex_);
+      if (!read_started_) {
         auto read_callback = std::make_unique<HTTPReadCallback>(66560, true);
-        http_client_future_ = std::async(std::launch::async, submit_read_client, http_client_, read_callback.get());
+        auto* callback_ptr = read_callback.get();
         http_client_->setReadCallback(std::move(read_callback));
-        started_ = true;
+        http_client_read_future_ = std::async(std::launch::async, submit_read_client, http_client_, callback_ptr);
+        read_started_ = true;
       }
     }
-    return http_client_->getReadCallback()->readFully(reinterpret_cast<char*>(buf.data()), buf.size());
+    auto callback = http_client_->getReadCallback();
+    if (!callback) {
+      return io::STREAM_ERROR;
+    }
+    return callback->readFully(reinterpret_cast<char*>(buf.data()), buf.size());
   } else {
     return io::STREAM_ERROR;
   }
