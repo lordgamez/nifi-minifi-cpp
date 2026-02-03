@@ -393,22 +393,6 @@ std::pair<uint64_t, uint64_t> HttpSiteToSiteClient::readFlowFiles(const std::sha
     throw Exception(SITE2SITE_EXCEPTION, "Reading flow files failed: stream cannot be cast to HTTP stream");
   }
 
-  std::array<std::byte, utils::configuration::DEFAULT_BUFFER_SIZE> buffer{};
-  io::BufferStream buffer_stream;
-  while (true) {
-    auto bytes_read = http_stream->read(buffer);
-    if (io::isError(bytes_read)) {
-      throw Exception(SITE2SITE_EXCEPTION, "Error reading flow files from HTTP stream");
-    }
-    if (bytes_read == 0) {
-      break;
-    }
-    buffer_stream.write(reinterpret_cast<const uint8_t*>(buffer.data()), bytes_read);
-    if (http_stream->isFinished()) {
-      break;
-    }
-  }
-
   const auto& client = http_stream->getClientRef();
   auto response_code = client->getResponseCode();
   if (response_code >= 300 || response_code < 200) {
@@ -422,10 +406,7 @@ std::pair<uint64_t, uint64_t> HttpSiteToSiteClient::readFlowFiles(const std::sha
     return {0, 0};
   }
 
-  io::CRCStream<io::InputStream> buffer_crc_stream(gsl::make_not_null(&buffer_stream));
-  auto result = SiteToSiteClient::readFlowFiles(transaction, session, buffer_crc_stream);
-  transaction->getStream().setCrc(buffer_crc_stream.getCRC());
-  return result;
+  return SiteToSiteClient::readFlowFiles(transaction, session);
 }
 
 }  // namespace org::apache::nifi::minifi::sitetosite
