@@ -404,6 +404,9 @@ std::pair<uint64_t, uint64_t> HttpSiteToSiteClient::readFlowFiles(const std::sha
       break;
     }
     buffer_stream.write(reinterpret_cast<const uint8_t*>(buffer.data()), bytes_read);
+    if (http_stream->isFinished()) {
+      break;
+    }
   }
 
   const auto& client = http_stream->getClientRef();
@@ -419,7 +422,10 @@ std::pair<uint64_t, uint64_t> HttpSiteToSiteClient::readFlowFiles(const std::sha
     return {0, 0};
   }
 
-  return SiteToSiteClient::readFlowFiles(transaction, session, buffer_stream);
+  io::CRCStream<io::InputStream> buffer_crc_stream(gsl::make_not_null(&buffer_stream));
+  auto result = SiteToSiteClient::readFlowFiles(transaction, session, buffer_crc_stream);
+  transaction->getStream().setCrc(buffer_crc_stream.getCRC());
+  return result;
 }
 
 }  // namespace org::apache::nifi::minifi::sitetosite

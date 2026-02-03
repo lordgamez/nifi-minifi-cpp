@@ -58,12 +58,22 @@ class HttpStream : public io::BaseStreamImpl {
   }
 
   void forceClose() {
-    if (read_started_ || write_started_) {
-      // Close the callbacks first to unblock any waiting I/O operations
-      close();
-      http_client_->forceClose();
+    bool should_close = false;
+    {
+      std::lock_guard<std::mutex> read_lock(read_mutex_);
+      std::lock_guard<std::mutex> write_lock(write_mutex_);
+      should_close = read_started_ || write_started_;
+      if (should_close) {
+        // Close the callbacks first to unblock any waiting I/O operations
+        close();
+        http_client_->forceClose();
+        read_started_ = false;
+        write_started_ = false;
+      }
+    }
 
-      // Now wait for futures to complete
+    // Wait for futures outside the lock to avoid blocking new operations too long
+    if (should_close) {
       if (http_client_read_future_.valid()) {
         http_client_read_future_.get();
       }
@@ -73,9 +83,6 @@ class HttpStream : public io::BaseStreamImpl {
       if (!http_client_read_future_.valid() && !http_client_write_future_.valid()) {
         logger_->log_warn("Future status already cleared for {}, continuing", http_client_->getURL());
       }
-
-      read_started_ = false;
-      write_started_ = false;
     }
   }
 
