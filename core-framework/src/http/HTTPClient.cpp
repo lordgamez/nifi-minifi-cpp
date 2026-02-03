@@ -246,9 +246,9 @@ void HTTPClient::setReadTimeout(std::chrono::milliseconds timeout) {
   read_timeout_ = timeout;
 }
 
-void HTTPClient::setReadCallback(std::unique_ptr<HTTPReadCallback> callback) {
+void HTTPClient::setReadCallback(std::unique_ptr<HTTPReadCallback> callback, const std::function<size_t(char *data, size_t size, size_t nmemb, void *p)>& write_func) {
   read_callback_ = std::move(callback);
-  curl_easy_setopt(http_session_.get(), CURLOPT_WRITEFUNCTION, &HTTPRequestResponse::receiveWrite);
+  curl_easy_setopt(http_session_.get(), CURLOPT_WRITEFUNCTION, write_func.target<size_t(*)(char*, size_t, size_t, void*)>());
   curl_easy_setopt(http_session_.get(), CURLOPT_WRITEDATA, static_cast<void*>(read_callback_.get()));
 }
 
