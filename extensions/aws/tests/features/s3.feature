@@ -183,8 +183,8 @@ Feature: Sending data from MiNiFi-C++ to an AWS server
     Given a GetFile processor with the "Input Directory" property set to "/tmp/input"
     And the "Batch Size" property of the GetFile processor is set to "1"
     And the scheduling period of the GetFile processor is set to "5 sec"
-    And a file with filename "test_file_1.log" and content "test_data1" is present in "/tmp/input"
-    And a file with filename "test_file_2.log" and content "test_data2" is present in "/tmp/input"
+    And a directory at "/tmp/input" has a file ("test_file_1.log") with the content "test_data1"
+    And a directory at "/tmp/input" has a file ("test_file_2.log") with the content "test_data2"
     And a PutS3Object processor set up to communicate with an s3 server
     And the "Object Key" property of the PutS3Object processor is set to "${filename}"
     And the "success" relationship of the GetFile processor is connected to the PutS3Object
