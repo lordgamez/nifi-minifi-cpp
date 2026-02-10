@@ -22,9 +22,9 @@ from minifi_test_framework.steps import configuration_steps   # noqa: F401
 from minifi_test_framework.steps import core_steps            # noqa: F401
 from minifi_test_framework.steps import flow_building_steps   # noqa: F401
 from minifi_test_framework.core.minifi_test_context import MinifiTestContext
-from syslog_container import SyslogContainer
-from diag_slave_container import DiagSlave
-from tcp_client_container import TcpClientContainer
+from containers.syslog_container import SyslogContainer
+from containers.diag_slave_container import DiagSlave
+from containers.tcp_client_container import TcpClientContainer
 
 
 @step("a Syslog client with TCP protocol is setup to send logs to minifi")
