@@ -29,8 +29,8 @@ from minifi_test_framework.core.minifi_test_context import MinifiTestContext
 from minifi_test_framework.minifi.processor import Processor
 from minifi_test_framework.core.helpers import wait_for_condition, log_due_to_failure
 
-from s3_server_container import S3ServerContainer
-from kinesis_server_container import KinesisServerContainer
+from containers.s3_server_container import S3ServerContainer
+from containers.kinesis_server_container import KinesisServerContainer
 
 
 @step('a {processor_name} processor set up to communicate with an s3 server')
