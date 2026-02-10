@@ -21,7 +21,7 @@ Feature: Sending data from MiNiFi-C++ to NiFi using S2S protocol
 
   Scenario: A MiNiFi instance produces and transfers data to a NiFi instance via s2s
     Given a GetFile processor with the "Input Directory" property set to "/tmp/input"
-    And a file with the content "test" is present in "/tmp/input"
+    And a directory at "/tmp/input" has a file with the content "test"
     And a RemoteProcessGroup node with name "RemoteProcessGroup" is opened on "http://nifi-${scenario_id}:8080/nifi"
     And an input port with name "to_nifi" is created on the RemoteProcessGroup named "RemoteProcessGroup"
     And the "success" relationship of the GetFile processor is connected to the to_nifi
@@ -41,7 +41,7 @@ Feature: Sending data from MiNiFi-C++ to NiFi using S2S protocol
 
   Scenario: A MiNiFi instance produces and transfers a large data file to a NiFi instance via s2s
     Given a GetFile processor with the "Input Directory" property set to "/tmp/input"
-    And a file with the content "this is a very long file we want to send by site-to-site" is present in "/tmp/input"
+    And a directory at "/tmp/input" has a file with the content "this is a very long file we want to send by site-to-site"
     And a RemoteProcessGroup node with name "RemoteProcessGroup" is opened on "http://nifi-${scenario_id}:8080/nifi"
     And an input port with name "to_nifi" is created on the RemoteProcessGroup named "RemoteProcessGroup"
     And the "success" relationship of the GetFile processor is connected to the to_nifi
@@ -104,7 +104,7 @@ Feature: Sending data from MiNiFi-C++ to NiFi using S2S protocol
     Given an ssl context service is set up
     And a GetFile processor with the "Input Directory" property set to "/tmp/input"
     And the "Keep Source File" property of the GetFile processor is set to "true"
-    And a file with the content "test" is present in "/tmp/input"
+    And a directory at "/tmp/input" has a file with the content "test"
     And a RemoteProcessGroup node with name "RemoteProcessGroup" is opened on "https://nifi-${scenario_id}:8443/nifi"
     And an input port with name "to_nifi" is created on the RemoteProcessGroup named "RemoteProcessGroup"
     And the "SSL Context Service" property of the "to_nifi" port in the "RemoteProcessGroup" remote process group is set to "SSLContextService"
@@ -126,7 +126,7 @@ Feature: Sending data from MiNiFi-C++ to NiFi using S2S protocol
   Scenario: A MiNiFi instance produces and transfers data to a NiFi instance via s2s using SSL config defined in minifi.properties
     Given a GetFile processor with the "Input Directory" property set to "/tmp/input"
     And the "Keep Source File" property of the GetFile processor is set to "true"
-    And a file with the content "test" is present in "/tmp/input"
+    And a directory at "/tmp/input" has a file with the content "test"
     And a RemoteProcessGroup node with name "RemoteProcessGroup" is opened on "https://nifi-${scenario_id}:8443/nifi"
     And an input port with name "to_nifi" is created on the RemoteProcessGroup named "RemoteProcessGroup"
     And the "success" relationship of the GetFile processor is connected to the to_nifi
@@ -147,7 +147,7 @@ Feature: Sending data from MiNiFi-C++ to NiFi using S2S protocol
 
   Scenario: A MiNiFi instance produces and transfers data to a NiFi instance via s2s using HTTP protocol
     Given a GetFile processor with the "Input Directory" property set to "/tmp/input"
-    And a file with the content "test" is present in "/tmp/input"
+    And a directory at "/tmp/input" has a file with the content "test"
     And a RemoteProcessGroup node with name "RemoteProcessGroup" is opened on "http://nifi-${scenario_id}:8080/nifi" with transport protocol set to "HTTP"
     And an input port with name "to_nifi" is created on the RemoteProcessGroup named "RemoteProcessGroup"
     And the "success" relationship of the GetFile processor is connected to the to_nifi
@@ -174,7 +174,7 @@ Feature: Sending data from MiNiFi-C++ to NiFi using S2S protocol
     And PutFile's success relationship is auto-terminated
 
     And a NiFi container is set up
-    And a file with the content "test" is present in "/tmp/input" in the "nifi" flow
+    And a directory at "/tmp/input" has a file with the content "test" in the "nifi" flow
     And a GetFile processor with the "Input Directory" property set to "/tmp/input" in the "nifi" flow
     And a NiFi flow is sending data to an output port named "to-minifi-in-nifi" with the id of the port named "from_nifi" from the RemoteProcessGroup named "RemoteProcessGroup"
     And in the "nifi" flow the "success" relationship of the GetFile processor is connected to the to-minifi-in-nifi
@@ -194,7 +194,7 @@ Feature: Sending data from MiNiFi-C++ to NiFi using S2S protocol
     And PutFile's success relationship is auto-terminated
 
     And a NiFi container is set up
-    And a file with the content "test" is present in "/tmp/input" in the "nifi" flow
+    And a directory at "/tmp/input" has a file with the content "test" in the "nifi" flow
     And a GetFile processor with the "Input Directory" property set to "/tmp/input" in the "nifi" flow
     And a NiFi flow is sending data to an output port named "to-minifi-in-nifi" with the id of the port named "from_nifi" from the RemoteProcessGroup named "RemoteProcessGroup"
     And in the "nifi" flow the "success" relationship of the GetFile processor is connected to the to-minifi-in-nifi
@@ -215,7 +215,7 @@ Feature: Sending data from MiNiFi-C++ to NiFi using S2S protocol
     And PutFile's success relationship is auto-terminated
 
     And a NiFi container is set up with SSL enabled
-    And a file with the content "test" is present in "/tmp/input" in the "nifi" flow
+    And a directory at "/tmp/input" has a file with the content "test" in the "nifi" flow
     And a GetFile processor with the "Input Directory" property set to "/tmp/input" in the "nifi" flow
     And a NiFi flow is sending data to an output port named "to-minifi-in-nifi" with the id of the port named "from_nifi" from the RemoteProcessGroup named "RemoteProcessGroup"
     And in the "nifi" flow the "success" relationship of the GetFile processor is connected to the to-minifi-in-nifi
@@ -236,7 +236,7 @@ Feature: Sending data from MiNiFi-C++ to NiFi using S2S protocol
     And PutFile's success relationship is auto-terminated
 
     And a NiFi container is set up with SSL enabled
-    And a file with the content "test" is present in "/tmp/input" in the "nifi" flow
+    And a directory at "/tmp/input" has a file with the content "test" in the "nifi" flow
     And a GetFile processor with the "Input Directory" property set to "/tmp/input" in the "nifi" flow
     And a NiFi flow is sending data to an output port named "to-minifi-in-nifi" with the id of the port named "from_nifi" from the RemoteProcessGroup named "RemoteProcessGroup"
     And in the "nifi" flow the "success" relationship of the GetFile processor is connected to the to-minifi-in-nifi
@@ -249,7 +249,7 @@ Feature: Sending data from MiNiFi-C++ to NiFi using S2S protocol
 
   Scenario: A MiNiFi instance produces and transfers data to a NiFi instance via s2s using compression
     Given a GetFile processor with the "Input Directory" property set to "/tmp/input"
-    And a file with the content "test" is present in "/tmp/input"
+    And a directory at "/tmp/input" has a file with the content "test"
     And a RemoteProcessGroup node with name "RemoteProcessGroup" is opened on "http://nifi-${scenario_id}:8080/nifi"
     And an input port using compression with name "to_nifi" is created on the RemoteProcessGroup named "RemoteProcessGroup"
     And the "success" relationship of the GetFile processor is connected to the to_nifi
@@ -276,7 +276,7 @@ Feature: Sending data from MiNiFi-C++ to NiFi using S2S protocol
     And PutFile's success relationship is auto-terminated
 
     And a NiFi container is set up
-    And a file with the content "test" is present in "/tmp/input" in the "nifi" flow
+    And a directory at "/tmp/input" has a file with the content "test" in the "nifi" flow
     And a GetFile processor with the "Input Directory" property set to "/tmp/input" in the "nifi" flow
     And a NiFi flow is sending data to an output port named "to-minifi-in-nifi" with the id of the port named "from_nifi" from the RemoteProcessGroup named "RemoteProcessGroup"
     And in the "nifi" flow the "success" relationship of the GetFile processor is connected to the to-minifi-in-nifi
@@ -296,7 +296,7 @@ Feature: Sending data from MiNiFi-C++ to NiFi using S2S protocol
     And PutFile's success relationship is auto-terminated
 
     And a NiFi container is set up
-    And a file with the content "test" is present in "/tmp/input" in the "nifi" flow
+    And a directory at "/tmp/input" has a file with the content "test" in the "nifi" flow
     And a GetFile processor with the "Input Directory" property set to "/tmp/input" in the "nifi" flow
     And a NiFi flow is sending data to an output port named "to-minifi-in-nifi" with the id of the port named "from_nifi" from the RemoteProcessGroup named "RemoteProcessGroup"
     And in the "nifi" flow the "success" relationship of the GetFile processor is connected to the to-minifi-in-nifi
