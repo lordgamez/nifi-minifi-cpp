@@ -26,6 +26,7 @@ Feature: Transfer data from and to MiNiFi using HTTPS
     And the "success" relationship of the GenerateFlowFile processor is connected to the InvokeHTTP
     And InvokeHTTP's success relationship is auto-terminated
     And InvokeHTTP's response relationship is auto-terminated
+    And InvokeHTTP's retry relationship is auto-terminated
 
     And a ListenHTTP processor with the "Listening Port" property set to "4430" in the "server" flow
     And the "SSL Certificate" property of the ListenHTTP processor is set to "/tmp/resources/minifi_server.crt" in the "server" flow
@@ -47,6 +48,7 @@ Feature: Transfer data from and to MiNiFi using HTTPS
     And the "success" relationship of the GenerateFlowFile processor is connected to the InvokeHTTP
     And InvokeHTTP's success relationship is auto-terminated
     And InvokeHTTP's response relationship is auto-terminated
+    And InvokeHTTP's retry relationship is auto-terminated
 
     And a ListenHTTP processor with the "Listening Port" property set to "4430" in the "server" flow
     And the "SSL Certificate" property of the ListenHTTP processor is set to "/tmp/resources/self_signed_server.crt" in the "server" flow
@@ -68,6 +70,7 @@ Feature: Transfer data from and to MiNiFi using HTTPS
     And the "success" relationship of the GenerateFlowFile processor is connected to the InvokeHTTP
     And InvokeHTTP's success relationship is auto-terminated
     And InvokeHTTP's response relationship is auto-terminated
+    And InvokeHTTP's retry relationship is auto-terminated
 
     And a ListenHTTP processor with the "Listening Port" property set to "4430" in the "server" flow
     And the "SSL Certificate" property of the ListenHTTP processor is set to "/tmp/resources/minifi_server.crt" in the "server" flow
@@ -92,6 +95,7 @@ Feature: Transfer data from and to MiNiFi using HTTPS
     And the "success" relationship of the GenerateFlowFile processor is connected to the InvokeHTTP
     And InvokeHTTP's success relationship is auto-terminated
     And InvokeHTTP's response relationship is auto-terminated
+    And InvokeHTTP's retry relationship is auto-terminated
 
     And a ListenHTTP processor with the "Listening Port" property set to "4430" in the "server" flow
     And the "SSL Certificate" property of the ListenHTTP processor is set to "/tmp/resources/minifi_server.crt" in the "server" flow
@@ -113,6 +117,7 @@ Feature: Transfer data from and to MiNiFi using HTTPS
     And the "success" relationship of the GenerateFlowFile processor is connected to the InvokeHTTP
     And InvokeHTTP's success relationship is auto-terminated
     And InvokeHTTP's response relationship is auto-terminated
+    And InvokeHTTP's retry relationship is auto-terminated
 
     And a ListenHTTP processor with the "Listening Port" property set to "4430" in the "server" flow
     And the "SSL Certificate" property of the ListenHTTP processor is set to "/tmp/resources/minifi_server.crt" in the "server" flow
@@ -136,6 +141,7 @@ Feature: Transfer data from and to MiNiFi using HTTPS
     And the "success" relationship of the GenerateFlowFile processor is connected to the InvokeHTTP
     And InvokeHTTP's success relationship is auto-terminated
     And InvokeHTTP's response relationship is auto-terminated
+    And InvokeHTTP's retry relationship is auto-terminated
 
     And a ListenHTTP processor with the "Listening Port" property set to "4430" in the "server" flow
     And the "SSL Certificate" property of the ListenHTTP processor is set to "/tmp/resources/self_signed_server.crt" in the "server" flow
@@ -156,6 +162,7 @@ Feature: Transfer data from and to MiNiFi using HTTPS
     And the "success" relationship of the GenerateFlowFile processor is connected to the InvokeHTTP
     And InvokeHTTP's success relationship is auto-terminated
     And InvokeHTTP's response relationship is auto-terminated
+    And InvokeHTTP's retry relationship is auto-terminated
 
     And a ListenHTTP processor with the "Listening Port" property set to "4430" in the "server" flow
     And the "SSL Certificate" property of the ListenHTTP processor is set to "/tmp/resources/self_signed_server.crt" in the "server" flow

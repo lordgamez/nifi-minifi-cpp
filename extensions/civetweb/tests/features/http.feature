@@ -29,6 +29,7 @@ Feature: Sending data using InvokeHTTP to a receiver using ListenHTTP
     And the "success" relationship of the GetFile processor is connected to the InvokeHTTP
     And InvokeHTTP's success relationship is auto-terminated
     And InvokeHTTP's response relationship is auto-terminated
+    And InvokeHTTP's retry relationship is auto-terminated
 
     And a ListenHTTP processor with the "Listening Port" property set to "8080" in the "secondary" flow
     And a PutFile processor with the "Directory" property set to "/tmp/output" in the "secondary" flow
@@ -56,6 +57,7 @@ Feature: Sending data using InvokeHTTP to a receiver using ListenHTTP
     And the "success" relationship of the GetFile processor is connected to the InvokeHTTP
     And InvokeHTTP's success relationship is auto-terminated
     And InvokeHTTP's response relationship is auto-terminated
+    And InvokeHTTP's retry relationship is auto-terminated
 
     And a ListenHTTP processor with the "Listening Port" property set to "8080" in the "minifi-listen" flow
     And a PutFile processor with the "Directory" property set to "/tmp/output" in the "minifi-listen" flow
@@ -80,6 +82,7 @@ Feature: Sending data using InvokeHTTP to a receiver using ListenHTTP
     And the "success" relationship of the HashContent processor is connected to the InvokeHTTP
     And InvokeHTTP's success relationship is auto-terminated
     And InvokeHTTP's response relationship is auto-terminated
+    And InvokeHTTP's retry relationship is auto-terminated
 
     And a ListenHTTP processor with the "Listening Port" property set to "8080" in the "secondary" flow
     And a PutFile processor with the "Directory" property set to "/tmp/output" in the "secondary" flow
@@ -101,6 +104,7 @@ Feature: Sending data using InvokeHTTP to a receiver using ListenHTTP
     And the "success" relationship of the GetFile processor is connected to the InvokeHTTP
     And InvokeHTTP's success relationship is auto-terminated
     And InvokeHTTP's response relationship is auto-terminated
+    And InvokeHTTP's retry relationship is auto-terminated
 
     And a ListenHTTP processor with the "Listening Port" property set to "8080" in the "secondary" flow
     And a PutFile processor with the "Directory" property set to "/tmp/output" in the "secondary" flow
@@ -118,6 +122,9 @@ Feature: Sending data using InvokeHTTP to a receiver using ListenHTTP
     And a InvokeHTTP processor with the "Remote URL" property set to "http://nifi-${scenario_id}:8081/contentListener"
     And the "HTTP Method" property of the InvokeHTTP processor is set to "POST"
     And the "success" relationship of the GetFile processor is connected to the InvokeHTTP
+    And InvokeHTTP's success relationship is auto-terminated
+    And InvokeHTTP's response relationship is auto-terminated
+    And InvokeHTTP's retry relationship is auto-terminated
 
     And a NiFi container is set up
     And a ListenHTTP processor with the "Listening Port" property set to "8081" in the NiFi flow
@@ -141,6 +148,7 @@ Feature: Sending data using InvokeHTTP to a receiver using ListenHTTP
     And the "success" relationship of the GenerateFlowFile processor is connected to the InvokeHTTP
     And InvokeHTTP's success relationship is auto-terminated
     And InvokeHTTP's response relationship is auto-terminated
+    And InvokeHTTP's retry relationship is auto-terminated
 
     And a ListenHTTP processor with the "Listening Port" property set to "8080" in the "secondary" flow
     And a PutFile processor with the "Directory" property set to "/tmp/output" in the "secondary" flow
@@ -165,6 +173,7 @@ Feature: Sending data using InvokeHTTP to a receiver using ListenHTTP
     And the "response" relationship of the InvokeHTTP processor is connected to the PutFile
     And InvokeHTTP's success relationship is auto-terminated
     And InvokeHTTP's response relationship is auto-terminated
+    And InvokeHTTP's retry relationship is auto-terminated
 
     And a GenerateFlowFile processor with the "File Size" property set to "10 MB" in the "secondary" flow
     And a UpdateAttribute processor with the "http.type" property set to "response_body" in the "secondary" flow
