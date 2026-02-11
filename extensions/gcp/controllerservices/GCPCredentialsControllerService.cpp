@@ -36,6 +36,11 @@ std::shared_ptr<google::cloud::Credentials> GCPCredentialsControllerService::cre
     return nullptr;
   }
 
+  if (!utils::file::exists(*json_path)) {
+    logger_->log_error("JSON file for GCP credentials '{}' does not exist", *json_path);
+    return nullptr;
+  }
+
   return google::cloud::MakeServiceAccountCredentials(utils::file::get_content(*json_path));
 }
 

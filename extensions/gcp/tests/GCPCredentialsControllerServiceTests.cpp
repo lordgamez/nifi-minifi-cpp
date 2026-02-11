@@ -106,6 +106,16 @@ TEST_F(GCPCredentialsTests, CredentialsFromJsonWithProperty) {
   EXPECT_NE(nullptr, gcp_credentials_->getCredentials());
 }
 
+TEST_F(GCPCredentialsTests, CredentialsFromJsonWithInvalidPath) {
+  auto temp_directory = test_controller_.createTempDirectory();
+  auto path = create_mock_json_file(temp_directory);
+  ASSERT_TRUE(path.has_value());
+  plan_->setProperty(gcp_credentials_node_, GCPCredentialsControllerService::CredentialsLoc, magic_enum::enum_name(minifi_gcp::CredentialsLocation::USE_JSON_FILE));
+  plan_->setProperty(gcp_credentials_node_, GCPCredentialsControllerService::JsonFilePath, "/invalid/path/to/credentials.json");
+  ASSERT_NO_THROW(test_controller_.runSession(plan_));
+  EXPECT_EQ(nullptr, gcp_credentials_->getCredentials());
+}
+
 TEST_F(GCPCredentialsTests, CredentialsFromComputeEngineVM) {
   plan_->setProperty(gcp_credentials_node_, GCPCredentialsControllerService::CredentialsLoc, magic_enum::enum_name(minifi_gcp::CredentialsLocation::USE_COMPUTE_ENGINE_CREDENTIALS));
   ASSERT_NO_THROW(test_controller_.runSession(plan_));
