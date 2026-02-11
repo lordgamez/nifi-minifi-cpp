@@ -29,9 +29,9 @@ Feature: Sending data from MiNiFi-C++ to an AWS server
     And the "failure" relationship of the PutS3Object processor is connected to the PutS3Object
     And PutFile's success relationship is auto-terminated
 
-    And an s3 server is set up in correspondence with the PutS3Object
+    And an s3 server is set up
 
-    When both instances start up
+    When the MiNiFi instance starts up
 
     Then a single file with the content "LH_O#L|FD<FASD{FO#@$#$%^ \"#\"$L%:\"@#$L\":test_data#$#%#$%?{\"F{" is placed in the "/tmp/output" directory in less than 20 seconds
     And the object on the s3 server is "LH_O#L|FD<FASD{FO#@$#$%^ \"#\"$L%:\"@#$L\":test_data#$#%#$%?{\"F{"
@@ -54,7 +54,7 @@ Feature: Sending data from MiNiFi-C++ to an AWS server
     And the "failure" relationship of the PutS3Object processor is connected to the PutS3Object
     And PutFile's success relationship is auto-terminated
 
-    And a s3 server is set up in correspondence with the PutS3Object
+    And an s3 server is set up
     And the http proxy server is set up
     When all instances start up
 
@@ -77,9 +77,9 @@ Feature: Sending data from MiNiFi-C++ to an AWS server
       | DeleteS3Object | success           | PutFile          |
       | PutFile        | success           | auto-terminated  |
 
-    And a s3 server is set up in correspondence with the PutS3Object
+    And an s3 server is set up
 
-    When both instances start up
+    When the MiNiFi instance starts up
 
     Then a single file with the content "LH_O#L|FD<FASD{FO#@$#$%^ \"#\"$L%:\"@#$L\":test_data#$#%#$%?{\"F{" is placed in the "/tmp/output" directory in less than 20 seconds
     And the object bucket on the s3 server is empty in less than 10 seconds
@@ -92,9 +92,9 @@ Feature: Sending data from MiNiFi-C++ to an AWS server
     And the "success" relationship of the GetFile processor is connected to the DeleteS3Object
     And the "success" relationship of the DeleteS3Object processor is connected to the PutFile
 
-    And a s3 server is set up in correspondence with the DeleteS3Object
+    And an s3 server is set up
 
-    When both instances start up
+    When the MiNiFi instance starts up
 
     Then a single file with the content "test" is placed in the "/tmp/output" directory in less than 20 seconds
     And the object bucket on the s3 server is empty in less than 10 seconds
@@ -119,7 +119,7 @@ Feature: Sending data from MiNiFi-C++ to an AWS server
       | DeleteS3Object | success           | PutFile          |
       | PutFile        | success           | auto-terminated  |
 
-    And a s3 server is set up in correspondence with the PutS3Object
+    And an s3 server is set up
     And the http proxy server is set up
 
     When all instances start up
@@ -145,9 +145,9 @@ Feature: Sending data from MiNiFi-C++ to an AWS server
       | PutS3Object      | success           | auto-terminated  |
       | PutS3Object      | failure           | PutS3Object      |
 
-    And a s3 server is set up in correspondence with the PutS3Object
+    And an s3 server is set up
 
-    When all instances start up
+    When the MiNiFi instance starts up
 
     Then a single file with the content "test" is placed in the "/tmp/output" directory in less than 20 seconds
 
@@ -171,7 +171,7 @@ Feature: Sending data from MiNiFi-C++ to an AWS server
       | GenerateFlowFile | success           | FetchS3Object    |
       | FetchS3Object    | success           | PutFile          |
 
-    And a s3 server is set up in correspondence with the PutS3Object
+    And an s3 server is set up
     And the http proxy server is set up
 
     When all instances start up
@@ -193,9 +193,9 @@ Feature: Sending data from MiNiFi-C++ to an AWS server
     And a PutFile processor with the "Directory" property set to "/tmp/output"
     And the "success" relationship of the ListS3 processor is connected to the PutFile
 
-    And a s3 server is set up in correspondence with the PutS3Object
+    And an s3 server is set up
 
-    When all instances start up
+    When the MiNiFi instance starts up
 
     Then 2 files are placed in the "/tmp/output" directory in less than 20 seconds
 
@@ -215,7 +215,7 @@ Feature: Sending data from MiNiFi-C++ to an AWS server
     And a PutFile processor with the "Directory" property set to "/tmp/output"
     And the "success" relationship of the ListS3 processor is connected to the PutFile
 
-    And a s3 server is set up in correspondence with the PutS3Object
+    And an s3 server is set up
     And the http proxy server is set up
 
     When all instances start up
@@ -232,9 +232,9 @@ Feature: Sending data from MiNiFi-C++ to an AWS server
     And the "success" relationship of the GetFile processor is connected to the PutS3Object
     And a PutFile processor with the "Directory" property set to "/tmp/output"
     And the "success" relationship of the PutS3Object processor is connected to the PutFile
-    And a s3 server is set up in correspondence with the PutS3Object
+    And an s3 server is set up
 
-    When all instances start up
+    When the MiNiFi instance starts up
 
     Then 1 file is placed in the "/tmp/output" directory in less than 20 seconds
     And the object on the s3 server is present and matches the original hash
@@ -256,7 +256,7 @@ Feature: Sending data from MiNiFi-C++ to an AWS server
     And a PutFile processor with the "Directory" property set to "/tmp/output"
     And the "success" relationship of the PutS3Object processor is connected to the PutFile
 
-    And a s3 server is set up in correspondence with the PutS3Object
+    And an s3 server is set up
     And the http proxy server is set up
     When all instances start up
 
