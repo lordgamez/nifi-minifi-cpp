@@ -182,13 +182,13 @@ Feature: Sending data to MQTT streaming platform using PublishMQTT
 
     When all instances start up
     Then the MQTT broker has a log line matching "Received SUBSCRIBE from consumer-client"
-    When "consumer-client" flow is stopped
+    When the "consumer-client" flow is stopped
     Then the MQTT broker has a log line matching "Received DISCONNECT from consumer-client"
 
     When a file with the content "test" is placed in "/tmp/input" in the "publisher-client" flow
     Then the MQTT broker has a log line matching "Received PUBLISH from .*testtopic.*\(4 bytes\)"
 
-    When "consumer-client" flow is restarted
+    When the "consumer-client" flow is restarted
     Then the MQTT broker has 2 log lines matching "New client connected from .* as consumer-client"
     And in the "consumer-client" container a single file with the content "test" is placed in the "/tmp/output" directory in less than 60 seconds
 
@@ -361,7 +361,7 @@ Feature: Sending data to MQTT streaming platform using PublishMQTT
     Then the MQTT broker has a log line matching "Received PUBLISH from .*testtopic.*\(4 bytes\)"
 
     # consumer is joining late, but it will still see the retained message
-    When "consumer-client" flow is started
+    When the "consumer-client" flow is started
     Then the MQTT broker has a log line matching "Received SUBSCRIBE from consumer-client"
 
     And in the "consumer-client" container a single file with the content "test" is placed in the "/tmp/output" directory in less than 60 seconds
@@ -396,7 +396,7 @@ Feature: Sending data to MQTT streaming platform using PublishMQTT
     When all instances start up
     Then the MQTT broker has a log line matching "Sending CONNACK to publisher-client"
     And the MQTT broker has a log line matching "Received SUBSCRIBE from consumer-client"
-    When "publisher-client" flow is killed
+    When the "publisher-client" flow is killed
     Then the MQTT broker has a log line matching "Sending PUBLISH to consumer-client"
     And in the "consumer-client" container a single file with the content "last_will_message" is placed in the "/tmp/output" directory in less than 60 seconds
 
@@ -447,14 +447,14 @@ Feature: Sending data to MQTT streaming platform using PublishMQTT
 
     When all instances start up
     Then the MQTT broker has a log line matching "Received SUBSCRIBE from consumer-client"
-    When "consumer-client" flow is stopped
+    When the "consumer-client" flow is stopped
     Then the MQTT broker has a log line matching "Received DISCONNECT from consumer-client"
 
     When a file with the content "test" is placed in "/tmp/input" in the "publisher-client" flow
     Then the MQTT broker has a log line matching "Received PUBLISH from .*testtopic.*\(4 bytes\)"
 
     And 2 seconds later
-    When "consumer-client" flow is restarted
+    When the "consumer-client" flow is restarted
     Then the MQTT broker has 2 log lines matching "New client connected from .* as consumer-client"
     And in the "consumer-client" container <expectation_num_files> placed in the "/tmp/output" directory in <expectation_time_limit>
 
@@ -564,7 +564,7 @@ Feature: Sending data to MQTT streaming platform using PublishMQTT
     When all instances start up
     Then the MQTT broker has a log line matching "Sending CONNACK to publisher-client"
     And the MQTT broker has a log line matching "Received SUBSCRIBE from consumer-client"
-    When "publisher-client" flow is killed
+    When the "publisher-client" flow is killed
     Then the MQTT broker has a log line matching "Sending PUBLISH to consumer-client"
     And in the "consumer-client" container a single file with the content "last_will_message" is placed in the "/tmp/output" directory in less than 60 seconds
 

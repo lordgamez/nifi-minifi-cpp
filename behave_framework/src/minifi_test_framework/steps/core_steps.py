@@ -111,7 +111,7 @@ def step_impl(context: MinifiTestContext):
     context.get_or_create_default_minifi_container().stop()
 
 
-@when("\"{container_name}\" flow is stopped")
+@when("the \"{container_name}\" flow is stopped")
 def step_impl(context: MinifiTestContext, container_name: str):
     context.get_or_create_minifi_container(container_name).stop()
 
@@ -121,17 +121,17 @@ def step_impl(context: MinifiTestContext):
     context.get_or_create_default_minifi_container().restart()
 
 
-@when("\"{container_name}\" flow is restarted")
+@when("the \"{container_name}\" flow is restarted")
 def step_impl(context: MinifiTestContext, container_name: str):
     context.get_or_create_minifi_container(container_name).restart()
 
 
-@when("\"{container_name}\" flow is started")
+@when("the \"{container_name}\" flow is started")
 def step_impl(context: MinifiTestContext, container_name: str):
     context.get_or_create_minifi_container(container_name).start()
 
 
-@when("\"{container_name}\" flow is killed")
+@when("the \"{container_name}\" flow is killed")
 def step_impl(context: MinifiTestContext, container_name: str):
     context.get_or_create_minifi_container(container_name).kill()
 

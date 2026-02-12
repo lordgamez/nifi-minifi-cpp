@@ -30,7 +30,7 @@ class MqttBrokerContainer(Container):
             FROM {base_image}
             RUN echo 'log_dest stderr' >> /mosquitto-no-auth.conf
             CMD ["/usr/sbin/mosquitto", "--verbose", "--config-file", "/mosquitto-no-auth.conf"]
-            """.format(base_image='eclipse-mosquitto:2.0.14'))
+            """.format(base_image='eclipse-mosquitto:2.1.1-alpine'))
 
         builder = DockerImageBuilder(
             image_tag="minifi-mqtt-broker:latest",

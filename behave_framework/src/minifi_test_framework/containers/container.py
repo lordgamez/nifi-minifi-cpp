@@ -62,8 +62,9 @@ class Container:
             logging.error(f"Error creating directory '{path}' in container: {output}")
             raise RuntimeError(f"Error creating directory '{path}' in container: {output}")
 
-        file_name = str(uuid.uuid4())
-        exit_code, output = self.exec_run(f"sh -c \"printf %s '{content}' > {os.path.join(path, file_name)}\"")
+        full_path = os.path.join(path, str(uuid.uuid4()))
+        pipe_command = f"printf %s {shlex.quote(content)} > {shlex.quote(full_path)}"
+        exit_code, output = self.exec_run(f"sh -c {shlex.quote(pipe_command)}")
         if exit_code != 0:
             logging.error(f"Error adding file to running container: {output}")
             raise RuntimeError(f"Error adding file to running container: {output}")
