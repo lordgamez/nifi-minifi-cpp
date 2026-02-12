@@ -80,13 +80,6 @@ class GCPCredentialsTests : public ::testing::Test {
   std::shared_ptr<GCPCredentialsControllerService> gcp_credentials_ = std::dynamic_pointer_cast<GCPCredentialsControllerService>(gcp_credentials_node_->getControllerServiceImplementation());
 };
 
-TEST_F(GCPCredentialsTests, DefaultGCPCredentialsWithoutEnv) {
-  minifi::utils::Environment::unsetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS");
-  plan_->setProperty(gcp_credentials_node_, GCPCredentialsControllerService::CredentialsLoc, magic_enum::enum_name(minifi_gcp::CredentialsLocation::USE_DEFAULT_CREDENTIALS));
-  ASSERT_NO_THROW(test_controller_.runSession(plan_));
-  EXPECT_EQ(nullptr, gcp_credentials_->getCredentials());
-}
-
 TEST_F(GCPCredentialsTests, DefaultGCPCredentialsWithEnv) {
   auto temp_directory = test_controller_.createTempDirectory();
   auto path = create_mock_json_file(temp_directory);
@@ -111,6 +104,16 @@ TEST_F(GCPCredentialsTests, CredentialsFromJsonWithProperty) {
   plan_->setProperty(gcp_credentials_node_, GCPCredentialsControllerService::JsonFilePath, path->string());
   ASSERT_NO_THROW(test_controller_.runSession(plan_));
   EXPECT_NE(nullptr, gcp_credentials_->getCredentials());
+}
+
+TEST_F(GCPCredentialsTests, CredentialsFromJsonWithInvalidPath) {
+  auto temp_directory = test_controller_.createTempDirectory();
+  auto path = create_mock_json_file(temp_directory);
+  ASSERT_TRUE(path.has_value());
+  plan_->setProperty(gcp_credentials_node_, GCPCredentialsControllerService::CredentialsLoc, magic_enum::enum_name(minifi_gcp::CredentialsLocation::USE_JSON_FILE));
+  plan_->setProperty(gcp_credentials_node_, GCPCredentialsControllerService::JsonFilePath, "/invalid/path/to/credentials.json");
+  ASSERT_NO_THROW(test_controller_.runSession(plan_));
+  EXPECT_EQ(nullptr, gcp_credentials_->getCredentials());
 }
 
 TEST_F(GCPCredentialsTests, CredentialsFromComputeEngineVM) {
