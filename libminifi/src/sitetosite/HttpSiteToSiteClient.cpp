@@ -391,8 +391,9 @@ std::pair<uint64_t, uint64_t> HttpSiteToSiteClient::readFlowFiles(const std::sha
     throw Exception(SITE2SITE_EXCEPTION, "Reading flow files failed: stream cannot be cast to HTTP stream");
   }
 
+  std::pair<uint64_t, uint64_t> read_result;
   try {
-    return SiteToSiteClient::readFlowFiles(transaction, session);
+    read_result = SiteToSiteClient::readFlowFiles(transaction, session);
   } catch (const Exception&) {
     auto response_code = http_stream->getClientRef()->getResponseCode();
 
@@ -412,6 +413,7 @@ std::pair<uint64_t, uint64_t> HttpSiteToSiteClient::readFlowFiles(const std::sha
   if (auto response_code = http_stream->getClientRef()->getResponseCode(); response_code >= 400) {
     throw Exception(SITE2SITE_EXCEPTION, fmt::format("HTTP error code received while reading flow files: {}", response_code));
   }
+  return read_result;
 }
 
 }  // namespace org::apache::nifi::minifi::sitetosite

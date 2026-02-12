@@ -102,6 +102,9 @@ class HttpStream : public io::BaseStreamImpl {
   }
 
   inline bool isFinished(int seconds = 0) {
+    if (!http_client_read_future_.valid()) {
+      return false;
+    }
     return http_client_read_future_.wait_for(std::chrono::seconds(seconds)) == std::future_status::ready
         && getByteOutputReadCallback()
         && getByteOutputReadCallback()->getSize() == 0
@@ -109,6 +112,9 @@ class HttpStream : public io::BaseStreamImpl {
   }
 
   bool waitForDataAvailable() {
+    if (!http_client_read_future_.valid()) {
+      return false;
+    }
     do {
       logger_->log_trace("Waiting for more data");
     } while (http_client_read_future_.wait_for(std::chrono::seconds(0)) != std::future_status::ready
