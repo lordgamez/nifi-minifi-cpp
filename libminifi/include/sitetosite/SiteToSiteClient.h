@@ -136,6 +136,7 @@ class SiteToSiteClient {
   virtual void deleteTransaction(const utils::Identifier &transaction_id);
   virtual std::optional<SiteToSiteResponse> readResponse(const std::shared_ptr<Transaction> &transaction);
   virtual bool writeResponse(const std::shared_ptr<Transaction> &transaction, const SiteToSiteResponse& response);
+  virtual std::pair<uint64_t, uint64_t> readFlowFiles(const std::shared_ptr<Transaction>& transaction, core::ProcessSession& session);
 
   bool initializeSend(const std::shared_ptr<Transaction>& transaction);
   bool writeAttributesInSendTransaction(io::OutputStream& stream, const std::string& transaction_id_str, const std::map<std::string, std::string>& attributes);
@@ -171,9 +172,6 @@ class SiteToSiteClient {
   std::atomic<uint64_t> batch_size_{0};
   std::atomic<std::chrono::milliseconds> batch_duration_{0s};
   std::atomic<std::chrono::milliseconds> timeout_{0s};
-
- protected:
-  virtual std::pair<uint64_t, uint64_t> readFlowFiles(const std::shared_ptr<Transaction>& transaction, core::ProcessSession& session);
 
  private:
   struct ReceiveFlowFileHeaderResult {
