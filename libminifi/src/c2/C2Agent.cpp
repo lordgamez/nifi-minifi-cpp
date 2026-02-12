@@ -890,21 +890,27 @@ void C2Agent::handle_start_stop(const C2ContentResponse& resp) {
     });
   };
 
-  if (lowered_response_name == "flow") {
-    executeStartStopOnComponent("FlowController");
-  } else if (lowered_response_name == "processor") {
-    auto processor_id = resp.getStringArgument("processorId");
-    if (processor_id) {
-      executeStartStopOnComponent(processor_id.value());
+  auto update_state = state::UpdateState::FULLY_APPLIED;
+  try {
+    if (lowered_response_name == "flow") {
+      executeStartStopOnComponent("FlowController");
+    } else if (lowered_response_name == "processor") {
+      if (const auto processor_id = resp.getStringArgument("processorId")) {
+        executeStartStopOnComponent(processor_id.value());
+      } else {
+        update_state = state::UpdateState::NO_OPERATION;
+        logger_->log_warn("Processor start/stop request missing 'processorId' argument");
+      }
     } else {
-      logger_->log_warn("Processor start/stop request missing 'processorId' argument");
+      executeStartStopOnComponent(resp.name);
     }
-  } else {
-    executeStartStopOnComponent(resp.name);
+  } catch (const std::exception& err) {
+    update_state = state::UpdateState::NOT_APPLIED;
+    logger_->log_warn("Failed to execute StartStopOnComponent command due to \"{}\"", err.what());
   }
 
   if (!resp.ident.empty()) {
-    C2Payload response(Operation::acknowledge, resp.ident, true);
+    C2Payload response(Operation::acknowledge, update_state, resp.ident, true);
     enqueue_c2_response(std::move(response));
   }
 }
