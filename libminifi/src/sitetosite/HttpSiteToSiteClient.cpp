@@ -141,7 +141,6 @@ std::shared_ptr<Transaction> HttpSiteToSiteClient::createTransaction(TransferDir
   } else {
     transaction_client = openConnectionForReceive(transaction);
     transaction->setDataAvailable(true);
-    // 201 tells us that data is available. 200 would mean that nothing is available.
   }
   gsl_Assert(transaction_client);
 
@@ -352,13 +351,11 @@ void HttpSiteToSiteClient::closeTransaction(const utils::Identifier &transaction
 
   logger_->log_debug("Received {} response code from delete", client->getResponseCode());
 
-  if (client->getResponseCode() == 400) {
+  if (client->getResponseCode() >= 400) {
     std::string error(client->getResponseBody().data(), client->getResponseBody().size());
 
-    logger_->log_warn("400 received: {}", error);
-    std::stringstream message;
-    message << "Received " << client->getResponseCode() << " from " << uri.str();
-    throw Exception(SITE2SITE_EXCEPTION, message.str());
+    logger_->log_warn("{} received: {}", client->getResponseCode(), error);
+    throw Exception(SITE2SITE_EXCEPTION, fmt::format("Received {} from {}", client->getResponseCode(), uri.str()));
   }
 
   transaction->close();
@@ -386,6 +383,37 @@ void HttpSiteToSiteClient::setSiteToSiteHeaders(minifi::http::HTTPClient& client
   if (batch_duration_.load() > std::chrono::milliseconds(0)) {
     client.setRequestHeader(HANDSHAKE_PROPERTY_BATCH_DURATION, std::to_string(batch_duration_.load().count()));
   }
+}
+
+std::pair<uint64_t, uint64_t> HttpSiteToSiteClient::readFlowFiles(const std::shared_ptr<Transaction>& transaction, core::ProcessSession& session) {
+  auto http_stream = dynamic_cast<http::HttpStream*>(peer_->getStream());
+  if (!http_stream) {
+    throw Exception(SITE2SITE_EXCEPTION, "Reading flow files failed: stream cannot be cast to HTTP stream");
+  }
+
+  std::pair<uint64_t, uint64_t> read_result;
+  try {
+    read_result = SiteToSiteClient::readFlowFiles(transaction, session);
+  } catch (const Exception&) {
+    auto response_code = http_stream->getClientRef()->getResponseCode();
+
+    // 200 tells us that there is no content to read, so we should not treat it as an error.
+    // The read fails in this case because the stream does not contain a valid response body with the expected format.
+    // Unfortunately there is no way to get the response code before trying to read, so we have to let it fail and check the response code afterwards.
+    if (response_code == 200) {
+      logger_->log_debug("Response code 200, no content to read");
+      transaction->setDataAvailable(false);
+      transaction->setState(TransactionState::TRANSACTION_CANCELED);
+      current_code_ = ResponseCode::CANCEL_TRANSACTION;
+      return {0, 0};
+    }
+    throw;
+  }
+
+  if (auto response_code = http_stream->getClientRef()->getResponseCode(); response_code >= 400) {
+    throw Exception(SITE2SITE_EXCEPTION, fmt::format("HTTP error code received while reading flow files: {}", response_code));
+  }
+  return read_result;
 }
 
 }  // namespace org::apache::nifi::minifi::sitetosite
