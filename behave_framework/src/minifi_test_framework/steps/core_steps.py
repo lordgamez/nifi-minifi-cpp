@@ -128,7 +128,7 @@ def step_impl(context: MinifiTestContext):
 @given("ssl properties are set up for MiNiFi C2 server")
 def step_impl(context: MinifiTestContext):
     context.get_or_create_default_minifi_container().enable_c2_with_ssl()
-    context.get_or_create_default_minifi_container().set_up_ssl_proprties()
+    context.get_or_create_default_minifi_container().set_up_ssl_properties()
 
 
 @given("a MiNiFi C2 server is set up")

@@ -120,7 +120,7 @@ class MinifiContainer(Container):
     def fetch_flow_config_from_flow_url(self):
         self.properties["nifi.c2.flow.url"] = f"http://minifi-c2-server-{self.scenario_id}:10090/c2/config?class=minifi-test-class"
 
-    def set_up_ssl_proprties(self):
+    def set_up_ssl_properties(self):
         self.properties["nifi.remote.input.secure"] = "true"
         self.properties["nifi.security.client.certificate"] = "/tmp/resources/minifi_client.crt"
         self.properties["nifi.security.client.private.key"] = "/tmp/resources/minifi_client.key"
