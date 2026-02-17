@@ -249,11 +249,3 @@ def step_impl(context: MinifiTestContext, container_name: str, directory: str, s
 def step_impl(context: MinifiTestContext, directory: str, size: str, duration: str):
     context.execute_steps(
         f'Then in the "{DEFAULT_MINIFI_CONTAINER_NAME}" container at least one file with minimum size of "{size}" is placed in the "{directory}" directory in less than {duration}')
-
-
-@then("the MiNiFi C2 server logs contain the following message: \"{log_message}\" in less than {duration}")
-def step_impl(context: MinifiTestContext, log_message: str, duration: str):
-    duration_seconds = humanfriendly.parse_timespan(duration)
-    assert wait_for_condition(condition=lambda: log_message in context.containers["minifi-c2-server"].get_logs(),
-                              timeout_seconds=duration_seconds, bail_condition=lambda: context.containers["minifi-c2-server"].exited,
-                              context=context)

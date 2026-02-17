@@ -30,7 +30,6 @@ from minifi_test_framework.containers.nifi_container import NifiContainer
 from minifi_test_framework.containers.directory import Directory
 from minifi_test_framework.containers.file import File
 from minifi_test_framework.core.minifi_test_context import DEFAULT_MINIFI_CONTAINER_NAME, MinifiTestContext
-from minifi_test_framework.containers.minifi_c2_server_container import MinifiC2Server
 
 
 @when("both instances start up")
@@ -115,33 +114,6 @@ def step_impl(context: MinifiTestContext):
     context.containers["nifi"] = NifiContainer(context)
 
 
-@given("C2 is enabled in MiNiFi")
-def step_impl(context: MinifiTestContext):
-    context.get_or_create_default_minifi_container().enable_c2()
-
-
 @given("flow configuration path is set up in flow url property")
 def step_impl(context: MinifiTestContext):
     context.get_or_create_default_minifi_container().fetch_flow_config_from_flow_url()
-
-
-@given("ssl properties are set up for MiNiFi C2 server")
-def step_impl(context: MinifiTestContext):
-    context.get_or_create_default_minifi_container().enable_c2_with_ssl()
-    context.get_or_create_default_minifi_container().set_up_ssl_properties()
-
-
-@given("a MiNiFi C2 server is set up")
-def step_impl(context: MinifiTestContext):
-    context.containers["minifi-c2-server"] = MinifiC2Server(context)
-
-
-@given("a MiNiFi C2 server is set up with SSL")
-def step_impl(context: MinifiTestContext):
-    context.containers["minifi-c2-server"] = MinifiC2Server(context, ssl=True)
-
-
-@given("a MiNiFi C2 server is started")
-def step_impl(context: MinifiTestContext):
-    context.containers["minifi-c2-server"] = MinifiC2Server(context)
-    assert context.containers["minifi-c2-server"].deploy()
