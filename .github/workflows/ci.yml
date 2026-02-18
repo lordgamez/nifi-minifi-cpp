@@ -411,7 +411,7 @@ jobs:
           echo '/cores/core.%e.%p' | sudo tee /proc/sys/kernel/core_pattern
           sudo mkdir /cores
           sudo chmod 777 /cores
-          docker run --name rocky-test --init --ulimit core=-1 --mount type=bind,source=/cores,target=/cores apacheminificpp:$(docker images | grep apacheminificpp | grep rocky | awk '{print $2}') bash -c 'cd /opt/minifi/build && make test ARGS="--timeout 300 -j8 --output-on-failure"'
+          docker run --name rocky-test --init --ulimit core=-1 --mount type=bind,source=/cores,target=/cores $(docker images apacheminificpp --format "{{.Repository}}:{{.Tag}}" | grep rocky | head -n1) bash -c 'cd /opt/minifi/build && make test ARGS="--timeout 300 -j8 --output-on-failure"'
       - name: check-cores
         if: ${{ failure() && steps.test.conclusion == 'failure' }}
         run: |
