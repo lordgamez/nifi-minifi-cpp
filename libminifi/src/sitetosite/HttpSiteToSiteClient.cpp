@@ -102,7 +102,10 @@ std::shared_ptr<Transaction> HttpSiteToSiteClient::createTransaction(TransferDir
   client->setRequestHeader("Accept", "application/json");
   client->setRequestHeader("Transfer-Encoding", "chunked");
   client->setPostFields("");
-  client->submit();
+  if (!client->submit()) {
+    logger_->log_warn("Failed to submit create transaction request for transaction {}", uri.str());
+    return nullptr;
+  }
 
   if (auto http_stream = dynamic_cast<http::HttpStream*>(peer_->getStream())) {
     logger_->log_debug("Closing {}", http_stream->getClientRef()->getURL());
@@ -242,7 +245,10 @@ std::optional<std::vector<PeerStatus>> HttpSiteToSiteClient::getPeerList() {
 
   setSiteToSiteHeaders(*client);
 
-  client->submit();
+  if (!client->submit()) {
+    logger_->log_warn("Failed to submit get peer list request {}", uri.str());
+    return std::nullopt;
+  }
 
   if (client->getResponseCode() == 200) {
     return parsePeerStatuses(logger_, std::string(client->getResponseBody().data(), client->getResponseBody().size()), port_id_);
@@ -314,6 +320,11 @@ void HttpSiteToSiteClient::closeTransaction(const utils::Identifier &transaction
     return;
   }
 
+  const auto guard = gsl::finally([&transaction]() {
+    transaction->close();
+    transaction->decrementCurrentTransfers();
+  });
+
   logger_->log_trace("Site to Site closing transaction {}", transaction->getUUIDStr());
 
   bool data_received = transaction->getDirection() == TransferDirection::RECEIVE && (current_code_ == ResponseCode::CONFIRM_TRANSACTION || current_code_ == ResponseCode::TRANSACTION_FINISHED);
@@ -347,19 +358,21 @@ void HttpSiteToSiteClient::closeTransaction(const utils::Identifier &transaction
   setSiteToSiteHeaders(*client);
   client->setConnectionTimeout(std::chrono::milliseconds(5000));
   client->setRequestHeader("Accept", "application/json");
-  client->submit();
 
-  logger_->log_debug("Received {} response code from delete", client->getResponseCode());
+  if (!client->submit()) {
+    logger_->log_warn("Failed to submit delete transaction request for transaction {}", transaction_id.to_string());
+  } else {
+    logger_->log_debug("Received {} response code from delete for transaction {}", client->getResponseCode(), transaction_id.to_string());
 
-  if (client->getResponseCode() >= 400) {
-    std::string error(client->getResponseBody().data(), client->getResponseBody().size());
+    if (client->getResponseCode() >= 400) {
+      std::string error(client->getResponseBody().data(), client->getResponseBody().size());
 
-    logger_->log_warn("{} received: {}", client->getResponseCode(), error);
-    throw Exception(SITE2SITE_EXCEPTION, fmt::format("Received {} from {}", client->getResponseCode(), uri.str()));
+      logger_->log_warn("{} received: {}", client->getResponseCode(), error);
+      if (client->getResponseCode() < 500) {
+        throw Exception(SITE2SITE_EXCEPTION, fmt::format("Received {} from {}", client->getResponseCode(), uri.str()));
+      }
+    }
   }
-
-  transaction->close();
-  transaction->decrementCurrentTransfers();
 }
 
 void HttpSiteToSiteClient::deleteTransaction(const utils::Identifier& transaction_id) {
