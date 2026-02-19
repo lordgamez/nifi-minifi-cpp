@@ -164,6 +164,7 @@ Feature: Sending data from MiNiFi-C++ to NiFi using S2S protocol
 
     Then in the "nifi" container a single file with the content "test" is placed in the "/tmp/output" directory in less than 90 seconds
     And the Minifi logs do not contain the following message: "ProcessSession rollback" after 1 seconds
+    And the Minifi logs do not contain the following message: "response code 500" after 1 seconds
 
   Scenario: A NiFi instance produces and transfers data to a MiNiFi instance via s2s
     Given a RemoteProcessGroup node with name "RemoteProcessGroup" is opened on "http://nifi-${scenario_id}:8080/nifi"
@@ -204,6 +205,7 @@ Feature: Sending data from MiNiFi-C++ to NiFi using S2S protocol
 
     Then a single file with the content "test" is placed in the "/tmp/output" directory in less than 90 seconds
     And the Minifi logs do not contain the following message: "ProcessSession rollback" after 1 seconds
+    And the Minifi logs do not contain the following message: "response code 500" after 1 seconds
 
   Scenario: A NiFi instance produces and transfers data to a MiNiFi instance via s2s with SSL config defined in minifi.properties
     Given a RemoteProcessGroup node with name "RemoteProcessGroup" is opened on "https://nifi-${scenario_id}:8443/nifi"
@@ -246,6 +248,7 @@ Feature: Sending data from MiNiFi-C++ to NiFi using S2S protocol
 
     Then a single file with the content "test" is placed in the "/tmp/output" directory in less than 90 seconds
     And the Minifi logs do not contain the following message: "ProcessSession rollback" after 1 seconds
+    And the Minifi logs do not contain the following message: "response code 500" after 1 seconds
 
   Scenario: A MiNiFi instance produces and transfers data to a NiFi instance via s2s using compression
     Given a GetFile processor with the "Input Directory" property set to "/tmp/input"
@@ -306,3 +309,4 @@ Feature: Sending data from MiNiFi-C++ to NiFi using S2S protocol
 
     Then a single file with the content "test" is placed in the "/tmp/output" directory in less than 90 seconds
     And the Minifi logs do not contain the following message: "ProcessSession rollback" after 1 seconds
+    And the Minifi logs do not contain the following message: "response code 500" after 1 seconds

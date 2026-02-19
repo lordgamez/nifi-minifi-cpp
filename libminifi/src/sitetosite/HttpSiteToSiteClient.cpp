@@ -102,7 +102,10 @@ std::shared_ptr<Transaction> HttpSiteToSiteClient::createTransaction(TransferDir
   client->setRequestHeader("Accept", "application/json");
   client->setRequestHeader("Transfer-Encoding", "chunked");
   client->setPostFields("");
-  client->submit();
+  if (!client->submit()) {
+    logger_->log_warn("Failed to submit create transaction request for transaction {}", uri.str());
+    return nullptr;
+  }
 
   if (auto http_stream = dynamic_cast<http::HttpStream*>(peer_->getStream())) {
     logger_->log_debug("Closing {}", http_stream->getClientRef()->getURL());
@@ -110,7 +113,7 @@ std::shared_ptr<Transaction> HttpSiteToSiteClient::createTransaction(TransferDir
 
   if (client->getResponseCode() != 201) {
     peer_->setStream(nullptr);
-    logger_->log_debug("Could not create transaction, received {}", client->getResponseCode());
+    logger_->log_debug("Could not create transaction, received response code {}", client->getResponseCode());
     return nullptr;
   }
   // parse the headers
@@ -242,7 +245,10 @@ std::optional<std::vector<PeerStatus>> HttpSiteToSiteClient::getPeerList() {
 
   setSiteToSiteHeaders(*client);
 
-  client->submit();
+  if (!client->submit()) {
+    logger_->log_warn("Failed to submit get peer list request {}", uri.str());
+    return std::nullopt;
+  }
 
   if (client->getResponseCode() == 200) {
     return parsePeerStatuses(logger_, std::string(client->getResponseBody().data(), client->getResponseBody().size()), port_id_);
@@ -314,6 +320,11 @@ void HttpSiteToSiteClient::closeTransaction(const utils::Identifier &transaction
     return;
   }
 
+  const auto guard = gsl::finally([&transaction]() {
+    transaction->close();
+    transaction->decrementCurrentTransfers();
+  });
+
   logger_->log_trace("Site to Site closing transaction {}", transaction->getUUIDStr());
 
   bool data_received = transaction->getDirection() == TransferDirection::RECEIVE && (current_code_ == ResponseCode::CONFIRM_TRANSACTION || current_code_ == ResponseCode::TRANSACTION_FINISHED);
@@ -326,7 +337,10 @@ void HttpSiteToSiteClient::closeTransaction(const utils::Identifier &transaction
   if (transaction->getState() == TransactionState::TRANSACTION_CONFIRMED || data_received) {
     code = ResponseCode::CONFIRM_TRANSACTION;
   } else if (transaction->getCurrentTransfers() == 0 && !transaction->isDataAvailable()) {
-    code = ResponseCode::CANCEL_TRANSACTION;
+    // If the transaction was canceled (e.g. NiFi had no data to send), the server never held the transaction,
+    // so sending a DELETE would cause an IllegalStateException on the NiFi side. Just clean up locally.
+    logger_->log_debug("Transaction {} canceled with no transfers, skipping DELETE to server", transaction->getUUIDStr());
+    return;
   } else {
     std::string directon = transaction->getDirection() == TransferDirection::RECEIVE ? "Receive" : "Send";
     logger_->log_error("Transaction {} to be closed is in unexpected state. Direction: {}, transfers: {}, bytes: {}, state: {}",
@@ -347,19 +361,21 @@ void HttpSiteToSiteClient::closeTransaction(const utils::Identifier &transaction
   setSiteToSiteHeaders(*client);
   client->setConnectionTimeout(std::chrono::milliseconds(5000));
   client->setRequestHeader("Accept", "application/json");
-  client->submit();
 
-  logger_->log_debug("Received {} response code from delete", client->getResponseCode());
-
-  if (client->getResponseCode() >= 400) {
-    std::string error(client->getResponseBody().data(), client->getResponseBody().size());
-
-    logger_->log_warn("{} received: {}", client->getResponseCode(), error);
-    throw Exception(SITE2SITE_EXCEPTION, fmt::format("Received {} from {}", client->getResponseCode(), uri.str()));
+  if (!client->submit()) {
+    logger_->log_warn("Failed to submit delete transaction request for transaction {}", transaction_id.to_string());
+  } else {
+    if (client->getResponseCode() >= 400) {
+      const std::string error(client->getResponseBody().data(), client->getResponseBody().size());
+      const auto message = fmt::format("Received response code {} while deleting transaction {}: {}", client->getResponseCode(), transaction_id.to_string(), error);
+      if (client->getResponseCode() < 500) {
+        logger_->log_error(fmt::runtime(message));
+        throw Exception(SITE2SITE_EXCEPTION, message);
+      } else {
+        logger_->log_warn(fmt::runtime(message));
+      }
+    }
   }
-
-  transaction->close();
-  transaction->decrementCurrentTransfers();
 }
 
 void HttpSiteToSiteClient::deleteTransaction(const utils::Identifier& transaction_id) {
@@ -394,6 +410,9 @@ std::pair<uint64_t, uint64_t> HttpSiteToSiteClient::readFlowFiles(const std::sha
   try {
     return SiteToSiteClient::readFlowFiles(transaction, session);
   } catch (const Exception&) {
+    // We need to wait for the HTTP response to fully complete before checking the response code,
+    // otherwise getResponseCode() may return 0 if the future hasn't resolved yet.
+    http_stream->getClient();
     auto response_code = http_stream->getClientRef()->getResponseCode();
 
     // 200 tells us that there is no content to read, so we should not treat it as an error.
@@ -406,11 +425,18 @@ std::pair<uint64_t, uint64_t> HttpSiteToSiteClient::readFlowFiles(const std::sha
       current_code_ = ResponseCode::CANCEL_TRANSACTION;
       return {0, 0};
     }
-    throw;
-  }
 
-  if (auto response_code = http_stream->getClientRef()->getResponseCode(); response_code >= 400) {
-    throw Exception(SITE2SITE_EXCEPTION, fmt::format("HTTP error code received while reading flow files: {}", response_code));
+    if (response_code >= 400) {
+      const std::string error = std::string(http_stream->getClientRef()->getResponseBody().data(), http_stream->getClientRef()->getResponseBody().size());
+      const auto message = fmt::format("Received response code {} while reading flow files for transaction {}: {}", response_code, transaction->getUUIDStr(), error);
+      if (response_code < 500) {
+        logger_->log_error(fmt::runtime(message));
+        throw Exception(SITE2SITE_EXCEPTION, message);
+      } else {
+        logger_->log_warn(fmt::runtime(message));
+      }
+    }
+    throw;
   }
 }
 

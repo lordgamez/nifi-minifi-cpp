@@ -48,6 +48,7 @@ class NifiContainer(Container):
                              r"-e 's/^\(nifi.security.truststoreType\)=.*/\1=jks/' "
                              r"-e 's/^\(nifi.security.truststorePasswd\)=.*/\1=passw0rd1!/' "
                              r"-e 's/^\(nifi.remote.input.socket.port\)=.*/\1=10443/' /opt/nifi/nifi-current/conf/nifi.properties && "
+                             r"sed -i -e 's/name=\"org.apache.nifi.processors\" level=\"WARN\"/name=\"org.apache.nifi.remote\" level=\"DEBUG\"/' /opt/nifi/nifi-current/conf/logback.xml && "
                              r"cp /tmp/nifi_config/flow.json.gz /opt/nifi/nifi-current/conf && /opt/nifi/nifi-current/bin/nifi.sh run & "
                              r"nifi_pid=$! &&"
                              r"tail -F --pid=${{nifi_pid}} /opt/nifi/nifi-current/logs/nifi-app.log").format(name=name)
@@ -67,6 +68,7 @@ class NifiContainer(Container):
                              r"-e 's/^\(nifi.security.truststoreType\)=.*/\1=/' "
                              r"-e 's/^\(nifi.security.truststorePasswd\)=.*/\1=/' "
                              r"-e 's/^\(nifi.remote.input.socket.port\)=.*/\1=10000/' /opt/nifi/nifi-current/conf/nifi.properties && "
+                             r"sed -i -e 's/name=\"org.apache.nifi.processors\" level=\"WARN\"/name=\"org.apache.nifi.remote\" level=\"DEBUG\"/' /opt/nifi/nifi-current/conf/logback.xml && "
                              r"cp /tmp/nifi_config/flow.json.gz /opt/nifi/nifi-current/conf && /opt/nifi/nifi-current/bin/nifi.sh run & "
                              r"nifi_pid=$! &&"
                              r"tail -F --pid=${{nifi_pid}} /opt/nifi/nifi-current/logs/nifi-app.log").format(name=name)
