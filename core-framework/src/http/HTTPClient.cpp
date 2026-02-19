@@ -357,7 +357,7 @@ bool HTTPClient::submit() {
   }
 
   curl_easy_setopt(http_session_.get(), CURLOPT_URL, url_.c_str());
-  logger_->log_debug("Submitting to {}", url_);
+  logger_->log_debug("Submitting to {} {}", method_ ? magic_enum::enum_name(*method_) : "NONE", url_);
   if (read_callback_ == nullptr) {
     curl_easy_setopt(http_session_.get(), CURLOPT_WRITEFUNCTION, &HTTPRequestResponse::receiveWrite);
     curl_easy_setopt(http_session_.get(), CURLOPT_WRITEDATA, static_cast<void*>(&content_));
@@ -381,12 +381,11 @@ bool HTTPClient::submit() {
     logger_->log_error("HTTP operation timed out, with absolute timeout {}\n", absolute_timeout);
   }
   if (res_ != CURLE_OK) {
-    logger_->log_info("{}", request_headers_.size());
     logger_->log_error("curl_easy_perform() failed {} on {}, error code {}\n", curl_easy_strerror(res_), url_, magic_enum::enum_underlying(res_));
     return false;
   }
 
-  logger_->log_debug("Finished with {}", url_);
+  logger_->log_debug("Finished with {} {}", method_ ? magic_enum::enum_name(*method_) : "NONE", url_);
   return true;
 }
 
