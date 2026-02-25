@@ -21,6 +21,7 @@
 
 #include "core/logging/LoggerConfiguration.h"
 #include "core/extension/Extension.h"
+#include "minifi-cpp/agent/agent_docs.h"
 #include "utils/file/FilePattern.h"
 #include "minifi-cpp/agent/agent_version.h"
 #include "core/extension/Utils.h"
@@ -84,6 +85,16 @@ ExtensionManager::ExtensionManager(const std::shared_ptr<Configure>& config): lo
       extensions_.push_back(std::move(extension));
     }
   }
+}
+
+ExtensionManager::~ExtensionManager() {
+  // Extensions must be destroyed before clearing the registry,
+  // because DLL static destructors (StaticClassType) may still reference
+  // the registry during DLL unload.
+  extensions_.clear();
+  // Clear the class description registry to avoid dangling pointers
+  // to validator objects that lived in the now-unloaded extension DLLs.
+  minifi::ClassDescriptionRegistry::clearClassDescriptions();
 }
 
 }  // namespace org::apache::nifi::minifi::core::extension

@@ -34,5 +34,8 @@ std::map<BundleIdentifier, Components>& ClassDescriptionRegistry::getMutableClas
   return getAgentDocsClassMappings();
 }
 
+void ClassDescriptionRegistry::clearClassDescriptions() {
+  getAgentDocsClassMappings().clear();
+}
 
 }  // namespace org::apache::nifi::minifi

@@ -30,6 +30,7 @@ namespace org::apache::nifi::minifi::core::extension {
 class ExtensionManager {
  public:
   explicit ExtensionManager(const std::shared_ptr<Configure>& config);
+  ~ExtensionManager();
 
  private:
   std::vector<std::unique_ptr<Extension>> extensions_;
