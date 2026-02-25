@@ -88,13 +88,10 @@ ExtensionManager::ExtensionManager(const std::shared_ptr<Configure>& config): lo
 }
 
 ExtensionManager::~ExtensionManager() {
-  // Extensions must be destroyed before clearing the registry,
-  // because DLL static destructors (StaticClassType) may still reference
-  // the registry during DLL unload.
-  extensions_.clear();
   // Clear the class description registry to avoid dangling pointers
-  // to validator objects that lived in the now-unloaded extension DLLs.
+  // to validator objects that live in extension DLLs to be unloaded.
   minifi::ClassDescriptionRegistry::clearClassDescriptions();
+  extensions_.clear();
 }
 
 }  // namespace org::apache::nifi::minifi::core::extension
