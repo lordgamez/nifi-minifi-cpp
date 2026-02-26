@@ -49,6 +49,9 @@ class ConfigureImpl : public ConfigurationImpl, public virtual core::AgentIdenti
   std::string getAgentIdentifier() const override;
   void setFallbackAgentIdentifier(const std::string& id) override;
 
+  std::optional<std::filesystem::path> logPropertiesFilePath() const override;
+  std::optional<std::filesystem::path> extraLogPropertiesFilesDirName() const override;
+
   using Configuration::set;
   void set(const std::string& key, const std::string& value, PropertyChangeLifetime lifetime) override;
   bool commitChanges() override;

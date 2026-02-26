@@ -50,7 +50,8 @@ class IntegrationBase {
       std::chrono::milliseconds waitTime = std::chrono::milliseconds(DEFAULT_WAITTIME_MSECS));
   IntegrationBase(const IntegrationBase&) = delete;
   IntegrationBase(IntegrationBase&& other) noexcept
-      : configuration{std::move(other.configuration)},
+      : logger_properties_{std::move(other.logger_properties_)},
+        configuration{std::move(other.configuration)},
         flowController_{std::move(other.flowController_)},
         wait_time_{other.wait_time_},
         port{std::move(other.port)},
@@ -64,6 +65,7 @@ class IntegrationBase {
   IntegrationBase& operator=(const IntegrationBase&) = delete;
   IntegrationBase& operator=(IntegrationBase&& other) noexcept {
     if (&other == this) return *this;
+    logger_properties_ = std::move(other.logger_properties_);
     configuration = std::move(other.configuration);
     flowController_ = std::move(other.flowController_);
     wait_time_ = other.wait_time_;
@@ -92,6 +94,10 @@ class IntegrationBase {
 
   const std::shared_ptr<minifi::Configure>& getConfiguration() const {
     return configuration;
+  }
+
+  const std::shared_ptr<core::logging::LoggerProperties>& getLoggerProperties() const {
+    return logger_properties_;
   }
 
   void setConfiguration(std::shared_ptr<minifi::Configure> configuration) {
@@ -124,6 +130,7 @@ class IntegrationBase {
   }
 
   void configureSecurity();
+  std::shared_ptr<core::logging::LoggerProperties> logger_properties_;
   std::shared_ptr<minifi::Configure> configuration;
   std::unique_ptr<minifi::utils::file::AssetManager> asset_manager_;
   std::unique_ptr<core::BulletinStore> bulletin_store_;

@@ -41,6 +41,9 @@ class Configure : public virtual Configuration, public virtual core::AgentIdenti
 
   virtual void setFallbackAgentIdentifier(const std::string& id) = 0;
 
+  virtual std::optional<std::filesystem::path> logPropertiesFilePath() const = 0;
+  virtual std::optional<std::filesystem::path> extraLogPropertiesFilesDirName() const = 0;
+
   using Configuration::set;
   void set(const std::string& key, const std::string& value, PropertyChangeLifetime lifetime) override = 0;
   bool commitChanges() override = 0;
