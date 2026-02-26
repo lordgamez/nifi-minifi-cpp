@@ -19,7 +19,6 @@ limitations under the License.
 - [ApplyTemplate](#ApplyTemplate)
 - [AttributeRollingWindow](#AttributeRollingWindow)
 - [AttributesToJSON](#AttributesToJSON)
-- [BinFiles](#BinFiles)
 - [CaptureRTSPFrame](#CaptureRTSPFrame)
 - [CollectKubernetesPodMetrics](#CollectKubernetesPodMetrics)
 - [CompressContent](#CompressContent)
@@ -215,34 +214,6 @@ In the list below, the names of required properties appear in bold. Any other pr
 | Name    | Description                                  |
 |---------|----------------------------------------------|
 | success | All FlowFiles received are routed to success |
-
-
-## BinFiles
-
-### Description
-
-Bins flow files into buckets based on the number of entries or size of entries
-
-### Properties
-
-In the list below, the names of required properties appear in bold. Any other properties (not in bold) are considered optional. The table also indicates any default values, and whether a property supports the NiFi Expression Language.
-
-| Name                      | Default Value | Allowable Values | Description                                                                                                |
-|---------------------------|---------------|------------------|------------------------------------------------------------------------------------------------------------|
-| Minimum Group Size        | 0             |                  | The minimum size of for the bundle                                                                         |
-| Maximum Group Size        |               |                  | The maximum size for the bundle. If not specified, there is no maximum.                                    |
-| Minimum Number of Entries | 1             |                  | The minimum number of files to include in a bundle                                                         |
-| Maximum Number of Entries |               |                  | The maximum number of files to include in a bundle. If not specified, there is no maximum.                 |
-| Maximum number of Bins    | 100           |                  | Specifies the maximum number of bins that can be held in memory at any one time                            |
-| Max Bin Age               |               |                  | The maximum age of a Bin that will trigger a Bin to be complete. Expected format is <duration> <time unit> |
-| Batch Size                | 1             |                  | Maximum number of FlowFiles processed in a single session                                                  |
-
-### Relationships
-
-| Name     | Description                                                                                                                  |
-|----------|------------------------------------------------------------------------------------------------------------------------------|
-| failure  | If the bundle cannot be created, all FlowFiles that would have been used to create the bundle will be transferred to failure |
-| original | The FlowFiles that were used to create the bundle                                                                            |
 
 
 ## CaptureRTSPFrame

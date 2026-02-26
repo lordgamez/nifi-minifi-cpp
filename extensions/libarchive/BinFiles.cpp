@@ -317,6 +317,4 @@ void BinFiles::restore(const std::shared_ptr<core::FlowFile>& flowFile) {
   file_store_.put(flowFile);
 }
 
-REGISTER_RESOURCE(BinFiles, Processor);
-
 }  // namespace org::apache::nifi::minifi::processors
