@@ -37,6 +37,7 @@
 #include "utils/GeneralUtils.h"
 #include "core/logging/LoggerFactory.h"
 #include "minifi-c/minifi-c.h"
+#include "minifi-cpp/agent/agent_docs.h"
 
 namespace org::apache::nifi::minifi::core::extension {
 
@@ -90,6 +91,21 @@ Extension::~Extension() {
     info_->deinit(info_->user_data);
   }
   unload();
+
+  // Check if library was truly unloaded and clear class descriptions if it was.
+  // On Linux/GCC, STB_GNU_UNIQUE symbols can prevent dlclose from actually unloading the library.
+#ifdef RTLD_NOLOAD
+  void* check = dlopen(library_path_.c_str(), RTLD_NOW | RTLD_NOLOAD);
+  if (check) {
+    // Keep class descriptions if library is still in memory
+    dlclose(check);
+  } else {
+    ClassDescriptionRegistry::clearClassDescriptionsForBundle(name_);
+  }
+#else
+  // On Windows library is truly unloaded
+  ClassDescriptionRegistry::clearClassDescriptionsForBundle(name_);
+#endif
 }
 
 bool Extension::initialize(const std::shared_ptr<minifi::Configure>& configure) {
