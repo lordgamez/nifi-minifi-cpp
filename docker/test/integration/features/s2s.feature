@@ -209,6 +209,7 @@ Feature: Sending data from MiNiFi-C++ to NiFi using S2S protocol
 
     Then a flowfile with the content "test" is placed in the monitored directory in less than 90 seconds
     And the Minifi logs do not contain the following message: "ProcessSession rollback" after 1 seconds
+    And the Minifi logs do not contain the following message: "response code 500" after 1 seconds
 
   Scenario: A NiFi instance produces and transfers data to a MiNiFi instance via s2s
     Given a file with the content "test" is present in "/tmp/input"
@@ -245,6 +246,7 @@ Feature: Sending data from MiNiFi-C++ to NiFi using S2S protocol
 
     Then a flowfile with the content "test" is placed in the monitored directory in less than 90 seconds
     And the Minifi logs do not contain the following message: "ProcessSession rollback" after 1 seconds
+    And the Minifi logs do not contain the following message: "response code 500" after 1 seconds
 
   Scenario: A NiFi instance produces and transfers data to a MiNiFi instance via s2s with SSL config defined in minifi.properties
     Given a file with the content "test" is present in "/tmp/input"
@@ -285,6 +287,7 @@ Feature: Sending data from MiNiFi-C++ to NiFi using S2S protocol
 
     Then a flowfile with the content "test" is placed in the monitored directory in less than 90 seconds
     And the Minifi logs do not contain the following message: "ProcessSession rollback" after 1 seconds
+    And the Minifi logs do not contain the following message: "response code 500" after 1 seconds
 
   Scenario: A MiNiFi instance produces and transfers data to a NiFi instance via s2s using compression
     Given a GetFile processor with the "Input Directory" property set to "/tmp/input"
@@ -370,3 +373,4 @@ Feature: Sending data from MiNiFi-C++ to NiFi using S2S protocol
 
     Then a flowfile with the content "test" is placed in the monitored directory in less than 90 seconds
     And the Minifi logs do not contain the following message: "ProcessSession rollback" after 1 seconds
+    And the Minifi logs do not contain the following message: "response code 500" after 1 seconds

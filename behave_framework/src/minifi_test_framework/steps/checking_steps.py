@@ -23,7 +23,7 @@ import humanfriendly
 from behave import then, step
 
 from minifi_test_framework.containers.http_proxy_container import HttpProxy
-from minifi_test_framework.core.helpers import wait_for_condition, check_condition_after_wait
+from minifi_test_framework.core.helpers import wait_for_condition, check_condition_after_wait, log_due_to_failure
 from minifi_test_framework.core.minifi_test_context import DEFAULT_MINIFI_CONTAINER_NAME, MinifiTestContext
 
 
@@ -67,17 +67,17 @@ def step_impl(context: MinifiTestContext, content: str, directory: str, duration
 def step_impl(context: MinifiTestContext, message: str, duration: str):
     duration_seconds = humanfriendly.parse_timespan(duration)
     time.sleep(duration_seconds)
-    assert message not in context.containers[DEFAULT_MINIFI_CONTAINER_NAME].get_logs()
+    assert message not in context.containers[DEFAULT_MINIFI_CONTAINER_NAME].get_logs() or log_due_to_failure(context)
 
 
 @then("the Minifi logs do not contain errors")
 def step_impl(context: MinifiTestContext):
-    assert "[error]" not in context.containers[DEFAULT_MINIFI_CONTAINER_NAME].get_logs() or context.containers[DEFAULT_MINIFI_CONTAINER_NAME].log_app_output()
+    assert "[error]" not in context.containers[DEFAULT_MINIFI_CONTAINER_NAME].get_logs() or log_due_to_failure(context)
 
 
 @then("the Minifi logs do not contain warnings")
 def step_impl(context: MinifiTestContext):
-    assert "[warning]" not in context.containers[DEFAULT_MINIFI_CONTAINER_NAME].get_logs() or context.containers[DEFAULT_MINIFI_CONTAINER_NAME].log_app_output()
+    assert "[warning]" not in context.containers[DEFAULT_MINIFI_CONTAINER_NAME].get_logs() or log_due_to_failure(context)
 
 
 @then("the Minifi logs contain the following message: '{message}' in less than {duration}")
@@ -93,7 +93,7 @@ def step_impl(context: MinifiTestContext, message: str, duration: str):
 def step_impl(context, log_message, count, duration):
     duration_seconds = humanfriendly.parse_timespan(duration)
     time.sleep(duration_seconds)
-    assert context.containers[DEFAULT_MINIFI_CONTAINER_NAME].get_logs().count(log_message) == count or context.containers[DEFAULT_MINIFI_CONTAINER_NAME].log_app_output()
+    assert context.containers[DEFAULT_MINIFI_CONTAINER_NAME].get_logs().count(log_message) == count or log_due_to_failure(context)
 
 
 @then("the Minifi logs match the following regex: \"{regex}\" in less than {duration}")
