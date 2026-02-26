@@ -60,6 +60,7 @@ class Properties {
   virtual utils::ChecksumCalculator& getChecksumCalculator() = 0;
   virtual std::filesystem::path getFilePath() const = 0;
   virtual std::map<std::string, std::string> getProperties() const = 0;
+  virtual std::filesystem::path extraPropertiesFilesDirName() const = 0;
 
   static std::shared_ptr<Properties> create();
 };

@@ -110,6 +110,20 @@ void ConfigureImpl::setFallbackAgentIdentifier(const std::string& id) {
   fallback_identifier_ = id;
 }
 
+std::optional<std::filesystem::path> ConfigureImpl::logPropertiesFilePath() const {
+  if (logger_properties_) {
+    return logger_properties_->getFilePath();
+  }
+  return std::nullopt;
+}
+
+std::optional<std::filesystem::path> ConfigureImpl::extraLogPropertiesFilesDirName() const {
+  if (logger_properties_) {
+    return logger_properties_->extraPropertiesFilesDirName();
+  }
+  return std::nullopt;
+}
+
 void ConfigureImpl::set(const std::string& key, const std::string& value, PropertyChangeLifetime lifetime) {
   const std::string_view log_prefix = "nifi.log.";
   if (utils::string::startsWith(key, log_prefix)) {

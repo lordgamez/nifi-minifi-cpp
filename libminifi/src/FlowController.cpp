@@ -482,12 +482,29 @@ std::map<std::string, std::unique_ptr<io::InputStream>> FlowController::getDebug
     std::string index_str = i == logs.size() - 1 ? "" : "." + std::to_string(logs.size() - 1 - i);
     debug_info["minifi.log" + index_str + ".gz"] = std::move(logs[i]);
   }
+
   if (auto opt_flow_path = flow_configuration_->getConfigurationPath()) {
     if (utils::file::exists(opt_flow_path.value())) {
       debug_info["config.yml"] = std::make_unique<io::FileStream>(opt_flow_path.value(), 0, false);
     }
   }
+
+  const auto addDirectoryContents = [this, &debug_info](const std::filesystem::path& dir) {
+    if (!utils::file::exists(dir)) { return; }
+    for (const auto& [parent, file] : utils::file::list_dir_all(dir, logger_, false)) {
+      debug_info[parent.filename().string() + "/" + file.string()] = std::make_unique<io::FileStream>(dir / file, 0, false);
+    }
+  };
+
   debug_info["minifi.properties"] = std::make_unique<io::FileStream>(configuration_->getFilePath(), 0, false);
+  addDirectoryContents(configuration_->extraPropertiesFilesDirName());
+
+  if (auto log_properties_path = configuration_->logPropertiesFilePath()) {
+    debug_info["minifi-log.properties"] = std::make_unique<io::FileStream>(*log_properties_path, 0, false);
+  }
+  if (auto log_properties_dir = configuration_->extraLogPropertiesFilesDirName()) {
+    addDirectoryContents(*log_properties_dir);
+  }
 
   return debug_info;
 }

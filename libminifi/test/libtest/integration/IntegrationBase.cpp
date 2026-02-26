@@ -31,7 +31,8 @@
 namespace org::apache::nifi::minifi::test {
 
 IntegrationBase::IntegrationBase(const std::optional<std::filesystem::path>& test_file_location, const std::optional<std::filesystem::path>& home_path, std::chrono::milliseconds waitTime)
-    : configuration(std::make_shared<minifi::ConfigureImpl>()),
+    : logger_properties_(std::make_shared<core::logging::LoggerProperties>(std::filesystem::temp_directory_path())),
+      configuration(std::make_shared<minifi::ConfigureImpl>(std::nullopt, logger_properties_)),
       wait_time_(waitTime),
       home_path_(home_path) {
   flow_config_path_.config_path = test_file_location;

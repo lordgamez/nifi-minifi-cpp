@@ -138,6 +138,9 @@ class C2HeartbeatHandler : public ServerAwareHandler {
 };
 
 static std::string properties_file = "some.dummy.content = here\n";
+static std::string c2_properties_file = "c2.dummy.content = content\n";
+static std::string log_properties_file = "log.dummy.content = log\n";
+static std::string extra_log_properties_file = "extra.log.dummy.content = extra\n";
 static std::string flow_config_file = empty_flow;
 
 TEST_CASE("C2DebugBundleTest", "[c2test]") {
@@ -149,7 +152,12 @@ TEST_CASE("C2DebugBundleTest", "[c2test]") {
 
   std::filesystem::path home_dir = controller.createTempDirectory();
   minifi::utils::file::PathUtils::create_dir(home_dir / "conf");
+  minifi::utils::file::PathUtils::create_dir(home_dir / "conf" / "minifi.properties.d");
+  minifi::utils::file::PathUtils::create_dir(home_dir / "conf" / "minifi-log.properties.d");
   std::ofstream{home_dir / "conf" / "minifi.properties", std::ios::binary} << properties_file;
+  std::ofstream{home_dir / "conf" / "minifi.properties.d" / "90_c2.properties", std::ios::binary} << c2_properties_file;
+  std::ofstream{home_dir / "conf" / "minifi-log.properties", std::ios::binary} << log_properties_file;
+  std::ofstream{home_dir / "conf" / "minifi-log.properties.d" / "99_c2.properties", std::ios::binary} << extra_log_properties_file;
   std::ofstream{home_dir / "conf" / "config.yml", std::ios::binary} << flow_config_file;
 
   VerifyDebugInfo harness(home_dir / "conf" / "config.yml", [&]() -> bool {
@@ -174,8 +182,11 @@ TEST_CASE("C2DebugBundleTest", "[c2test]") {
               file_content.length());
       archive_content[info->filename] = std::move(file_content);
     }
-    REQUIRE(archive_content["minifi.properties"] == properties_file);
-    REQUIRE(archive_content["config.yml"] == flow_config_file);
+    CHECK(archive_content["minifi.properties"] == properties_file);
+    CHECK(archive_content["minifi.properties.d/90_c2.properties"] == c2_properties_file);
+    CHECK(archive_content["minifi-log.properties"] == log_properties_file);
+    CHECK(archive_content["minifi-log.properties.d/99_c2.properties"] == extra_log_properties_file);
+    CHECK(archive_content["config.yml"] == flow_config_file);
     auto log_gz = archive_content["minifi.log.gz"];
     auto log_stream = std::make_shared<minifi::io::BufferStream>();
     {
@@ -185,11 +196,12 @@ TEST_CASE("C2DebugBundleTest", "[c2test]") {
     std::string log_text;
     log_text.resize(log_stream->size());
     log_stream->read(as_writable_bytes(std::span(log_text)));
-    REQUIRE(log_text.find("Tis but a scratch") != std::string::npos);
-    REQUIRE(archive_content["manifest.json"].find("minifi-archive-extensions") != std::string::npos);
+    CHECK(log_text.find("Tis but a scratch") != std::string::npos);
+    CHECK(archive_content["manifest.json"].find("minifi-archive-extensions") != std::string::npos);
     return true;
   });
 
+  harness.getLoggerProperties()->loadConfigureFile(home_dir / "conf" / "minifi-log.properties");
   harness.getConfiguration()->loadConfigureFile(home_dir / "conf" / "minifi.properties");
   harness.setUrl("http://localhost:0/heartbeat", &heartbeat_handler);
   harness.setUrl("http://localhost:0/acknowledge", &ack_handler);
@@ -213,6 +225,7 @@ TEST_CASE("Test that the debug bundle operation works when config.yml does not e
   std::filesystem::path home_dir = controller.createTempDirectory();
   minifi::utils::file::PathUtils::create_dir(home_dir / "conf");
   std::ofstream{home_dir / "conf" / "minifi.properties", std::ios::binary} << properties_file;
+  std::ofstream{home_dir / "conf" / "minifi-log.properties", std::ios::binary} << log_properties_file;
 
   VerifyDebugInfo harness(home_dir / "conf" / "config.yml", [&]() -> bool {
     if (!ack_handler.isAcknowledged("79")) {
@@ -224,6 +237,7 @@ TEST_CASE("Test that the debug bundle operation works when config.yml does not e
   });
 
   harness.getConfiguration()->loadConfigureFile(home_dir / "conf" / "minifi.properties");
+  harness.getLoggerProperties()->loadConfigureFile(home_dir / "conf" / "minifi-log.properties");
   harness.setUrl("http://localhost:0/heartbeat", &heartbeat_handler);
   harness.setUrl("http://localhost:0/acknowledge", &ack_handler);
   harness.setUrl("http://localhost:0/debug_bundle", &bundle_handler);
