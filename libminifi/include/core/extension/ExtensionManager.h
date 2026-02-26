@@ -32,6 +32,11 @@ class ExtensionManager {
   explicit ExtensionManager(const std::shared_ptr<Configure>& config);
   ~ExtensionManager();
 
+  ExtensionManager(const ExtensionManager&) = delete;
+  ExtensionManager& operator=(const ExtensionManager&) = delete;
+  ExtensionManager(ExtensionManager&&) = delete;
+  ExtensionManager& operator=(ExtensionManager&&) = delete;
+
  private:
   std::vector<std::unique_ptr<Extension>> extensions_;
 
