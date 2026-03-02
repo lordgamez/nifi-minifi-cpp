@@ -103,8 +103,11 @@ Extension::~Extension() {
     ClassDescriptionRegistry::clearClassDescriptionsForBundle(name_);
   }
 #else
-  // On Windows library is truly unloaded
-  ClassDescriptionRegistry::clearClassDescriptionsForBundle(name_);
+  HMODULE handle = GetModuleHandleW(name_.c_str());
+  if (handle == nullptr) {
+    ClassDescriptionRegistry::clearClassDescriptionsForBundle(name_);
+  }
+
 #endif
 }
 
