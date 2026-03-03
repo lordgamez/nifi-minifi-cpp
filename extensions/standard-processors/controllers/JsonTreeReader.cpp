@@ -61,7 +61,16 @@ nonstd::expected<core::RecordField, std::error_code> parse(const rapidjson::Valu
         return nonstd::make_unexpected(element_field.error());
       record_object.emplace(element_key, std::move(*element_field));
     }
+    // Workaround for GCC 12 false positive -Wfree-nonheap-object triggered by
+    // aggressive inlining of RecordField ctor/dtor with std::variant.
+#if defined(__GNUC__) && !defined(__clang__) && (__GNUC__ <= 12)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wfree-nonheap-object"
+#endif
     return core::RecordField{std::move(record_object)};
+#if defined(__GNUC__) && !defined(__clang__) && (__GNUC__ <= 12)
+#pragma GCC diagnostic pop
+#endif
   }
 
   return nonstd::make_unexpected(std::make_error_code(std::errc::invalid_argument));
