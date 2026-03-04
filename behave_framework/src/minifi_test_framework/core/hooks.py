@@ -20,6 +20,8 @@ import os
 import docker
 import types
 
+logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
+
 from behave.model import Scenario
 from behave.runner import Context
 
