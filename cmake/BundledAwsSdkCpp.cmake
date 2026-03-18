@@ -20,15 +20,11 @@ function(use_bundled_libaws SOURCE_DIR BINARY_DIR)
     set(PATCH_FILE2 "${SOURCE_DIR}/thirdparty/aws-sdk-cpp/shutdown-fix.patch")
     set(PATCH_FILE3 "${SOURCE_DIR}/thirdparty/aws-sdk-cpp/bundle-openssl.patch")
     set(PATCH_FILE4 "${SOURCE_DIR}/thirdparty/aws-sdk-cpp/fix-finding-s2n.patch")
-    set(PATCH_FILE5 "${SOURCE_DIR}/thirdparty/aws-sdk-cpp/fix-deprecated-literal-operator.patch")
-    set(PATCH_FILE6 "${SOURCE_DIR}/thirdparty/aws-sdk-cpp/cpp23-cstdint.patch")
     set(AWS_SDK_CPP_PATCH_COMMAND ${Bash_EXECUTABLE} -c "set -x &&\
             (\"${Patch_EXECUTABLE}\" -p1 -R -s -f --dry-run -i \"${PATCH_FILE1}\" || \"${Patch_EXECUTABLE}\" -p1 -N -i \"${PATCH_FILE1}\") &&\
             (\"${Patch_EXECUTABLE}\" -p1 -R -s -f --dry-run -i \"${PATCH_FILE2}\" || \"${Patch_EXECUTABLE}\" -p1 -N -i \"${PATCH_FILE2}\") &&\
             (\"${Patch_EXECUTABLE}\" -p1 -R -s -f --dry-run -i \"${PATCH_FILE3}\" || \"${Patch_EXECUTABLE}\" -p1 -N -i \"${PATCH_FILE3}\") &&\
             (\"${Patch_EXECUTABLE}\" -p1 -R -s -f --dry-run -i \"${PATCH_FILE4}\" || \"${Patch_EXECUTABLE}\" -p1 -N -i \"${PATCH_FILE4}\") &&\
-            (\"${Patch_EXECUTABLE}\" -p1 -R -s -f --dry-run -i \"${PATCH_FILE5}\" || \"${Patch_EXECUTABLE}\" -p1 -N -i \"${PATCH_FILE5}\") &&\
-            (\"${Patch_EXECUTABLE}\" -p1 -R -s -f --dry-run -i \"${PATCH_FILE6}\" || \"${Patch_EXECUTABLE}\" -p1 -N -i \"${PATCH_FILE6}\") &&\
     :")
 
     if (WIN32)
@@ -79,7 +75,8 @@ function(use_bundled_libaws SOURCE_DIR BINARY_DIR)
             -DBUILD_ONLY=kinesis%s3
             -DENABLE_TESTING=OFF
             -DBUILD_SHARED_LIBS=OFF
-            -DENABLE_UNITY_BUILD=${AWS_ENABLE_UNITY_BUILD})
+            -DENABLE_UNITY_BUILD=${AWS_ENABLE_UNITY_BUILD}
+            -DUSE_CRT_HTTP_CLIENT=ON)
 
     if(WIN32)
         list(APPEND AWS_SDK_CPP_CMAKE_ARGS -DFORCE_EXPORT_CORE_API=ON -DFORCE_EXPORT_S3_API=ON -DFORCE_EXPORT_KINESIS_API=ON)
@@ -90,8 +87,8 @@ function(use_bundled_libaws SOURCE_DIR BINARY_DIR)
     ExternalProject_Add(
             aws-sdk-cpp-external
             GIT_REPOSITORY "https://github.com/aws/aws-sdk-cpp.git"
-            GIT_TAG "1.11.530"
-            UPDATE_COMMAND git submodule update --init --recursive && git -C "${BINARY_DIR}/thirdparty/aws-sdk-cpp-src/crt/aws-crt-cpp/crt/s2n" checkout v1.5.15
+            GIT_TAG "1.11.771"
+            UPDATE_COMMAND git submodule update --init --recursive
             SOURCE_DIR "${BINARY_DIR}/thirdparty/aws-sdk-cpp-src"
             INSTALL_DIR "${BINARY_DIR}/thirdparty/libaws-install"
             LIST_SEPARATOR % # This is needed for passing semicolon-separated lists
@@ -105,9 +102,6 @@ function(use_bundled_libaws SOURCE_DIR BINARY_DIR)
 
     # Set dependencies
     add_dependencies(aws-sdk-cpp-external OpenSSL::Crypto OpenSSL::SSL ZLIB::ZLIB)
-    if (NOT WIN32)
-        add_dependencies(aws-sdk-cpp-external CURL::libcurl)
-    endif()
 
     # Set variables
     set(LIBAWS_FOUND "YES" CACHE STRING "" FORCE)
@@ -199,14 +193,11 @@ function(use_bundled_libaws SOURCE_DIR BINARY_DIR)
     add_dependencies(AWS::aws-cpp-sdk-core aws-sdk-cpp-external)
     target_include_directories(AWS::aws-cpp-sdk-core INTERFACE ${LIBAWS_INCLUDE_DIR})
     target_link_libraries(AWS::aws-cpp-sdk-core INTERFACE AWS::aws-crt-cpp AWS::aws-c-event-stream OpenSSL::Crypto OpenSSL::SSL ZLIB::ZLIB Threads::Threads)
-    if (NOT WIN32)
-        target_link_libraries(AWS::aws-cpp-sdk-core INTERFACE CURL::libcurl)
-    endif()
 
     if (APPLE)
         target_link_libraries(AWS::aws-cpp-sdk-core INTERFACE "-framework CoreFoundation -framework Security")
     elseif (WIN32)
-        target_link_libraries(AWS::aws-cpp-sdk-core INTERFACE userenv.lib ws2_32.lib Wininet.lib winhttp.lib bcrypt.lib version.lib Secur32 Crypt32 Shlwapi)
+        target_link_libraries(AWS::aws-cpp-sdk-core INTERFACE userenv.lib ws2_32.lib Wininet.lib bcrypt.lib version.lib Secur32 Crypt32 Shlwapi)
     else()
         target_link_libraries(AWS::aws-cpp-sdk-core INTERFACE AWS::s2n)
     endif()
