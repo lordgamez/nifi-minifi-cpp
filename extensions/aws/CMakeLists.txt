@@ -33,6 +33,7 @@ add_minifi_library(minifi-aws SHARED ${SOURCES})
 target_link_libraries(minifi-aws PUBLIC ${LIBMINIFI} Threads::Threads)
 
 target_wholearchive_library_private(minifi-aws AWS::aws-cpp-sdk-s3)
+target_wholearchive_library_private(minifi-aws AWS::aws-cpp-sdk-s3-crt)
 target_wholearchive_library_private(minifi-aws AWS::aws-cpp-sdk-kinesis)
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "(arm64)|(ARM64)|(aarch64)|(armv8)")
     target_wholearchive_library_private(minifi-aws AWS::aws-checksums)

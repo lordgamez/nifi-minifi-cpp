@@ -62,6 +62,7 @@ function(use_bundled_libaws SOURCE_DIR BINARY_DIR)
             "${LIBDIR}/${PREFIX}aws-c-sdkutils.${SUFFIX}"
             "${LIBDIR}/${PREFIX}aws-cpp-sdk-core.${SUFFIX}"
             "${LIBDIR}/${PREFIX}aws-cpp-sdk-s3.${SUFFIX}"
+            "${LIBDIR}/${PREFIX}aws-cpp-sdk-s3-crt.${SUFFIX}"
             "${LIBDIR}/${PREFIX}aws-cpp-sdk-kinesis.${SUFFIX}"
     )
 
@@ -72,14 +73,14 @@ function(use_bundled_libaws SOURCE_DIR BINARY_DIR)
     set(AWS_SDK_CPP_CMAKE_ARGS ${PASSTHROUGH_CMAKE_ARGS}
             -DCMAKE_PREFIX_PATH=${BINARY_DIR}/thirdparty/libaws-install
             -DCMAKE_INSTALL_PREFIX=${BINARY_DIR}/thirdparty/libaws-install
-            -DBUILD_ONLY=kinesis%s3
+            -DBUILD_ONLY=kinesis%s3%s3-crt
             -DENABLE_TESTING=OFF
             -DBUILD_SHARED_LIBS=OFF
             -DENABLE_UNITY_BUILD=${AWS_ENABLE_UNITY_BUILD}
             -DUSE_CRT_HTTP_CLIENT=ON)
 
     if(WIN32)
-        list(APPEND AWS_SDK_CPP_CMAKE_ARGS -DFORCE_EXPORT_CORE_API=ON -DFORCE_EXPORT_S3_API=ON -DFORCE_EXPORT_KINESIS_API=ON)
+        list(APPEND AWS_SDK_CPP_CMAKE_ARGS -DFORCE_EXPORT_CORE_API=ON -DFORCE_EXPORT_S3_API=ON -DFORCE_EXPORT_S3_CRT_API=ON -DFORCE_EXPORT_KINESIS_API=ON)
     endif()
 
     append_third_party_passthrough_args(AWS_SDK_CPP_CMAKE_ARGS "${AWS_SDK_CPP_CMAKE_ARGS}")
@@ -207,6 +208,12 @@ function(use_bundled_libaws SOURCE_DIR BINARY_DIR)
     add_dependencies(AWS::aws-cpp-sdk-s3 aws-sdk-cpp-external)
     target_include_directories(AWS::aws-cpp-sdk-s3 INTERFACE ${LIBAWS_INCLUDE_DIR})
     target_link_libraries(AWS::aws-cpp-sdk-s3 INTERFACE AWS::aws-cpp-sdk-core)
+
+    add_library(AWS::aws-cpp-sdk-s3-crt STATIC IMPORTED)
+    set_target_properties(AWS::aws-cpp-sdk-s3-crt PROPERTIES IMPORTED_LOCATION "${BINARY_DIR}/thirdparty/libaws-install/${LIBDIR}/${PREFIX}aws-cpp-sdk-s3-crt.${SUFFIX}")
+    add_dependencies(AWS::aws-cpp-sdk-s3-crt aws-sdk-cpp-external)
+    target_include_directories(AWS::aws-cpp-sdk-s3-crt INTERFACE ${LIBAWS_INCLUDE_DIR})
+    target_link_libraries(AWS::aws-cpp-sdk-s3-crt INTERFACE AWS::aws-cpp-sdk-core AWS::aws-crt-cpp)
 
     add_library(AWS::aws-cpp-sdk-kinesis STATIC IMPORTED)
     set_target_properties(AWS::aws-cpp-sdk-kinesis PROPERTIES IMPORTED_LOCATION "${BINARY_DIR}/thirdparty/libaws-install/${LIBDIR}/${PREFIX}aws-cpp-sdk-kinesis.${SUFFIX}")

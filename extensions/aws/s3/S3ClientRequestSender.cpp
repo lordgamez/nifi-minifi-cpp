@@ -17,16 +17,19 @@
  */
 #include "S3ClientRequestSender.h"
 
-#include <aws/s3/S3Client.h>
+#include <aws/s3-crt/S3CrtClient.h>
 
 namespace org::apache::nifi::minifi::aws::s3 {
 
-std::optional<Aws::S3::Model::PutObjectResult> S3ClientRequestSender::sendPutObjectRequest(
-    const Aws::S3::Model::PutObjectRequest& request,
+std::optional<Aws::S3Crt::Model::PutObjectResult> S3ClientRequestSender::sendPutObjectRequest(
+    const Aws::S3Crt::Model::PutObjectRequest& request,
     const Aws::Auth::AWSCredentials& credentials,
     const Aws::Client::ClientConfiguration& client_config,
     bool use_virtual_addressing) {
-  Aws::S3::S3Client s3_client(credentials, client_config, Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never, use_virtual_addressing);
+  Aws::S3Crt::ClientConfiguration s3_crt_config;
+  static_cast<Aws::Client::ClientConfiguration&>(s3_crt_config) = client_config;
+  s3_crt_config.useVirtualAddressing = use_virtual_addressing;
+  Aws::S3Crt::S3CrtClient s3_client(credentials, s3_crt_config);
   auto outcome = s3_client.PutObject(request);
 
   if (outcome.IsSuccess()) {
@@ -39,16 +42,18 @@ std::optional<Aws::S3::Model::PutObjectResult> S3ClientRequestSender::sendPutObj
 }
 
 bool S3ClientRequestSender::sendDeleteObjectRequest(
-    const Aws::S3::Model::DeleteObjectRequest& request,
+    const Aws::S3Crt::Model::DeleteObjectRequest& request,
     const Aws::Auth::AWSCredentials& credentials,
     const Aws::Client::ClientConfiguration& client_config) {
-  Aws::S3::S3Client s3_client(credentials, client_config, Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never, true);
-  Aws::S3::Model::DeleteObjectOutcome outcome = s3_client.DeleteObject(request);
+  Aws::S3Crt::ClientConfiguration s3_crt_config;
+  static_cast<Aws::Client::ClientConfiguration&>(s3_crt_config) = client_config;
+  Aws::S3Crt::S3CrtClient s3_client(credentials, s3_crt_config);
+  Aws::S3Crt::Model::DeleteObjectOutcome outcome = s3_client.DeleteObject(request);
 
   if (outcome.IsSuccess()) {
     logger_->log_debug("Deleted S3 object '{}' from bucket '{}'", request.GetKey(), request.GetBucket());
     return true;
-  } else if (outcome.GetError().GetErrorType() == Aws::S3::S3Errors::NO_SUCH_KEY) {
+  } else if (outcome.GetError().GetErrorType() == Aws::S3Crt::S3CrtErrors::NO_SUCH_KEY) {
     logger_->log_debug("S3 object '{}' was not found in bucket '{}'", request.GetKey(), request.GetBucket());
     return true;
   } else {
@@ -57,11 +62,13 @@ bool S3ClientRequestSender::sendDeleteObjectRequest(
   }
 }
 
-std::optional<Aws::S3::Model::GetObjectResult> S3ClientRequestSender::sendGetObjectRequest(
-    const Aws::S3::Model::GetObjectRequest& request,
+std::optional<Aws::S3Crt::Model::GetObjectResult> S3ClientRequestSender::sendGetObjectRequest(
+    const Aws::S3Crt::Model::GetObjectRequest& request,
     const Aws::Auth::AWSCredentials& credentials,
     const Aws::Client::ClientConfiguration& client_config) {
-  Aws::S3::S3Client s3_client(credentials, client_config, Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never, true);
+  Aws::S3Crt::ClientConfiguration s3_crt_config;
+  static_cast<Aws::Client::ClientConfiguration&>(s3_crt_config) = client_config;
+  Aws::S3Crt::S3CrtClient s3_client(credentials, s3_crt_config);
   auto outcome = s3_client.GetObject(request);
 
   if (outcome.IsSuccess()) {
@@ -73,11 +80,13 @@ std::optional<Aws::S3::Model::GetObjectResult> S3ClientRequestSender::sendGetObj
   }
 }
 
-std::optional<Aws::S3::Model::ListObjectsV2Result> S3ClientRequestSender::sendListObjectsRequest(
-    const Aws::S3::Model::ListObjectsV2Request& request,
+std::optional<Aws::S3Crt::Model::ListObjectsV2Result> S3ClientRequestSender::sendListObjectsRequest(
+    const Aws::S3Crt::Model::ListObjectsV2Request& request,
     const Aws::Auth::AWSCredentials& credentials,
     const Aws::Client::ClientConfiguration& client_config) {
-  Aws::S3::S3Client s3_client(credentials, client_config, Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never, true);
+  Aws::S3Crt::ClientConfiguration s3_crt_config;
+  static_cast<Aws::Client::ClientConfiguration&>(s3_crt_config) = client_config;
+  Aws::S3Crt::S3CrtClient s3_client(credentials, s3_crt_config);
   auto outcome = s3_client.ListObjectsV2(request);
 
   if (outcome.IsSuccess()) {
@@ -89,11 +98,13 @@ std::optional<Aws::S3::Model::ListObjectsV2Result> S3ClientRequestSender::sendLi
   }
 }
 
-std::optional<Aws::S3::Model::ListObjectVersionsResult> S3ClientRequestSender::sendListVersionsRequest(
-    const Aws::S3::Model::ListObjectVersionsRequest& request,
+std::optional<Aws::S3Crt::Model::ListObjectVersionsResult> S3ClientRequestSender::sendListVersionsRequest(
+    const Aws::S3Crt::Model::ListObjectVersionsRequest& request,
     const Aws::Auth::AWSCredentials& credentials,
     const Aws::Client::ClientConfiguration& client_config) {
-  Aws::S3::S3Client s3_client(credentials, client_config, Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never, true);
+  Aws::S3Crt::ClientConfiguration s3_crt_config;
+  static_cast<Aws::Client::ClientConfiguration&>(s3_crt_config) = client_config;
+  Aws::S3Crt::S3CrtClient s3_client(credentials, s3_crt_config);
   auto outcome = s3_client.ListObjectVersions(request);
 
   if (outcome.IsSuccess()) {
@@ -105,11 +116,13 @@ std::optional<Aws::S3::Model::ListObjectVersionsResult> S3ClientRequestSender::s
   }
 }
 
-std::optional<Aws::S3::Model::GetObjectTaggingResult> S3ClientRequestSender::sendGetObjectTaggingRequest(
-    const Aws::S3::Model::GetObjectTaggingRequest& request,
+std::optional<Aws::S3Crt::Model::GetObjectTaggingResult> S3ClientRequestSender::sendGetObjectTaggingRequest(
+    const Aws::S3Crt::Model::GetObjectTaggingRequest& request,
     const Aws::Auth::AWSCredentials& credentials,
     const Aws::Client::ClientConfiguration& client_config) {
-  Aws::S3::S3Client s3_client(credentials, client_config, Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never, true);
+  Aws::S3Crt::ClientConfiguration s3_crt_config;
+  static_cast<Aws::Client::ClientConfiguration&>(s3_crt_config) = client_config;
+  Aws::S3Crt::S3CrtClient s3_client(credentials, s3_crt_config);
   auto outcome = s3_client.GetObjectTagging(request);
 
   if (outcome.IsSuccess()) {
@@ -121,11 +134,13 @@ std::optional<Aws::S3::Model::GetObjectTaggingResult> S3ClientRequestSender::sen
   }
 }
 
-std::optional<Aws::S3::Model::HeadObjectResult> S3ClientRequestSender::sendHeadObjectRequest(
-    const Aws::S3::Model::HeadObjectRequest& request,
+std::optional<Aws::S3Crt::Model::HeadObjectResult> S3ClientRequestSender::sendHeadObjectRequest(
+    const Aws::S3Crt::Model::HeadObjectRequest& request,
     const Aws::Auth::AWSCredentials& credentials,
     const Aws::Client::ClientConfiguration& client_config) {
-  Aws::S3::S3Client s3_client(credentials, client_config, Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never, true);
+  Aws::S3Crt::ClientConfiguration s3_crt_config;
+  static_cast<Aws::Client::ClientConfiguration&>(s3_crt_config) = client_config;
+  Aws::S3Crt::S3CrtClient s3_client(credentials, s3_crt_config);
   auto outcome = s3_client.HeadObject(request);
 
   if (outcome.IsSuccess()) {
@@ -137,12 +152,15 @@ std::optional<Aws::S3::Model::HeadObjectResult> S3ClientRequestSender::sendHeadO
   }
 }
 
-std::optional<Aws::S3::Model::CreateMultipartUploadResult> S3ClientRequestSender::sendCreateMultipartUploadRequest(
-    const Aws::S3::Model::CreateMultipartUploadRequest& request,
+std::optional<Aws::S3Crt::Model::CreateMultipartUploadResult> S3ClientRequestSender::sendCreateMultipartUploadRequest(
+    const Aws::S3Crt::Model::CreateMultipartUploadRequest& request,
     const Aws::Auth::AWSCredentials& credentials,
     const Aws::Client::ClientConfiguration& client_config,
     bool use_virtual_addressing) {
-  Aws::S3::S3Client s3_client(credentials, client_config, Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never, use_virtual_addressing);
+  Aws::S3Crt::ClientConfiguration s3_crt_config;
+  static_cast<Aws::Client::ClientConfiguration&>(s3_crt_config) = client_config;
+  s3_crt_config.useVirtualAddressing = use_virtual_addressing;
+  Aws::S3Crt::S3CrtClient s3_client(credentials, s3_crt_config);
   auto outcome = s3_client.CreateMultipartUpload(request);
 
   if (outcome.IsSuccess()) {
@@ -154,12 +172,15 @@ std::optional<Aws::S3::Model::CreateMultipartUploadResult> S3ClientRequestSender
   }
 }
 
-std::optional<Aws::S3::Model::UploadPartResult> S3ClientRequestSender::sendUploadPartRequest(
-    const Aws::S3::Model::UploadPartRequest& request,
+std::optional<Aws::S3Crt::Model::UploadPartResult> S3ClientRequestSender::sendUploadPartRequest(
+    const Aws::S3Crt::Model::UploadPartRequest& request,
     const Aws::Auth::AWSCredentials& credentials,
     const Aws::Client::ClientConfiguration& client_config,
     bool use_virtual_addressing) {
-  Aws::S3::S3Client s3_client(credentials, client_config, Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never, use_virtual_addressing);
+  Aws::S3Crt::ClientConfiguration s3_crt_config;
+  static_cast<Aws::Client::ClientConfiguration&>(s3_crt_config) = client_config;
+  s3_crt_config.useVirtualAddressing = use_virtual_addressing;
+  Aws::S3Crt::S3CrtClient s3_client(credentials, s3_crt_config);
   auto outcome = s3_client.UploadPart(request);
 
   if (outcome.IsSuccess()) {
@@ -172,12 +193,15 @@ std::optional<Aws::S3::Model::UploadPartResult> S3ClientRequestSender::sendUploa
   }
 }
 
-std::optional<Aws::S3::Model::CompleteMultipartUploadResult> S3ClientRequestSender::sendCompleteMultipartUploadRequest(
-    const Aws::S3::Model::CompleteMultipartUploadRequest& request,
+std::optional<Aws::S3Crt::Model::CompleteMultipartUploadResult> S3ClientRequestSender::sendCompleteMultipartUploadRequest(
+    const Aws::S3Crt::Model::CompleteMultipartUploadRequest& request,
     const Aws::Auth::AWSCredentials& credentials,
     const Aws::Client::ClientConfiguration& client_config,
     bool use_virtual_addressing) {
-  Aws::S3::S3Client s3_client(credentials, client_config, Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never, use_virtual_addressing);
+  Aws::S3Crt::ClientConfiguration s3_crt_config;
+  static_cast<Aws::Client::ClientConfiguration&>(s3_crt_config) = client_config;
+  s3_crt_config.useVirtualAddressing = use_virtual_addressing;
+  Aws::S3Crt::S3CrtClient s3_client(credentials, s3_crt_config);
   auto outcome = s3_client.CompleteMultipartUpload(request);
 
   if (outcome.IsSuccess()) {
@@ -189,12 +213,15 @@ std::optional<Aws::S3::Model::CompleteMultipartUploadResult> S3ClientRequestSend
   }
 }
 
-std::optional<Aws::S3::Model::ListMultipartUploadsResult> S3ClientRequestSender::sendListMultipartUploadsRequest(
-    const Aws::S3::Model::ListMultipartUploadsRequest& request,
+std::optional<Aws::S3Crt::Model::ListMultipartUploadsResult> S3ClientRequestSender::sendListMultipartUploadsRequest(
+    const Aws::S3Crt::Model::ListMultipartUploadsRequest& request,
     const Aws::Auth::AWSCredentials& credentials,
     const Aws::Client::ClientConfiguration& client_config,
     bool use_virtual_addressing) {
-  Aws::S3::S3Client s3_client(credentials, client_config, Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never, use_virtual_addressing);
+  Aws::S3Crt::ClientConfiguration s3_crt_config;
+  static_cast<Aws::Client::ClientConfiguration&>(s3_crt_config) = client_config;
+  s3_crt_config.useVirtualAddressing = use_virtual_addressing;
+  Aws::S3Crt::S3CrtClient s3_client(credentials, s3_crt_config);
   auto outcome = s3_client.ListMultipartUploads(request);
 
   if (outcome.IsSuccess()) {
@@ -207,11 +234,14 @@ std::optional<Aws::S3::Model::ListMultipartUploadsResult> S3ClientRequestSender:
 }
 
 bool S3ClientRequestSender::sendAbortMultipartUploadRequest(
-    const Aws::S3::Model::AbortMultipartUploadRequest& request,
+    const Aws::S3Crt::Model::AbortMultipartUploadRequest& request,
     const Aws::Auth::AWSCredentials& credentials,
     const Aws::Client::ClientConfiguration& client_config,
     bool use_virtual_addressing) {
-  Aws::S3::S3Client s3_client(credentials, client_config, Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never, use_virtual_addressing);
+  Aws::S3Crt::ClientConfiguration s3_crt_config;
+  static_cast<Aws::Client::ClientConfiguration&>(s3_crt_config) = client_config;
+  s3_crt_config.useVirtualAddressing = use_virtual_addressing;
+  Aws::S3Crt::S3CrtClient s3_client(credentials, s3_crt_config);
   auto outcome = s3_client.AbortMultipartUpload(request);
 
   if (outcome.IsSuccess()) {
