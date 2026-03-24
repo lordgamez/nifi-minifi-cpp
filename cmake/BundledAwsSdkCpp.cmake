@@ -76,7 +76,7 @@ function(use_bundled_libaws SOURCE_DIR BINARY_DIR)
             -DENABLE_TESTING=OFF
             -DBUILD_SHARED_LIBS=OFF
             -DENABLE_UNITY_BUILD=${AWS_ENABLE_UNITY_BUILD}
-            -DUSE_CRT_HTTP_CLIENT=ON)
+            -DFORCE_CURL=ON)
 
     if(WIN32)
         list(APPEND AWS_SDK_CPP_CMAKE_ARGS -DFORCE_EXPORT_CORE_API=ON -DFORCE_EXPORT_S3_API=ON -DFORCE_EXPORT_KINESIS_API=ON)
@@ -101,7 +101,7 @@ function(use_bundled_libaws SOURCE_DIR BINARY_DIR)
     )
 
     # Set dependencies
-    add_dependencies(aws-sdk-cpp-external OpenSSL::Crypto OpenSSL::SSL ZLIB::ZLIB)
+    add_dependencies(aws-sdk-cpp-external OpenSSL::Crypto OpenSSL::SSL ZLIB::ZLIB CURL::libcurl)
 
     # Set variables
     set(LIBAWS_FOUND "YES" CACHE STRING "" FORCE)
@@ -192,7 +192,7 @@ function(use_bundled_libaws SOURCE_DIR BINARY_DIR)
     set_target_properties(AWS::aws-cpp-sdk-core PROPERTIES IMPORTED_LOCATION "${BINARY_DIR}/thirdparty/libaws-install/${LIBDIR}/${PREFIX}aws-cpp-sdk-core.${SUFFIX}")
     add_dependencies(AWS::aws-cpp-sdk-core aws-sdk-cpp-external)
     target_include_directories(AWS::aws-cpp-sdk-core INTERFACE ${LIBAWS_INCLUDE_DIR})
-    target_link_libraries(AWS::aws-cpp-sdk-core INTERFACE AWS::aws-crt-cpp AWS::aws-c-event-stream OpenSSL::Crypto OpenSSL::SSL ZLIB::ZLIB Threads::Threads)
+    target_link_libraries(AWS::aws-cpp-sdk-core INTERFACE AWS::aws-crt-cpp AWS::aws-c-event-stream OpenSSL::Crypto OpenSSL::SSL ZLIB::ZLIB Threads::Threads CURL::libcurl)
 
     if (APPLE)
         target_link_libraries(AWS::aws-cpp-sdk-core INTERFACE "-framework CoreFoundation -framework Security")
