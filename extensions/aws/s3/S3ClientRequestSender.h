@@ -17,7 +17,14 @@
  */
 #pragma once
 
+#include <memory>
 #include <optional>
+
+#include <aws/core/auth/AWSCredentials.h>
+#include <aws/crt/io/Bootstrap.h>
+#include <aws/crt/io/EventLoopGroup.h>
+#include <aws/crt/io/HostResolver.h>
+#include <aws/s3-crt/S3CrtClient.h>
 
 #include "S3RequestSender.h"
 
@@ -25,6 +32,8 @@ namespace org::apache::nifi::minifi::aws::s3 {
 
 class S3ClientRequestSender : public S3RequestSender {
  public:
+  ~S3ClientRequestSender() override;
+
   std::optional<Aws::S3Crt::Model::PutObjectResult> sendPutObjectRequest(
     const Aws::S3Crt::Model::PutObjectRequest& request,
     const Aws::Auth::AWSCredentials& credentials,
@@ -79,6 +88,25 @@ class S3ClientRequestSender : public S3RequestSender {
     const Aws::Auth::AWSCredentials& credentials,
     const Aws::Client::ClientConfiguration& client_config,
     bool use_virtual_addressing) override;
+
+ private:
+  Aws::S3Crt::S3CrtClient& getOrCreateClient(
+    const Aws::Auth::AWSCredentials& credentials,
+    const Aws::Client::ClientConfiguration& client_config,
+    bool use_virtual_addressing = true);
+
+  // Destruction order matters: s3_client_ must be destroyed before the bootstrap/event loop.
+  // Members are destroyed in reverse declaration order, so declare infrastructure first.
+  std::shared_ptr<Aws::Crt::Io::EventLoopGroup> event_loop_group_;
+  std::shared_ptr<Aws::Crt::Io::DefaultHostResolver> host_resolver_;
+  std::shared_ptr<Aws::Crt::Io::ClientBootstrap> client_bootstrap_;
+  std::unique_ptr<Aws::S3Crt::S3CrtClient> s3_client_;
+  Aws::String cached_access_key_id_;
+  Aws::String cached_secret_key_;
+  Aws::String cached_session_token_;
+  Aws::String cached_region_;
+  Aws::String cached_endpoint_;
+  bool cached_use_virtual_addressing_ = true;
 };
 
 }  // namespace org::apache::nifi::minifi::aws::s3
