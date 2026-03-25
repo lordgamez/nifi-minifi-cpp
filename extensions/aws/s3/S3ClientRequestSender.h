@@ -18,6 +18,7 @@
 #pragma once
 
 #include <memory>
+#include <mutex>
 #include <optional>
 
 #include <aws/core/auth/AWSCredentials.h>
@@ -90,7 +91,7 @@ class S3ClientRequestSender : public S3RequestSender {
     bool use_virtual_addressing) override;
 
  private:
-  Aws::S3Crt::S3CrtClient& getOrCreateClient(
+  std::shared_ptr<Aws::S3Crt::S3CrtClient> getOrCreateClient(
     const Aws::Auth::AWSCredentials& credentials,
     const Aws::Client::ClientConfiguration& client_config,
     bool use_virtual_addressing = true);
@@ -100,7 +101,8 @@ class S3ClientRequestSender : public S3RequestSender {
   std::shared_ptr<Aws::Crt::Io::EventLoopGroup> event_loop_group_;
   std::shared_ptr<Aws::Crt::Io::DefaultHostResolver> host_resolver_;
   std::shared_ptr<Aws::Crt::Io::ClientBootstrap> client_bootstrap_;
-  std::unique_ptr<Aws::S3Crt::S3CrtClient> s3_client_;
+  std::shared_ptr<Aws::S3Crt::S3CrtClient> s3_client_;
+  std::mutex client_mutex_;
   Aws::String cached_access_key_id_;
   Aws::String cached_secret_key_;
   Aws::String cached_session_token_;
