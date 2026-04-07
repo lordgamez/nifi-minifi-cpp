@@ -219,7 +219,7 @@ class PutS3Object : public S3Processor {  // NOLINT(cppcoreguidelines-special-me
     const core::ProcessContext& context,
     const core::FlowFile& flow_file,
     std::string_view bucket) const;
-  void ageOffMultipartUploads(const std::string_view bucket);
+  void ageOffMultipartUploads(const std::string_view bucket, gsl::not_null<minifi::core::StateManager*> state_manager);
 
   std::string user_metadata_;
   std::map<std::string, std::string> user_metadata_map_;

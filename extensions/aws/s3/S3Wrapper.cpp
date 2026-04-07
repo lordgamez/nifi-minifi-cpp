@@ -104,7 +104,7 @@ std::optional<PutObjectResult> S3Wrapper::putObject(const PutObjectRequestParame
 }
 
 std::optional<S3Wrapper::UploadPartsResult> S3Wrapper::uploadParts(const PutObjectRequestParameters& put_object_params, const std::shared_ptr<io::InputStream>& stream,
-    MultipartUploadState upload_state) {
+    MultipartUploadState upload_state, gsl::not_null<minifi::core::StateManager*> state_manager) {
   stream->seek(upload_state.uploaded_size);
   S3Wrapper::UploadPartsResult result;
   result.upload_id = upload_state.upload_id;
@@ -118,6 +118,7 @@ std::optional<S3Wrapper::UploadPartsResult> S3Wrapper::uploadParts(const PutObje
   size_t total_read = 0;
   const size_t start_part = upload_state.uploaded_parts + 1;
   const size_t last_part = start_part + part_count - 1;
+  MultipartUploadStateStorage multipart_upload_storage(state_manager);
   for (size_t part_number = start_part; part_number <= last_part; ++part_number) {
     uint64_t read_size{};
     const auto remaining = flow_size - total_read;
@@ -145,11 +146,11 @@ std::optional<S3Wrapper::UploadPartsResult> S3Wrapper::uploadParts(const PutObje
     upload_state.uploaded_etags.push_back(upload_part_result->GetETag());
     upload_state.uploaded_parts += 1;
     upload_state.uploaded_size += read_size;
-    multipart_upload_storage_->storeState(put_object_params.bucket, put_object_params.object_key, upload_state);
+    multipart_upload_storage.storeState(put_object_params.bucket, put_object_params.object_key, upload_state);
     logger_->log_info("Uploaded part {} of {} S3 object with key '{}'", part_number, last_part, put_object_params.object_key);
   }
 
-  multipart_upload_storage_->removeState(put_object_params.bucket, put_object_params.object_key);
+  multipart_upload_storage.removeState(put_object_params.bucket, put_object_params.object_key);
   return result;
 }
 
@@ -184,25 +185,25 @@ bool S3Wrapper::multipartUploadExistsInS3(const PutObjectRequestParameters& put_
   return ranges::any_of(*pending_uploads, [&](const auto& upload) { return upload.key == put_object_params.object_key; });
 }
 
-std::optional<MultipartUploadState> S3Wrapper::getMultipartUploadState(const PutObjectRequestParameters& put_object_params) {
-  auto upload_state = multipart_upload_storage_->getState(put_object_params.bucket, put_object_params.object_key);
+std::optional<MultipartUploadState> S3Wrapper::getMultipartUploadState(const PutObjectRequestParameters& put_object_params, gsl::not_null<minifi::core::StateManager*> state_manager) {
+  MultipartUploadStateStorage multipart_upload_storage(state_manager);
+  auto upload_state = multipart_upload_storage.getState(put_object_params.bucket, put_object_params.object_key);
   if (!upload_state) {
     return std::nullopt;
   }
   if (!multipartUploadExistsInS3(put_object_params)) {
     logger_->log_info("Local upload state for object '{}' in bucket '{}' not found in S3, removing it from local cache.", put_object_params.object_key, put_object_params.bucket);
-    multipart_upload_storage_->removeState(put_object_params.bucket, put_object_params.object_key);
+    multipart_upload_storage.removeState(put_object_params.bucket, put_object_params.object_key);
     return std::nullopt;
   }
   return upload_state;
 }
 
 std::optional<PutObjectResult> S3Wrapper::putObjectMultipart(const PutObjectRequestParameters& put_object_params, const std::shared_ptr<io::InputStream>& stream,
-    uint64_t flow_size, uint64_t multipart_size) {
-  gsl_Expects(multipart_upload_storage_);
-  if (auto upload_state = getMultipartUploadState(put_object_params)) {
+    uint64_t flow_size, uint64_t multipart_size, gsl::not_null<minifi::core::StateManager*> state_manager) {
+  if (auto upload_state = getMultipartUploadState(put_object_params, state_manager)) {
     logger_->log_info("Found previous multipart upload state for {} in bucket {}, continuing upload", put_object_params.object_key, put_object_params.bucket);
-    return uploadParts(put_object_params, stream, std::move(*upload_state))
+    return uploadParts(put_object_params, stream, std::move(*upload_state), state_manager)
       | minifi::utils::andThen([&, this](const auto& upload_parts_result) { return completeMultipartUpload(put_object_params, upload_parts_result); })
       | minifi::utils::transform([this](const auto& complete_multipart_upload_result) { return createPutObjectResult(complete_multipart_upload_result); });
   } else {
@@ -210,7 +211,7 @@ std::optional<PutObjectResult> S3Wrapper::putObjectMultipart(const PutObjectRequ
     auto request = createPutObjectRequest<Aws::S3Crt::Model::CreateMultipartUploadRequest>(put_object_params);
     return request_sender_->sendCreateMultipartUploadRequest(request)
       | minifi::utils::andThen([&, this](const auto& create_multipart_result) { return uploadParts(put_object_params, stream,
-          MultipartUploadState{create_multipart_result.GetUploadId(), multipart_size, flow_size, Aws::Utils::DateTime::Now()}); })
+          MultipartUploadState{create_multipart_result.GetUploadId(), multipart_size, flow_size, Aws::Utils::DateTime::Now()}, state_manager); })
       | minifi::utils::andThen([&, this](const auto& upload_parts_result) { return completeMultipartUpload(put_object_params, upload_parts_result); })
       | minifi::utils::transform([this](const auto& complete_multipart_upload_result) { return createPutObjectResult(complete_multipart_upload_result); });
   }
@@ -462,12 +463,9 @@ bool S3Wrapper::abortMultipartUpload(const AbortMultipartUploadRequestParameters
   return request_sender_->sendAbortMultipartUploadRequest(request);
 }
 
-void S3Wrapper::ageOffLocalS3MultipartUploadStates(std::chrono::milliseconds multipart_upload_max_age_threshold) {
-  multipart_upload_storage_->removeAgedStates(multipart_upload_max_age_threshold);
-}
-
-void S3Wrapper::initializeMultipartUploadStateStorage(gsl::not_null<minifi::core::StateManager*> state_manager) {
-  multipart_upload_storage_ = std::make_unique<MultipartUploadStateStorage>(state_manager);
+void S3Wrapper::ageOffLocalS3MultipartUploadStates(std::chrono::milliseconds multipart_upload_max_age_threshold, gsl::not_null<minifi::core::StateManager*> state_manager) {
+  MultipartUploadStateStorage multipart_upload_storage(state_manager);
+  multipart_upload_storage.removeAgedStates(multipart_upload_max_age_threshold);
 }
 
 }  // namespace org::apache::nifi::minifi::aws::s3

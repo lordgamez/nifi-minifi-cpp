@@ -99,15 +99,9 @@ void PutS3Object::onSchedule(core::ProcessContext& context, core::ProcessSession
 
   fillUserMetadata(context);
 
-  auto state_manager = context.getStateManager();
-  if (state_manager == nullptr) {
-    throw Exception(PROCESSOR_EXCEPTION, "Failed to get StateManager");
-  }
-
   if (!s3_wrapper_) {
     s3_wrapper_ = s3_wrapper_factory_(credentials_, client_config_, use_virtual_addressing);
   }
-  s3_wrapper_->initializeMultipartUploadStateStorage(gsl::make_not_null(state_manager));
 }
 
 std::string PutS3Object::parseAccessControlList(const std::string &comma_separated_list) {
@@ -217,7 +211,7 @@ void PutS3Object::setAttributes(
   }
 }
 
-void PutS3Object::ageOffMultipartUploads(const std::string_view bucket) {
+void PutS3Object::ageOffMultipartUploads(const std::string_view bucket, gsl::not_null<minifi::core::StateManager*> state_manager) {
   {
     std::lock_guard<std::mutex> lock(last_ageoff_mutex_);
     const auto now = std::chrono::system_clock::now();
@@ -256,7 +250,7 @@ void PutS3Object::ageOffMultipartUploads(const std::string_view bucket) {
   if (aborted > 0) {
     logger_->log_info("Aborted {} pending multipart upload jobs in bucket '{}'", aborted, bucket);
   }
-  s3_wrapper_->ageOffLocalS3MultipartUploadStates(multipart_upload_max_age_threshold_);
+  s3_wrapper_->ageOffLocalS3MultipartUploadStates(multipart_upload_max_age_threshold_, state_manager);
 }
 
 void PutS3Object::onTrigger(core::ProcessContext& context, core::ProcessSession& session) {
@@ -276,7 +270,14 @@ void PutS3Object::onTrigger(core::ProcessContext& context, core::ProcessSession&
   }
   logger_->log_debug("S3Processor: Bucket [{}]", *bucket);
 
-  ageOffMultipartUploads(*bucket);
+  auto state_manager = context.getStateManager();
+  if (state_manager == nullptr) {
+    logger_->log_error("State Manager is not available");
+    session.transfer(flow_file, Failure);
+    return;
+  }
+  auto state_manager_ptr = gsl::not_null{state_manager};
+  ageOffMultipartUploads(*bucket, state_manager_ptr);
 
   auto put_s3_request_params = buildPutS3RequestParams(context, *flow_file, *bucket);
   if (!put_s3_request_params) {
@@ -285,7 +286,7 @@ void PutS3Object::onTrigger(core::ProcessContext& context, core::ProcessSession&
   }
 
   std::optional<minifi::aws::s3::PutObjectResult> result;
-  session.read(flow_file, [this, &flow_file, &put_s3_request_params, &result](const std::shared_ptr<io::InputStream>& stream) -> int64_t {
+  session.read(flow_file, [this, &flow_file, &put_s3_request_params, &result, &state_manager_ptr](const std::shared_ptr<io::InputStream>& stream) -> int64_t {
     try {
       if (flow_file->getSize() <= multipart_threshold_) {
         logger_->log_info("Uploading S3 Object '{}' in a single upload", put_s3_request_params->object_key);
@@ -293,7 +294,7 @@ void PutS3Object::onTrigger(core::ProcessContext& context, core::ProcessSession&
         return gsl::narrow<int64_t>(flow_file->getSize());
       } else {
         logger_->log_info("S3 Object '{}' passes the multipart threshold, uploading it in multiple parts", put_s3_request_params->object_key);
-        result = s3_wrapper_->putObjectMultipart(*put_s3_request_params, stream, flow_file->getSize(), multipart_size_);
+        result = s3_wrapper_->putObjectMultipart(*put_s3_request_params, stream, flow_file->getSize(), multipart_size_, state_manager_ptr);
         return gsl::narrow<int64_t>(flow_file->getSize());
       }
     } catch(const aws::s3::StreamReadException& ex) {

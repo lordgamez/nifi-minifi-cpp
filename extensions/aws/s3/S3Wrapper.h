@@ -222,7 +222,8 @@ class S3Wrapper {
   explicit S3Wrapper(std::unique_ptr<S3RequestSender>&& request_sender);
 
   std::optional<PutObjectResult> putObject(const PutObjectRequestParameters& put_object_params, const std::shared_ptr<io::InputStream>& stream, uint64_t flow_size);
-  std::optional<PutObjectResult> putObjectMultipart(const PutObjectRequestParameters& put_object_params, const std::shared_ptr<io::InputStream>& stream, uint64_t flow_size, uint64_t multipart_size);
+  std::optional<PutObjectResult> putObjectMultipart(const PutObjectRequestParameters& put_object_params, const std::shared_ptr<io::InputStream>& stream, uint64_t flow_size, uint64_t multipart_size,
+    gsl::not_null<minifi::core::StateManager*> state_manager);
   bool deleteObject(const DeleteObjectRequestParameters& params);
   std::optional<GetObjectResult> getObject(const GetObjectRequestParameters& get_object_params, io::OutputStream& out_body);
   std::optional<std::vector<ListedObjectAttributes>> listBucket(const ListRequestParameters& params);
@@ -230,8 +231,7 @@ class S3Wrapper {
   std::optional<HeadObjectResult> headObject(const HeadObjectRequestParameters& head_object_params);
   std::optional<std::vector<MultipartUpload>> listMultipartUploads(const ListMultipartUploadsRequestParameters& params);
   bool abortMultipartUpload(const AbortMultipartUploadRequestParameters& params);
-  void ageOffLocalS3MultipartUploadStates(std::chrono::milliseconds multipart_upload_max_age_threshold);
-  void initializeMultipartUploadStateStorage(gsl::not_null<minifi::core::StateManager*> state_manager);
+  void ageOffLocalS3MultipartUploadStates(std::chrono::milliseconds multipart_upload_max_age_threshold, gsl::not_null<minifi::core::StateManager*> state_manager);
 
   virtual ~S3Wrapper() = default;
 
@@ -309,10 +309,11 @@ class S3Wrapper {
   void addListResults(const Aws::Vector<Aws::S3Crt::Model::Object>& content, uint64_t min_object_age, std::vector<ListedObjectAttributes>& listed_objects);
   void addListMultipartUploadResults(const Aws::Vector<Aws::S3Crt::Model::MultipartUpload>& uploads, std::optional<std::chrono::milliseconds> age_off_limit,
     std::vector<MultipartUpload>& filtered_uploads);
-  std::optional<UploadPartsResult> uploadParts(const PutObjectRequestParameters& put_object_params, const std::shared_ptr<io::InputStream>& stream, MultipartUploadState upload_state);
+  std::optional<UploadPartsResult> uploadParts(const PutObjectRequestParameters& put_object_params, const std::shared_ptr<io::InputStream>& stream, MultipartUploadState upload_state,
+    gsl::not_null<minifi::core::StateManager*> state_manager);
   std::optional<Aws::S3Crt::Model::CompleteMultipartUploadResult> completeMultipartUpload(const PutObjectRequestParameters& put_object_params, const UploadPartsResult& upload_parts_result);
   bool multipartUploadExistsInS3(const PutObjectRequestParameters& put_object_params);
-  std::optional<MultipartUploadState> getMultipartUploadState(const PutObjectRequestParameters& put_object_params);
+  std::optional<MultipartUploadState> getMultipartUploadState(const PutObjectRequestParameters& put_object_params, gsl::not_null<minifi::core::StateManager*> state_manager);
 
   template<typename ListRequest>
   ListRequest createListRequest(const ListRequestParameters& params);
@@ -326,7 +327,6 @@ class S3Wrapper {
   std::shared_ptr<minifi::core::logging::Logger> logger_{minifi::core::logging::LoggerFactory<S3Wrapper>::getLogger()};
   std::unique_ptr<S3RequestSender> request_sender_;
   uint64_t last_bucket_list_timestamp_ = 0;
-  std::unique_ptr<MultipartUploadStateStorage> multipart_upload_storage_;
 };
 
 }  // namespace org::apache::nifi::minifi::aws::s3
