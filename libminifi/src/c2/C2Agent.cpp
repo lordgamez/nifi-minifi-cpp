@@ -29,7 +29,6 @@
 #include <utility>
 #include <vector>
 
-#include "core/ProcessContextImpl.h"
 #include "core/state/UpdateController.h"
 #include "minifi-cpp/core/logging/Logger.h"
 #include "core/logging/LoggerConfiguration.h"
@@ -47,6 +46,7 @@
 #include "c2/protocols/RESTSender.h"
 #include "rapidjson/error/en.h"
 #include "core/ClassLoader.h"
+#include "core/StateManagementWrapper.h"
 
 using namespace std::literals::chrono_literals;
 
@@ -452,7 +452,7 @@ void C2Agent::handle_clear(const C2ContentResponse &resp) {
     }
     case ClearOperand::corecomponentstate: {
       for (const auto& corecomponent : resp.operation_arguments) {
-        auto state_storage = core::ProcessContextImpl::getStateStorage(logger_, controller_, configuration_);
+        auto state_storage = core::StateManagementWrapper::getStateStorage(logger_, controller_, configuration_);
         if (state_storage != nullptr) {
           update_sink_->executeOnComponent(corecomponent.second.to_string(), [this, &state_storage] (state::StateController& component) {
             logger_->log_debug("Clearing state for component {}", component.getComponentName());
@@ -563,7 +563,7 @@ void C2Agent::handle_describe(const C2ContentResponse &resp) {
       response.setLabel("corecomponentstate");
       C2Payload states(Operation::acknowledge, resp.ident, true);
       states.setLabel("corecomponentstate");
-      auto state_storage = core::ProcessContextImpl::getStateStorage(logger_, controller_, configuration_);
+      auto state_storage = core::StateManagementWrapper::getStateStorage(logger_, controller_, configuration_);
       if (state_storage != nullptr) {
         auto core_component_states = state_storage->getAllStates();
         for (const auto& core_component_state : core_component_states) {

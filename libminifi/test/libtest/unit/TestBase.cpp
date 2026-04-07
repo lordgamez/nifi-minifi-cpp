@@ -43,6 +43,7 @@
 #include "core/ProcessSessionFactory.h"
 #include "ResourceClaim.h"
 #include "io/StreamPipe.h"
+#include "core/StateManagementWrapper.h"
 
 #include "fmt/format.h"
 #include "spdlog/sinks/stdout_sinks.h"
@@ -231,7 +232,7 @@ TestPlan::TestPlan(std::shared_ptr<minifi::core::ContentRepository> content_repo
   if (!configuration_->get(minifi::Configure::nifi_state_storage_local_path)) {
     configuration_->set(minifi::Configure::nifi_state_storage_local_path, state_dir_->getPath().string());
   }
-  state_storage_ = minifi::core::ProcessContextImpl::getOrCreateDefaultStateStorage(controller_services_provider_.get(), configuration_);
+  state_storage_ = minifi::core::StateManagementWrapper::getOrCreateDefaultStateStorage(controller_services_provider_.get(), configuration_);
 }
 
 TestPlan::~TestPlan() {
@@ -288,7 +289,8 @@ minifi::core::Processor* TestPlan::addProcessor(std::unique_ptr<minifi::core::Pr
     }
     relationships_.push_back(std::move(connection));
   }
-  auto context = std::make_shared<minifi::core::ProcessContextImpl>(*processor, controller_services_provider_.get(), prov_repo_, flow_repo_, configuration_, content_repo_);
+  auto state_management_wrapper = std::make_shared<minifi::core::StateManagementWrapper>(controller_services_provider_.get(), configuration_);
+  auto context = std::make_shared<minifi::core::ProcessContextImpl>(*processor, controller_services_provider_.get(), state_management_wrapper, prov_repo_, flow_repo_, configuration_, content_repo_);
   processor_contexts_.push_back(context);
   processor_queue_.push_back(processor.get());
   auto raw_ptr = processor.get();

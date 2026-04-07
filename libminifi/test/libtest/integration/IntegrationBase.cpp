@@ -27,6 +27,7 @@
 #include "utils/file/AssetManager.h"
 #include "core/ConfigurationFactory.h"
 #include "core/ProcessContextImpl.h"
+#include "core/StateManagementWrapper.h"
 
 namespace org::apache::nifi::minifi::test {
 
@@ -124,7 +125,7 @@ void IntegrationBase::run() {
     if (!configuration->get(minifi::Configure::nifi_state_storage_local_path)) {
       configuration->set(minifi::Configure::nifi_state_storage_local_path, state_dir.string());
     }
-    core::ProcessContextImpl::getOrCreateDefaultStateStorage(controller_service_provider.get(), configuration);
+    core::StateManagementWrapper::getOrCreateDefaultStateStorage(controller_service_provider.get(), configuration);
 
     std::shared_ptr<core::ProcessGroup> pg(flow_config->getRoot());
     queryRootProcessGroup(pg);

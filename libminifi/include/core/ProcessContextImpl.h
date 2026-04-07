@@ -38,10 +38,10 @@
 #include "minifi-cpp/core/ProcessContext.h"
 #include "minifi-cpp/core/Property.h"
 #include "minifi-cpp/core/Repository.h"
-#include "minifi-cpp/core/StateStorage.h"
 #include "core/controller/ControllerServiceProvider.h"
 #include "minifi-cpp/core/repository/FileSystemRepository.h"
 #include "expression-language/Expression.h"
+#include "StateManagementWrapper.h"
 
 namespace org::apache::nifi::minifi::core {
 
@@ -49,11 +49,12 @@ class Processor;
 
 class ProcessContextImpl : public core::VariableRegistryImpl, public virtual ProcessContext {
  public:
-  ProcessContextImpl(Processor& processor, controller::ControllerServiceProvider* controller_service_provider, const std::shared_ptr<core::Repository>& repo,
-      const std::shared_ptr<core::Repository>& flow_repo, const std::shared_ptr<core::ContentRepository>& content_repo = repository::createFileSystemRepository());
+  ProcessContextImpl(Processor& processor, controller::ControllerServiceProvider* controller_service_provider, const std::shared_ptr<core::StateManagementWrapper>& state_management_wrapper,
+      const std::shared_ptr<core::Repository>& repo, const std::shared_ptr<core::Repository>& flow_repo,
+      const std::shared_ptr<core::ContentRepository>& content_repo = repository::createFileSystemRepository());
 
-  ProcessContextImpl(Processor& processor, controller::ControllerServiceProvider* controller_service_provider, const std::shared_ptr<core::Repository>& repo,
-      const std::shared_ptr<core::Repository>& flow_repo, const std::shared_ptr<minifi::Configure>& configuration,
+  ProcessContextImpl(Processor& processor, controller::ControllerServiceProvider* controller_service_provider, const std::shared_ptr<core::StateManagementWrapper>& state_management_wrapper,
+      const std::shared_ptr<core::Repository>& repo, const std::shared_ptr<core::Repository>& flow_repo, const std::shared_ptr<minifi::Configure>& configuration,
       const std::shared_ptr<core::ContentRepository>& content_repo = repository::createFileSystemRepository());
 
   // Get Processor associated with the Process Context
@@ -109,95 +110,16 @@ class ProcessContextImpl : public core::VariableRegistryImpl, public virtual Pro
     return {controller_service, controller_service->getImplementation()};
   }
 
-  static constexpr char const* DefaultStateStorageName = "defaultstatestorage";
-
   StateManager* getStateManager() override;
 
-  bool hasStateManager() const override { return state_manager_ != nullptr; }
-
-  static std::shared_ptr<core::StateStorage> getOrCreateDefaultStateStorage(
-      controller::ControllerServiceProvider* controller_service_provider, const std::shared_ptr<minifi::Configure>& configuration) {
-    static std::mutex mutex;
-    std::lock_guard<std::mutex> lock(mutex);
-
-    /* See if we have already created a default provider */
-    core::controller::ControllerServiceNode* node = controller_service_provider->getControllerServiceNode(DefaultStateStorageName);
-    if (node != nullptr) { return node->getControllerServiceImplementation<StateStorage>(); }
-
-    /* Try to get configuration options for default provider */
-    std::string always_persist;
-    configuration->get(Configure::nifi_state_storage_local_always_persist, Configure::nifi_state_storage_local_always_persist_old, always_persist);
-    std::string auto_persistence_interval;
-    configuration->get(Configure::nifi_state_storage_local_auto_persistence_interval, Configure::nifi_state_storage_local_auto_persistence_interval_old, auto_persistence_interval);
-
-    const auto path = configuration->getWithFallback(Configure::nifi_state_storage_local_path, Configure::nifi_state_storage_local_path_old);
-
-    /* Function to help creating a state storage */
-    auto create_provider = [&](const std::string& type, const std::unordered_map<std::string, std::string>& extraProperties) -> std::shared_ptr<core::StateStorage> {
-      auto new_node = controller_service_provider->createControllerService(type, DefaultStateStorageName, nullptr, std::nullopt);
-      if (new_node == nullptr) { return nullptr; }
-      new_node->initialize();
-      auto storage = new_node->getControllerServiceImplementation();
-      if (storage == nullptr) { return nullptr; }
-      if (!always_persist.empty() && !storage->setProperty(controllers::ALWAYS_PERSIST_PROPERTY_NAME, always_persist)) { return nullptr; }
-      if (!auto_persistence_interval.empty() && !storage->setProperty(controllers::AUTO_PERSISTENCE_INTERVAL_PROPERTY_NAME, auto_persistence_interval)) { return nullptr; }
-      for (const auto& extraProperty: extraProperties) {
-        if (!storage->setProperty(extraProperty.first, extraProperty.second)) { return nullptr; }
-      }
-      if (!new_node->enable()) { return nullptr; }
-      return {storage, storage->getImplementation<core::StateStorage>()};
-    };
-
-    std::string preferredType;
-    configuration->get(minifi::Configure::nifi_state_storage_local_class_name, minifi::Configure::nifi_state_storage_local_class_name_old, preferredType);
-
-    /* Try to create a RocksDB-backed provider */
-    if (preferredType.empty() || preferredType == "RocksDbPersistableKeyValueStoreService" || preferredType == "RocksDbStateStorage") {
-      auto provider = create_provider("RocksDbStateStorage", {{"Directory", path.value_or("corecomponentstate")}});
-      if (provider != nullptr) { return provider; }
-    }
-
-    /* Fall back to a locked unordered map-backed provider */
-    if (preferredType.empty() || preferredType == "UnorderedMapPersistableKeyValueStoreService" || preferredType == "PersistentMapStateStorage") {
-      auto provider = create_provider("PersistentMapStateStorage", {{"File", path.value_or("corecomponentstate.txt")}});
-      if (provider != nullptr) { return provider; }
-    }
-
-    /* Fall back to volatile memory-backed provider */
-    if (preferredType.empty() || preferredType == "UnorderedMapKeyValueStoreService" || preferredType == "VolatileMapStateStorage") {
-      auto provider = create_provider("VolatileMapStateStorage", {});
-      if (provider != nullptr) { return provider; }
-    }
-
-    /* Give up */
-    return nullptr;
-  }
-
-  static std::shared_ptr<core::StateStorage> getStateStorage(
-      const std::shared_ptr<logging::Logger>& logger, controller::ControllerServiceProvider* const controller_service_provider, const std::shared_ptr<minifi::Configure>& configuration) {
-    if (controller_service_provider == nullptr) { return nullptr; }
-    std::string requestedStateStorageName;
-    if (configuration != nullptr && configuration->get(minifi::Configure::nifi_state_storage_local, minifi::Configure::nifi_state_storage_local_old, requestedStateStorageName)) {
-      auto node = controller_service_provider->getControllerServiceNode(requestedStateStorageName);
-      if (node == nullptr) {
-        logger->log_error("Failed to find the StateStorage {} defined by {}", requestedStateStorageName, minifi::Configure::nifi_state_storage_local);
-        return nullptr;
-      }
-      return node->getControllerServiceImplementation<core::StateStorage>();
-    } else {
-      auto state_storage = getOrCreateDefaultStateStorage(controller_service_provider, configuration);
-      if (state_storage == nullptr) { logger->log_error("Failed to create default StateStorage"); }
-      return state_storage;
-    }
-  }
+  bool hasStateManager() const override { return state_management_wrapper_ && state_management_wrapper_->hasStateManager(); }
 
   gsl::not_null<Configure*> getConfiguration() const override { return gsl::make_not_null(configure_.get()); }
 
  private:
   std::shared_ptr<logging::Logger> logger_;
   controller::ControllerServiceProvider* controller_service_provider_;
-  std::shared_ptr<core::StateStorage> state_storage_;
-  std::unique_ptr<StateManager> state_manager_;
+  std::shared_ptr<core::StateManagementWrapper> state_management_wrapper_;
   std::shared_ptr<core::Repository> repo_;
   std::shared_ptr<core::Repository> flow_repo_;
   std::shared_ptr<core::ContentRepository> content_repo_;
