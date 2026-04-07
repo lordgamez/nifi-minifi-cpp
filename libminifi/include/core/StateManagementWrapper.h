@@ -29,7 +29,7 @@ namespace org::apache::nifi::minifi::core {
 
 class StateManagementWrapper {
  public:
-  StateManagementWrapper(controller::ControllerServiceProvider* controller_service_provider, const std::shared_ptr<minifi::Configure>& configuration);
+  StateManagementWrapper(const std::shared_ptr<core::StateStorage>& state_storage);
   StateManager* getStateManager(const CoreComponent& component);
   bool hasStateManager() const { return state_manager_ != nullptr; }
 

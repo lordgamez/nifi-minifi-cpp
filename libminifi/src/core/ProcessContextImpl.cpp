@@ -41,12 +41,12 @@ class StandardProcessorInfo : public ProcessorInfo {
 }  // namespace
 
 ProcessContextImpl::ProcessContextImpl(
-    Processor& processor, controller::ControllerServiceProvider* controller_service_provider, const std::shared_ptr<core::StateManagementWrapper>& state_management_wrapper,
+    Processor& processor, controller::ControllerServiceProvider* controller_service_provider, std::unique_ptr<core::StateManagementWrapper> state_management_wrapper,
     const std::shared_ptr<core::Repository>& repo, const std::shared_ptr<core::Repository>& flow_repo, const std::shared_ptr<core::ContentRepository>& content_repo)
     : VariableRegistryImpl(static_cast<std::shared_ptr<Configure>>(minifi::Configure::create())),
       logger_(logging::LoggerFactory<ProcessContext>::getLogger()),
       controller_service_provider_(controller_service_provider),
-      state_management_wrapper_(state_management_wrapper),
+      state_management_wrapper_(std::move(state_management_wrapper)),
       repo_(repo),
       flow_repo_(flow_repo),
       content_repo_(content_repo),
@@ -55,13 +55,13 @@ ProcessContextImpl::ProcessContextImpl(
       info_(std::make_unique<StandardProcessorInfo>(processor)) {}
 
 ProcessContextImpl::ProcessContextImpl(
-    Processor& processor, controller::ControllerServiceProvider* controller_service_provider, const std::shared_ptr<core::StateManagementWrapper>& state_management_wrapper,
+    Processor& processor, controller::ControllerServiceProvider* controller_service_provider, std::unique_ptr<core::StateManagementWrapper> state_management_wrapper,
     const std::shared_ptr<core::Repository>& repo, const std::shared_ptr<core::Repository>& flow_repo, const std::shared_ptr<minifi::Configure>& configuration,
     const std::shared_ptr<core::ContentRepository>& content_repo)
     : VariableRegistryImpl(configuration),
       logger_(logging::LoggerFactory<ProcessContext>::getLogger()),
       controller_service_provider_(controller_service_provider),
-      state_management_wrapper_(state_management_wrapper),
+      state_management_wrapper_(std::move(state_management_wrapper)),
       repo_(repo),
       flow_repo_(flow_repo),
       content_repo_(content_repo),

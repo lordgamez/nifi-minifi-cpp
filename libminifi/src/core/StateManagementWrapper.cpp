@@ -21,8 +21,8 @@
 
 namespace org::apache::nifi::minifi::core {
 
-StateManagementWrapper::StateManagementWrapper(controller::ControllerServiceProvider* controller_service_provider, const std::shared_ptr<minifi::Configure>& configuration)
-    : state_storage_(getStateStorage(logger_, controller_service_provider, configuration)) {
+StateManagementWrapper::StateManagementWrapper(const std::shared_ptr<core::StateStorage>& state_storage)
+    : state_storage_(state_storage) {
 }
 
 std::shared_ptr<core::StateStorage> StateManagementWrapper::getStateStorage(

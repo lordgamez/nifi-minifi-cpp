@@ -49,11 +49,11 @@ class Processor;
 
 class ProcessContextImpl : public core::VariableRegistryImpl, public virtual ProcessContext {
  public:
-  ProcessContextImpl(Processor& processor, controller::ControllerServiceProvider* controller_service_provider, const std::shared_ptr<core::StateManagementWrapper>& state_management_wrapper,
+  ProcessContextImpl(Processor& processor, controller::ControllerServiceProvider* controller_service_provider, std::unique_ptr<core::StateManagementWrapper> state_management_wrapper,
       const std::shared_ptr<core::Repository>& repo, const std::shared_ptr<core::Repository>& flow_repo,
       const std::shared_ptr<core::ContentRepository>& content_repo = repository::createFileSystemRepository());
 
-  ProcessContextImpl(Processor& processor, controller::ControllerServiceProvider* controller_service_provider, const std::shared_ptr<core::StateManagementWrapper>& state_management_wrapper,
+  ProcessContextImpl(Processor& processor, controller::ControllerServiceProvider* controller_service_provider, std::unique_ptr<core::StateManagementWrapper> state_management_wrapper,
       const std::shared_ptr<core::Repository>& repo, const std::shared_ptr<core::Repository>& flow_repo, const std::shared_ptr<minifi::Configure>& configuration,
       const std::shared_ptr<core::ContentRepository>& content_repo = repository::createFileSystemRepository());
 
@@ -119,7 +119,7 @@ class ProcessContextImpl : public core::VariableRegistryImpl, public virtual Pro
  private:
   std::shared_ptr<logging::Logger> logger_;
   controller::ControllerServiceProvider* controller_service_provider_;
-  std::shared_ptr<core::StateManagementWrapper> state_management_wrapper_;
+  std::unique_ptr<core::StateManagementWrapper> state_management_wrapper_;
   std::shared_ptr<core::Repository> repo_;
   std::shared_ptr<core::Repository> flow_repo_;
   std::shared_ptr<core::ContentRepository> content_repo_;

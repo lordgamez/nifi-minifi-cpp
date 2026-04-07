@@ -289,8 +289,10 @@ minifi::core::Processor* TestPlan::addProcessor(std::unique_ptr<minifi::core::Pr
     }
     relationships_.push_back(std::move(connection));
   }
-  auto state_management_wrapper = std::make_shared<minifi::core::StateManagementWrapper>(controller_services_provider_.get(), configuration_);
-  auto context = std::make_shared<minifi::core::ProcessContextImpl>(*processor, controller_services_provider_.get(), state_management_wrapper, prov_repo_, flow_repo_, configuration_, content_repo_);
+
+  auto state_storage = core::StateManagementWrapper::getStateStorage(logger_, controller_services_provider_.get(), configuration_);
+  auto state_management_wrapper = std::make_unique<minifi::core::StateManagementWrapper>(state_storage);
+  auto context = std::make_shared<minifi::core::ProcessContextImpl>(*processor, controller_services_provider_.get(), std::move(state_management_wrapper), prov_repo_, flow_repo_, configuration_, content_repo_);
   processor_contexts_.push_back(context);
   processor_queue_.push_back(processor.get());
   auto raw_ptr = processor.get();
