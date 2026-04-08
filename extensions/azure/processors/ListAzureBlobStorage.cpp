@@ -38,7 +38,7 @@ void ListAzureBlobStorage::onSchedule(core::ProcessContext& context, core::Proce
   if (state_manager == nullptr) {
     throw Exception(PROCESSOR_EXCEPTION, "Failed to get StateManager");
   }
-  state_manager_ = std::make_unique<minifi::utils::ListingStateManager>(state_manager);
+  state_manager_ = std::make_unique<minifi::utils::ListingStateManager>(gsl::make_not_null(std::move(state_manager)));
 
   tracking_strategy_ = utils::parseEnumProperty<azure::EntityTracking>(context, ListingStrategy);
 

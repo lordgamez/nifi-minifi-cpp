@@ -195,7 +195,7 @@ bool ConsumeWindowsEventLog::commitAndSaveBookmark(const std::wstring &bookmark_
   {
     const auto time_diff = createTimer();
     session.commit();
-    context.getStateManager()->beginTransaction();
+    state_manager_->beginTransaction();
     logger_->log_debug("ConsumeWindowsEventLog: commit took {}", time_diff());
   }
 

@@ -18,6 +18,8 @@
 
 #include <memory>
 
+#include <memory>
+
 #include "minifi-cpp/core/StateManager.h"
 #include "../PythonBindings.h"
 
@@ -25,7 +27,7 @@ namespace org::apache::nifi::minifi::extensions::python {
 
 struct PyStateManager {
   PyStateManager() {}
-  using HeldType = core::StateManager*;
+  using HeldType = std::unique_ptr<core::StateManager>;
   static constexpr const char* HeldTypeName = "PyStateManager::HeldType";
 
   PyObject_HEAD

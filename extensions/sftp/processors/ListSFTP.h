@@ -204,7 +204,7 @@ class ListSFTP : public SFTPProcessorBase {
   void onSchedule(core::ProcessContext& context, core::ProcessSessionFactory& session_factory) override;
 
  private:
-  core::StateManager* state_manager_{};
+  std::unique_ptr<core::StateManager> state_manager_{};
   std::string listing_strategy_;
   bool search_recursively_{};
   bool follow_symlink_{};

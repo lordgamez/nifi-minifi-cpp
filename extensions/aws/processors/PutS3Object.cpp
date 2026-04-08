@@ -102,7 +102,7 @@ void PutS3Object::onSchedule(core::ProcessContext& context, core::ProcessSession
   if (state_manager == nullptr) {
     throw Exception(PROCESSOR_EXCEPTION, "Failed to get StateManager");
   }
-  s3_wrapper_.initializeMultipartUploadStateStorage(gsl::make_not_null(state_manager));
+  s3_wrapper_.initializeMultipartUploadStateStorage(gsl::make_not_null(std::move(state_manager)));
 }
 
 std::string PutS3Object::parseAccessControlList(const std::string &comma_separated_list) {

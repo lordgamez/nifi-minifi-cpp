@@ -91,8 +91,7 @@ class ProcessContext : public virtual core::VariableRegistry, public virtual uti
   virtual std::shared_ptr<core::controller::ControllerServiceHandle> getControllerService(const std::string &identifier, const utils::Identifier &processor_uuid) const = 0;
   static constexpr char const* DefaultStateStorageName = "defaultstatestorage";
 
-  virtual StateManager* getStateManager() = 0;
-  virtual bool hasStateManager() const = 0;
+  virtual std::unique_ptr<StateManager> getStateManager() = 0;
   virtual gsl::not_null<Configure*> getConfiguration() const = 0;
 };
 

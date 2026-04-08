@@ -67,8 +67,8 @@ void PushGrafanaLoki::LogBatch::setLogLineBatchWait(std::optional<std::chrono::m
   log_line_batch_wait_ = log_line_batch_wait;
 }
 
-void PushGrafanaLoki::LogBatch::setStateManager(core::StateManager* state_manager) {
-  state_manager_ = state_manager;
+void PushGrafanaLoki::LogBatch::setStateManager(std::unique_ptr<core::StateManager> state_manager) {
+  state_manager_ = std::move(state_manager);
 }
 
 void PushGrafanaLoki::LogBatch::setStartPushTime(std::chrono::system_clock::time_point start_push_time) {
@@ -82,7 +82,7 @@ void PushGrafanaLoki::setUpStateManager(core::ProcessContext& context) {
   if (state_manager == nullptr) {
     throw Exception(PROCESSOR_EXCEPTION, "Failed to get StateManager");
   }
-  log_batch_.setStateManager(state_manager);
+  log_batch_.setStateManager(std::move(state_manager));
 
   std::unordered_map<std::string, std::string> state_map;
   if (state_manager->get(state_map)) {

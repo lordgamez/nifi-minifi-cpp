@@ -49,11 +49,12 @@ class Processor;
 
 class ProcessContextImpl : public core::VariableRegistryImpl, public virtual ProcessContext {
  public:
-  ProcessContextImpl(Processor& processor, controller::ControllerServiceProvider* controller_service_provider, const std::shared_ptr<core::Repository>& repo,
-      const std::shared_ptr<core::Repository>& flow_repo, const std::shared_ptr<core::ContentRepository>& content_repo = repository::createFileSystemRepository());
+  ProcessContextImpl(Processor& processor, controller::ControllerServiceProvider* controller_service_provider, const std::shared_ptr<core::StateStorage>& state_storage,
+      const std::shared_ptr<core::Repository>& repo, const std::shared_ptr<core::Repository>& flow_repo,
+      const std::shared_ptr<core::ContentRepository>& content_repo = repository::createFileSystemRepository());
 
-  ProcessContextImpl(Processor& processor, controller::ControllerServiceProvider* controller_service_provider, const std::shared_ptr<core::Repository>& repo,
-      const std::shared_ptr<core::Repository>& flow_repo, const std::shared_ptr<minifi::Configure>& configuration,
+  ProcessContextImpl(Processor& processor, controller::ControllerServiceProvider* controller_service_provider, const std::shared_ptr<core::StateStorage>& state_storage,
+      const std::shared_ptr<core::Repository>& repo, const std::shared_ptr<core::Repository>& flow_repo, const std::shared_ptr<minifi::Configure>& configuration,
       const std::shared_ptr<core::ContentRepository>& content_repo = repository::createFileSystemRepository());
 
   // Get Processor associated with the Process Context
@@ -111,9 +112,7 @@ class ProcessContextImpl : public core::VariableRegistryImpl, public virtual Pro
 
   static constexpr char const* DefaultStateStorageName = "defaultstatestorage";
 
-  StateManager* getStateManager() override;
-
-  bool hasStateManager() const override { return state_manager_ != nullptr; }
+  std::unique_ptr<StateManager> getStateManager() override;
 
   static std::shared_ptr<core::StateStorage> getOrCreateDefaultStateStorage(
       controller::ControllerServiceProvider* controller_service_provider, const std::shared_ptr<minifi::Configure>& configuration) {
@@ -197,7 +196,6 @@ class ProcessContextImpl : public core::VariableRegistryImpl, public virtual Pro
   std::shared_ptr<logging::Logger> logger_;
   controller::ControllerServiceProvider* controller_service_provider_;
   std::shared_ptr<core::StateStorage> state_storage_;
-  std::unique_ptr<StateManager> state_manager_;
   std::shared_ptr<core::Repository> repo_;
   std::shared_ptr<core::Repository> flow_repo_;
   std::shared_ptr<core::ContentRepository> content_repo_;

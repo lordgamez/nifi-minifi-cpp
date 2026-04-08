@@ -40,7 +40,7 @@ class Bookmark {
       const std::filesystem::path& bookmarkRootDir,
       const utils::Identifier& uuid,
       bool processOldEvents,
-      core::StateManager* state_manager,
+      std::unique_ptr<core::StateManager> state_manager,
       std::shared_ptr<core::logging::Logger> logger);
   ~Bookmark();
   bool isValid() const noexcept;
@@ -55,7 +55,7 @@ class Bookmark {
   using unique_evt_handle = wel::unique_evt_handle;
 
   std::shared_ptr<core::logging::Logger> logger_;
-  core::StateManager* state_manager_;
+  std::unique_ptr<core::StateManager> state_manager_;
   std::filesystem::path filePath_;
   bool ok_{};
   unique_evt_handle hBookmark_;
