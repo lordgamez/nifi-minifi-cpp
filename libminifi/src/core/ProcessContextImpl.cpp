@@ -166,9 +166,9 @@ bool ProcessContextImpl::isRunning() const {
   return getProcessor().isRunning();
 }
 
-std::unique_ptr<StateManager> ProcessContextImpl::getStateManager() {
+std::unique_ptr<StateManager> ProcessContextImpl::createStateManager() {
   if (state_storage_ == nullptr) { return nullptr; }
-  return state_storage_->getStateManager(processor_);
+  return state_storage_->createStateManager(processor_);
 }
 
 bool ProcessContextImpl::hasIncomingConnections() const {

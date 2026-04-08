@@ -34,7 +34,7 @@ std::string LuaScriptProcessContext::getProperty(const std::string &name) {
 
 
 LuaScriptStateManager LuaScriptProcessContext::getStateManager() {
-  return LuaScriptStateManager(context_.getStateManager(), sol_state_);
+  return LuaScriptStateManager(context_.createStateManager(), sol_state_);
 }
 
 }  // namespace org::apache::nifi::minifi::extensions::lua

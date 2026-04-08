@@ -69,7 +69,8 @@ void ConsumeJournald::onSchedule(core::ProcessContext& context, core::ProcessSes
     return tf_prop;
   }();
 
-  state_manager_ = context.getStateManager();
+  auto temp_state_manager = context.createStateManager();
+  state_manager_ = temp_state_manager.get();
   // All journal-related API calls are thread-agnostic, meaning they need to be called from the same thread. In our environment,
   // where a processor can easily be scheduled on different threads, we ensure this by executing all library calls on a dedicated
   // worker thread. This is why all such operations are dispatched to a thread and immediately waited for in the initiating thread.
@@ -90,10 +91,12 @@ void ConsumeJournald::onSchedule(core::ProcessContext& context, core::ProcessSes
       }
     }
   }).get();
+  state_manager_ = nullptr;
   running_ = true;
 }
 
 void ConsumeJournald::onTrigger(core::ProcessContext& context, core::ProcessSession& session) {
+  state_manager_ = session.getStateManager();
   gsl_Expects(state_manager_);
   if (!running_.load(std::memory_order_acquire)) return;
   auto cursor_and_messages = getCursorAndMessageBatch().get();

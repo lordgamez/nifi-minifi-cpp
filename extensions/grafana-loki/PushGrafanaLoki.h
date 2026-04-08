@@ -119,7 +119,7 @@ class PushGrafanaLoki : public core::ProcessorImpl {
     std::vector<std::shared_ptr<core::FlowFile>> flush();
     void setLogLineBatchSize(std::optional<uint64_t> log_line_batch_size);
     void setLogLineBatchWait(std::optional<std::chrono::milliseconds> log_line_batch_wait);
-    void setStateManager(std::unique_ptr<core::StateManager> state_manager);
+    void setStateManager(core::StateManager* state_manager);
     void setStartPushTime(std::chrono::system_clock::time_point start_push_time);
 
    private:
@@ -127,7 +127,7 @@ class PushGrafanaLoki : public core::ProcessorImpl {
     std::optional<std::chrono::milliseconds> log_line_batch_wait_;
     std::chrono::system_clock::time_point start_push_time_;
     std::vector<std::shared_ptr<core::FlowFile>> batched_flowfiles_;
-    std::unique_ptr<core::StateManager> state_manager_;
+    core::StateManager* state_manager_ = nullptr;
     std::shared_ptr<core::logging::Logger> logger_;
   };
 

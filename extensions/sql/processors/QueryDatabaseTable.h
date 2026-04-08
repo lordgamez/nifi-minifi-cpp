@@ -124,7 +124,8 @@ class QueryDatabaseTable: public SQLProcessor, public FlowFileSource {
 
   bool saveState();
 
-  std::unique_ptr<core::StateManager> state_manager_{};
+  std::unique_ptr<core::StateManager> state_manager_owner_;
+  core::StateManager* state_manager_{nullptr};
   std::string table_name_;
   std::unordered_set<sql::SQLColumnIdentifier> return_columns_;
   std::string queried_columns_;

@@ -112,7 +112,7 @@ class ProcessContextImpl : public core::VariableRegistryImpl, public virtual Pro
 
   static constexpr char const* DefaultStateStorageName = "defaultstatestorage";
 
-  std::unique_ptr<StateManager> getStateManager() override;
+  std::unique_ptr<StateManager> createStateManager() override;
 
   static std::shared_ptr<core::StateStorage> getOrCreateDefaultStateStorage(
       controller::ControllerServiceProvider* controller_service_provider, const std::shared_ptr<minifi::Configure>& configuration) {

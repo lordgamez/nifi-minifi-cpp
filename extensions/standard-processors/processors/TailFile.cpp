@@ -241,10 +241,11 @@ void TailFile::onSchedule(core::ProcessContext& context, core::ProcessSessionFac
   buffer_size_ = utils::configuration::getBufferSize(*context.getConfiguration());
   tail_states_.clear();
 
-  state_manager_ = context.getStateManager();
-  if (state_manager_ == nullptr) {
+  auto temp_state_manager = context.createStateManager();
+  if (temp_state_manager == nullptr) {
     throw Exception(PROCESSOR_EXCEPTION, "Failed to get StateManager");
   }
+  state_manager_ = temp_state_manager.get();
 
   const auto result_format = utils::parseEnumProperty<TailResultFormat>(context, ResultFormat);
   if (auto delimiter_str = context.getProperty(Delimiter)) {
@@ -310,6 +311,7 @@ void TailFile::onSchedule(core::ProcessContext& context, core::ProcessSessionFac
   initial_start_position_ = utils::parseEnumProperty<InitialStartPositions>(context, InitialStartPosition);
   batch_size_ = gsl::narrow<uint32_t>(utils::parseU64Property(context, BatchSize));
   if (batch_size_ == 0) { batch_size_.reset(); }
+  state_manager_ = nullptr;
 }
 
 void TailFile::parseStateFileLine(char *buf, std::map<std::filesystem::path, TailState> &state) const {
@@ -580,6 +582,8 @@ std::vector<TailState> TailFile::sortAndSkipMainFilePrefix(const TailState &stat
 }
 
 void TailFile::onTrigger(core::ProcessContext& context, core::ProcessSession& session) {
+  state_manager_ = session.getStateManager();
+
   if (tail_mode_ == Mode::MULTIPLE) {
     if (last_multifile_lookup_ + lookup_frequency_ < std::chrono::steady_clock::now()) {
       logger_->log_debug("Lookup frequency {} have elapsed, doing new multifile lookup", lookup_frequency_);

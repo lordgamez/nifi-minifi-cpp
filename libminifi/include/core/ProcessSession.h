@@ -129,6 +129,8 @@ class ProcessSessionImpl : public ReferenceContainerImpl, public virtual Process
   bool hasBeenTransferred(const core::FlowFile &flow) const override;
   void transfer(const std::shared_ptr<core::FlowFile>& flow, const Relationship& relationship) override;
 
+  StateManager* getStateManager() override { return stateManager_.get(); }
+
   ProcessSessionImpl(const ProcessSessionImpl &parent) = delete;
   ProcessSessionImpl &operator=(const ProcessSessionImpl &parent) = delete;
 

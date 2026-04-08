@@ -36,10 +36,10 @@ Bookmark::Bookmark(const wel::EventPath& path,
     const std::filesystem::path& bookmarkRootDir,
     const utils::Identifier& uuid,
     bool processOldEvents,
-    std::unique_ptr<core::StateManager> state_manager,
+    core::StateManager* state_manager,
     std::shared_ptr<core::logging::Logger> logger)
     : logger_(std::move(logger)),
-      state_manager_(std::move(state_manager)) {
+      state_manager_(state_manager) {
   std::unordered_map<std::string, std::string> state_map;
   if (state_manager_->get(state_map) && state_map.count(BOOKMARK_KEY) == 1U) {
     bookmarkXml_ = utils::to_wstring(state_map[BOOKMARK_KEY]);

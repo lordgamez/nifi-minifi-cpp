@@ -98,11 +98,7 @@ void PutS3Object::onSchedule(core::ProcessContext& context, core::ProcessSession
 
   fillUserMetadata(context);
 
-  auto state_manager = context.getStateManager();
-  if (state_manager == nullptr) {
-    throw Exception(PROCESSOR_EXCEPTION, "Failed to get StateManager");
-  }
-  s3_wrapper_.initializeMultipartUploadStateStorage(gsl::make_not_null(std::move(state_manager)));
+  s3_wrapper_.initializeMultipartUploadStateStorage();
 }
 
 std::string PutS3Object::parseAccessControlList(const std::string &comma_separated_list) {
@@ -264,6 +260,10 @@ void PutS3Object::ageOffMultipartUploads(const CommonProperties &common_properti
 
 void PutS3Object::onTrigger(core::ProcessContext& context, core::ProcessSession& session) {
   logger_->log_trace("PutS3Object onTrigger");
+  auto* state_manager = session.getStateManager();
+  if (state_manager != nullptr) {
+    s3_wrapper_.setMultipartUploadStateManager(gsl::make_not_null(state_manager));
+  }
   std::shared_ptr<core::FlowFile> flow_file = session.get();
   if (!flow_file) {
     context.yield();

@@ -49,10 +49,11 @@ void QueryDatabaseTable::processOnSchedule(core::ProcessContext& context) {
   output_format_ = utils::parseEnumProperty<flow_file_source::OutputType>(context, OutputFormat);
   max_rows_ = gsl::narrow<size_t>(utils::parseU64Property(context, MaxRowsPerFlowFile));
 
-  state_manager_ = context.getStateManager();
-  if (state_manager_ == nullptr) {
+  state_manager_owner_ = context.createStateManager();
+  if (state_manager_owner_ == nullptr) {
     throw Exception(PROCESSOR_EXCEPTION, "Failed to get StateManager");
   }
+  state_manager_ = state_manager_owner_.get();
 
   table_name_ = context.getProperty(TableName).value_or("");
   extra_where_clause_ = context.getProperty(WhereClause).value_or("");
@@ -82,6 +83,8 @@ void QueryDatabaseTable::processOnSchedule(core::ProcessContext& context) {
 }
 
 void QueryDatabaseTable::processOnTrigger(core::ProcessContext& /*context*/, core::ProcessSession& session) {
+  state_manager_ = session.getStateManager();
+
   const auto& selectQuery = buildSelectQuery();
 
   logger_->log_info("QueryDatabaseTable: selectQuery: '{}'", selectQuery.c_str());

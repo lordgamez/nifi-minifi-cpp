@@ -197,7 +197,7 @@ PyObject* PyProcessContext::getStateManager(PyProcessContext* self, PyObject*) {
     return nullptr;
   }
 
-  return object::returnReference(context->getStateManager());
+  return object::returnReference(context->createStateManager());
 }
 
 PyObject* PyProcessContext::getControllerService(PyProcessContext* self, PyObject* args) {

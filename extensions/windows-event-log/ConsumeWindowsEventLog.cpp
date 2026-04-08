@@ -127,10 +127,11 @@ wel::HeaderNames ConsumeWindowsEventLog::createHeaderNames(const std::optional<s
 }
 
 void ConsumeWindowsEventLog::onSchedule(core::ProcessContext& context, core::ProcessSessionFactory&) {
-  state_manager_ = context.getStateManager();
-  if (state_manager_ == nullptr) {
+  auto temp_state_manager = context.createStateManager();
+  if (temp_state_manager == nullptr) {
     throw Exception(PROCESSOR_EXCEPTION, "Failed to get StateManager");
   }
+  state_manager_ = temp_state_manager.get();
 
   resolve_as_attributes_ = utils::parseBoolProperty(context, ResolveAsAttributes);
   apply_identifier_function_ = utils::parseBoolProperty(context, IdentifierFunction);
@@ -175,6 +176,7 @@ void ConsumeWindowsEventLog::onSchedule(core::ProcessContext& context, core::Pro
 
   provenanceUri_ = "winlog://" + computerName_ + "/" + path_.str() + "?" + query;
   logger_->log_trace("Successfully configured CWEL");
+  state_manager_ = nullptr;
 }
 
 std::unique_ptr<wel::Bookmark> ConsumeWindowsEventLog::createBookmark(const core::ProcessContext& context) const {
@@ -250,6 +252,11 @@ std::tuple<size_t, std::wstring> ConsumeWindowsEventLog::processEventLogs(core::
 }
 
 void ConsumeWindowsEventLog::onTrigger(core::ProcessContext& context, core::ProcessSession& session) {
+  state_manager_ = session.getStateManager();
+  if (bookmark_) {
+    bookmark_->setStateManager(state_manager_);
+  }
+
   std::unique_lock<std::mutex> lock(on_trigger_mutex_, std::try_to_lock);
   if (!lock.owns_lock()) {
     logger_->log_warn("processor was triggered before previous listing finished, configuration should be revised!");
