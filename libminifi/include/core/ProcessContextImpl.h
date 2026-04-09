@@ -113,6 +113,8 @@ class ProcessContextImpl : public core::VariableRegistryImpl, public virtual Pro
   static constexpr char const* DefaultStateStorageName = "defaultstatestorage";
 
   std::unique_ptr<StateManager> createStateManager() override;
+  StateManager* getStateManager() override;
+  void setSessionStateManager(std::unique_ptr<StateManager> state_manager) override;
 
   static std::shared_ptr<core::StateStorage> getOrCreateDefaultStateStorage(
       controller::ControllerServiceProvider* controller_service_provider, const std::shared_ptr<minifi::Configure>& configuration) {
@@ -202,6 +204,8 @@ class ProcessContextImpl : public core::VariableRegistryImpl, public virtual Pro
   Processor& processor_;
   gsl::not_null<std::shared_ptr<Configure>> configure_;
   std::unique_ptr<ProcessorInfo> info_;
+
+  std::unique_ptr<StateManager> session_state_manager_;
 
   // each ProcessContextImpl instance is only accessed from one thread at a time, so no synchronization is needed on these caches
   mutable std::unordered_map<std::string, expression::Expression, utils::string::transparent_string_hash, std::equal_to<>> cached_expressions_;

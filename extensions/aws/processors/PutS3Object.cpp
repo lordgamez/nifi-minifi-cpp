@@ -258,7 +258,7 @@ void PutS3Object::ageOffMultipartUploads(const CommonProperties &common_properti
 
 void PutS3Object::onTrigger(core::ProcessContext& context, core::ProcessSession& session) {
   logger_->log_trace("PutS3Object onTrigger");
-  auto* state_manager = session.getStateManager();
+  auto* state_manager = context.getStateManager();
   if (state_manager != nullptr) {
     s3_wrapper_.initializeMultipartUploadStateStorage(gsl::make_not_null(state_manager));
   }

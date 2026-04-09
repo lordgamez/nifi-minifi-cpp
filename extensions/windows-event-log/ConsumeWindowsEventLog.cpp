@@ -253,7 +253,7 @@ std::tuple<size_t, std::wstring> ConsumeWindowsEventLog::processEventLogs(core::
 }
 
 void ConsumeWindowsEventLog::onTrigger(core::ProcessContext& context, core::ProcessSession& session) {
-  auto state_manager = session.getStateManager();
+  auto state_manager = context.getStateManager();
   if (bookmark_) {
     bookmark_->setStateManager(state_manager);
   }

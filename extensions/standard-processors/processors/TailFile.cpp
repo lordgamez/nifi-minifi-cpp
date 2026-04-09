@@ -591,7 +591,7 @@ void TailFile::onTrigger(core::ProcessContext& context, core::ProcessSession& se
 
   // iterate over file states. may modify them
   for (auto &state : tail_states_) {
-    processFile(session, state.first, state.second);
+    processFile(session, state.first, state.second, context.getStateManager());
   }
 
   if (!session.existsFlowFileInRelationship(Success)) {
@@ -608,7 +608,8 @@ bool TailFile::isOldFileInitiallyRead(const TailState& state) const {
 
 void TailFile::processFile(core::ProcessSession& session,
                            const std::filesystem::path& full_file_name,
-                           TailState &state) {
+                           TailState &state,
+                           core::StateManager* state_manager) {
   if (isOldFileInitiallyRead(state)) {
     if (initial_start_position_ == InitialStartPositions::BEGINNING_OF_TIME) {
       processAllRotatedFiles(session, state);
@@ -616,7 +617,7 @@ void TailFile::processFile(core::ProcessSession& session,
       state.position_ = utils::file::file_size(full_file_name);
       state.last_read_time_ = std::chrono::file_clock::now();
       state.checksum_ = utils::file::computeChecksum(full_file_name, state.position_);
-      storeState(session.getStateManager());
+      storeState(state_manager);
       return;
     }
   } else {
@@ -630,7 +631,7 @@ void TailFile::processFile(core::ProcessSession& session,
   }
 
   processSingleFile(session, full_file_name, state);
-  storeState(session.getStateManager());
+  storeState(state_manager);
 }
 
 void TailFile::processRotatedFilesAfterLastReadTime(core::ProcessSession& session, TailState &state) {

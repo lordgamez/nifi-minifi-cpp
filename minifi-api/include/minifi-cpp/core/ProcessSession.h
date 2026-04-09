@@ -22,7 +22,6 @@
 #include <vector>
 
 #include "FlowFile.h"
-#include "minifi-cpp/core/StateManager.h"
 #include "minifi-cpp/provenance/Provenance.h"
 #include "minifi-cpp/io/StreamCallback.h"
 
@@ -119,8 +118,6 @@ class ProcessSession : public virtual ReferenceContainer {
   virtual bool hasBeenTransferred(const core::FlowFile &flow) const = 0;
 
   virtual void transfer(const std::shared_ptr<FlowFile>& ff, const Relationship& relationship) = 0;
-
-  virtual StateManager* getStateManager() = 0;
 };
 
 }  // namespace org::apache::nifi::minifi::core

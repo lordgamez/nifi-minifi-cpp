@@ -92,6 +92,8 @@ class ProcessContext : public virtual core::VariableRegistry, public virtual uti
   static constexpr char const* DefaultStateStorageName = "defaultstatestorage";
 
   virtual std::unique_ptr<StateManager> createStateManager() = 0;
+  virtual StateManager* getStateManager() = 0;
+  virtual void setSessionStateManager(std::unique_ptr<StateManager> state_manager) = 0;
   virtual gsl::not_null<Configure*> getConfiguration() const = 0;
 };
 

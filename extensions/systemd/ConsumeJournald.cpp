@@ -94,7 +94,7 @@ void ConsumeJournald::onSchedule(core::ProcessContext& context, core::ProcessSes
 }
 
 void ConsumeJournald::onTrigger(core::ProcessContext& context, core::ProcessSession& session) {
-  auto state_manager = session.getStateManager();
+  auto state_manager = context.getStateManager();
   gsl_Expects(state_manager);
   if (!running_.load(std::memory_order_acquire)) return;
   auto cursor_and_messages = getCursorAndMessageBatch().get();

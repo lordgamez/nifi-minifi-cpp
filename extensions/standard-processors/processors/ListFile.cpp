@@ -90,7 +90,7 @@ std::shared_ptr<core::FlowFile> ListFile::createFlowFile(core::ProcessSession& s
 }
 
 void ListFile::onTrigger(core::ProcessContext& context, core::ProcessSession& session) {
-  auto* state_manager = session.getStateManager();
+  auto* state_manager = context.getStateManager();
   if (state_manager == nullptr) {
     logger_->log_error("Failed to get StateManager");
     context.yield();

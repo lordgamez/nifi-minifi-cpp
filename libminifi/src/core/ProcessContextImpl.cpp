@@ -171,6 +171,14 @@ std::unique_ptr<StateManager> ProcessContextImpl::createStateManager() {
   return state_storage_->createStateManager(processor_);
 }
 
+StateManager* ProcessContextImpl::getStateManager() {
+  return session_state_manager_.get();
+}
+
+void ProcessContextImpl::setSessionStateManager(std::unique_ptr<StateManager> state_manager) {
+  session_state_manager_ = std::move(state_manager);
+}
+
 bool ProcessContextImpl::hasIncomingConnections() const {
   return getProcessor().hasIncomingConnections();
 }

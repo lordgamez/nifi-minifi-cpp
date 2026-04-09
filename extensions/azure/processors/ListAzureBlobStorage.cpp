@@ -79,7 +79,7 @@ void ListAzureBlobStorage::onTrigger(core::ProcessContext& context, core::Proces
     return;
   }
 
-  auto* state_manager = session.getStateManager();
+  auto* state_manager = context.getStateManager();
   if (state_manager == nullptr) {
     logger_->log_error("Failed to get StateManager");
     context.yield();

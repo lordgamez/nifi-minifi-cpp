@@ -542,6 +542,7 @@ bool TestPlan::runProcessor(size_t target_location, const PreTriggerVerifier& ve
   processor->setScheduledState(minifi::core::ScheduledState::RUNNING);
 
   if (verify) {
+    context->setSessionStateManager(context->createStateManager());
     auto current_session = std::make_shared<minifi::core::ProcessSessionImpl>(context);
     current_session->setMetrics(processor->getMetrics());
     process_sessions_.push_back(current_session);

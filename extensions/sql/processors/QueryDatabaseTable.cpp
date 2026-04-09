@@ -76,7 +76,7 @@ void QueryDatabaseTable::processOnSchedule(core::ProcessContext& context) {
   initializeMaxValues(context);
 }
 
-void QueryDatabaseTable::processOnTrigger(core::ProcessContext& /*context*/, core::ProcessSession& session) {
+void QueryDatabaseTable::processOnTrigger(core::ProcessContext& context, core::ProcessSession& session) {
   const auto& selectQuery = buildSelectQuery();
 
   logger_->log_info("QueryDatabaseTable: selectQuery: '{}'", selectQuery.c_str());
@@ -111,7 +111,7 @@ void QueryDatabaseTable::processOnTrigger(core::ProcessContext& /*context*/, cor
 
   if (new_max_values != max_values_) {
     max_values_ = new_max_values;
-    saveState(session);
+    saveState(context);
   }
 }
 
@@ -223,13 +223,13 @@ std::string QueryDatabaseTable::buildSelectQuery() {
   return query;
 }
 
-bool QueryDatabaseTable::saveState(core::ProcessSession& session) {
+bool QueryDatabaseTable::saveState(core::ProcessContext& context) {
   std::unordered_map<std::string, std::string> state_map;
   state_map.emplace(TABLENAME_KEY, table_name_);
   for (const auto& item : max_values_) {
     state_map.emplace(MAXVALUE_KEY_PREFIX + item.first.str(), item.second);
   }
-  auto state_manager = session.getStateManager();
+  auto state_manager = context.getStateManager();
   if (state_manager == nullptr) {
     logger_->log_error("Failed to get StateManager");
     return false;

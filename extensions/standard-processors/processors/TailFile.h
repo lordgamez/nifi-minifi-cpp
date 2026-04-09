@@ -266,7 +266,8 @@ class TailFile : public core::ProcessorImpl {
   static std::vector<TailState> sortAndSkipMainFilePrefix(const TailState &state, std::vector<TailStateWithMtime>& matched_files_with_mtime);
   void processFile(core::ProcessSession& session,
                    const std::filesystem::path& full_file_name,
-                   TailState &state);
+                   TailState &state,
+                   core::StateManager* state_manager);
   void processSingleFile(core::ProcessSession& session,
                          const std::filesystem::path& full_file_name,
                          TailState &state);

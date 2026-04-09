@@ -271,7 +271,7 @@ TEST_CASE("Python can store states in StateManager", "[ExecuteScript]") {
   REQUIRE(execute_script->setProperty(ExecuteScript::ScriptBody.name,
       R"(
 def onTrigger(context, session):
-  state_manager = session.getStateManager()
+  state_manager = context.getStateManager()
   state = state_manager.get()
   if state is None:
     state = {}

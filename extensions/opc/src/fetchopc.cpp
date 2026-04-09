@@ -68,7 +68,7 @@ void FetchOPCProcessor::onTrigger(core::ProcessContext& context, core::ProcessSe
   size_t nodes_found = 0;
   size_t variables_found = 0;
 
-  auto* state_manager = session.getStateManager();
+  auto* state_manager = context.getStateManager();
   std::unordered_map<std::string, std::string> state_map;
   state_manager->get(state_map);
 

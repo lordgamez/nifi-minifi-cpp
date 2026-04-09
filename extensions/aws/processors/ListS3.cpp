@@ -151,7 +151,7 @@ void ListS3::onTrigger(core::ProcessContext& context, core::ProcessSession& sess
     return;
   }
 
-  auto* state_manager = session.getStateManager();
+  auto* state_manager = context.getStateManager();
   if (state_manager == nullptr) {
     logger_->log_error("Failed to get StateManager for S3 bucket {}", list_request_params_->bucket);
     context.yield();

@@ -25,16 +25,20 @@
 #include "LuaScriptStateManager.h"
 #include "minifi-cpp/core/ProcessContext.h"
 
+#include "sol/sol.hpp"
+
 namespace org::apache::nifi::minifi::extensions::lua {
 
 class LuaScriptProcessContext {
  public:
-  explicit LuaScriptProcessContext(core::ProcessContext& context);
+  LuaScriptProcessContext(core::ProcessContext& context, sol::state& sol_state);
 
   std::string getProperty(const std::string &name);
+  LuaScriptStateManager getStateManager();
 
  private:
   core::ProcessContext& context_;
+  sol::state& sol_state_;
 };
 
 }  // namespace org::apache::nifi::minifi::extensions::lua

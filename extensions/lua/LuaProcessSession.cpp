@@ -22,8 +22,8 @@
 
 namespace org::apache::nifi::minifi::extensions::lua {
 
-LuaProcessSession::LuaProcessSession(core::ProcessSession& session, sol::state& sol_state)
-    : session_(session), lua_state_(sol_state) {
+LuaProcessSession::LuaProcessSession(core::ProcessSession& session)
+    : session_(session) {
 }
 
 std::shared_ptr<LuaScriptFlowFile> LuaProcessSession::get() {
@@ -113,10 +113,6 @@ void LuaProcessSession::remove(const std::shared_ptr<LuaScriptFlowFile>& script_
   }
 
   session_.remove(flow_file);
-}
-
-LuaScriptStateManager LuaProcessSession::getStateManager() {
-  return LuaScriptStateManager(session_.getStateManager(), lua_state_);
 }
 
 }  // namespace org::apache::nifi::minifi::extensions::lua

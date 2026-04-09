@@ -34,6 +34,7 @@ static PyMethodDef PyProcessContext_methods[] = {  // NOLINT(cppcoreguidelines-a
     {"getDynamicProperty", (PyCFunction) PyProcessContext::getDynamicProperty, METH_VARARGS, nullptr},
     {"getRawDynamicProperty", (PyCFunction) PyProcessContext::getRawDynamicProperty, METH_VARARGS, nullptr},
     {"getDynamicPropertyKeys", (PyCFunction) PyProcessContext::getDynamicPropertyKeys, METH_VARARGS, nullptr},
+    {"getStateManager", (PyCFunction) PyProcessContext::getStateManager, METH_VARARGS, nullptr},
     {"getControllerService", (PyCFunction) PyProcessContext::getControllerService, METH_VARARGS, nullptr},
     {"getName", (PyCFunction) PyProcessContext::getName, METH_VARARGS, nullptr},
     {"getProperties", (PyCFunction) PyProcessContext::getProperties, METH_VARARGS, nullptr},
@@ -187,6 +188,16 @@ PyObject* PyProcessContext::getDynamicPropertyKeys(PyProcessContext* self, PyObj
   }
 
   return object::returnReference(py_properties);
+}
+
+PyObject* PyProcessContext::getStateManager(PyProcessContext* self, PyObject*) {
+  auto context = self->process_context_;
+  if (!context) {
+    PyErr_SetString(PyExc_AttributeError, "tried reading process context outside 'on_trigger'");
+    return nullptr;
+  }
+
+  return object::returnReference(context->getStateManager());
 }
 
 PyObject* PyProcessContext::getControllerService(PyProcessContext* self, PyObject* args) {

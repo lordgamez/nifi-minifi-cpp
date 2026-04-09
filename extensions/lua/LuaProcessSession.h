@@ -31,7 +31,7 @@ namespace org::apache::nifi::minifi::extensions::lua {
 
 class LuaProcessSession {
  public:
-  explicit LuaProcessSession(core::ProcessSession& session, sol::state& sol_state);
+  explicit LuaProcessSession(core::ProcessSession& session);
 
   std::shared_ptr<LuaScriptFlowFile> get();
   std::shared_ptr<LuaScriptFlowFile> create();
@@ -50,12 +50,10 @@ class LuaProcessSession {
    * of repository resources.
    */
   void releaseCoreResources();
-  LuaScriptStateManager getStateManager();
 
  private:
   std::vector<std::shared_ptr<LuaScriptFlowFile>> flow_files_;
   core::ProcessSession& session_;
-  sol::state& lua_state_;
 };
 
 }  // namespace org::apache::nifi::minifi::extensions::lua

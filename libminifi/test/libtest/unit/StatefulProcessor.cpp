@@ -39,9 +39,9 @@ void StatefulProcessor::onSchedule(core::ProcessContext& context, core::ProcessS
   state_manager_ = nullptr;
 }
 
-void StatefulProcessor::onTrigger(core::ProcessContext&, core::ProcessSession& session) {
+void StatefulProcessor::onTrigger(core::ProcessContext& context, core::ProcessSession& session) {
   std::lock_guard<std::mutex> lock(mutex_);
-  state_manager_ = session.getStateManager();
+  state_manager_ = context.getStateManager();
   if (on_trigger_hook_index_ < on_trigger_hooks_.size()) {
     on_trigger_hooks_[on_trigger_hook_index_++](*state_manager_);
   }

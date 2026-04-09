@@ -166,7 +166,7 @@ void PushGrafanaLoki::processBatch(const std::vector<std::shared_ptr<core::FlowF
 }
 
 void PushGrafanaLoki::onTrigger(core::ProcessContext& context, core::ProcessSession& session) {
-  log_batch_.setStateManager(session.getStateManager());
+  log_batch_.setStateManager(context.getStateManager());
   uint64_t flow_files_read = 0;
   std::vector<std::shared_ptr<core::FlowFile>> to_be_transferred_flow_files;
   while (!max_batch_size_ || *max_batch_size_ == 0 || flow_files_read < *max_batch_size_) {

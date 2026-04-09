@@ -416,7 +416,7 @@ void ListSFTP::listByTrackingTimestamps(
     const std::string& username,
     const std::string& remote_path,
     std::vector<Child> files) {
-  auto* state_manager = session.getStateManager();
+  auto* state_manager = context.getStateManager();
   auto min_timestamp_to_list = last_listed_latest_entry_timestamp_;
 
   /* Load state from cache file if needed */
@@ -673,7 +673,7 @@ void ListSFTP::listByTrackingEntities(
     const std::string& remote_path,
     std::chrono::milliseconds entity_tracking_time_window,
     std::vector<Child> files) {
-  auto* state_manager = session.getStateManager();
+  auto* state_manager = context.getStateManager();
   /* Load state from cache file if needed */
   if (!already_loaded_from_cache_) {
     if (updateFromTrackingEntitiesCache(*state_manager, hostname, username, remote_path)) {

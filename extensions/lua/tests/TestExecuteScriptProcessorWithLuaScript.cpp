@@ -328,7 +328,7 @@ TEST_CASE("Lua can store states in StateManager", "[ExecuteScript]") {
   REQUIRE(execute_script->setProperty(ExecuteScript::ScriptBody.name,
       R"(
         function onTrigger(context, session)
-          state_manager = session:getStateManager()
+          state_manager = context:getStateManager()
           state = state_manager:get()
           if state == nil then
             state = {}
