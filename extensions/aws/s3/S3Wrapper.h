@@ -263,8 +263,7 @@ class S3Wrapper {
   std::optional<std::vector<MultipartUpload>> listMultipartUploads(const ListMultipartUploadsRequestParameters& params);
   bool abortMultipartUpload(const AbortMultipartUploadRequestParameters& params);
   void ageOffLocalS3MultipartUploadStates(std::chrono::milliseconds multipart_upload_max_age_threshold);
-  void initializeMultipartUploadStateStorage();
-  void setMultipartUploadStateManager(gsl::not_null<minifi::core::StateManager*> state_manager);
+  void initializeMultipartUploadStateStorage(gsl::not_null<minifi::core::StateManager*> state_manager);
 
   virtual ~S3Wrapper() = default;
 

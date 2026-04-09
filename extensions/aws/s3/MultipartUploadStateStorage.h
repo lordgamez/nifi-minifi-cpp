@@ -55,11 +55,8 @@ struct MultipartUploadState {
 
 class MultipartUploadStateStorage {
  public:
-  MultipartUploadStateStorage() = default;
-
-  void setStateManager(gsl::not_null<core::StateManager*> state_manager) {
-    std::lock_guard lock(state_manager_mutex_);
-    state_manager_ = state_manager;
+  explicit MultipartUploadStateStorage(gsl::not_null<core::StateManager*> state_manager)
+    : state_manager_(state_manager) {
   }
 
   void storeState(const std::string& bucket, const std::string& key, const MultipartUploadState& state);

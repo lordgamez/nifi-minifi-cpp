@@ -97,8 +97,6 @@ void PutS3Object::onSchedule(core::ProcessContext& context, core::ProcessSession
   logger_->log_debug("PutS3Object: Checksum Algorithm {}", magic_enum::enum_name(checksum_algorithm_));
 
   fillUserMetadata(context);
-
-  s3_wrapper_.initializeMultipartUploadStateStorage();
 }
 
 std::string PutS3Object::parseAccessControlList(const std::string &comma_separated_list) {
@@ -262,7 +260,7 @@ void PutS3Object::onTrigger(core::ProcessContext& context, core::ProcessSession&
   logger_->log_trace("PutS3Object onTrigger");
   auto* state_manager = session.getStateManager();
   if (state_manager != nullptr) {
-    s3_wrapper_.setMultipartUploadStateManager(gsl::make_not_null(state_manager));
+    s3_wrapper_.initializeMultipartUploadStateStorage(gsl::make_not_null(state_manager));
   }
   std::shared_ptr<core::FlowFile> flow_file = session.get();
   if (!flow_file) {

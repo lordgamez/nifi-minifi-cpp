@@ -38,8 +38,7 @@ class MultipartUploadStateStorageTestFixture {
       .logger = logging::LoggerFactory<minifi::controllers::VolatileMapStateStorage>::getLogger(storage_uuid)
     });
     state_manager_ = std::make_unique<minifi::controllers::KeyValueStateManager>(minifi::utils::IdGenerator::getIdGenerator()->generate(), gsl::make_not_null(state_storage_.get()));
-    upload_storage_ = std::make_unique<minifi::aws::s3::MultipartUploadStateStorage>();
-    upload_storage_->setStateManager(gsl::make_not_null(state_manager_.get()));
+    upload_storage_ = std::make_unique<minifi::aws::s3::MultipartUploadStateStorage>(gsl::make_not_null(state_manager_.get()));
   }
 
  protected:
