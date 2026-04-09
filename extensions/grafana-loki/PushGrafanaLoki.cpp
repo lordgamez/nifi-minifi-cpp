@@ -77,7 +77,7 @@ void PushGrafanaLoki::LogBatch::setStartPushTime(std::chrono::system_clock::time
 
 const core::Relationship PushGrafanaLoki::Self("__self__", "Marks the FlowFile to be owned by this processor");
 
-void PushGrafanaLoki::setUpStateManager(core::ProcessContext& context) {
+void PushGrafanaLoki::restoreStartPushTime(core::ProcessContext& context) {
   auto state_manager = context.createStateManager();
   if (state_manager == nullptr) {
     throw Exception(PROCESSOR_EXCEPTION, "Failed to get StateManager");
@@ -115,7 +115,7 @@ std::map<std::string, std::string> PushGrafanaLoki::buildStreamLabelMap(core::Pr
 }
 
 void PushGrafanaLoki::onSchedule(core::ProcessContext& context, core::ProcessSessionFactory&) {
-  setUpStateManager(context);
+  restoreStartPushTime(context);
   setUpStreamLabels(context);
 
   if (auto log_line_metadata_attributes = context.getProperty(LogLineMetadataAttributes)) {

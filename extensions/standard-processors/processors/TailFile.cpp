@@ -245,7 +245,6 @@ void TailFile::onSchedule(core::ProcessContext& context, core::ProcessSessionFac
   if (temp_state_manager == nullptr) {
     throw Exception(PROCESSOR_EXCEPTION, "Failed to get StateManager");
   }
-  state_manager_ = temp_state_manager.get();
 
   const auto result_format = utils::parseEnumProperty<TailResultFormat>(context, ResultFormat);
   if (auto delimiter_str = context.getProperty(Delimiter)) {
@@ -288,7 +287,7 @@ void TailFile::onSchedule(core::ProcessContext& context, core::ProcessSessionFac
     recursive_lookup_ = utils::parseBoolProperty(context, RecursiveLookup);
     lookup_frequency_ = utils::parseDurationProperty(context, LookupFrequency);
 
-    recoverState(context);
+    recoverState(temp_state_manager.get(), context);
 
     doMultifileLookup(context);
 
@@ -303,7 +302,7 @@ void TailFile::onSchedule(core::ProcessContext& context, core::ProcessSessionFac
       throw minifi::Exception(ExceptionType::PROCESSOR_EXCEPTION, "File to tail must be a fully qualified file");
     }
 
-    recoverState(context);
+    recoverState(temp_state_manager.get(), context);
   }
 
   std::string rolling_filename_pattern_glob = utils::parseProperty(context, RollingFilenamePattern);
@@ -311,7 +310,6 @@ void TailFile::onSchedule(core::ProcessContext& context, core::ProcessSessionFac
   initial_start_position_ = utils::parseEnumProperty<InitialStartPositions>(context, InitialStartPosition);
   batch_size_ = gsl::narrow<uint32_t>(utils::parseU64Property(context, BatchSize));
   if (batch_size_ == 0) { batch_size_.reset(); }
-  state_manager_ = nullptr;
 }
 
 void TailFile::parseStateFileLine(char *buf, std::map<std::filesystem::path, TailState> &state) const {
@@ -383,9 +381,9 @@ void TailFile::parseStateFileLine(char *buf, std::map<std::filesystem::path, Tai
   }
 }
 
-bool TailFile::recoverState(const core::ProcessContext& context) {
+bool TailFile::recoverState(core::StateManager* state_manager, const core::ProcessContext& context) {
   std::map<std::filesystem::path, TailState> new_tail_states;
-  bool state_load_success = getStateFromStateManager(new_tail_states) ||
+  bool state_load_success = getStateFromStateManager(state_manager, new_tail_states) ||
                             getStateFromLegacyStateFile(context, new_tail_states);
   if (!state_load_success) {
     return false;
@@ -407,14 +405,14 @@ bool TailFile::recoverState(const core::ProcessContext& context) {
   }
 
   logState();
-  storeState();
+  storeState(state_manager);
 
   return true;
 }
 
-bool TailFile::getStateFromStateManager(std::map<std::filesystem::path, TailState> &new_tail_states) const {
+bool TailFile::getStateFromStateManager(core::StateManager* state_manager, std::map<std::filesystem::path, TailState> &new_tail_states) const {
   std::unordered_map<std::string, std::string> state_map;
-  if (state_manager_->get(state_map)) {
+  if (state_manager->get(state_map)) {
     for (size_t i = 0U;; ++i) {
       if (!state_map.contains("file." + std::to_string(i) + ".name")) {
         break;
@@ -485,7 +483,7 @@ std::ostream& operator<<(std::ostream &os, const TailState &tail_state) {
   return os;
 }
 
-bool TailFile::storeState() const {
+bool TailFile::storeState(core::StateManager* state_manager) const {
   std::unordered_map<std::string, std::string> state;
   size_t i = 0;
   for (const auto& tail_state : tail_states_) {
@@ -496,7 +494,7 @@ bool TailFile::storeState() const {
     state["file." + std::to_string(i) + ".last_read_time"] = std::to_string(tail_state.second.lastReadTimeInMilliseconds());
     ++i;
   }
-  if (!state_manager_->set(state)) {
+  if (!state_manager->set(state)) {
     logger_->log_error("Failed to set state");
     return false;
   }
@@ -582,8 +580,6 @@ std::vector<TailState> TailFile::sortAndSkipMainFilePrefix(const TailState &stat
 }
 
 void TailFile::onTrigger(core::ProcessContext& context, core::ProcessSession& session) {
-  state_manager_ = session.getStateManager();
-
   if (tail_mode_ == Mode::MULTIPLE) {
     if (last_multifile_lookup_ + lookup_frequency_ < std::chrono::steady_clock::now()) {
       logger_->log_debug("Lookup frequency {} have elapsed, doing new multifile lookup", lookup_frequency_);
@@ -620,7 +616,7 @@ void TailFile::processFile(core::ProcessSession& session,
       state.position_ = utils::file::file_size(full_file_name);
       state.last_read_time_ = std::chrono::file_clock::now();
       state.checksum_ = utils::file::computeChecksum(full_file_name, state.position_);
-      storeState();
+      storeState(session.getStateManager());
       return;
     }
   } else {
@@ -634,7 +630,7 @@ void TailFile::processFile(core::ProcessSession& session,
   }
 
   processSingleFile(session, full_file_name, state);
-  storeState();
+  storeState(session.getStateManager());
 }
 
 void TailFile::processRotatedFilesAfterLastReadTime(core::ProcessSession& session, TailState &state) {

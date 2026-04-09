@@ -92,7 +92,9 @@ std::shared_ptr<core::FlowFile> ListFile::createFlowFile(core::ProcessSession& s
 void ListFile::onTrigger(core::ProcessContext& context, core::ProcessSession& session) {
   auto* state_manager = session.getStateManager();
   if (state_manager == nullptr) {
-    throw Exception(PROCESSOR_EXCEPTION, "Failed to get StateManager");
+    logger_->log_error("Failed to get StateManager");
+    context.yield();
+    return;
   }
   minifi::utils::ListingStateManager listing_state_manager(gsl::make_not_null(state_manager));
   auto stored_listing_state = listing_state_manager.getCurrentState();

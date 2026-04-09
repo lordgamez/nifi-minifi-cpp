@@ -176,6 +176,7 @@ void ConsumeWindowsEventLog::onSchedule(core::ProcessContext& context, core::Pro
 
   provenanceUri_ = "winlog://" + computerName_ + "/" + path_.str() + "?" + query;
   logger_->log_trace("Successfully configured CWEL");
+  bookmark_->setStateManager(nullptr);
   state_manager_ = nullptr;
 }
 
@@ -252,9 +253,9 @@ std::tuple<size_t, std::wstring> ConsumeWindowsEventLog::processEventLogs(core::
 }
 
 void ConsumeWindowsEventLog::onTrigger(core::ProcessContext& context, core::ProcessSession& session) {
-  state_manager_ = session.getStateManager();
+  auto state_manager = session.getStateManager();
   if (bookmark_) {
-    bookmark_->setStateManager(state_manager_);
+    bookmark_->setStateManager(state_manager);
   }
 
   std::unique_lock<std::mutex> lock(on_trigger_mutex_, std::try_to_lock);

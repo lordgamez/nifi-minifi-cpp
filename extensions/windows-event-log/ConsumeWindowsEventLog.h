@@ -224,7 +224,6 @@ class ConsumeWindowsEventLog : public core::ProcessorImpl {
   std::tuple<size_t, std::wstring> processEventLogs(core::ProcessSession& session, EVT_HANDLE event_query_results);
   std::unique_ptr<wel::Bookmark> createBookmark(const core::ProcessContext& context) const;
 
-  core::StateManager* state_manager_{nullptr};
   wel::HeaderNames header_names_;
   std::optional<std::string> header_delimiter_;
   wel::EventPath path_;

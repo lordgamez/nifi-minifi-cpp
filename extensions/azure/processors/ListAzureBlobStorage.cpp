@@ -81,7 +81,9 @@ void ListAzureBlobStorage::onTrigger(core::ProcessContext& context, core::Proces
 
   auto* state_manager = session.getStateManager();
   if (state_manager == nullptr) {
-    throw Exception(PROCESSOR_EXCEPTION, "Failed to get StateManager");
+    logger_->log_error("Failed to get StateManager");
+    context.yield();
+    return;
   }
   minifi::utils::ListingStateManager listing_state_manager(gsl::make_not_null(state_manager));
 

@@ -48,7 +48,8 @@ LuaScriptEngine::LuaScriptEngine() {
       "read", &LuaProcessSession::read,
       "write", &LuaProcessSession::write,
       "transfer", &LuaProcessSession::transfer,
-      "remove", &LuaProcessSession::remove);
+      "remove", &LuaProcessSession::remove,
+      "getStateManager", &LuaProcessSession::getStateManager);
   lua_.new_usertype<LuaScriptFlowFile>(
       "FlowFile",
       "getAttribute", &LuaScriptFlowFile::getAttribute,
@@ -63,8 +64,7 @@ LuaScriptEngine::LuaScriptEngine() {
       "OutputStream",
       "write", &LuaOutputStream::write);
   lua_.new_usertype<LuaScriptProcessContext>(
-      "ProcessContext",
-      "getStateManager", &LuaScriptProcessContext::getStateManager);
+      "ProcessContext");
   lua_.new_usertype<LuaScriptStateManager>(
       "StateManager",
       "set", &LuaScriptStateManager::set,
@@ -141,8 +141,8 @@ class TriggerSession {
 }  // namespace
 
 void LuaScriptEngine::onTrigger(core::ProcessContext& context, core::ProcessSession& session) {
-  auto script_context = std::make_shared<LuaScriptProcessContext>(context, lua_);
-  auto lua_session = std::make_shared<LuaProcessSession>(session);
+  auto script_context = std::make_shared<LuaScriptProcessContext>(context);
+  auto lua_session = std::make_shared<LuaProcessSession>(session, lua_);
   TriggerSession trigger_session(script_context, lua_session);
   call("onTrigger", script_context, lua_session);
 }

@@ -32,6 +32,9 @@ namespace {
 class Fixture {
  public:
   explicit Fixture(TestController::PlanConfig config = {}): plan_config_(std::move(config)) {}
+  ~Fixture() {
+    process_session_->getStateManager()->commit();
+  }
 
   [[nodiscard]] minifi::core::ProcessSession& processSession() const { return *process_session_; }
 
