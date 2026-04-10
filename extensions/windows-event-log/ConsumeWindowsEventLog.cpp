@@ -131,7 +131,11 @@ void ConsumeWindowsEventLog::onSchedule(core::ProcessContext& context, core::Pro
   if (temp_state_manager == nullptr) {
     throw Exception(PROCESSOR_EXCEPTION, "Failed to get StateManager");
   }
-  state_manager_ = temp_state_manager.get();
+  const auto clear_state_manager = gsl::finally([&]() {
+    if (bookmark_) {
+      bookmark_->setStateManager(nullptr);
+    }
+  });
 
   resolve_as_attributes_ = utils::parseBoolProperty(context, ResolveAsAttributes);
   apply_identifier_function_ = utils::parseBoolProperty(context, IdentifierFunction);
@@ -165,7 +169,7 @@ void ConsumeWindowsEventLog::onSchedule(core::ProcessContext& context, core::Pro
   wstr_query_ = utils::to_wstring(query);
 
   if (!bookmark_) {
-    bookmark_ = createBookmark(context);
+    bookmark_ = createBookmark(context, temp_state_manager.get());
   }
 
   max_buffer_size_ = utils::parseDataSizeProperty(context, MaxBufferSize);
@@ -176,29 +180,32 @@ void ConsumeWindowsEventLog::onSchedule(core::ProcessContext& context, core::Pro
 
   provenanceUri_ = "winlog://" + computerName_ + "/" + path_.str() + "?" + query;
   logger_->log_trace("Successfully configured CWEL");
-  bookmark_->setStateManager(nullptr);
-  state_manager_ = nullptr;
 }
 
-std::unique_ptr<wel::Bookmark> ConsumeWindowsEventLog::createBookmark(const core::ProcessContext& context) const {
+std::unique_ptr<wel::Bookmark> ConsumeWindowsEventLog::createBookmark(const core::ProcessContext& context, core::StateManager* state_manager) const {
   std::string bookmark_dir = context.getProperty(BookmarkRootDirectory).value_or("");
   if (bookmark_dir.empty()) {
     logger_->log_error("State Directory is empty");
     throw Exception(PROCESS_SCHEDULE_EXCEPTION, "State Directory is empty");
   }
   bool process_old_events = utils::parseBoolProperty(context, ProcessOldEvents);
-  auto bookmark = std::make_unique<wel::Bookmark>(path_, wstr_query_, bookmark_dir, getUUID(), process_old_events, state_manager_, logger_);
+  auto bookmark = std::make_unique<wel::Bookmark>(path_, wstr_query_, bookmark_dir, getUUID(), process_old_events, state_manager, logger_);
   if (!bookmark->isValid()) {
     throw Exception(PROCESS_SCHEDULE_EXCEPTION, "Bookmark is empty");
   }
   return bookmark;
 }
 
-bool ConsumeWindowsEventLog::commitAndSaveBookmark(const std::wstring &bookmark_xml, core::ProcessContext& context, core::ProcessSession& session) {
+bool ConsumeWindowsEventLog::commitAndSaveBookmark(const std::wstring &bookmark_xml, core::ProcessContext& context, core::ProcessSession& session, core::StateManager* /*state_manager*/) {
   {
     const auto time_diff = createTimer();
     session.commit();
-    state_manager_->beginTransaction();
+    // session.commit() destroys the session's StateManager so we must create a new one before starting a new transaction.
+    context.setSessionStateManager(context.createStateManager());
+    auto* state_manager = context.getStateManager();
+    if (state_manager) {
+      bookmark_->setStateManager(state_manager);
+    }
     logger_->log_debug("ConsumeWindowsEventLog: commit took {}", time_diff());
   }
 
@@ -253,6 +260,11 @@ std::tuple<size_t, std::wstring> ConsumeWindowsEventLog::processEventLogs(core::
 }
 
 void ConsumeWindowsEventLog::onTrigger(core::ProcessContext& context, core::ProcessSession& session) {
+  const auto clear_state_manager = gsl::finally([&]() {
+    if (bookmark_) {
+      bookmark_->setStateManager(nullptr);
+    }
+  });
   auto state_manager = context.getStateManager();
   if (bookmark_) {
     bookmark_->setStateManager(state_manager);
@@ -306,7 +318,7 @@ void ConsumeWindowsEventLog::onTrigger(core::ProcessContext& context, core::Proc
   std::wstring bookmark_xml;
   std::tie(processed_event_count, bookmark_xml) = processEventLogs(session, event_query_results.get());
 
-  if (processed_event_count == 0 || !commitAndSaveBookmark(bookmark_xml, context, session)) {
+  if (processed_event_count == 0 || !commitAndSaveBookmark(bookmark_xml, context, session, state_manager)) {
     context.yield();
     return;
   }
