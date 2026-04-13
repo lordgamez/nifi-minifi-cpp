@@ -44,6 +44,11 @@ class XMLRecordSetWriterTestFixture {
     process_session_ = std::make_unique<core::ProcessSessionImpl>(context_);
   }
 
+  XMLRecordSetWriterTestFixture(const XMLRecordSetWriterTestFixture&) = delete;
+  XMLRecordSetWriterTestFixture& operator=(const XMLRecordSetWriterTestFixture&) = delete;
+  XMLRecordSetWriterTestFixture(XMLRecordSetWriterTestFixture&&) = delete;
+  XMLRecordSetWriterTestFixture& operator=(XMLRecordSetWriterTestFixture&&) = delete;
+
   ~XMLRecordSetWriterTestFixture() {
     if (!commit_called_) {
       process_session_->rollback();

@@ -65,8 +65,8 @@ std::shared_ptr<utils::IdGenerator> ProcessSessionImpl::id_generator_ = utils::I
 
 ProcessSessionImpl::ProcessSessionImpl(std::shared_ptr<ProcessContext> processContext)
         : process_context_(std::move(processContext)),
-          logger_(logging::LoggerFactory<ProcessSession>::getLogger()) {
-  stateManager_ = process_context_->getStateManager();
+          logger_(logging::LoggerFactory<ProcessSession>::getLogger()),
+          stateManager_(process_context_->getStateManager()) {
   logger_->log_trace("ProcessSession created for {}", process_context_->getProcessor().getName());
   auto repo = process_context_->getProvenanceRepository();
   provenance_report_ = std::make_shared<provenance::ProvenanceReporterImpl>(repo, process_context_->getProcessor().getName(), process_context_->getProcessor().getName());
