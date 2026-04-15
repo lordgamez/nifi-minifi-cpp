@@ -127,12 +127,21 @@ struct RequestParameters {
   Aws::Client::ClientConfiguration client_config;
 
   void setClientConfig(const minifi::controllers::ProxyConfiguration& proxy, const std::string& endpoint_override_url) {
-    client_config.proxyHost = proxy.proxy_host;
+    client_config.endpointOverride = endpoint_override_url;
+    if (proxy.proxy_type == minifi::controllers::ProxyType::DIRECT) {
+      return;
+    }
+    client_config.proxyScheme = minifi::utils::string::startsWith(proxy.proxy_host, "https") ? Aws::Http::Scheme::HTTPS : Aws::Http::Scheme::HTTP;
+    auto proxy_host = proxy.proxy_host;
+    if (minifi::utils::string::startsWith(proxy_host, "https://")) {
+      proxy_host = proxy_host.substr(8);
+    } else if (minifi::utils::string::startsWith(proxy_host, "http://")) {
+      proxy_host = proxy_host.substr(7);
+    }
+    client_config.proxyHost = proxy_host;
     client_config.proxyPort = proxy.proxy_port.value_or(0);
     client_config.proxyUserName = proxy.proxy_user.value_or("");
     client_config.proxyPassword = proxy.proxy_password.value_or("");
-    client_config.proxyScheme = proxy.proxy_type == minifi::controllers::ProxyType::HTTPS ? Aws::Http::Scheme::HTTPS : Aws::Http::Scheme::HTTP;
-    client_config.endpointOverride = endpoint_override_url;
   }
 };
 
