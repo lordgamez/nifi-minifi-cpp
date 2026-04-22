@@ -57,7 +57,7 @@ class HttpProxy(Container):
             context=context
         )
 
-    @retry_check(10, 1)
+    @retry_check(20, 1)
     def check_http_proxy_access(self, url):
         (code, output) = self.exec_run(["cat", "/var/log/squid/access.log"])
         return code == 0 and url.lower() in output.lower() \

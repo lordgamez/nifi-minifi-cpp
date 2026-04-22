@@ -91,6 +91,7 @@ Feature: Sending data from MiNiFi-C++ to an AWS server
     And a PutFile processor with the "Directory" property set to "/tmp/output"
     And the "success" relationship of the GetFile processor is connected to the DeleteS3Object
     And the "success" relationship of the DeleteS3Object processor is connected to the PutFile
+    And PutFile's success relationship is auto-terminated
 
     And the s3 server starts up
 
@@ -156,6 +157,7 @@ Feature: Sending data from MiNiFi-C++ to an AWS server
     And a directory at "/tmp/input" has a file with the content "test"
     And a PutS3Object processor set up to communicate with an s3 server
     And the "success" relationship of the GetFile processor is connected to the PutS3Object
+    And PutS3Object's success relationship is auto-terminated
 
     Given a GenerateFlowFile processor with the "File Size" property set to "1 kB"
     And a FetchS3Object processor set up to communicate with the same s3 server
@@ -170,6 +172,8 @@ Feature: Sending data from MiNiFi-C++ to an AWS server
       | source name      | relationship name | destination name |
       | GenerateFlowFile | success           | FetchS3Object    |
       | FetchS3Object    | success           | PutFile          |
+      | PutFile          | success           | auto-terminated  |
+      | PutFile          | failure           | auto-terminated  |
 
     And the s3 server starts up
     And the http proxy server is set up
@@ -188,10 +192,12 @@ Feature: Sending data from MiNiFi-C++ to an AWS server
     And a PutS3Object processor set up to communicate with an s3 server
     And the "Object Key" property of the PutS3Object processor is set to "${filename}"
     And the "success" relationship of the GetFile processor is connected to the PutS3Object
+    And PutS3Object's success relationship is auto-terminated
 
     Given a ListS3 processor set up to communicate with the same s3 server
     And a PutFile processor with the "Directory" property set to "/tmp/output"
     And the "success" relationship of the ListS3 processor is connected to the PutFile
+    And PutFile's success relationship is auto-terminated
 
     And the s3 server starts up
 
@@ -214,6 +220,7 @@ Feature: Sending data from MiNiFi-C++ to an AWS server
       | ListS3         | Proxy Password | test101                         |
     And a PutFile processor with the "Directory" property set to "/tmp/output"
     And the "success" relationship of the ListS3 processor is connected to the PutFile
+    And PutFile's success relationship is auto-terminated
 
     And the s3 server starts up
     And the http proxy server is set up
@@ -232,6 +239,7 @@ Feature: Sending data from MiNiFi-C++ to an AWS server
     And the "success" relationship of the GetFile processor is connected to the PutS3Object
     And a PutFile processor with the "Directory" property set to "/tmp/output"
     And the "success" relationship of the PutS3Object processor is connected to the PutFile
+    And PutFile's success relationship is auto-terminated
     And the s3 server starts up
 
     When the MiNiFi instance starts up
@@ -255,6 +263,7 @@ Feature: Sending data from MiNiFi-C++ to an AWS server
     And the "success" relationship of the GetFile processor is connected to the PutS3Object
     And a PutFile processor with the "Directory" property set to "/tmp/output"
     And the "success" relationship of the PutS3Object processor is connected to the PutFile
+    And PutFile's success relationship is auto-terminated
 
     And the s3 server starts up
     And the http proxy server is set up
