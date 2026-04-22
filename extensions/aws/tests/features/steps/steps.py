@@ -60,14 +60,14 @@ def start_s3_server(context: MinifiTestContext):
 def verify_s3_object_data(context: MinifiTestContext, object_data: str):
     s3_server_container = context.containers["s3-server"]
     assert isinstance(s3_server_container, S3ServerContainer)
-    assert s3_server_container.check_s3_server_object_data(object_data)
+    assert s3_server_container.check_s3_server_object_data(object_data) or log_due_to_failure(context)
 
 
 @step('the object content type on the s3 server is "{content_type}" and the object metadata matches use metadata')
 def verify_s3_object_content_type_and_metadata(context: MinifiTestContext, content_type: str):
     s3_server_container = context.containers["s3-server"]
     assert isinstance(s3_server_container, S3ServerContainer)
-    assert s3_server_container.check_s3_server_object_metadata(content_type)
+    assert s3_server_container.check_s3_server_object_metadata(content_type) or log_due_to_failure(context)
 
 
 @step("the object bucket on the s3 server is empty in less than 10 seconds")
@@ -84,7 +84,7 @@ def verify_s3_object_hash_matches(context):
     s3_server_container = context.containers["s3-server"]
 
     assert isinstance(s3_server_container, S3ServerContainer)
-    assert s3_server_container.check_s3_server_object_hash(context.original_hash)
+    assert s3_server_container.check_s3_server_object_hash(context.original_hash) or log_due_to_failure(context)
 
 
 def computeMD5hash(my_string):
