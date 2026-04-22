@@ -22,6 +22,9 @@
 #include <chrono>
 #include <functional>
 
+#include "minifi-cpp/core/logging/Logger.h"
+#include "core/logging/LoggerFactory.h"
+
 namespace org::apache::nifi::minifi::utils {
 
 class CallBackTimer {
@@ -44,6 +47,7 @@ class CallBackTimer {
   std::condition_variable cv_;
 
   const std::chrono::milliseconds interval_;
+  std::shared_ptr<core::logging::Logger> logger_ = core::logging::LoggerFactory<CallBackTimer>::getLogger();
 };
 
 }  // namespace org::apache::nifi::minifi::utils

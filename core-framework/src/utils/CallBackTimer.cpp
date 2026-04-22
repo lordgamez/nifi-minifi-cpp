@@ -25,17 +25,23 @@ CallBackTimer::CallBackTimer(std::chrono::milliseconds interval, const std::func
 }
 
 CallBackTimer::~CallBackTimer() {
+  logger_->log_debug("Stopping CallBackTimer in destructor");
   stop();
+  logger_->log_debug("Acquiring lock for CallBackTimer thread in destructor");
   std::lock_guard<std::mutex> guard(mtx_);
+  logger_->log_debug("Joining CallBackTimer thread in destructor");
   if (thd_.joinable()) {
     thd_.join();
   }
 }
 
 void CallBackTimer::stop() {
+  logger_->log_debug("Stopping CallBackTimer");
   std::lock_guard<std::mutex> guard(mtx_);
   {
+    logger_->log_debug("Acquiring lock to stop CallBackTimer");
     std::lock_guard<std::mutex> cv_guard(cv_mtx_);
+    logger_->log_debug("Checking if CallBackTimer is already stopped");
     if (!execute_) {
       return;
     }
@@ -45,24 +51,31 @@ void CallBackTimer::stop() {
 }
 
 void CallBackTimer::start() {
+  logger_->log_debug("Starting CallBackTimer");
   std::lock_guard<std::mutex> guard(mtx_);
   {
+    logger_->log_debug("Acquiring lock to start CallBackTimer");
     std::lock_guard<std::mutex> cv_guard(cv_mtx_);
 
+    logger_->log_debug("Checking if CallBackTimer is already running");
     if (execute_) {
       return;
     }
   }
 
+  logger_->log_debug("Joining CallBackTimer thread");
   if (thd_.joinable()) {
     thd_.join();
   }
 
   {
+    logger_->log_debug("Acquiring lock to set CallBackTimer as running");
     std::lock_guard<std::mutex> cv_guard(cv_mtx_);
+    logger_->log_debug("Setting CallBackTimer as running");
     execute_ = true;
   }
 
+  logger_->log_debug("Starting CallBackTimer thread");
   thd_ = std::thread([this]() {
                        std::unique_lock<std::mutex> lk(cv_mtx_);
                        while (execute_) {
@@ -77,7 +90,9 @@ void CallBackTimer::start() {
 }
 
 bool CallBackTimer::is_running() const {
+  logger_->log_debug("Acquiring lock to check if CallBackTimer is running");
   std::lock_guard<std::mutex> guard(mtx_);
+  logger_->log_debug("Checking if CallBackTimer is running");
   return execute_ && thd_.joinable();
 }
 

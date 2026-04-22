@@ -133,6 +133,7 @@ void ProcessGroup::startProcessingProcessors(TimerDrivenSchedulingAgent& timeSch
     try {
       logger_->log_debug("Starting {}", processor->getName());
       processor->setScheduledState(core::ScheduledState::RUNNING);
+      logger_->log_debug("Scheduling {} with scheduling strategy", processor->getName());
       switch (processor->getSchedulingStrategy()) {
         case TIMER_DRIVEN:
           timeScheduler.schedule(processor);
@@ -217,13 +218,16 @@ void ProcessGroup::stopProcessing(TimerDrivenSchedulingAgent& timeScheduler, Eve
                                   CronDrivenSchedulingAgent& cronScheduler, const std::function<bool(const Processor*)>& filter) {
   std::set<Processor*> processors;
   {
+    logger_->log_debug("Acquiring lock to get processors for stopping in process group {}", name_);
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     for (const auto &processor : processors_) {
       processors.insert(processor.get());
     }
   }
 
+  logger_->log_debug("Got {} processors to stop in process group {}", processors.size(), name_);
   if (onScheduleTimer_) {
+    logger_->log_debug("Stopping on schedule timer for process group {}", name_);
     onScheduleTimer_->stop();
   }
 

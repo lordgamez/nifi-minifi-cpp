@@ -71,15 +71,18 @@ void ThreadedSchedulingAgent::schedule(core::Processor* processor) {
     return;
   }
 
+  logger_->log_debug("Scheduling threads for processor {}/{}", processor->getName(), processor->getUUIDStr());
   auto state_storage = core::ProcessContextImpl::getStateStorage(logger_, controller_service_provider_, configure_);
   auto process_context = std::make_shared<core::ProcessContextImpl>(*processor, controller_service_provider_, state_storage, repo_, flow_repo_, configure_, content_repo_);
 
   auto session_factory = std::make_shared<core::ProcessSessionFactoryImpl>(process_context);
 
+  logger_->log_debug("Calling onSchedule for processor {}/{}", processor->getName(), processor->getUUIDStr());
   processor->onSchedule(*process_context, *session_factory);
 
   ThreadedSchedulingAgent *agent = this;
   for (uint8_t i = 0; i < processor->getMaxConcurrentTasks(); i++) {
+    logger_->log_debug("In loop for scheduling thread {} for processor {}/{}", i, processor->getName(), processor->getUUIDStr());
     processor->incrementActiveTasks();
     auto thread_process_context = std::make_shared<core::ProcessContextImpl>(*processor, controller_service_provider_, state_storage, repo_, flow_repo_, configure_, content_repo_);
     auto thread_session_factory = std::make_shared<core::ProcessSessionFactoryImpl>(thread_process_context);
@@ -88,6 +91,7 @@ void ThreadedSchedulingAgent::schedule(core::Processor* processor) {
     };
 
     std::future<utils::TaskRescheduleInfo> future;
+    logger_->log_debug("Submitting thread {} for processor {}/{} to thread pool", i, processor->getName(), processor->getUUIDStr());
     thread_pool_.execute(utils::Worker{f_ex, processor->getUUIDStr()}, future);
   }
   logger_->log_debug("Scheduled thread {} concurrent workers for for process {}", processor->getMaxConcurrentTasks(), processor->getName());
