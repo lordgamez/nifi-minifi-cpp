@@ -68,8 +68,11 @@ ProcessGroup::ProcessGroup(ProcessGroupType type, std::string_view name)
 }
 
 ProcessGroup::~ProcessGroup() {
-  if (onScheduleTimer_) {
-    onScheduleTimer_->stop();
+  {
+    std::lock_guard<std::mutex> lock(on_schedule_timer_mutex_);
+    if (onScheduleTimer_) {
+      onScheduleTimer_->stop();
+    }
   }
 
   for (auto&& connection : connections_) {
@@ -170,15 +173,19 @@ void ProcessGroup::startProcessingProcessors(TimerDrivenSchedulingAgent& timeSch
 
   // The admin yield duration comes from the configuration, should be equal in all three schedulers
   std::chrono::milliseconds admin_yield_duration = timeScheduler.getAdminYieldDuration();
-  if (!onScheduleTimer_ && !failed_processors.empty() && admin_yield_duration > 0ms) {
-    logger_->log_info("Retrying failed processors in {}", admin_yield_duration);
-    auto func = [this, eventScheduler = &eventScheduler, cronScheduler = &cronScheduler, timeScheduler = &timeScheduler]() {
-      this->startProcessingProcessors(*timeScheduler, *eventScheduler, *cronScheduler);
-    };
-    onScheduleTimer_ = std::make_unique<utils::CallBackTimer>(admin_yield_duration, func);
-    onScheduleTimer_->start();
-  } else if (failed_processors.empty() && onScheduleTimer_) {
-    onScheduleTimer_->stop();
+
+  {
+    std::lock_guard<std::mutex> lock(on_schedule_timer_mutex_);
+    if (!onScheduleTimer_ && !failed_processors.empty() && admin_yield_duration > 0ms) {
+      logger_->log_info("Retrying failed processors in {}", admin_yield_duration);
+      auto func = [this, eventScheduler = &eventScheduler, cronScheduler = &cronScheduler, timeScheduler = &timeScheduler]() {
+        this->startProcessingProcessors(*timeScheduler, *eventScheduler, *cronScheduler);
+      };
+      onScheduleTimer_ = std::make_unique<utils::CallBackTimer>(admin_yield_duration, func);
+      onScheduleTimer_->start();
+    } else if (failed_processors.empty() && onScheduleTimer_) {
+      onScheduleTimer_->stop();
+    }
   }
 
   {
@@ -225,15 +232,18 @@ void ProcessGroup::stopProcessing(TimerDrivenSchedulingAgent& timeScheduler, Eve
     }
   }
 
-  logger_->log_debug("Got {} processors to stop in process group {}", processors.size(), name_);
-  if (onScheduleTimer_) {
-    logger_->log_debug("Stopping on schedule timer for process group {}", name_);
-    onScheduleTimer_->stop();
-  }
+  {
+    std::lock_guard<std::mutex> lock(on_schedule_timer_mutex_);
+    logger_->log_debug("Got {} processors to stop in process group {}", processors.size(), name_);
+    if (onScheduleTimer_) {
+      logger_->log_debug("Stopping on schedule timer for process group {}", name_);
+      onScheduleTimer_->stop();
+    }
 
-  logger_->log_debug("Resetting on schedule timer for process group {}", name_);
-  onScheduleTimer_.reset();
-  logger_->log_debug("Stopped on schedule timer for process group {}", name_);
+    logger_->log_debug("Resetting on schedule timer for process group {}", name_);
+    onScheduleTimer_.reset();
+    logger_->log_debug("Stopped on schedule timer for process group {}", name_);
+  }
 
   try {
     // Stop all the processor node, input and output ports
