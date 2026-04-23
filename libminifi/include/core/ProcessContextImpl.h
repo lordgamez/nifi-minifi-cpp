@@ -176,9 +176,11 @@ class ProcessContextImpl : public core::VariableRegistryImpl, public virtual Pro
 
   static std::shared_ptr<core::StateStorage> getStateStorage(
       const std::shared_ptr<logging::Logger>& logger, controller::ControllerServiceProvider* const controller_service_provider, const std::shared_ptr<minifi::Configure>& configuration) {
+    logger->log_debug("Attempting to get StateStorage from controller service provider");
     if (controller_service_provider == nullptr) { return nullptr; }
     std::string requestedStateStorageName;
     if (configuration != nullptr && configuration->get(minifi::Configure::nifi_state_storage_local, minifi::Configure::nifi_state_storage_local_old, requestedStateStorageName)) {
+      logger->log_debug("Configuration {} is set to {}, attempting to get StateStorage with that name from controller service provider", minifi::Configure::nifi_state_storage_local, requestedStateStorageName);
       auto node = controller_service_provider->getControllerServiceNode(requestedStateStorageName);
       if (node == nullptr) {
         logger->log_error("Failed to find the StateStorage {} defined by {}", requestedStateStorageName, minifi::Configure::nifi_state_storage_local);
@@ -186,6 +188,7 @@ class ProcessContextImpl : public core::VariableRegistryImpl, public virtual Pro
       }
       return node->getControllerServiceImplementation<core::StateStorage>();
     } else {
+      logger->log_debug("No specific StateStorage configured, attempting to get or create default StateStorage");
       auto state_storage = getOrCreateDefaultStateStorage(controller_service_provider, configuration);
       if (state_storage == nullptr) { logger->log_error("Failed to create default StateStorage"); }
       return state_storage;

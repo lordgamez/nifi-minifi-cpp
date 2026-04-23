@@ -231,7 +231,9 @@ void ProcessGroup::stopProcessing(TimerDrivenSchedulingAgent& timeScheduler, Eve
     onScheduleTimer_->stop();
   }
 
+  logger_->log_debug("Resetting on schedule timer for process group {}", name_);
   onScheduleTimer_.reset();
+  logger_->log_debug("Stopped on schedule timer for process group {}", name_);
 
   try {
     // Stop all the processor node, input and output ports

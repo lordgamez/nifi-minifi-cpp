@@ -33,6 +33,7 @@ CallBackTimer::~CallBackTimer() {
   if (thd_.joinable()) {
     thd_.join();
   }
+  logger_->log_debug("CallBackTimer stopped and thread joined in destructor");
 }
 
 void CallBackTimer::stop() {
@@ -48,6 +49,7 @@ void CallBackTimer::stop() {
     execute_ = false;
     cv_.notify_all();
   }
+  logger_->log_debug("CallBackTimer stopped");
 }
 
 void CallBackTimer::start() {
