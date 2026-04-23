@@ -73,8 +73,9 @@ void ThreadedSchedulingAgent::schedule(core::Processor* processor) {
 
   logger_->log_debug("Scheduling threads for processor {}/{}", processor->getName(), processor->getUUIDStr());
   auto state_storage = core::ProcessContextImpl::getStateStorage(logger_, controller_service_provider_, configure_);
+  logger_->log_debug("Creating ProcessContext for processor {}/{}", processor->getName(), processor->getUUIDStr());
   auto process_context = std::make_shared<core::ProcessContextImpl>(*processor, controller_service_provider_, state_storage, repo_, flow_repo_, configure_, content_repo_);
-
+  logger_->log_debug("Creating ProcessSessionFactory for processor {}/{}", processor->getName(), processor->getUUIDStr());
   auto session_factory = std::make_shared<core::ProcessSessionFactoryImpl>(process_context);
 
   logger_->log_debug("Calling onSchedule for processor {}/{}", processor->getName(), processor->getUUIDStr());
