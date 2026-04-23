@@ -27,8 +27,9 @@ CallBackTimer::CallBackTimer(std::chrono::milliseconds interval, const std::func
 CallBackTimer::~CallBackTimer() {
   logger_->log_debug("Stopping CallBackTimer in destructor");
   stop();
-  logger_->log_debug("Acquiring lock for CallBackTimer thread in destructor");
-  std::lock_guard<std::mutex> guard(mtx_);
+  // Do NOT hold mtx_ while joining: the timer callback may call stop() on this
+  // timer (e.g. when all processors succeed), which also acquires mtx_. Joining
+  // without the lock lets the callback complete and release any locks it holds.
   logger_->log_debug("Joining CallBackTimer thread in destructor");
   if (thd_.joinable()) {
     thd_.join();

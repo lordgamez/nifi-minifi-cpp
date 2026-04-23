@@ -110,7 +110,10 @@ FlowController::~FlowController() {
 nonstd::expected<void, std::string> FlowController::applyConfiguration(const std::string &source, const std::string &configurePayload, const std::optional<std::string>& flow_id) {
   std::unique_ptr<core::ProcessGroup> newRoot;
   try {
-    newRoot = updateFromPayload(source, configurePayload, flow_id);
+    // Only parse the new flow config here; do NOT update controller_service_provider_impl_ yet.
+    // Clearing controller services and swapping the CSP must happen inside the mutex lock,
+    // after stop(), to avoid racing with timer callback threads that access the CSP.
+    newRoot = flow_configuration_->updateFromPayload(source, configurePayload, flow_id);
   } catch (const std::exception& ex) {
     logger_->log_error("Invalid configuration payload, type: {}, what: {}", typeid(ex).name(), ex.what());
     return nonstd::make_unexpected(fmt::format("Invalid configuration payload, type: {}, what: {}", typeid(ex).name(), ex.what()));
@@ -129,6 +132,11 @@ nonstd::expected<void, std::string> FlowController::applyConfiguration(const std
     std::scoped_lock<UpdateState> update_lock(updating_);
     std::lock_guard<std::recursive_mutex> flow_lock(mutex_);
     stop();
+
+    // Safe to update the CSP now: stop() has joined all timer callback threads,
+    // so no thread is concurrently accessing controller_service_provider_impl_.
+    clearControllerServices();
+    controller_service_provider_impl_ = flow_configuration_->getControllerServiceProvider();
 
     root_wrapper_.setNewRoot(std::move(newRoot));
     initialized_ = false;
