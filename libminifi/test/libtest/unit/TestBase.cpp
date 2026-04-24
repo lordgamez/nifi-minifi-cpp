@@ -231,7 +231,8 @@ TestPlan::TestPlan(std::shared_ptr<minifi::core::ContentRepository> content_repo
   if (!configuration_->get(minifi::Configure::nifi_state_storage_local_path)) {
     configuration_->set(minifi::Configure::nifi_state_storage_local_path, state_dir_->getPath().string());
   }
-  state_storage_ = minifi::core::ProcessContextImpl::getOrCreateDefaultStateStorage(controller_services_provider_.get(), configuration_);
+  auto logger = logging::LoggerFactory<TestPlan>::getLogger();
+  state_storage_ = minifi::core::ProcessContextImpl::getOrCreateDefaultStateStorage(logger, controller_services_provider_.get(), configuration_);
 }
 
 TestPlan::~TestPlan() {

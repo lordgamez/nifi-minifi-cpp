@@ -124,7 +124,8 @@ void IntegrationBase::run() {
     if (!configuration->get(minifi::Configure::nifi_state_storage_local_path)) {
       configuration->set(minifi::Configure::nifi_state_storage_local_path, state_dir.string());
     }
-    core::ProcessContextImpl::getOrCreateDefaultStateStorage(controller_service_provider.get(), configuration);
+    auto logger = logging::LoggerFactory<IntegrationBase>::getLogger();
+    core::ProcessContextImpl::getOrCreateDefaultStateStorage(logger, controller_service_provider.get(), configuration);
 
     std::shared_ptr<core::ProcessGroup> pg(flow_config->getRoot());
     queryRootProcessGroup(pg);

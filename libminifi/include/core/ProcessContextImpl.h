@@ -117,35 +117,63 @@ class ProcessContextImpl : public core::VariableRegistryImpl, public virtual Pro
   void setSessionStateManager(std::unique_ptr<StateManager> state_manager) override;
 
   static std::shared_ptr<core::StateStorage> getOrCreateDefaultStateStorage(
+      const std::shared_ptr<logging::Logger>& logger,
       controller::ControllerServiceProvider* controller_service_provider, const std::shared_ptr<minifi::Configure>& configuration) {
     static std::mutex mutex;
+    logger->log_debug("Attempting to get or create default StateStorage with name {}", DefaultStateStorageName);
     std::lock_guard<std::mutex> lock(mutex);
+    logger->log_debug("Acquired lock to get or create default StateStorage with name {}", DefaultStateStorageName);
 
     /* See if we have already created a default provider */
     core::controller::ControllerServiceNode* node = controller_service_provider->getControllerServiceNode(DefaultStateStorageName);
+    logger->log_debug("Checked for existing default StateStorage with name {}, found: {}", DefaultStateStorageName, node != nullptr);
     if (node != nullptr) { return node->getControllerServiceImplementation<StateStorage>(); }
 
     /* Try to get configuration options for default provider */
+    logger->log_debug("Attempting to get configuration options for default StateStorage");
     std::string always_persist;
     configuration->get(Configure::nifi_state_storage_local_always_persist, Configure::nifi_state_storage_local_always_persist_old, always_persist);
     std::string auto_persistence_interval;
     configuration->get(Configure::nifi_state_storage_local_auto_persistence_interval, Configure::nifi_state_storage_local_auto_persistence_interval_old, auto_persistence_interval);
 
+    logger->log_debug("Configuration options for default StateStorage: {}={}, {}={}", Configure::nifi_state_storage_local_always_persist, always_persist, Configure::nifi_state_storage_local_auto_persistence_interval, auto_persistence_interval);
     const auto path = configuration->getWithFallback(Configure::nifi_state_storage_local_path, Configure::nifi_state_storage_local_path_old);
 
     /* Function to help creating a state storage */
+    logger->log_debug("Defining helper function to create StateStorage with given type and extra properties");
     auto create_provider = [&](const std::string& type, const std::unordered_map<std::string, std::string>& extraProperties) -> std::shared_ptr<core::StateStorage> {
       auto new_node = controller_service_provider->createControllerService(type, DefaultStateStorageName, nullptr, std::nullopt);
-      if (new_node == nullptr) { return nullptr; }
-      new_node->initialize();
-      auto storage = new_node->getControllerServiceImplementation();
-      if (storage == nullptr) { return nullptr; }
-      if (!always_persist.empty() && !storage->setProperty(controllers::ALWAYS_PERSIST_PROPERTY_NAME, always_persist)) { return nullptr; }
-      if (!auto_persistence_interval.empty() && !storage->setProperty(controllers::AUTO_PERSISTENCE_INTERVAL_PROPERTY_NAME, auto_persistence_interval)) { return nullptr; }
-      for (const auto& extraProperty: extraProperties) {
-        if (!storage->setProperty(extraProperty.first, extraProperty.second)) { return nullptr; }
+      logger->log_debug("Created new ControllerServiceNode for default StateStorage with type {}, success: {}", type, new_node != nullptr);
+      if (new_node == nullptr) {
+        logger->log_error("Failed to create ControllerServiceNode for default StateStorage with type {}", type);
+        return nullptr;
       }
-      if (!new_node->enable()) { return nullptr; }
+      new_node->initialize();
+      logger->log_debug("Initialized new ControllerServiceNode for default StateStorage with type {}", type);
+      auto storage = new_node->getControllerServiceImplementation();
+      logger->log_debug("Got implementation from new ControllerServiceNode for default StateStorage with type {}, success: {}", type, storage != nullptr);
+      if (storage == nullptr) {
+        logger->log_error("Failed to get implementation from ControllerServiceNode for default StateStorage with type {}", type);
+        return nullptr;
+      }
+      if (!always_persist.empty() && !storage->setProperty(controllers::ALWAYS_PERSIST_PROPERTY_NAME, always_persist)) {
+        logger->log_error("Failed to set {} property on default StateStorage with type {} to value {}", controllers::ALWAYS_PERSIST_PROPERTY_NAME, type, always_persist);
+        return nullptr;
+      }
+      if (!auto_persistence_interval.empty() && !storage->setProperty(controllers::AUTO_PERSISTENCE_INTERVAL_PROPERTY_NAME, auto_persistence_interval)) {
+        logger->log_error("Failed to set {} property on default StateStorage with type {} to value {}", controllers::AUTO_PERSISTENCE_INTERVAL_PROPERTY_NAME, type, auto_persistence_interval);
+        return nullptr;
+      }
+      for (const auto& extraProperty: extraProperties) {
+        if (!storage->setProperty(extraProperty.first, extraProperty.second)) {
+          logger->log_error("Failed to set {} property on default StateStorage with type {} to value {}", extraProperty.first, type, extraProperty.second);
+          return nullptr;
+        }
+      }
+      if (!new_node->enable()) {
+        logger->log_error("Failed to enable ControllerServiceNode for default StateStorage with type {}", type);
+        return nullptr;
+      }
       return {storage, storage->getImplementation<core::StateStorage>()};
     };
 
@@ -189,7 +217,7 @@ class ProcessContextImpl : public core::VariableRegistryImpl, public virtual Pro
       return node->getControllerServiceImplementation<core::StateStorage>();
     } else {
       logger->log_debug("No specific StateStorage configured, attempting to get or create default StateStorage");
-      auto state_storage = getOrCreateDefaultStateStorage(controller_service_provider, configuration);
+      auto state_storage = getOrCreateDefaultStateStorage(logger, controller_service_provider, configuration);
       if (state_storage == nullptr) { logger->log_error("Failed to create default StateStorage"); }
       return state_storage;
     }
