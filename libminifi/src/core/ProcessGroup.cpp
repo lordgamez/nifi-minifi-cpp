@@ -232,16 +232,22 @@ void ProcessGroup::stopProcessing(TimerDrivenSchedulingAgent& timeScheduler, Eve
     }
   }
 
-  {
-    std::lock_guard<std::mutex> lock(on_schedule_timer_mutex_);
-    logger_->log_debug("Got {} processors to stop in process group {}", processors.size(), name_);
-    if (onScheduleTimer_) {
+  logger_->log_debug("Got {} processors to stop in process group {}", processors.size(), name_);
+  // Stop and join the retry timer outside the lock to avoid deadlock: the timer callback
+  // (startProcessingProcessors) acquires on_schedule_timer_mutex_ at the end, so the join
+  // must not be done while holding that lock.
+  // Loop because the timer callback may create a new timer while we held the lock:
+  while (true) {
+    std::unique_ptr<utils::CallBackTimer> timer_to_destroy;
+    {
+      std::lock_guard<std::mutex> lock(on_schedule_timer_mutex_);
+      if (!onScheduleTimer_) break;
       logger_->log_debug("Stopping on schedule timer for process group {}", name_);
       onScheduleTimer_->stop();
-    }
-
-    logger_->log_debug("Resetting on schedule timer for process group {}", name_);
-    onScheduleTimer_.reset();
+      logger_->log_debug("Resetting on schedule timer for process group {}", name_);
+      timer_to_destroy = std::move(onScheduleTimer_);  // onScheduleTimer_ = null while lock is held
+    }  // lock released before the join
+    timer_to_destroy.reset();  // ~CallBackTimer() → thd_.join() runs outside the lock
     logger_->log_debug("Stopped on schedule timer for process group {}", name_);
   }
 
