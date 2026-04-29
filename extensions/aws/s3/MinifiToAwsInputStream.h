@@ -1,0 +1,114 @@
+/**
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+#pragma once
+
+#include <algorithm>
+#include <cstdint>
+#include <iostream>
+#include <memory>
+#include <span>
+#include <vector>
+
+#include "minifi-cpp/io/InputStream.h"
+
+namespace org::apache::nifi::minifi::aws::s3 {
+
+/**
+ * A std::streambuf that reads from a MiNiFi io::InputStream without copying
+ * the entire content into memory. All positional operations are forwarded to
+ * the underlying stream's seek()/tell(), which use size_t and therefore avoid
+ * the 32-bit int overflow present in MSVC's std::stringbuf::seekoff when the
+ * content exceeds 2 GB.
+ */
+class MinifiInputStreamBuf : public std::streambuf {
+ public:
+  static constexpr size_t BUFFER_SIZE = 65536;
+
+  MinifiInputStreamBuf(std::shared_ptr<io::InputStream> stream, uint64_t content_length)
+      : stream_(std::move(stream)),
+        start_pos_(stream_->tell()),
+        content_length_(content_length),
+        buffer_(BUFFER_SIZE) {}
+
+ protected:
+  int_type underflow() override {
+    if (gptr() < egptr()) {
+      return traits_type::to_int_type(*gptr());
+    }
+    const uint64_t stream_pos = stream_->tell();
+    if (stream_pos >= start_pos_ + content_length_) {
+      return traits_type::eof();
+    }
+    const auto remaining = (start_pos_ + content_length_) - stream_pos;
+    const auto to_read = static_cast<size_t>(std::min<uint64_t>(BUFFER_SIZE, remaining));
+    const auto bytes_read = stream_->read(std::span(reinterpret_cast<std::byte*>(buffer_.data()), to_read));
+    if (io::isError(bytes_read) || bytes_read == 0) {
+      return traits_type::eof();
+    }
+    setg(buffer_.data(), buffer_.data(), buffer_.data() + bytes_read);
+    return traits_type::to_int_type(*gptr());
+  }
+
+  pos_type seekoff(off_type off, std::ios_base::seekdir way, std::ios_base::openmode which) override {
+    if (!(which & std::ios_base::in)) {
+      return pos_type(off_type(-1));
+    }
+    pos_type new_pos;
+    if (way == std::ios_base::beg) {
+      new_pos = static_cast<pos_type>(start_pos_) + off;
+    } else if (way == std::ios_base::cur) {
+      // Subtract unconsumed buffered bytes from the stream's physical position
+      new_pos = static_cast<pos_type>(stream_->tell()) - static_cast<off_type>(egptr() - gptr()) + off;
+    } else {
+      new_pos = static_cast<pos_type>(start_pos_ + content_length_) + off;
+    }
+    return seekpos(new_pos, which);
+  }
+
+  pos_type seekpos(pos_type pos, std::ios_base::openmode which) override {
+    if (!(which & std::ios_base::in)) {
+      return pos_type(off_type(-1));
+    }
+    stream_->seek(static_cast<size_t>(pos));
+    setg(buffer_.data(), buffer_.data(), buffer_.data());  // invalidate read buffer
+    return pos;
+  }
+
+ private:
+  std::shared_ptr<io::InputStream> stream_;
+  uint64_t start_pos_;
+  uint64_t content_length_;
+  std::vector<char> buffer_;
+};
+
+/**
+ * An Aws::IOStream (std::basic_iostream<char>) backed by a MiNiFi io::InputStream.
+ *
+ * MinifiInputStreamBuf is declared as a private base BEFORE std::basic_iostream<char>
+ * so that it is fully constructed before being passed as the streambuf* to the
+ * iostream constructor — the standard pattern for embedding a custom streambuf
+ * inside an iostream subclass.
+ */
+class MinifiToAwsInputStream : private MinifiInputStreamBuf, public std::basic_iostream<char> {
+ public:
+  MinifiToAwsInputStream(std::shared_ptr<io::InputStream> stream, uint64_t content_length)
+      : MinifiInputStreamBuf(std::move(stream), content_length),
+        std::basic_iostream<char>(static_cast<MinifiInputStreamBuf*>(this)) {}
+};
+
+}  // namespace org::apache::nifi::minifi::aws::s3
