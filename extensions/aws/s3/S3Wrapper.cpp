@@ -123,7 +123,7 @@ std::optional<S3Wrapper::UploadPartsResult> S3Wrapper::uploadParts(const PutObje
 
     Aws::Utils::ByteBuffer part_md5(Aws::Utils::HashingUtils::CalculateMD5(*aws_stream));
     upload_part_request.SetContentMD5(Aws::Utils::HashingUtils::Base64Encode(part_md5));
-    // Reset to part start so the SDK reads the full part during the upload request
+    // Reset to part start so the SDK reads the full part during the upload request.
     aws_stream->seekg(0, std::ios::beg);
 
     auto upload_part_result = request_sender_->sendUploadPartRequest(upload_part_request);

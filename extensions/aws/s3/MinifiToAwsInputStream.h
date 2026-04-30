@@ -68,23 +68,30 @@ class MinifiInputStreamBuf : public std::streambuf {
     if (!(which & std::ios_base::in)) {
       return pos_type(off_type(-1));
     }
-    pos_type new_pos;
+    // Compute a virtual position (0 = start of this part's window) so that
+    // seekpos() and seekoff() share the same coordinate space. This ensures
+    // that seekg(0) [one-arg, calls seekpos(0)] and seekg(0, beg) [two-arg,
+    // calls seekoff(0, beg)] both seek to the beginning of the window.
+    pos_type new_virtual_pos;
     if (way == std::ios_base::beg) {
-      new_pos = static_cast<pos_type>(start_pos_) + off;
+      new_virtual_pos = pos_type(off);
     } else if (way == std::ios_base::cur) {
-      // Subtract unconsumed buffered bytes from the stream's physical position
-      new_pos = static_cast<pos_type>(stream_->tell()) - static_cast<off_type>(egptr() - gptr()) + off;
+      // Physical stream position minus any bytes still buffered but not consumed
+      const auto phys_pos = static_cast<off_type>(stream_->tell()) - static_cast<off_type>(egptr() - gptr());
+      new_virtual_pos = pos_type(phys_pos - static_cast<off_type>(start_pos_) + off);
     } else {
-      new_pos = static_cast<pos_type>(start_pos_ + content_length_) + off;
+      new_virtual_pos = pos_type(static_cast<off_type>(content_length_) + off);
     }
-    return seekpos(new_pos, which);
+    return seekpos(new_virtual_pos, which);
   }
 
   pos_type seekpos(pos_type pos, std::ios_base::openmode which) override {
     if (!(which & std::ios_base::in)) {
       return pos_type(off_type(-1));
     }
-    stream_->seek(static_cast<size_t>(pos));
+    // pos is a virtual offset from the start of this part's window; translate
+    // to an absolute position in the underlying io::InputStream.
+    stream_->seek(start_pos_ + static_cast<size_t>(off_type(pos)));
     setg(buffer_.data(), buffer_.data(), buffer_.data());  // invalidate read buffer
     return pos;
   }
