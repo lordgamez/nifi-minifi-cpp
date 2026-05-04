@@ -17,6 +17,7 @@
 
 #include "GCSProcessor.h"
 
+#include "utils/HTTPUtils.h"
 #include "utils/ProcessorConfigUtils.h"
 
 #include "../controllerservices/GCPCredentialsControllerService.h"
@@ -49,6 +50,13 @@ void GCSProcessor::onSchedule(core::ProcessContext& context, core::ProcessSessio
   if (endpoint_url_)
     logger_->log_debug("Endpoint overwritten: {}", *endpoint_url_);
 
+  if (const auto ca_file = minifi::utils::getDefaultCAFile()) {
+    ca_cert_file_ = std::string(*ca_file);
+    logger_->log_debug("Using CA certificate file \"{}\" for GCS connections", *ca_cert_file_);
+  } else {
+    logger_->log_warn("Could not find valid CA certificate file for GCS connections");
+  }
+
   auto proxy_controller_service = minifi::utils::parseOptionalControllerService<minifi::controllers::ProxyConfigurationServiceInterface>(context, ProxyConfigurationService, getUUID());
   if (proxy_controller_service && proxy_controller_service->getProxyType() != minifi::controllers::ProxyType::DIRECT) {
     logger_->log_debug("Proxy configuration is set for GCS processor");
@@ -76,6 +84,10 @@ gcs::Client GCSProcessor::getClient() const {
   auto options = google::cloud::Options{}
       .set<google::cloud::UnifiedCredentialsOption>(gcp_credentials_)
       .set<google::cloud::storage::RetryPolicyOption>(retry_policy_);
+
+  if (ca_cert_file_) {
+    options.set<google::cloud::CARootsFilePathOption>(*ca_cert_file_);
+  }
 
   if (proxy_) {
     options.set<google::cloud::ProxyOption>(*proxy_);

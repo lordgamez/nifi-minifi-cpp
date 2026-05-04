@@ -73,6 +73,7 @@ class GCSProcessor : public core::ProcessorImpl {
   std::shared_ptr<google::cloud::Credentials> getCredentials(core::ProcessContext& context) const;
 
   std::optional<std::string> endpoint_url_;
+  std::optional<std::string> ca_cert_file_;
   std::shared_ptr<google::cloud::Credentials> gcp_credentials_;
   std::optional<google::cloud::ProxyConfig> proxy_;
   google::cloud::storage::RetryPolicyOption::Type retry_policy_ = std::make_shared<google::cloud::storage::LimitedErrorCountRetryPolicy>(6);
