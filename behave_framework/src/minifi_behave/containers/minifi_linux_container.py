@@ -151,5 +151,5 @@ class MinifiLinuxContainer(LinuxContainer, MinifiProtocol):
         return "\n".join(lines)
 
     def add_example_python_processors(self):
-        run_minifi_cmd = f'{self.deployment_type.bin_path}/minifi.sh run'
+        run_minifi_cmd = f'{self.deployment_type.bin_path}/minifi'
         self.command = f'sh -c "cp -r {self.deployment_type.minifi_python_examples_path} {self.deployment_type.minifi_python_path}/examples && {run_minifi_cmd}"'
