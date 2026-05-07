@@ -24,8 +24,8 @@ function(use_bundled_jemalloc SOURCE_DIR BINARY_DIR)
     # Build project
     ExternalProject_Add(
             jemalloc-external
-            URL https://github.com/jemalloc/jemalloc/releases/download/5.1.0/jemalloc-5.1.0.tar.bz2
-            URL_HASH "SHA256=5396e61cc6103ac393136c309fae09e44d74743c86f90e266948c50f3dbb7268"
+            URL https://github.com/jemalloc/jemalloc/releases/download/5.3.1/jemalloc-5.3.1.tar.bz2
+            URL_HASH "SHA256=3826bc80232f22ed5c4662f3034f799ca316e819103bdc7bb99018a421706f92"
             PREFIX "${BINARY_DIR}/thirdparty/jemalloc"
             BUILD_IN_SOURCE true
             SOURCE_DIR "${BINARY_DIR}/thirdparty/jemalloc-src"
