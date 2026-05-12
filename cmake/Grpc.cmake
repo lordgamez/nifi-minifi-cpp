@@ -41,7 +41,7 @@ set(PC ${Bash_EXECUTABLE}  -c "set -x &&\
 FetchContent_Declare(
   grpc
   GIT_REPOSITORY https://github.com/grpc/grpc
-  GIT_TAG        v1.72.2
+  GIT_TAG        v1.80.0
   GIT_SUBMODULES "third_party/cares/cares third_party/re2 third_party/upb"
   PATCH_COMMAND "${PC}"
   SYSTEM
