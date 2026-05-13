@@ -26,7 +26,7 @@ function(use_bundled_opencv SOURCE_DIR BINARY_DIR)
 
     # Define byproducts
     if (WIN32)
-        set(SUFFIX "4120.lib")
+        set(SUFFIX "4130.lib")
         set(THIRDPARTY_SUFFIX ".lib")
         set(PREFIX "")
         set(THIRDPARTY_DIR "")
@@ -114,8 +114,8 @@ function(use_bundled_opencv SOURCE_DIR BINARY_DIR)
     # Build project
     ExternalProject_Add(
             opencv-external
-            URL "https://github.com/opencv/opencv/archive/refs/tags/4.12.0.tar.gz"
-            URL_HASH "SHA256=44c106d5bb47efec04e531fd93008b3fcd1d27138985c5baf4eafac0e1ec9e9d"
+            URL "https://github.com/opencv/opencv/archive/refs/tags/4.13.0.tar.gz"
+            URL_HASH "SHA256=1d40ca017ea51c533cf9fd5cbde5b5fe7ae248291ddf2af99d4c17cf8e13017d"
             SOURCE_DIR "${BINARY_DIR}/thirdparty/opencv-src"
             PATCH_COMMAND ${PC}
             CMAKE_ARGS ${OPENCV_CMAKE_ARGS}
