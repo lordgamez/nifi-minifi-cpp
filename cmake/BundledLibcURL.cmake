@@ -61,8 +61,8 @@ function(use_bundled_curl SOURCE_DIR BINARY_DIR)
     # Build project
     ExternalProject_Add(
             curl-external
-            URL "https://github.com/curl/curl/releases/download/curl-8_18_0/curl-8.18.0.tar.gz"
-            URL_HASH "SHA256=e9274a5f8ab5271c0e0e6762d2fce194d5f98acc568e4ce816845b2dcc0cf88f"
+            URL "https://github.com/curl/curl/archive/refs/tags/curl-8_20_0.tar.gz"
+            URL_HASH "SHA256=738fe8ae973a6f171b4e7cf7146edd19894e19f09cd45a3b673ebdba3549a435"
             SOURCE_DIR "${BINARY_DIR}/thirdparty/curl-src"
             LIST_SEPARATOR % # This is needed for passing semicolon-separated lists
             CMAKE_ARGS ${CURL_CMAKE_ARGS}
