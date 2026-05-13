@@ -18,8 +18,8 @@
 include(FetchContent)
 
 FetchContent_Declare(asio
-        URL https://github.com/chriskohlhoff/asio/archive/refs/tags/asio-1-34-2.tar.gz
-        URL_HASH SHA256=f3bac015305fbb700545bd2959fbc52d75a1ec2e05f9c7f695801273ceb78cf5
+        URL https://github.com/chriskohlhoff/asio/archive/refs/tags/asio-1-38-0.tar.gz
+        URL_HASH SHA256=5cf78ede456fd13b95fe692711f4f689be26c826f1f5541c7a1df3aa32bd9dbd
         SYSTEM)
 
 FetchContent_GetProperties(asio)
