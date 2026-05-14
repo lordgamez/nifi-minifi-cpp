@@ -33,10 +33,12 @@ set(gRPC_PROTOBUF_PROVIDER "package" CACHE STRING "" FORCE)
 set(PATCH_FILE1 "${CMAKE_SOURCE_DIR}/thirdparty/grpc/fix-protobuf-find-package.patch")
 set(PATCH_FILE2 "${CMAKE_SOURCE_DIR}/thirdparty/grpc/fix-memory-request-missing-string-include.patch")
 set(PATCH_FILE3 "${CMAKE_SOURCE_DIR}/thirdparty/grpc/fix-glob-missing-algorithm-include.patch")
+set(PATCH_FILE4 "${CMAKE_SOURCE_DIR}/thirdparty/grpc/fix-msvc-auto-return-type-template-arg.patch")
 set(PC ${Bash_EXECUTABLE}  -c "set -x &&\
             (\\\"${Patch_EXECUTABLE}\\\" -p1 -R -s -f --dry-run -i \\\"${PATCH_FILE1}\\\" || \\\"${Patch_EXECUTABLE}\\\" -p1 -N -i \\\"${PATCH_FILE1}\\\") &&\
             (\\\"${Patch_EXECUTABLE}\\\" -p1 -R -s -f --dry-run -i \\\"${PATCH_FILE2}\\\" || \\\"${Patch_EXECUTABLE}\\\" -p1 -N -i \\\"${PATCH_FILE2}\\\") &&\
-            (\\\"${Patch_EXECUTABLE}\\\" -p1 -R -s -f --dry-run -i \\\"${PATCH_FILE3}\\\" || \\\"${Patch_EXECUTABLE}\\\" -p1 -N -i \\\"${PATCH_FILE3}\\\")")
+            (\\\"${Patch_EXECUTABLE}\\\" -p1 -R -s -f --dry-run -i \\\"${PATCH_FILE3}\\\" || \\\"${Patch_EXECUTABLE}\\\" -p1 -N -i \\\"${PATCH_FILE3}\\\") &&\
+            (\\\"${Patch_EXECUTABLE}\\\" -p1 -R -s -f --dry-run -i \\\"${PATCH_FILE4}\\\" || \\\"${Patch_EXECUTABLE}\\\" -p1 -N -i \\\"${PATCH_FILE4}\\\")")
 
 FetchContent_Declare(
   grpc
