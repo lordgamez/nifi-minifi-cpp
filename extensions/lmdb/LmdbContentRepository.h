@@ -64,6 +64,7 @@ class LmdbContentRepository : public core::ContentRepositoryImpl {
  protected:
   bool removeKey(const std::string& content_path) override;
 
+  std::string directory_;
   std::shared_ptr<logging::Logger> logger_;
 };
 
