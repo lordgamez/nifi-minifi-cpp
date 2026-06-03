@@ -17,14 +17,22 @@
 # under the License.
 #
 
+if (NOT (ENABLE_ALL OR ENABLE_LMDB))
+    return()
+endif()
+
+include(LMDB)
+use_bundled_lmdb(${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR})
+
 include(${CMAKE_SOURCE_DIR}/extensions/ExtensionHeader.txt)
 
 file(GLOB SOURCES  "*.cpp")
 
 add_minifi_library(minifi-lmdb SHARED ${SOURCES})
 
-target_include_directories(minifi-lmdb SYSTEM INTERFACE "/home/ggyimesi/projects/lmdb/libraries/liblmdb")
-target_link_libraries(minifi-lmdb PUBLIC /home/ggyimesi/projects/lmdb/libraries/liblmdb/liblmdb.a)
+target_include_directories(minifi-lmdb PUBLIC ${LMDB_INCLUDE_DIR})
+target_link_libraries(minifi-lmdb PUBLIC LMDB::LMDB)
 target_link_libraries(minifi-lmdb PUBLIC minifi-api minifi-extension-framework)
 target_link_libraries(minifi-lmdb PRIVATE $<LINK_ONLY:core-minifi>)
+
 register_extension(minifi-lmdb "LMDB" LMDB "This Enables persistent provenance, flowfile, and content repositories using LMDB" "extensions/lmdb/tests")

@@ -28,6 +28,7 @@
 #include "core/TypedValues.h"
 #include "utils/Locations.h"
 #include "minifi-cpp/utils/gsl.h"
+#include "lmdb.h"
 
 namespace org::apache::nifi::minifi::core::repository {
 
