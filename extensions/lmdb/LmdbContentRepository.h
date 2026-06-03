@@ -24,6 +24,7 @@
 #include "minifi-cpp/core/Property.h"
 #include "minifi-cpp/properties/Configure.h"
 #include "core/ContentRepository.h"
+#include "core/BufferedContentSession.h"
 
 namespace org::apache::nifi::minifi::core::repository {
 
@@ -40,6 +41,13 @@ class LmdbContentRepository : public core::ContentRepositoryImpl {
   EXTENSIONAPI static constexpr auto Properties = std::array<core::PropertyReference, 0>{};
   EXTENSIONAPI static constexpr bool SupportsDynamicProperties = false;
   EXTENSIONAPI static constexpr bool SupportsDynamicRelationships = false;
+
+  class Session : public BufferedContentSession {
+   public:
+    explicit Session(std::shared_ptr<ContentRepository> repository);
+
+    void commit() override;
+  };
 
   std::shared_ptr<ContentSession> createSession() override;
   bool initialize(const std::shared_ptr<minifi::Configure> &configuration) override;
