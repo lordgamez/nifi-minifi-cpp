@@ -25,6 +25,7 @@
 #include "minifi-cpp/properties/Configure.h"
 #include "core/ContentRepository.h"
 #include "core/BufferedContentSession.h"
+#include "lmdb.h"
 
 namespace org::apache::nifi::minifi::core::repository {
 
@@ -36,6 +37,7 @@ class LmdbContentRepository : public core::ContentRepositoryImpl {
   }
   ~LmdbContentRepository() override {
     stop();
+    mdb_env_close(lmdb_env_);
   }
 
   EXTENSIONAPI static constexpr auto Properties = std::array<core::PropertyReference, 0>{};
@@ -73,6 +75,7 @@ class LmdbContentRepository : public core::ContentRepositoryImpl {
   bool removeKey(const std::string& content_path) override;
 
   std::string directory_;
+  MDB_env* lmdb_env_;
   std::shared_ptr<logging::Logger> logger_;
 };
 

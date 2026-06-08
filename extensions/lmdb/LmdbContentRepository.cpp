@@ -28,7 +28,6 @@
 #include "core/TypedValues.h"
 #include "utils/Locations.h"
 #include "minifi-cpp/utils/gsl.h"
-#include "lmdb.h"
 
 namespace org::apache::nifi::minifi::core::repository {
 
@@ -80,16 +79,15 @@ void LmdbContentRepository::Session::commit() {
 }
 
 bool LmdbContentRepository::initialize(const std::shared_ptr<minifi::Configure> &configuration) {
-  MDB_env *env;
-  if (const int rc = mdb_env_create(&env)) {
+  if (const int rc = mdb_env_create(&lmdb_env_)) {
     logger_->log_error("Failed to create LMDB environment: {}", mdb_strerror(rc));
     return false;
   }
   //Limit large enough to accommodate all our named dbs. This only starts to matter if the number gets large, otherwise it's just a bunch of extra entries in the main table.
-  mdb_env_set_maxdbs(env, 4);
+  mdb_env_set_maxdbs(lmdb_env_, 4);
 
   //This is the maximum size of the db (but will not be used directly), so we make it large enough that we hopefully never run into the limit.
-  mdb_env_set_mapsize(env, (size_t)1048576 * (size_t)100000); // 1MB * 100000
+  mdb_env_set_mapsize(lmdb_env_, (size_t)1048576 * (size_t)100000); // 1MB * 100000
 
   const auto working_dir = utils::getMinifiDir();
 
@@ -99,7 +97,7 @@ bool LmdbContentRepository::initialize(const std::shared_ptr<minifi::Configure> 
   } else {
     directory_ = (working_dir / "lmdbcontentrepository").string();
   }
-  if (const int rc = mdb_env_open(env, directory_.c_str(), MDB_NOTLS | MDB_RDONLY, 0664)) {
+  if (const int rc = mdb_env_open(lmdb_env_, directory_.c_str(), MDB_NOTLS | MDB_RDONLY, 0664)) {
     logger_->log_error("Failed to open LMDB environment: {}", mdb_strerror(rc));
     return false;
   }
@@ -119,6 +117,38 @@ std::shared_ptr<ContentSession> LmdbContentRepository::createSession() {
 }
 
 std::shared_ptr<io::BaseStream> LmdbContentRepository::write(const minifi::ResourceClaim &claim, bool append) {
+  MDB_txn* txn;
+  auto rc = mdb_txn_begin(lmdb_env_, nullptr, 0, &txn);
+  if (rc != MDB_SUCCESS) {
+    logger_->log_error("Failed to begin LMDB transaction: {}", mdb_strerror(rc));
+    return nullptr;
+  }
+
+  MDB_dbi dbi;
+  rc = mdb_dbi_open(txn, nullptr, 0, &dbi);
+  if (rc != MDB_SUCCESS) {
+    logger_->log_error("Failed to open LMDB database: {}", mdb_strerror(rc));
+    mdb_txn_abort(txn);
+    return nullptr;
+  }
+
+  auto key_string = claim.getContentFullPath();
+  MDB_val key{ key.size(), const_cast<char*>(key.data()) };
+  MDB_val val = to_val("alice");
+  rc = mdb_put(txn, dbi, &key, &val, 0);
+  if (rc != MDB_SUCCESS) {
+    logger_->log_error("Failed to put value in LMDB database: {}", mdb_strerror(rc));
+    mdb_txn_abort(txn);
+    return nullptr;
+  }
+
+  rc = mdb_txn_commit(txn);
+  if (rc != MDB_SUCCESS) {
+    logger_->log_error("Failed to commit LMDB transaction: {}", mdb_strerror(rc));
+    mdb_txn_abort(txn);
+    return nullptr;
+  }
+
   return nullptr;
 }
 
