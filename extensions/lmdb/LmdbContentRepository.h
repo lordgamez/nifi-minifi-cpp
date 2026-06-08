@@ -37,6 +37,7 @@ class LmdbContentRepository : public core::ContentRepositoryImpl {
   }
   ~LmdbContentRepository() override {
     stop();
+    mdb_dbi_close(lmdb_env_, lmdb_handle_);
     mdb_env_close(lmdb_env_);
   }
 
@@ -76,6 +77,7 @@ class LmdbContentRepository : public core::ContentRepositoryImpl {
 
   std::string directory_;
   MDB_env* lmdb_env_;
+  MDB_dbi lmdb_handle_;
   std::shared_ptr<logging::Logger> logger_;
 };
 

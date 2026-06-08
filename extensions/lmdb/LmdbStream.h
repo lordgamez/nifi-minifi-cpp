@@ -23,12 +23,13 @@
 #include <memory>
 #include "io/BaseStream.h"
 #include "core/logging/LoggerFactory.h"
+#include "lmdb.h"
 
 namespace org::apache::nifi::minifi::io {
 
 class LmdbStream : public io::BaseStreamImpl {
  public:
-  explicit LmdbStream(std::string path, bool write_enable = false);
+  explicit LmdbStream(std::string path, MDB_env* lmdb_env, MDB_dbi* lmdb_handle, bool write_enable = false);
 
   ~LmdbStream() override {
     close();
@@ -57,6 +58,8 @@ class LmdbStream : public io::BaseStreamImpl {
   std::string path_;
   bool write_enable_;
   std::string value_;
+  MDB_env* lmdb_env_;
+  MDB_dbi* lmdb_handle_;
   bool exists_;
   size_t offset_;
   size_t size_;

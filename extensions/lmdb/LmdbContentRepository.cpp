@@ -101,6 +101,17 @@ bool LmdbContentRepository::initialize(const std::shared_ptr<minifi::Configure> 
     logger_->log_error("Failed to open LMDB environment: {}", mdb_strerror(rc));
     return false;
   }
+
+  MDB_txn* init_txn;
+  mdb_txn_begin(lmdb_env_, nullptr, 0, &init_txn);
+  if (const int rc = mdb_dbi_open(init_txn, nullptr, 0, &lmdb_handle_); rc != MDB_SUCCESS) {
+    logger_->log_error("Failed to open LMDB database: {}", mdb_strerror(rc));
+    mdb_txn_abort(init_txn);
+    mdb_env_close(lmdb_env_);
+    return false;
+  }
+  mdb_txn_commit(init_txn);
+
   return true;
 }
 
@@ -117,37 +128,7 @@ std::shared_ptr<ContentSession> LmdbContentRepository::createSession() {
 }
 
 std::shared_ptr<io::BaseStream> LmdbContentRepository::write(const minifi::ResourceClaim &claim, bool append) {
-  MDB_txn* txn;
-  auto rc = mdb_txn_begin(lmdb_env_, nullptr, 0, &txn);
-  if (rc != MDB_SUCCESS) {
-    logger_->log_error("Failed to begin LMDB transaction: {}", mdb_strerror(rc));
-    return nullptr;
-  }
 
-  MDB_dbi dbi;
-  rc = mdb_dbi_open(txn, nullptr, 0, &dbi);
-  if (rc != MDB_SUCCESS) {
-    logger_->log_error("Failed to open LMDB database: {}", mdb_strerror(rc));
-    mdb_txn_abort(txn);
-    return nullptr;
-  }
-
-  auto key_string = claim.getContentFullPath();
-  MDB_val key{ key.size(), const_cast<char*>(key.data()) };
-  MDB_val val = to_val("alice");
-  rc = mdb_put(txn, dbi, &key, &val, 0);
-  if (rc != MDB_SUCCESS) {
-    logger_->log_error("Failed to put value in LMDB database: {}", mdb_strerror(rc));
-    mdb_txn_abort(txn);
-    return nullptr;
-  }
-
-  rc = mdb_txn_commit(txn);
-  if (rc != MDB_SUCCESS) {
-    logger_->log_error("Failed to commit LMDB transaction: {}", mdb_strerror(rc));
-    mdb_txn_abort(txn);
-    return nullptr;
-  }
 
   return nullptr;
 }
