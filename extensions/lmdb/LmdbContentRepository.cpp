@@ -97,7 +97,7 @@ bool LmdbContentRepository::initialize(const std::shared_ptr<minifi::Configure> 
   } else {
     directory_ = (working_dir / "lmdbcontentrepository").string();
   }
-  if (const int rc = mdb_env_open(lmdb_env_, directory_.c_str(), MDB_NOTLS | MDB_RDONLY, 0664)) {
+  if (const int rc = mdb_env_open(lmdb_env_, directory_.c_str(), MDB_NOTLS, 0664)) {
     logger_->log_error("Failed to open LMDB environment: {}", mdb_strerror(rc));
     return false;
   }
@@ -157,6 +157,6 @@ uint64_t LmdbContentRepository::getRepositoryEntryCount() const {
   return 0;
 }
 
-REGISTER_RESOURCE_AS(LmdbContentRepository, InternalResource, ("LmdbContentRepository", "LmdbContentRepository"));
+REGISTER_RESOURCE_AS(LmdbContentRepository, InternalResource, ("LmdbContentRepository", "lmdbcontentrepository"));
 
 }  // namespace org::apache::nifi::minifi::core::repository

@@ -36,10 +36,6 @@ class LmdbStream : public io::BaseStreamImpl {
   }
 
   void close() final;
-  /**
-   * Skip to the specified offset.
-   * @param offset offset to which we will skip
-   */
   void seek(size_t offset) override;
 
   size_t tell() const override;
@@ -64,6 +60,7 @@ class LmdbStream : public io::BaseStreamImpl {
   size_t offset_;
   size_t size_;
   bool use_synchronous_writes_;
+  bool dirty_ = false;
 
  private:
   std::shared_ptr<core::logging::Logger> logger_ = core::logging::LoggerFactory<LmdbStream>::getLogger();
