@@ -28,6 +28,8 @@
 #include "core/TypedValues.h"
 #include "utils/Locations.h"
 #include "minifi-cpp/utils/gsl.h"
+#include "LmdbStream.h"
+#include "lmdb.h"
 
 namespace org::apache::nifi::minifi::core::repository {
 
@@ -127,34 +129,119 @@ std::shared_ptr<ContentSession> LmdbContentRepository::createSession() {
   return std::make_shared<Session>(sharedFromThis<ContentRepository>());
 }
 
-std::shared_ptr<io::BaseStream> LmdbContentRepository::write(const minifi::ResourceClaim &claim, bool append) {
-
-
-  return nullptr;
+std::shared_ptr<io::BaseStream> LmdbContentRepository::write(const minifi::ResourceClaim &claim, bool) {
+  return std::make_shared<io::LmdbStream>(claim.getContentFullPath(), lmdb_env_, &lmdb_handle_, true);
 }
 
 std::shared_ptr<io::BaseStream> LmdbContentRepository::read(const minifi::ResourceClaim &claim) {
-  return nullptr;
+  return std::make_shared<io::LmdbStream>(claim.getContentFullPath(), lmdb_env_, &lmdb_handle_, false);
 }
 
 bool LmdbContentRepository::exists(const minifi::ResourceClaim &streamId) {
-  return false;
+  auto path = streamId.getContentFullPath();
+  MDB_val key{ path.size(), const_cast<char*>(path.data()) };
+  MDB_val value{};
+
+  MDB_txn* txn;
+  mdb_txn_begin(lmdb_env_, nullptr, MDB_RDONLY, &txn);
+
+  auto rc = mdb_get(txn, lmdb_handle_, &key, &value);
+
+  bool exists = false;
+  if (rc == MDB_SUCCESS) {
+    exists = true;
+  } else if (rc != MDB_NOTFOUND) {
+    logger_->log_error("Failed to get value from LMDB database: {}", mdb_strerror(rc));
+  }
+
+  mdb_txn_abort(txn);
+  return exists;
 }
 
 bool LmdbContentRepository::removeKey(const std::string& content_path) {
-  return false;
+  MDB_val key{ content_path.size(), const_cast<char*>(content_path.data()) };
+
+  MDB_txn* txn;
+  mdb_txn_begin(lmdb_env_, nullptr, 0, &txn);
+  int rc = mdb_del(txn, lmdb_handle_, &key, nullptr);
+  auto result = false;
+
+  if (rc == MDB_SUCCESS) {
+    result = true;
+  } else if (rc == MDB_NOTFOUND) {
+    logger_->log_debug("Key {} not found in LMDB database during delete", content_path);
+  } else {
+    logger_->log_error("Failed to delete key from LMDB database: {}", mdb_strerror(rc));
+  }
+
+  mdb_txn_commit(txn);
+
+  return result;
 }
 
 void LmdbContentRepository::clearOrphans() {
+  std::vector<std::string> keys_to_be_deleted;
 
+  MDB_txn* txn;
+  mdb_txn_begin(lmdb_env_, nullptr, MDB_RDONLY, &txn);
+
+  MDB_cursor* cursor;
+  mdb_cursor_open(txn, lmdb_handle_, &cursor);
+
+  MDB_val key{}, val{};
+  int rc = mdb_cursor_get(cursor, &key, &val, MDB_FIRST);
+
+  while (rc == MDB_SUCCESS) {
+    std::string key_string = std::string(static_cast<char*>(key.mv_data), key.mv_size);
+
+    std::lock_guard<std::mutex> lock(count_map_mutex_);
+    auto claim_it = count_map_.find(key_string);
+    if (claim_it == count_map_.end() || claim_it->second == 0) {
+      logger_->log_error("Deleting orphan resource {}", key_string);
+      keys_to_be_deleted.push_back(key_string);
+    }
+    rc = mdb_cursor_get(cursor, &key, &val, MDB_NEXT);
+  }
+
+  mdb_cursor_close(cursor);
+  mdb_txn_abort(txn);
+
+  if (rc != MDB_NOTFOUND) {
+    logger_->log_error("Failed to iterate over LMDB database: {}", mdb_strerror(rc));
+    return;
+  }
+
+  std::vector<std::string> failed_deletions;
+  for (const auto& key : keys_to_be_deleted) {
+    auto delete_result = removeKey(key);
+    if (!delete_result) {
+      logger_->log_warn("Failed to delete orphan resource {} from LMDB database", key);
+      failed_deletions.push_back(key);
+    }
+  }
+
+  std::lock_guard<std::mutex> lock(purge_list_mutex_);
+  for (const auto& key : failed_deletions) {
+    purge_list_.push_back(key);
+  }
 }
 
 uint64_t LmdbContentRepository::getRepositorySize() const {
-  return 0;
+  MDB_stat stat;
+  MDB_txn* txn;
+  mdb_txn_begin(lmdb_env_, nullptr, MDB_RDONLY, &txn);
+  mdb_stat(txn, lmdb_handle_, &stat);
+  mdb_txn_abort(txn);
+  return  stat.ms_psize * (stat.ms_branch_pages + stat.ms_leaf_pages + stat.ms_overflow_pages);
 }
 
 uint64_t LmdbContentRepository::getRepositoryEntryCount() const {
-  return 0;
+  MDB_stat stat;
+  MDB_txn* txn;
+  mdb_txn_begin(lmdb_env_, nullptr, MDB_RDONLY, &txn);
+  mdb_stat(txn, lmdb_handle_, &stat);
+  mdb_txn_abort(txn);
+  return stat.ms_entries;
 }
 
 REGISTER_RESOURCE_AS(LmdbContentRepository, InternalResource, ("LmdbContentRepository", "lmdbcontentrepository"));
