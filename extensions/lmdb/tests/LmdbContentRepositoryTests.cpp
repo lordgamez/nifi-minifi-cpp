@@ -21,7 +21,7 @@
 #include "../LmdbContentRepository.h"
 #include "properties/Configure.h"
 #include "ResourceClaim.h"
-
+#include "unit/ContentRepositoryDependentTests.h"
 
 namespace org::apache::nifi::minifi::test {
 
@@ -101,6 +101,26 @@ TEST_CASE_METHOD(LmdbContentRepositoryTests, "Read database stats", "[lmdb]") {
   write_stream->close();
   REQUIRE(content_repo_->getRepositoryEntryCount() == 1);
   REQUIRE(content_repo_->getRepositorySize() > 0);
+}
+
+TEST_CASE("ProcessSession::read reads the flowfile from offset to size", "[lmdb]") {
+  ContentRepositoryDependentTests::testReadOnSmallerClonedFlowFiles(std::make_shared<core::repository::LmdbContentRepository>());
+}
+
+TEST_CASE("ProcessSession::append should append to the flowfile and set its size correctly", "[lmdb]") {
+  ContentRepositoryDependentTests::testAppendToUnmanagedFlowFile(std::make_shared<core::repository::LmdbContentRepository>());
+
+  ContentRepositoryDependentTests::testAppendToManagedFlowFile(std::make_shared<core::repository::LmdbContentRepository>());
+}
+
+TEST_CASE("ProcessSession::read can read zero length flowfiles without crash", "[lmdb]") {
+  ContentRepositoryDependentTests::testReadFromZeroLengthFlowFile(std::make_shared<core::repository::LmdbContentRepository>());
+}
+
+TEST_CASE("ProcessSession::write can be cancelled", "[lmdb]") {
+  ContentRepositoryDependentTests::testOkWrite(std::make_shared<core::repository::LmdbContentRepository>());
+  ContentRepositoryDependentTests::testErrWrite(std::make_shared<core::repository::LmdbContentRepository>());
+  ContentRepositoryDependentTests::testCancelWrite(std::make_shared<core::repository::LmdbContentRepository>());
 }
 
 }  // namespace org::apache::nifi::minifi::test

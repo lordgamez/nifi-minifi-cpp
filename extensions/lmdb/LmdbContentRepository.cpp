@@ -41,43 +41,33 @@ void LmdbContentRepository::Session::commit() {
   if (!lmdbContentRepository) {
     throw Exception(REPOSITORY_EXCEPTION, "Session's repository is not an LmdbContentRepository");
   }
-  // TODO: do write first
 
-  // auto opendb = lmdbContentRepository->db_->open();
-  // if (!opendb) {
-  //   throw Exception(REPOSITORY_EXCEPTION, "Couldn't open rocksdb database to commit content changes");
-  // }
-  // auto batch = opendb->createWriteBatch();
-  // for (const auto& resource : managed_resources_) {
-  //   auto outStream = dbContentRepository->write(*resource.first, false, &batch);
-  //   if (outStream == nullptr) {
-  //     throw Exception(REPOSITORY_EXCEPTION, "Couldn't open the underlying resource for write: " + resource.first->getContentFullPath());
-  //   }
-  //   const auto size = resource.second->size();
-  //   if (outStream->write(resource.second->getBuffer()) != size) {
-  //     throw Exception(REPOSITORY_EXCEPTION, "Failed to write new resource: " + resource.first->getContentFullPath());
-  //   }
-  // }
-  // for (const auto& resource : append_state_) {
-  //   auto outStream = dbContentRepository->write(*resource.first, true, &batch);
-  //   if (outStream == nullptr) {
-  //     throw Exception(REPOSITORY_EXCEPTION, "Couldn't open the underlying resource for append: " + resource.first->getContentFullPath());
-  //   }
-  //   const auto size = resource.second.stream->size();
-  //   if (outStream->write(resource.second.stream->getBuffer()) != size) {
-  //     throw Exception(REPOSITORY_EXCEPTION, "Failed to append to resource: " + resource.first->getContentFullPath());
-  //   }
-  // }
+  for (const auto& resource : managed_resources_) {
+    auto outStream = lmdbContentRepository->write(*resource.first, false);
+    if (outStream == nullptr) {
+      throw Exception(REPOSITORY_EXCEPTION, "Couldn't open the underlying resource for write: " + resource.first->getContentFullPath());
+    }
+    const auto size = resource.second->size();
+    if (outStream->write(resource.second->getBuffer()) != size) {
+      throw Exception(REPOSITORY_EXCEPTION, "Failed to write new resource: " + resource.first->getContentFullPath());
+    }
+  }
 
-  // rocksdb::WriteOptions options;
-  // options.sync = use_synchronous_writes_;
-  // rocksdb::Status status = opendb->Write(options, &batch);
-  // if (!status.ok()) {
-  //   throw Exception(REPOSITORY_EXCEPTION, "Batch write failed: " + status.ToString());
-  // }
+  for (const auto& resource : append_state_) {
+    auto outStream = lmdbContentRepository->write(*resource.first, true);
+    if (outStream == nullptr) {
+      throw Exception(REPOSITORY_EXCEPTION, "Couldn't open the underlying resource for append: " + resource.first->getContentFullPath());
+    }
+    const auto size = resource.second.stream->size();
+    if (outStream->write(resource.second.stream->getBuffer()) != size) {
+      throw Exception(REPOSITORY_EXCEPTION, "Failed to append to resource: " + resource.first->getContentFullPath());
+    }
+  }
 
-  // managed_resources_.clear();
-  // append_state_.clear();
+  // TODO: what happens if write fails on commit?
+
+  managed_resources_.clear();
+  append_state_.clear();
 }
 
 bool LmdbContentRepository::initialize(const std::shared_ptr<minifi::Configure> &configuration) {
