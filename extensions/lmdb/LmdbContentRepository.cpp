@@ -22,6 +22,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <filesystem>
 
 #include "minifi-cpp/Exception.h"
 #include "core/Resource.h"
@@ -88,6 +89,15 @@ bool LmdbContentRepository::initialize(const std::shared_ptr<minifi::Configure> 
     directory_ = value;
   } else {
     directory_ = (working_dir / "lmdbcontentrepository").string();
+  }
+  if (std::filesystem::exists(directory_)) {
+    logger_->log_info("Using existing LMDB Content Repository directory at {}", directory_);
+  } else {
+    logger_->log_info("Creating LMDB Content Repository directory at {}", directory_);
+    if (!std::filesystem::create_directories(directory_)) {
+      logger_->log_error("Failed to create LMDB Content Repository directory at {}", directory_);
+      return false;
+    }
   }
   if (const int rc = mdb_env_open(lmdb_env_, directory_.c_str(), MDB_NOTLS, 0664)) {
     logger_->log_error("Failed to open LMDB environment: {}", mdb_strerror(rc));
