@@ -16,25 +16,24 @@
  */
 #pragma once
 
+#include <memory>
 #include <mutex>
 #include <string>
-#include <memory>
 
+#include "core/BufferedContentSession.h"
+#include "core/ContentRepository.h"
 #include "core/logging/LoggerFactory.h"
+#include "lmdb.h"
 #include "minifi-cpp/core/Property.h"
 #include "minifi-cpp/properties/Configure.h"
-#include "core/ContentRepository.h"
-#include "core/BufferedContentSession.h"
-#include "lmdb.h"
 
 namespace org::apache::nifi::minifi::core::repository {
 
 class LmdbContentRepository : public core::ContentRepositoryImpl {
  public:
   explicit LmdbContentRepository(std::string_view name = className<LmdbContentRepository>(), const utils::Identifier& uuid = {})
-    : core::ContentRepositoryImpl(name, uuid),
-      logger_(logging::LoggerFactory<LmdbContentRepository>::getLogger()) {
-  }
+      : core::ContentRepositoryImpl(name, uuid) {}
+
   ~LmdbContentRepository() override {
     stop();
     mdb_dbi_close(lmdb_env_, lmdb_handle_);
@@ -53,15 +52,13 @@ class LmdbContentRepository : public core::ContentRepositoryImpl {
   };
 
   std::shared_ptr<ContentSession> createSession() override;
-  bool initialize(const std::shared_ptr<minifi::Configure> &configuration) override;
-  std::shared_ptr<io::BaseStream> write(const minifi::ResourceClaim &claim, bool append = false) override;
-  std::shared_ptr<io::BaseStream> read(const minifi::ResourceClaim &claim) override;
+  bool initialize(const std::shared_ptr<minifi::Configure>& configuration) override;
+  std::shared_ptr<io::BaseStream> write(const minifi::ResourceClaim& claim, bool append = false) override;
+  std::shared_ptr<io::BaseStream> read(const minifi::ResourceClaim& claim) override;
 
-  bool close(const minifi::ResourceClaim &claim) override {
-    return remove(claim);
-  }
+  bool close(const minifi::ResourceClaim& claim) override { return remove(claim); }
 
-  bool exists(const minifi::ResourceClaim &streamId) override;
+  bool exists(const minifi::ResourceClaim& streamId) override;
 
   void clearOrphans() override;
 
@@ -75,9 +72,9 @@ class LmdbContentRepository : public core::ContentRepositoryImpl {
   bool removeKey(const std::string& content_path) override;
 
   std::string directory_;
-  MDB_env* lmdb_env_;
+  MDB_env* lmdb_env_ = nullptr;
   MDB_dbi lmdb_handle_;
-  std::shared_ptr<logging::Logger> logger_;
+  std::shared_ptr<logging::Logger> logger_{logging::LoggerFactory<LmdbContentRepository>::getLogger()};
 };
 
 }  // namespace org::apache::nifi::minifi::core::repository

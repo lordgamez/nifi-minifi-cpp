@@ -20,67 +20,63 @@
 #include <memory>
 #include <string>
 
-#include "core/Core.h"
 #include "../LmdbContentRepository.h"
 #include "core/BufferedContentSession.h"
+#include "core/Core.h"
 #include "minifi-cpp/FlowFileRecord.h"
-#include "unit/TestBase.h"
 #include "unit/Catch.h"
+#include "unit/TestBase.h"
 #include "utils/ConfigurationUtils.h"
+
+namespace org::apache::nifi::minifi::test {
 
 template<typename ContentRepositoryClass>
 class ContentSessionController : public TestController {
  public:
-  ContentSessionController()
-      : contentRepository(std::make_shared<ContentRepositoryClass>()) {
-    auto contentRepoPath = createTempDirectory();
-    auto config = std::make_shared<minifi::ConfigureImpl>();
-    config->set(minifi::Configure::nifi_dbcontent_repository_directory_default, contentRepoPath.string());
-    contentRepository->initialize(config);
+  ContentSessionController() : content_repository_(std::make_shared<ContentRepositoryClass>()) {
+    auto content_repo_path = createTempDirectory();
+    auto config = std::make_shared<ConfigureImpl>();
+    config->set(Configure::nifi_dbcontent_repository_directory_default, content_repo_path.string());
+    content_repository_->initialize(config);
   }
 
-  ~ContentSessionController() {
-    log.reset();
-  }
+  ~ContentSessionController() { log.reset(); }
 
   ContentSessionController(ContentSessionController&&) = delete;
   ContentSessionController(const ContentSessionController&) = delete;
   ContentSessionController& operator=(ContentSessionController&&) = delete;
   ContentSessionController& operator=(const ContentSessionController&) = delete;
 
-  std::shared_ptr<core::ContentRepository> contentRepository;
+  std::shared_ptr<core::ContentRepository> content_repository_;
 };
 
-std::shared_ptr<minifi::io::OutputStream> operator<<(std::shared_ptr<minifi::io::OutputStream> stream, const std::string& str) {
+std::shared_ptr<io::OutputStream> operator<<(std::shared_ptr<io::OutputStream> stream, const std::string& str) {
   REQUIRE(stream->write(reinterpret_cast<const uint8_t*>(str.data()), str.length()) == str.length());
   return stream;
 }
 
-std::shared_ptr<minifi::io::InputStream> operator>>(std::shared_ptr<minifi::io::InputStream> stream, std::string& str) {
+std::shared_ptr<io::InputStream> operator>>(std::shared_ptr<io::InputStream> stream, std::string& str) {
   str = "";
   std::array<std::byte, utils::configuration::DEFAULT_BUFFER_SIZE> buffer{};
   while (true) {
     const auto ret = stream->read(buffer);
-    REQUIRE_FALSE(minifi::io::isError(ret));
+    REQUIRE_FALSE(io::isError(ret));
     if (ret == 0) { break; }
     str += std::string{reinterpret_cast<char*>(buffer.data()), ret};
   }
   return stream;
 }
 
-void NO_CREATE(const std::shared_ptr<minifi::ResourceClaim>&) {
+void NO_CREATE(const std::shared_ptr<ResourceClaim>&) {
   REQUIRE(false);
 }
 
-// TODO(adebreceni):
-//  seems like the current version of Catch2 does not support templated tests
-//  we should update instead of creating make-shift macros
 template<typename ContentRepositoryClass>
 void test_template() {
   ContentSessionController<ContentRepositoryClass> controller;
-  std::shared_ptr<core::ContentRepository> contentRepository = controller.contentRepository;
+  std::shared_ptr<core::ContentRepository> contentRepository = controller.content_repository_;
 
-  std::shared_ptr<minifi::ResourceClaim> oldClaim;
+  std::shared_ptr<ResourceClaim> oldClaim;
   {
     auto session = contentRepository->createSession();
     oldClaim = session->create();
@@ -97,12 +93,10 @@ void test_template() {
 
   session->append(oldClaim, 4, NO_CREATE) << "-addendum";
 
-  std::shared_ptr<minifi::ResourceClaim> copied_claim;
+  std::shared_ptr<ResourceClaim> copied_claim;
   {
     auto other_session = contentRepository->createSession();
-    other_session->append(oldClaim, 4, [&] (auto new_claim) {
-      copied_claim = std::move(new_claim);
-    }) << "-some extra content";
+    other_session->append(oldClaim, 4, [&](auto new_claim) { copied_claim = std::move(new_claim); }) << "-some extra content";
     other_session->commit();
   }
   REQUIRE(copied_claim);
@@ -115,9 +109,7 @@ void test_template() {
   }
 
   // TODO(adebreceni): MINIFICPP-1954
-  if (is_buffered_session) {
-    REQUIRE_THROWS(session->read(oldClaim));
-  }
+  if (is_buffered_session) { REQUIRE_THROWS(session->read(oldClaim)); }
 
   auto claim1 = session->create();
   session->write(claim1) << "hello content!";
@@ -177,3 +169,5 @@ void test_template() {
 TEST_CASE("ContentSession behavior") {
   test_template<core::repository::LmdbContentRepository>();
 }
+
+}  // namespace org::apache::nifi::minifi::test

@@ -18,33 +18,30 @@
 #include "LmdbContentRepository.h"
 
 #include <cinttypes>
+#include <filesystem>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
-#include <filesystem>
 
-#include "minifi-cpp/Exception.h"
+#include "LmdbStream.h"
 #include "core/Resource.h"
 #include "core/TypedValues.h"
-#include "utils/Locations.h"
-#include "minifi-cpp/utils/gsl.h"
-#include "LmdbStream.h"
 #include "lmdb.h"
+#include "minifi-cpp/Exception.h"
+#include "minifi-cpp/utils/gsl.h"
+#include "utils/Locations.h"
 
 namespace org::apache::nifi::minifi::core::repository {
 
-LmdbContentRepository::Session::Session(std::shared_ptr<ContentRepository> repository)
-    : BufferedContentSession(std::move(repository)) {}
+LmdbContentRepository::Session::Session(std::shared_ptr<ContentRepository> repository) : BufferedContentSession(std::move(repository)) {}
 
 void LmdbContentRepository::Session::commit() {
-  auto lmdbContentRepository = std::dynamic_pointer_cast<LmdbContentRepository>(repository_);
-  if (!lmdbContentRepository) {
-    throw Exception(REPOSITORY_EXCEPTION, "Session's repository is not an LmdbContentRepository");
-  }
+  auto lmdb_content_repository = std::dynamic_pointer_cast<LmdbContentRepository>(repository_);
+  if (!lmdb_content_repository) { throw Exception(REPOSITORY_EXCEPTION, "Session's repository is not an LmdbContentRepository"); }
 
   for (const auto& resource : managed_resources_) {
-    auto outStream = lmdbContentRepository->write(*resource.first, false);
+    auto outStream = lmdb_content_repository->write(*resource.first, false);
     if (outStream == nullptr) {
       throw Exception(REPOSITORY_EXCEPTION, "Couldn't open the underlying resource for write: " + resource.first->getContentFullPath());
     }
@@ -62,7 +59,7 @@ void LmdbContentRepository::Session::commit() {
   }
 
   for (const auto& resource : append_state_) {
-    auto outStream = lmdbContentRepository->write(*resource.first, true);
+    auto outStream = lmdb_content_repository->write(*resource.first, true);
     if (outStream == nullptr) {
       throw Exception(REPOSITORY_EXCEPTION, "Couldn't open the underlying resource for append: " + resource.first->getContentFullPath());
     }
@@ -83,14 +80,15 @@ void LmdbContentRepository::Session::commit() {
   append_state_.clear();
 }
 
-bool LmdbContentRepository::initialize(const std::shared_ptr<minifi::Configure> &configuration) {
+bool LmdbContentRepository::initialize(const std::shared_ptr<minifi::Configure>& configuration) {
   if (const int rc = mdb_env_create(&lmdb_env_)) {
     logger_->log_error("Failed to create LMDB environment: {}", mdb_strerror(rc));
     return false;
   }
 
   // TODO(lordgamez): consider making these configurable if needed
-  // Limit large enough to accommodate all our named dbs. This only starts to matter if the number gets large, otherwise it's just a bunch of extra entries in the main table.
+  // Limit large enough to accommodate all our named dbs. This only starts to matter if the number gets large, otherwise it's just a bunch of extra
+  // entries in the main table.
   mdb_env_set_maxdbs(lmdb_env_, 4);
 
   // This is the maximum size of the db (but will not be used directly), so we make it large enough that we hopefully never run into the limit.
@@ -135,24 +133,23 @@ void LmdbContentRepository::start() {
   // TODO(lordgamez): add compaction thread if needed
 }
 
-void LmdbContentRepository::stop() {
-}
+void LmdbContentRepository::stop() {}
 
 std::shared_ptr<ContentSession> LmdbContentRepository::createSession() {
   return std::make_shared<Session>(sharedFromThis<ContentRepository>());
 }
 
-std::shared_ptr<io::BaseStream> LmdbContentRepository::write(const minifi::ResourceClaim &claim, bool) {
+std::shared_ptr<io::BaseStream> LmdbContentRepository::write(const minifi::ResourceClaim& claim, bool) {
   return std::make_shared<io::LmdbStream>(claim.getContentFullPath(), lmdb_env_, &lmdb_handle_, true);
 }
 
-std::shared_ptr<io::BaseStream> LmdbContentRepository::read(const minifi::ResourceClaim &claim) {
+std::shared_ptr<io::BaseStream> LmdbContentRepository::read(const minifi::ResourceClaim& claim) {
   return std::make_shared<io::LmdbStream>(claim.getContentFullPath(), lmdb_env_, &lmdb_handle_, false);
 }
 
-bool LmdbContentRepository::exists(const minifi::ResourceClaim &streamId) {
+bool LmdbContentRepository::exists(const minifi::ResourceClaim& streamId) {
   auto path = streamId.getContentFullPath();
-  MDB_val key{ path.size(), const_cast<char*>(path.data()) };
+  MDB_val key{path.size(), const_cast<char*>(path.data())};
   MDB_val value{};
 
   MDB_txn* txn = nullptr;
@@ -172,7 +169,7 @@ bool LmdbContentRepository::exists(const minifi::ResourceClaim &streamId) {
 }
 
 bool LmdbContentRepository::removeKey(const std::string& content_path) {
-  MDB_val key{ content_path.size(), const_cast<char*>(content_path.data()) };
+  MDB_val key{content_path.size(), const_cast<char*>(content_path.data())};
 
   MDB_txn* txn = nullptr;
   mdb_txn_begin(lmdb_env_, nullptr, 0, &txn);
@@ -198,7 +195,7 @@ void LmdbContentRepository::clearOrphans() {
   MDB_txn* txn = nullptr;
   mdb_txn_begin(lmdb_env_, nullptr, MDB_RDONLY, &txn);
 
-  MDB_cursor* cursor;
+  MDB_cursor* cursor = nullptr;
   mdb_cursor_open(txn, lmdb_handle_, &cursor);
 
   MDB_val key{};
@@ -246,7 +243,7 @@ uint64_t LmdbContentRepository::getRepositorySize() const {
   mdb_txn_begin(lmdb_env_, nullptr, MDB_RDONLY, &txn);
   mdb_stat(txn, lmdb_handle_, &stat);
   mdb_txn_abort(txn);
-  return  stat.ms_psize * (stat.ms_branch_pages + stat.ms_leaf_pages + stat.ms_overflow_pages);
+  return stat.ms_psize * (stat.ms_branch_pages + stat.ms_leaf_pages + stat.ms_overflow_pages);
 }
 
 uint64_t LmdbContentRepository::getRepositoryEntryCount() const {

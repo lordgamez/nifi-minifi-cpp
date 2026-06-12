@@ -16,22 +16,22 @@
  * limitations under the License.
  */
 
-#include "unit/TestBase.h"
-#include "unit/Catch.h"
 #include "../LmdbContentRepository.h"
-#include "properties/Configure.h"
 #include "ResourceClaim.h"
+#include "properties/Configure.h"
+#include "unit/Catch.h"
 #include "unit/ContentRepositoryDependentTests.h"
+#include "unit/TestBase.h"
 
 namespace org::apache::nifi::minifi::test {
 
 class LmdbContentRepositoryTests : TestController {
  public:
   LmdbContentRepositoryTests()
-        : configuration_(std::make_shared<org::apache::nifi::minifi::ConfigureImpl>()) {
-    db_path_ = createTempDirectory().string();
+      : db_path_(createTempDirectory().string()),
+        configuration_(std::make_shared<org::apache::nifi::minifi::ConfigureImpl>()),
+        content_repo_(std::make_shared<core::repository::LmdbContentRepository>()) {
     configuration_->set(minifi::Configure::nifi_dbcontent_repository_directory_default, db_path_);
-    content_repo_ = std::make_shared<core::repository::LmdbContentRepository>();
     REQUIRE(content_repo_->initialize(configuration_));
   }
 
@@ -109,7 +109,6 @@ TEST_CASE("ProcessSession::read reads the flowfile from offset to size", "[lmdb]
 
 TEST_CASE("ProcessSession::append should append to the flowfile and set its size correctly", "[lmdb]") {
   ContentRepositoryDependentTests::testAppendToUnmanagedFlowFile(std::make_shared<core::repository::LmdbContentRepository>());
-
   ContentRepositoryDependentTests::testAppendToManagedFlowFile(std::make_shared<core::repository::LmdbContentRepository>());
 }
 

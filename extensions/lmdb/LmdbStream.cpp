@@ -17,8 +17,10 @@
  */
 
 #include "LmdbStream.h"
-#include <utility>
+
 #include <string>
+#include <utility>
+
 #include "io/validation.h"
 
 namespace org::apache::nifi::minifi::io {
@@ -30,7 +32,7 @@ LmdbStream::LmdbStream(std::string path, MDB_env* lmdb_env, MDB_dbi* lmdb_handle
       lmdb_env_(lmdb_env),
       lmdb_handle_(lmdb_handle),
       exists_([this] {
-        MDB_val key{ path_.size(), const_cast<char*>(path_.data()) };
+        MDB_val key{path_.size(), const_cast<char*>(path_.data())};
         MDB_val value{};
 
         MDB_txn* txn = nullptr;
@@ -50,15 +52,14 @@ LmdbStream::LmdbStream(std::string path, MDB_env* lmdb_env, MDB_dbi* lmdb_handle
         return exists;
       }()),
       offset_(0),
-      size_(value_.size()) {
-}
+      size_(value_.size()) {}
 
 void LmdbStream::close() {
   commit();
 }
 
 bool LmdbStream::commit() {
-  if (!write_enable_ || !dirty_) return false;
+  if (!write_enable_ || !dirty_) { return false; }
   dirty_ = false;
 
   MDB_txn* txn = nullptr;
@@ -68,8 +69,8 @@ bool LmdbStream::commit() {
     return false;
   }
 
-  MDB_val key{ path_.size(), const_cast<char*>(path_.data()) };
-  MDB_val val{ value_.size(), const_cast<char*>(value_.data()) };
+  MDB_val key{path_.size(), const_cast<char*>(path_.data())};
+  MDB_val val{value_.size(), const_cast<char*>(value_.data())};
   rc = mdb_put(txn, *lmdb_handle_, &key, &val, 0);
   if (rc != MDB_SUCCESS) {
     logger_->log_error("Failed to put value in LMDB database during close: {}", mdb_strerror(rc));
@@ -93,9 +94,9 @@ size_t LmdbStream::tell() const {
   return offset_;
 }
 
-size_t LmdbStream::write(const uint8_t *value, size_t size) {
-  if (!write_enable_) return STREAM_ERROR;
-  if (size != 0 && IsNullOrEmpty(value)) return STREAM_ERROR;
+size_t LmdbStream::write(const uint8_t* value, size_t size) {
+  if (!write_enable_) { return STREAM_ERROR; }
+  if (size != 0 && IsNullOrEmpty(value)) { return STREAM_ERROR; }
   value_.append(reinterpret_cast<const char*>(value), size);
   size_ += size;
   dirty_ = true;
@@ -103,9 +104,9 @@ size_t LmdbStream::write(const uint8_t *value, size_t size) {
 }
 
 size_t LmdbStream::read(std::span<std::byte> buf) {
-  if (!exists_) return STREAM_ERROR;
-  if (buf.empty()) return 0;
-  if (offset_ >= value_.size()) return 0;
+  if (!exists_) { return STREAM_ERROR; }
+  if (buf.empty()) { return 0; }
+  if (offset_ >= value_.size()) { return 0; }
 
   const auto amtToRead = std::min(buf.size(), value_.size() - offset_);
   std::memcpy(buf.data(), value_.data() + offset_, amtToRead);

@@ -17,12 +17,13 @@
  */
 #pragma once
 
-#include <iostream>
 #include <cstdint>
-#include <string>
+#include <iostream>
 #include <memory>
-#include "io/BaseStream.h"
+#include <string>
+
 #include "core/logging/LoggerFactory.h"
+#include "io/BaseStream.h"
 #include "lmdb.h"
 
 namespace org::apache::nifi::minifi::io {
@@ -31,24 +32,20 @@ class LmdbStream : public io::BaseStreamImpl {
  public:
   explicit LmdbStream(std::string path, MDB_env* lmdb_env, MDB_dbi* lmdb_handle, bool write_enable = false);
 
-  ~LmdbStream() override {
-    close();
-  }
+  ~LmdbStream() override { close(); }
 
   void close() final;
   void seek(size_t offset) override;
 
   size_t tell() const override;
 
-  size_t size() const override {
-    return size_;
-  }
+  size_t size() const override { return size_; }
 
-  using BaseStream::write;
   using BaseStream::read;
+  using BaseStream::write;
 
   size_t read(std::span<std::byte> buf) override;
-  size_t write(const uint8_t *value, size_t size) override;
+  size_t write(const uint8_t* value, size_t size) override;
 
   bool commit();
 
@@ -61,7 +58,6 @@ class LmdbStream : public io::BaseStreamImpl {
   bool exists_;
   size_t offset_;
   size_t size_;
-  bool use_synchronous_writes_;
   bool dirty_ = false;
 
  private:

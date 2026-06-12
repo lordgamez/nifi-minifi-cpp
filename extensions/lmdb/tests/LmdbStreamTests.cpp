@@ -16,18 +16,17 @@
  * limitations under the License.
  */
 
-#include "unit/TestBase.h"
-#include "unit/Catch.h"
-#include "../LmdbStream.h"
 #include "../LmdbContentRepository.h"
+#include "../LmdbStream.h"
 #include "lmdb.h"
+#include "unit/Catch.h"
+#include "unit/TestBase.h"
 
 namespace org::apache::nifi::minifi::test {
 
 class LmdbStreamTest : TestController {
  public:
-  LmdbStreamTest() {
-    db_path_ = createTempDirectory().string();
+  LmdbStreamTest() : db_path_(createTempDirectory().string()), lmdb_env_(nullptr), lmdb_handle_() {
     if (const int rc = mdb_env_create(&lmdb_env_)) {
       throw std::runtime_error("Failed to create LMDB environment: " + std::string(mdb_strerror(rc)));
     }
@@ -41,25 +40,23 @@ class LmdbStreamTest : TestController {
     MDB_txn* init_txn = nullptr;
     mdb_txn_begin(lmdb_env_, nullptr, 0, &init_txn);
     if (const int rc = mdb_dbi_open(init_txn, nullptr, 0, &lmdb_handle_); rc != MDB_SUCCESS) {
-        mdb_txn_abort(init_txn);
-        mdb_env_close(lmdb_env_);
-        throw std::runtime_error("Failed to open LMDB database: " + std::string(mdb_strerror(rc)));
+      mdb_txn_abort(init_txn);
+      mdb_env_close(lmdb_env_);
+      throw std::runtime_error("Failed to open LMDB database: " + std::string(mdb_strerror(rc)));
     }
     mdb_txn_commit(init_txn);
   }
 
   std::optional<std::string> readValue(const std::string& key) {
     MDB_val db_value{};
-    MDB_val db_key{ key.size(), const_cast<char*>(key.data()) };
+    MDB_val db_key{key.size(), const_cast<char*>(key.data())};
     std::optional<std::string> return_value;
 
     MDB_txn* txn = nullptr;
     mdb_txn_begin(lmdb_env_, nullptr, MDB_RDONLY, &txn);
 
     auto result = mdb_get(txn, lmdb_handle_, &db_key, &db_value);
-    if (result == MDB_SUCCESS) {
-      return_value = std::string(static_cast<char*>(db_value.mv_data), db_value.mv_size);
-    }
+    if (result == MDB_SUCCESS) { return_value = std::string(static_cast<char*>(db_value.mv_data), db_value.mv_size); }
 
     mdb_txn_abort(txn);
     return return_value;

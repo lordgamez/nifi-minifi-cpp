@@ -15,40 +15,20 @@
 # specific language governing permissions and limitations
 # under the License.
 
-function(use_bundled_lmdb SOURCE_DIR BINARY_DIR)
-    if (WIN32)
-        set(BYPRODUCT "lmdb.lib")
-    else()
-        set(BYPRODUCT "liblmdb.a")
-    endif()
+include(FetchContent)
 
-    processorcount(jobs)
+set(PATCH_FILE "${CMAKE_SOURCE_DIR}/thirdparty/lmdb/add-cmake-file.patch")
+set(PC ${Bash_EXECUTABLE}  -c "set -x &&\
+        (\\\"${Patch_EXECUTABLE}\\\" -p1 -R -s -f --dry-run -i \\\"${PATCH_FILE}\\\" || \\\"${Patch_EXECUTABLE}\\\" -p1 -N -i \\\"${PATCH_FILE}\\\")")
 
-    # Build project
-    ExternalProject_Add(
-            lmdb-external
-            URL "https://github.com/LMDB/lmdb/archive/refs/tags/LMDB_1.0.0-branch.tar.gz"
-            URL_HASH "SHA256=8d3e790194e43a72f172f34c442ea4737b2d1433fc0983f2ef70bae999bc2d28"
-            SOURCE_DIR "${BINARY_DIR}/thirdparty/lmdb-src/"
-            SOURCE_SUBDIR "libraries/liblmdb"
-            BUILD_BYPRODUCTS "${BINARY_DIR}/thirdparty/lmdb-src/libraries/liblmdb/${BYPRODUCT}"
-            EXCLUDE_FROM_ALL TRUE
-            LIST_SEPARATOR % # This is needed for passing semicolon-separated lists
-            DOWNLOAD_NO_PROGRESS TRUE
-            TLS_VERIFY TRUE
-            BUILD_IN_SOURCE TRUE
-            CONFIGURE_COMMAND ""
-            BUILD_COMMAND make -j${jobs} CFLAGS=-fPIC
-            INSTALL_COMMAND ""
-    )
+FetchContent_Declare(
+        lmdb
+        URL      https://github.com/LMDB/lmdb/archive/refs/tags/LMDB_1.0.0-branch.tar.gz
+        URL_HASH SHA256=8d3e790194e43a72f172f34c442ea4737b2d1433fc0983f2ef70bae999bc2d28
+        PATCH_COMMAND "${PC}"
+        SOURCE_SUBDIR "libraries/liblmdb"
+        SYSTEM
+)
 
-    # Set variables
-    set(LMDB_FOUND "YES" CACHE STRING "" FORCE)
-    set(LMDB_INCLUDE_DIR "${BINARY_DIR}/thirdparty/lmdb-src/libraries/liblmdb" CACHE STRING "" FORCE)
-    set(LMDB_LIBRARY "${BINARY_DIR}/thirdparty/lmdb-src/libraries/liblmdb/${BYPRODUCT}" CACHE STRING "" FORCE)
-
-    # Create imported targets
-    add_library(LMDB::LMDB STATIC IMPORTED)
-    set_target_properties(LMDB::LMDB PROPERTIES IMPORTED_LOCATION "${LMDB_LIBRARY}")
-    add_dependencies(LMDB::LMDB lmdb-external)
-endfunction(use_bundled_lmdb)
+FetchContent_MakeAvailable(lmdb)
+set(LMDB_INCLUDE_DIR "${lmdb_SOURCE_DIR}/libraries/liblmdb")
