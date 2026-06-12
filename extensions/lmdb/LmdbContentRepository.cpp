@@ -88,11 +88,13 @@ bool LmdbContentRepository::initialize(const std::shared_ptr<minifi::Configure> 
     logger_->log_error("Failed to create LMDB environment: {}", mdb_strerror(rc));
     return false;
   }
-  //Limit large enough to accommodate all our named dbs. This only starts to matter if the number gets large, otherwise it's just a bunch of extra entries in the main table.
+
+  // TODO(lordgamez): consider making these configurable if needed
+  // Limit large enough to accommodate all our named dbs. This only starts to matter if the number gets large, otherwise it's just a bunch of extra entries in the main table.
   mdb_env_set_maxdbs(lmdb_env_, 4);
 
-  //This is the maximum size of the db (but will not be used directly), so we make it large enough that we hopefully never run into the limit.
-  mdb_env_set_mapsize(lmdb_env_, (size_t)1048576 * (size_t)100000); // 1MB * 100000
+  // This is the maximum size of the db (but will not be used directly), so we make it large enough that we hopefully never run into the limit.
+  mdb_env_set_mapsize(lmdb_env_, static_cast<size_t>(1048576) * static_cast<size_t>(100000));  // 1MB * 100000
 
   const auto working_dir = utils::getMinifiDir();
 
@@ -130,11 +132,10 @@ bool LmdbContentRepository::initialize(const std::shared_ptr<minifi::Configure> 
 }
 
 void LmdbContentRepository::start() {
-  // TODO(lmdb): add compaction thread if needed
+  // TODO(lordgamez): add compaction thread if needed
 }
 
 void LmdbContentRepository::stop() {
-
 }
 
 std::shared_ptr<ContentSession> LmdbContentRepository::createSession() {
