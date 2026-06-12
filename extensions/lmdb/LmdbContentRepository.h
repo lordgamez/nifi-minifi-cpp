@@ -72,8 +72,8 @@ class LmdbContentRepository : public core::ContentRepositoryImpl {
   bool removeKey(const std::string& content_path) override;
 
   std::string directory_;
-  MDB_env* lmdb_env_ = nullptr;
-  MDB_dbi lmdb_handle_;
+  MDB_env* lmdb_env_{nullptr};
+  MDB_dbi lmdb_handle_{};
   std::shared_ptr<logging::Logger> logger_{logging::LoggerFactory<LmdbContentRepository>::getLogger()};
 };
 

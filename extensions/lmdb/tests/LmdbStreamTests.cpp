@@ -26,7 +26,7 @@ namespace org::apache::nifi::minifi::test {
 
 class LmdbStreamTest : TestController {
  public:
-  LmdbStreamTest() : db_path_(createTempDirectory().string()), lmdb_env_(nullptr), lmdb_handle_() {
+  LmdbStreamTest() : db_path_(createTempDirectory().string()) {
     if (const int rc = mdb_env_create(&lmdb_env_)) {
       throw std::runtime_error("Failed to create LMDB environment: " + std::string(mdb_strerror(rc)));
     }
@@ -69,8 +69,8 @@ class LmdbStreamTest : TestController {
 
  protected:
   std::string db_path_;
-  MDB_env* lmdb_env_;
-  MDB_dbi lmdb_handle_;
+  MDB_env* lmdb_env_{nullptr};
+  MDB_dbi lmdb_handle_{};
 };
 
 TEST_CASE_METHOD(LmdbStreamTest, "Simple write tests") {
