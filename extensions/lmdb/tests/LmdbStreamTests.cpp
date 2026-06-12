@@ -38,7 +38,7 @@ class LmdbStreamTest : TestController {
       throw std::runtime_error("Failed to open LMDB environment " + db_path_ + ": " + std::string(mdb_strerror(rc)));
     }
 
-    MDB_txn* init_txn;
+    MDB_txn* init_txn = nullptr;
     mdb_txn_begin(lmdb_env_, nullptr, 0, &init_txn);
     if (const int rc = mdb_dbi_open(init_txn, nullptr, 0, &lmdb_handle_); rc != MDB_SUCCESS) {
         mdb_txn_abort(init_txn);
@@ -53,7 +53,7 @@ class LmdbStreamTest : TestController {
     MDB_val db_key{ key.size(), const_cast<char*>(key.data()) };
     std::optional<std::string> return_value;
 
-    MDB_txn* txn;
+    MDB_txn* txn = nullptr;
     mdb_txn_begin(lmdb_env_, nullptr, MDB_RDONLY, &txn);
 
     auto result = mdb_get(txn, lmdb_handle_, &db_key, &db_value);

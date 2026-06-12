@@ -118,7 +118,7 @@ bool LmdbContentRepository::initialize(const std::shared_ptr<minifi::Configure> 
     return false;
   }
 
-  MDB_txn* init_txn;
+  MDB_txn* init_txn = nullptr;
   mdb_txn_begin(lmdb_env_, nullptr, 0, &init_txn);
   if (const int rc = mdb_dbi_open(init_txn, nullptr, 0, &lmdb_handle_); rc != MDB_SUCCESS) {
     logger_->log_error("Failed to open LMDB database: {}", mdb_strerror(rc));
@@ -155,7 +155,7 @@ bool LmdbContentRepository::exists(const minifi::ResourceClaim &streamId) {
   MDB_val key{ path.size(), const_cast<char*>(path.data()) };
   MDB_val value{};
 
-  MDB_txn* txn;
+  MDB_txn* txn = nullptr;
   mdb_txn_begin(lmdb_env_, nullptr, MDB_RDONLY, &txn);
 
   auto rc = mdb_get(txn, lmdb_handle_, &key, &value);
@@ -174,7 +174,7 @@ bool LmdbContentRepository::exists(const minifi::ResourceClaim &streamId) {
 bool LmdbContentRepository::removeKey(const std::string& content_path) {
   MDB_val key{ content_path.size(), const_cast<char*>(content_path.data()) };
 
-  MDB_txn* txn;
+  MDB_txn* txn = nullptr;
   mdb_txn_begin(lmdb_env_, nullptr, 0, &txn);
   int rc = mdb_del(txn, lmdb_handle_, &key, nullptr);
   auto result = false;
@@ -195,13 +195,14 @@ bool LmdbContentRepository::removeKey(const std::string& content_path) {
 void LmdbContentRepository::clearOrphans() {
   std::vector<std::string> keys_to_be_deleted;
 
-  MDB_txn* txn;
+  MDB_txn* txn = nullptr;
   mdb_txn_begin(lmdb_env_, nullptr, MDB_RDONLY, &txn);
 
   MDB_cursor* cursor;
   mdb_cursor_open(txn, lmdb_handle_, &cursor);
 
-  MDB_val key{}, val{};
+  MDB_val key{};
+  MDB_val val{};
   int rc = mdb_cursor_get(cursor, &key, &val, MDB_FIRST);
 
   while (rc == MDB_SUCCESS) {
@@ -241,7 +242,7 @@ void LmdbContentRepository::clearOrphans() {
 
 uint64_t LmdbContentRepository::getRepositorySize() const {
   MDB_stat stat;
-  MDB_txn* txn;
+  MDB_txn* txn = nullptr;
   mdb_txn_begin(lmdb_env_, nullptr, MDB_RDONLY, &txn);
   mdb_stat(txn, lmdb_handle_, &stat);
   mdb_txn_abort(txn);
@@ -250,7 +251,7 @@ uint64_t LmdbContentRepository::getRepositorySize() const {
 
 uint64_t LmdbContentRepository::getRepositoryEntryCount() const {
   MDB_stat stat;
-  MDB_txn* txn;
+  MDB_txn* txn = nullptr;
   mdb_txn_begin(lmdb_env_, nullptr, MDB_RDONLY, &txn);
   mdb_stat(txn, lmdb_handle_, &stat);
   mdb_txn_abort(txn);

@@ -33,7 +33,7 @@ LmdbStream::LmdbStream(std::string path, MDB_env* lmdb_env, MDB_dbi* lmdb_handle
         MDB_val key{ path_.size(), const_cast<char*>(path_.data()) };
         MDB_val value{};
 
-        MDB_txn* txn;
+        MDB_txn* txn = nullptr;
         mdb_txn_begin(lmdb_env_, nullptr, MDB_RDONLY, &txn);
 
         auto rc = mdb_get(txn, *lmdb_handle_, &key, &value);
@@ -61,7 +61,7 @@ bool LmdbStream::commit() {
   if (!write_enable_ || !dirty_) return false;
   dirty_ = false;
 
-  MDB_txn* txn;
+  MDB_txn* txn = nullptr;
   int rc = mdb_txn_begin(lmdb_env_, nullptr, 0, &txn);
   if (rc != MDB_SUCCESS) {
     logger_->log_error("Failed to begin LMDB transaction in close: {}", mdb_strerror(rc));
