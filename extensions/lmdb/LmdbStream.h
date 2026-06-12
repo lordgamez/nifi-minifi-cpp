@@ -50,6 +50,8 @@ class LmdbStream : public io::BaseStreamImpl {
   size_t read(std::span<std::byte> buf) override;
   size_t write(const uint8_t *value, size_t size) override;
 
+  bool commit();
+
  protected:
   std::string path_;
   bool write_enable_;

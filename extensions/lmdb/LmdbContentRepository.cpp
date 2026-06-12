@@ -52,6 +52,13 @@ void LmdbContentRepository::Session::commit() {
     if (outStream->write(resource.second->getBuffer()) != size) {
       throw Exception(REPOSITORY_EXCEPTION, "Failed to write new resource: " + resource.first->getContentFullPath());
     }
+    auto lmdb_out_stream = std::dynamic_pointer_cast<io::LmdbStream>(outStream);
+    if (lmdb_out_stream == nullptr) {
+      throw Exception(REPOSITORY_EXCEPTION, "Couldn't cast output stream to LmdbStream for commit: " + resource.first->getContentFullPath());
+    }
+    if (!lmdb_out_stream->commit()) {
+      throw Exception(REPOSITORY_EXCEPTION, "Failed to commit new resource: " + resource.first->getContentFullPath());
+    }
   }
 
   for (const auto& resource : append_state_) {
@@ -63,9 +70,14 @@ void LmdbContentRepository::Session::commit() {
     if (outStream->write(resource.second.stream->getBuffer()) != size) {
       throw Exception(REPOSITORY_EXCEPTION, "Failed to append to resource: " + resource.first->getContentFullPath());
     }
+    auto lmdb_out_stream = std::dynamic_pointer_cast<io::LmdbStream>(outStream);
+    if (lmdb_out_stream == nullptr) {
+      throw Exception(REPOSITORY_EXCEPTION, "Couldn't cast output stream to LmdbStream for commit: " + resource.first->getContentFullPath());
+    }
+    if (!lmdb_out_stream->commit()) {
+      throw Exception(REPOSITORY_EXCEPTION, "Failed to commit appended resource: " + resource.first->getContentFullPath());
+    }
   }
-
-  // TODO: what happens if write fails on commit?
 
   managed_resources_.clear();
   append_state_.clear();
@@ -118,7 +130,7 @@ bool LmdbContentRepository::initialize(const std::shared_ptr<minifi::Configure> 
 }
 
 void LmdbContentRepository::start() {
-  // add compaction thread if needed
+  // TODO(lmdb): add compaction thread if needed
 }
 
 void LmdbContentRepository::stop() {
