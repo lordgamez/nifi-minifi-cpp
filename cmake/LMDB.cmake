@@ -30,5 +30,15 @@ FetchContent_Declare(
         SYSTEM
 )
 
+if (WIN32)
+    get_directory_property(MINIFI_SAVED_COMPILE_DEFS COMPILE_DEFINITIONS)
+    remove_definitions(-DWIN32_LEAN_AND_MEAN)
+endif()
+
 FetchContent_MakeAvailable(lmdb)
+
+if (WIN32)
+    set_directory_properties(PROPERTIES COMPILE_DEFINITIONS "${MINIFI_SAVED_COMPILE_DEFS}")
+endif()
+
 set(LMDB_INCLUDE_DIR "${lmdb_SOURCE_DIR}/libraries/liblmdb")

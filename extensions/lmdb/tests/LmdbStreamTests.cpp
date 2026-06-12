@@ -47,6 +47,11 @@ class LmdbStreamTest : TestController {
     mdb_txn_commit(init_txn);
   }
 
+  ~LmdbStreamTest() override {
+    mdb_dbi_close(lmdb_env_, lmdb_handle_);
+    mdb_env_close(lmdb_env_);
+  }
+
   std::optional<std::string> readValue(const std::string& key) {
     MDB_val db_value{};
     MDB_val db_key{key.size(), const_cast<char*>(key.data())};
