@@ -13,6 +13,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import argparse
 import docker
 import humanfriendly
@@ -23,9 +24,12 @@ import tempfile
 import threading
 import time
 from datetime import datetime, timezone
+import jinja2
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-CONFIG_FILE = os.path.join(SCRIPT_DIR, "resources", "get_config.yml")
+RESOURCES_DIR = os.path.join(SCRIPT_DIR, "resources")
+GET_CONFIG_FILE_TEMPLATE = "get_config.json"
+GENERATE_CONFIG_FILE_TEMPLATE = "generate_config.json"
 RESULTS_DIR = os.path.join(SCRIPT_DIR, "results")
 
 MINIFI_HOME = "/opt/minifi/minifi-current"
@@ -45,6 +49,8 @@ CONTENT_REPOSITORY_CLASSES = {
     "filesystem": "FileSystemRepository",
     "volatile": "VolatileContentRepository",
 }
+
+INPUT_GENERATION_TYPES = ["GetFile", "GenerateFlowFile"]
 
 
 def build_properties(flowfile_repository: str, content_repository: str) -> dict[str, str]:
@@ -118,57 +124,91 @@ def metrics_collector_loop(stop_event: threading.Event, container, samples: list
         stop_event.wait(interval)
 
 
-def wait_until_running(container, timeout: float = 15.0) -> None:
+def wait_for_minifi_to_start(container, timeout: float = 30.0) -> None:
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         container.reload()
         if container.status == "running":
             return
         time.sleep(0.5)
+    logs = container.logs().decode(errors="replace")
+    while time.monotonic() < deadline:
+        if "MiNiFi started" in logs:
+            return
+        time.sleep(0.5)
     raise RuntimeError(f"Container did not reach running state (status: {container.status})")
 
 
-def run(args) -> None:
-    properties = build_properties(args.flowfile_repository, args.content_repository)
+def write_config_yml(args: argparse.Namespace, work_dir: str) -> None:
+    if args.input_file_generation_type == "GetFile":
+        jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(RESOURCES_DIR))
+        flow_config_template = jinja_env.get_template(GET_CONFIG_FILE_TEMPLATE)
+        flow_config = flow_config_template.render(get_file_interval=args.input_interval)
+        with open(os.path.join(work_dir, "config.yml"), "w") as config_file:
+            config_file.write(flow_config)
+    else:
+        jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(RESOURCES_DIR))
+        flow_config_template = jinja_env.get_template(GENERATE_CONFIG_FILE_TEMPLATE)
+        flow_config = flow_config_template.render(generate_file_interval=args.input_interval,
+                                                  generate_file_size=args.input_file_size)
+        with open(os.path.join(work_dir, "config.yml"), "w") as config_file:
+            config_file.write(flow_config)
 
+
+def create_minifi_container(args: argparse.Namespace) -> docker.models.containers.Container:
     work_dir = tempfile.mkdtemp(prefix="repo_benchmark_")
     input_dir = os.path.join(work_dir, "input")
     os.makedirs(input_dir)
+
     properties_path = os.path.join(work_dir, "minifi.properties")
+    properties = build_properties(args.flowfile_repository, args.content_repository)
     write_properties_file(properties, properties_path)
 
     client = docker.from_env()
+
+    write_config_yml(args, work_dir)
+
     container = client.containers.run(
         args.image,
         detach=True,
         volumes={
             properties_path: {"bind": f"{MINIFI_HOME}/conf/minifi.properties", "mode": "ro"},
-            CONFIG_FILE: {"bind": f"{MINIFI_HOME}/conf/config.yml", "mode": "ro"},
+            os.path.join(work_dir, "config.yml"): {"bind": f"{MINIFI_HOME}/conf/config.yml", "mode": "ro"},
             input_dir: {"bind": INPUT_DIR, "mode": "rw"},
         },
     )
+    return container, input_dir, work_dir
 
-    samples: list[dict] = []
+
+def run_threads(container, input_dir: str, work_dir: str, samples: list[dict], args: argparse.Namespace) -> None:
     stop_event = threading.Event()
     try:
-        wait_until_running(container)
-        # Give MiNiFi a moment to load extensions and start the flow before sampling.
-        time.sleep(3)
+        wait_for_minifi_to_start(container)
 
         start = time.monotonic()
-        threads = [
-            threading.Thread(
-                target=input_generator_loop,
-                args=(stop_event, input_dir, args.input_interval,
-                      args.input_file_size, args.input_files_per_cycle),
-                daemon=True,
-            ),
-            threading.Thread(
-                target=metrics_collector_loop,
-                args=(stop_event, container, samples, args.metrics_interval, start),
-                daemon=True,
-            ),
-        ]
+        if args.input_file_generation_type == "GetFile":
+            threads = [
+                threading.Thread(
+                    target=input_generator_loop,
+                    args=(stop_event, input_dir, args.input_interval,
+                        args.input_file_size, args.input_files_per_cycle),
+                    daemon=True,
+                ),
+                threading.Thread(
+                    target=metrics_collector_loop,
+                    args=(stop_event, container, samples, args.metrics_interval, start),
+                    daemon=True,
+                ),
+            ]
+        else:
+            threads = [
+                threading.Thread(
+                    target=metrics_collector_loop,
+                    args=(stop_event, container, samples, args.metrics_interval, start),
+                    daemon=True,
+                ),
+            ]
+
         for thread in threads:
             thread.start()
 
@@ -184,6 +224,8 @@ def run(args) -> None:
             container.remove()
         shutil.rmtree(work_dir, ignore_errors=True)
 
+
+def write_results(samples: list[dict], args: argparse.Namespace) -> None:
     result = {
         "config": {
             "image": args.image,
@@ -195,6 +237,7 @@ def run(args) -> None:
             "input_files_per_cycle": args.input_files_per_cycle,
             "metrics_interval_s": args.metrics_interval,
             "started_at_utc": datetime.now(timezone.utc).isoformat(),
+            "input_file_generation_type": args.input_file_generation_type
         },
         "samples": samples,
     }
@@ -203,7 +246,7 @@ def run(args) -> None:
     if output_path is None:
         os.makedirs(RESULTS_DIR, exist_ok=True)
         timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-        name = f"{timestamp}_{args.flowfile_repository}_{args.content_repository}.json"
+        name = f"{timestamp}_{args.flowfile_repository}_{args.content_repository}_{args.input_file_generation_type}.json"
         output_path = os.path.join(RESULTS_DIR, name)
     else:
         os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
@@ -214,6 +257,15 @@ def run(args) -> None:
     print(f"Collected {len(samples)} samples; results written to {output_path}")
 
 
+def run(args) -> None:
+    container, input_dir, work_dir = create_minifi_container(args)
+
+    samples: list[dict] = []
+    run_threads(container, input_dir, work_dir, samples, args)
+
+    write_results(samples, args)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run the MiNiFi C++ repository benchmark.")
     parser.add_argument("--image", required=True, help="Docker image to use for the benchmark.")
@@ -221,6 +273,9 @@ def main() -> None:
                         choices=sorted(FLOWFILE_REPOSITORY_CLASSES), help="Flowfile repository type.")
     parser.add_argument("--content-repository", required=True,
                         choices=sorted(CONTENT_REPOSITORY_CLASSES), help="Content repository type.")
+    parser.add_argument("--input-file-generation-type", default="GetFile",
+                        choices=sorted(INPUT_GENERATION_TYPES), help="Input file generation type. Either generate files to disk and use GetFile to read them, "
+                                                                     "or generate flow files directly using GenerateFlowFile processor.")
     parser.add_argument("--duration", type=int, default=120,
                         help="Total benchmark session length in seconds (default: 120).")
     parser.add_argument("--input-interval", type=float, default=1.0,
