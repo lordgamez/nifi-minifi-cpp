@@ -1,54 +1,241 @@
-#!/bin/python
-import docker
+#!/usr/bin/env python3
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import argparse
+import docker
+import humanfriendly
+import json
+import os
+import shutil
+import tempfile
+import threading
+import time
+from datetime import datetime, timezone
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+CONFIG_FILE = os.path.join(SCRIPT_DIR, "resources", "get_config.yml")
+RESULTS_DIR = os.path.join(SCRIPT_DIR, "results")
+
+MINIFI_HOME = "/opt/minifi/minifi-current"
+FLOWFILE_REPO_DIR = f"{MINIFI_HOME}/flowfile_repository"
+CONTENT_REPO_DIR = f"{MINIFI_HOME}/content_repository"
+INPUT_DIR = "/tmp/input"
+
+FLOWFILE_REPOSITORY_CLASSES = {
+    "rocksdb": "FlowFileRepository",
+    "lmdb": "LmdbFlowFileRepository",
+    "volatile": "VolatileFlowFileRepository",
+}
+
+CONTENT_REPOSITORY_CLASSES = {
+    "rocksdb": "DatabaseContentRepository",
+    "lmdb": "LmdbContentRepository",
+    "filesystem": "FileSystemRepository",
+    "volatile": "VolatileContentRepository",
+}
 
 
-def get_properties(flowfile_repository_type, content_repository_type) -> dict[str, str]:
-    properties = {}
-    properties["nifi.flow.configuration.file"] = "/opt/minifi/minifi-current/conf/config.yml"
-    properties["nifi.extension.path"] = "../extensions/*"
-    properties["nifi.administrative.yield.duration"] = "1 sec"
-    properties["nifi.bored.yield.duration"] = "100 millis"
-    properties["nifi.openssl.fips.support.enable"] = "false"
-    properties["nifi.provenance.repository.class.name"] = "NoOpRepository"
-    properties["nifi.flowfile.repository.directory.default"] = "/opt/minifi/minifi-current/flowfile_repository"
-    properties["nifi.database.content.repository.directory.default"] = "/opt/minifi/minifi-current/content_repository"
-    if flowfile_repository_type == "lmdb":
-        properties["nifi.flowfile.repository.class.name"] = "org.apache.nifi.lmdb.LMDBFlowFileRepository"
-    elif flowfile_repository_type == "rocksdb":
-        properties["nifi.flowfile.repository.class.name"] = "org.apache.nifi.rocksdb.RocksDBFlowFileRepository"
-    elif flowfile_repository_type == "filesystemrepository":
-        properties["nifi.flowfile.repository.class.name"] = "org.apache.nifi.controller.repository.FileSystemRepository"
-    else:
-        raise ValueError(f"Unsupported flowfile repository type: {flowfile_repository_type}")
-
-    if content_repository_type == "lmdb":
-        properties["nifi.content.repository.class.name"] = "org.apache.nifi.lmdb.LMDBContentRepository"
-    elif content_repository_type == "rocksdb":
-        properties["nifi.content.repository.class.name"] = "org.apache.nifi.rocksdb.RocksDBContentRepository"
-    elif content_repository_type == "filesystemrepository":
-        properties["nifi.content.repository.class.name"] = "org.apache.nifi.controller.repository.FileSystemContentRepository"
-    else:
-        raise ValueError(f"Unsupported content repository type: {content_repository_type}")
-
+def build_properties(flowfile_repository: str, content_repository: str) -> dict[str, str]:
+    properties = {
+        "nifi.flow.configuration.file": f"{MINIFI_HOME}/conf/config.yml",
+        "nifi.extension.path": "../extensions/*",
+        "nifi.administrative.yield.duration": "1 sec",
+        "nifi.bored.yield.duration": "100 millis",
+        "nifi.openssl.fips.support.enable": "false",
+        "nifi.provenance.repository.class.name": "NoOpRepository",
+        "nifi.flowfile.repository.directory.default": FLOWFILE_REPO_DIR,
+        "nifi.database.content.repository.directory.default": CONTENT_REPO_DIR,
+        "nifi.flowfile.repository.class.name": FLOWFILE_REPOSITORY_CLASSES[flowfile_repository],
+        "nifi.content.repository.class.name": CONTENT_REPOSITORY_CLASSES[content_repository],
+    }
     return properties
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Run the repository benchmark.")
-    parser.add_argument("--image", required=True, help="The Docker image to use for the benchmark.")
-    parser.add_argument("--flowfile-repository-type", required=True, choices=["lmdb", "rocksdb", "filesystemrepository"], help="Type of flowfile repository to use.")
-    parser.add_argument("--content-repository-type", required=True, choices=["lmdb", "rocksdb", "filesystemrepository"], help="Type of content repository to use.")
-    args = parser.parse_args()
+def write_properties_file(properties: dict[str, str], path: str) -> None:
+    with open(path, "w") as properties_file:
+        for key, value in properties.items():
+            properties_file.write(f"{key}={value}\n")
+
+
+def repo_size(container, path: str) -> int:
+    exit_code, output = container.exec_run(["du", "-sk", path])
+    if exit_code != 0:
+        return 0
+    try:
+        return int(output.decode().split()[0]) * 1024
+    except (ValueError, IndexError):
+        return 0
+
+
+def memory_bytes(container) -> int:
+    stats = container.stats(stream=False)
+    memory_stats = stats.get("memory_stats", {})
+    usage = memory_stats.get("usage")
+    if usage is None:
+        return 0
+    inactive_file = memory_stats.get("stats", {}).get("inactive_file", 0)
+    return max(usage - inactive_file, 0)
+
+
+def input_generator_loop(stop_event: threading.Event, input_dir: str,
+                         interval: float, file_size: int, files_per_cycle: int) -> None:
+    counter = 0
+    while not stop_event.is_set():
+        for _ in range(files_per_cycle):
+            counter += 1
+            data = os.urandom(file_size)
+            # Write to a temp name then rename so GetFile never reads a partial file.
+            tmp_path = os.path.join(input_dir, f".{counter}.tmp")
+            final_path = os.path.join(input_dir, f"input_{counter}.bin")
+            with open(tmp_path, "wb") as input_file:
+                input_file.write(data)
+            os.rename(tmp_path, final_path)
+        stop_event.wait(interval)
+
+
+def metrics_collector_loop(stop_event: threading.Event, container, samples: list,
+                           interval: float, start: float) -> None:
+    while not stop_event.is_set():
+        sample = {
+            "elapsed_s": round(time.monotonic() - start, 3),
+            "flowfile_repo_bytes": repo_size(container, FLOWFILE_REPO_DIR),
+            "content_repo_bytes": repo_size(container, CONTENT_REPO_DIR),
+            "memory_bytes": memory_bytes(container),
+        }
+        samples.append(sample)
+        stop_event.wait(interval)
+
+
+def wait_until_running(container, timeout: float = 15.0) -> None:
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        container.reload()
+        if container.status == "running":
+            return
+        time.sleep(0.5)
+    raise RuntimeError(f"Container did not reach running state (status: {container.status})")
+
+
+def run(args) -> None:
+    properties = build_properties(args.flowfile_repository, args.content_repository)
+
+    work_dir = tempfile.mkdtemp(prefix="repo_benchmark_")
+    input_dir = os.path.join(work_dir, "input")
+    os.makedirs(input_dir)
+    properties_path = os.path.join(work_dir, "minifi.properties")
+    write_properties_file(properties, properties_path)
 
     client = docker.from_env()
-    container = client.containers.run(args.image, detach=True)
+    container = client.containers.run(
+        args.image,
+        detach=True,
+        volumes={
+            properties_path: {"bind": f"{MINIFI_HOME}/conf/minifi.properties", "mode": "ro"},
+            CONFIG_FILE: {"bind": f"{MINIFI_HOME}/conf/config.yml", "mode": "ro"},
+            input_dir: {"bind": INPUT_DIR, "mode": "rw"},
+        },
+    )
 
+    samples: list[dict] = []
+    stop_event = threading.Event()
     try:
-        pass
+        wait_until_running(container)
+        # Give MiNiFi a moment to load extensions and start the flow before sampling.
+        time.sleep(3)
+
+        start = time.monotonic()
+        threads = [
+            threading.Thread(
+                target=input_generator_loop,
+                args=(stop_event, input_dir, args.input_interval,
+                      args.input_file_size, args.input_files_per_cycle),
+                daemon=True,
+            ),
+            threading.Thread(
+                target=metrics_collector_loop,
+                args=(stop_event, container, samples, args.metrics_interval, start),
+                daemon=True,
+            ),
+        ]
+        for thread in threads:
+            thread.start()
+
+        time.sleep(args.duration)
+        stop_event.set()
+        for thread in threads:
+            thread.join(timeout=10)
     finally:
-        container.stop()
-        container.remove()
+        stop_event.set()
+        try:
+            container.stop()
+        finally:
+            container.remove()
+        shutil.rmtree(work_dir, ignore_errors=True)
+
+    result = {
+        "config": {
+            "image": args.image,
+            "flowfile_repository": args.flowfile_repository,
+            "content_repository": args.content_repository,
+            "duration_s": args.duration,
+            "input_interval_s": args.input_interval,
+            "input_file_size_bytes": args.input_file_size,
+            "input_files_per_cycle": args.input_files_per_cycle,
+            "metrics_interval_s": args.metrics_interval,
+            "started_at_utc": datetime.now(timezone.utc).isoformat(),
+        },
+        "samples": samples,
+    }
+
+    output_path = args.output
+    if output_path is None:
+        os.makedirs(RESULTS_DIR, exist_ok=True)
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        name = f"{timestamp}_{args.flowfile_repository}_{args.content_repository}.json"
+        output_path = os.path.join(RESULTS_DIR, name)
+    else:
+        os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+
+    with open(output_path, "w") as output_file:
+        json.dump(result, output_file, indent=2)
+
+    print(f"Collected {len(samples)} samples; results written to {output_path}")
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Run the MiNiFi C++ repository benchmark.")
+    parser.add_argument("--image", required=True, help="Docker image to use for the benchmark.")
+    parser.add_argument("--flowfile-repository", required=True,
+                        choices=sorted(FLOWFILE_REPOSITORY_CLASSES), help="Flowfile repository type.")
+    parser.add_argument("--content-repository", required=True,
+                        choices=sorted(CONTENT_REPOSITORY_CLASSES), help="Content repository type.")
+    parser.add_argument("--duration", type=int, default=120,
+                        help="Total benchmark session length in seconds (default: 120).")
+    parser.add_argument("--input-interval", type=float, default=1.0,
+                        help="Seconds between input file generation cycles (default: 1).")
+    parser.add_argument("--input-file-size", type=humanfriendly.parse_size, default=humanfriendly.parse_size("1M"),
+                        help="Size of each generated input file, e.g. 512K, 1M, 1G (default: 1M).")
+    parser.add_argument("--input-files-per-cycle", type=int, default=1,
+                        help="Number of input files generated per cycle (default: 1).")
+    parser.add_argument("--metrics-interval", type=float, default=5.0,
+                        help="Seconds between metric samples (default: 5).")
+    parser.add_argument("--output", default=None,
+                        help="Output JSON path (default: results/<timestamp>_<ff>_<content>.json).")
+    args = parser.parse_args()
+
+    run(args)
 
 
 if __name__ == "__main__":

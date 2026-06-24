@@ -1,0 +1,133 @@
+#!/usr/bin/env python3
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import argparse
+import json
+import os
+
+CHART_JS_CDN = "https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"
+
+HTML_TEMPLATE = """<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>MiNiFi C++ Repository Benchmark Report</title>
+<script src="{chart_js_cdn}"></script>
+<style>
+  body {{ font-family: sans-serif; margin: 2rem; color: #222; }}
+  h1 {{ font-size: 1.5rem; }}
+  .chart-container {{ max-width: 900px; margin-bottom: 3rem; }}
+  table {{ border-collapse: collapse; margin-bottom: 2rem; font-size: 0.9rem; }}
+  th, td {{ border: 1px solid #ccc; padding: 4px 8px; text-align: left; }}
+  th {{ background: #f0f0f0; }}
+</style>
+</head>
+<body>
+<h1>MiNiFi C++ Repository Benchmark Report</h1>
+<h2>Runs</h2>
+{config_table}
+<div class="chart-container"><canvas id="flowfileChart"></canvas></div>
+<div class="chart-container"><canvas id="contentChart"></canvas></div>
+<div class="chart-container"><canvas id="memoryChart"></canvas></div>
+<script>
+const RUNS = {runs_json};
+
+function megabytes(bytes) {{ return bytes / (1024 * 1024); }}
+
+function makeChart(canvasId, title, valueKey) {{
+  const datasets = RUNS.map(run => ({{
+    label: run.label,
+    data: run.samples.map(s => ({{ x: s.elapsed_s, y: megabytes(s[valueKey]) }})),
+    showLine: true,
+    fill: false,
+    tension: 0.1,
+  }}));
+  new Chart(document.getElementById(canvasId), {{
+    type: 'scatter',
+    data: {{ datasets }},
+    options: {{
+      plugins: {{ title: {{ display: true, text: title }} }},
+      scales: {{
+        x: {{ title: {{ display: true, text: 'Elapsed time (s)' }} }},
+        y: {{ title: {{ display: true, text: 'Megabytes (MiB)' }}, beginAtZero: true }},
+      }},
+    }},
+  }});
+}}
+
+makeChart('flowfileChart', 'FlowFile repository size', 'flowfile_repo_bytes');
+makeChart('contentChart', 'Content repository size', 'content_repo_bytes');
+makeChart('memoryChart', 'Process memory usage', 'memory_bytes');
+</script>
+</body>
+</html>
+"""
+
+
+def build_config_table(runs: list[dict]) -> str:
+    columns = [
+        ("Label", lambda r: r["label"]),
+        ("FlowFile repo", lambda r: r["config"].get("flowfile_repository", "")),
+        ("Content repo", lambda r: r["config"].get("content_repository", "")),
+        ("File size (B)", lambda r: r["config"].get("input_file_size_bytes", "")),
+        ("Input interval (s)", lambda r: r["config"].get("input_interval_s", "")),
+        ("Metrics interval (s)", lambda r: r["config"].get("metrics_interval_s", "")),
+        ("Duration (s)", lambda r: r["config"].get("duration_s", "")),
+        ("Samples", lambda r: len(r["samples"])),
+    ]
+    header = "".join(f"<th>{name}</th>" for name, _ in columns)
+    rows = ""
+    for run in runs:
+        cells = "".join(f"<td>{getter(run)}</td>" for _, getter in columns)
+        rows += f"<tr>{cells}</tr>"
+    return f"<table><thead><tr>{header}</tr></thead><tbody>{rows}</tbody></table>"
+
+
+def load_run(path: str) -> dict:
+    with open(path) as result_file:
+        data = json.load(result_file)
+    config = data.get("config", {})
+    label = "{}/{}".format(
+        config.get("flowfile_repository", "?"),
+        config.get("content_repository", "?"),
+    )
+    # Disambiguate runs with identical repo combinations by appending the file name.
+    label = f"{label} ({os.path.basename(path)})"
+    return {"label": label, "config": config, "samples": data.get("samples", [])}
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Generate an HTML report from benchmark results.")
+    parser.add_argument("results", nargs="+", help="Benchmark result JSON files.")
+    parser.add_argument("-o", "--output", default="report.html", help="Output HTML file path.")
+    args = parser.parse_args()
+
+    runs = [load_run(path) for path in args.results]
+
+    html = HTML_TEMPLATE.format(
+        chart_js_cdn=CHART_JS_CDN,
+        config_table=build_config_table(runs),
+        runs_json=json.dumps(runs),
+    )
+
+    with open(args.output, "w") as output_file:
+        output_file.write(html)
+
+    print(f"Report with {len(runs)} run(s) written to {args.output}")
+
+
+if __name__ == "__main__":
+    main()
