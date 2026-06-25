@@ -86,7 +86,7 @@ def repo_size(container, path: str) -> int:
 
 
 def memory_bytes(container) -> int:
-    stats = container.stats(stream=False)
+    stats = container.stats(stream=False, one_shot=True)
     memory_stats = stats.get("memory_stats", {})
     usage = memory_stats.get("usage")
     if usage is None:
@@ -119,6 +119,7 @@ def input_generator_loop(stop_event: threading.Event, input_dir: str, interval: 
 
 
 def metrics_collector_loop(stop_event: threading.Event, container, samples: list, interval: float, start: float) -> None:
+    next_sample = time.monotonic()
     while not stop_event.is_set():
         sample = {
             "elapsed_s": round(time.monotonic() - start, 3),
@@ -127,7 +128,8 @@ def metrics_collector_loop(stop_event: threading.Event, container, samples: list
             "memory_bytes": memory_bytes(container),
         }
         samples.append(sample)
-        stop_event.wait(interval)
+        next_sample += interval
+        stop_event.wait(max(0.0, next_sample - time.monotonic()))
 
 
 def wait_for_minifi_to_start(container, timeout: float = 30.0) -> None:
