@@ -19,7 +19,7 @@
                 "type": "org.apache.nifi.processors.standard.UpdateAttribute",
                 "schedulingStrategy": "EVENT_DRIVEN",
                 "properties": {
-                    "time_after_creation": "${now()}"
+                    "flow_file_count": "${nextInt()}"
                 },
                 "autoTerminatedRelationships": []
             },

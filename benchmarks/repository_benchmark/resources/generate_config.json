@@ -19,7 +19,7 @@
                 "type": "org.apache.nifi.processors.standard.UpdateAttribute",
                 "schedulingStrategy": "EVENT_DRIVEN",
                 "properties": {
-                    "time_after_creation": "${now()}"
+                    "flow_file_count": "${nextInt()}"
                 },
                 "autoTerminatedRelationships": []
             },
@@ -38,7 +38,7 @@
         "connections": [
             {
                 "identifier": "098a56ba-f4bf-4323-a3f3-6f8a5e3586bf",
-                "name": "GetFile/success/UpdateAttribute",
+                "name": "GenerateFlowFile/success/UpdateAttribute",
                 "source": {
                     "id": "2f2a3b47-f5ba-49f6-82b5-bc1c86b96e27"
                 },

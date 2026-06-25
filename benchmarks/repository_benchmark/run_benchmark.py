@@ -50,7 +50,7 @@ CONTENT_REPOSITORY_CLASSES = {
     "volatile": "VolatileContentRepository",
 }
 
-INPUT_GENERATION_TYPES = ["GetFile", "GenerateFlowFile"]
+INPUT_GENERATION_TYPES = ["timed_getfile", "timed_generateflowfile", "burst"]
 
 
 def build_properties(flowfile_repository: str, content_repository: str) -> dict[str, str]:
@@ -95,24 +95,30 @@ def memory_bytes(container) -> int:
     return max(usage - inactive_file, 0)
 
 
-def input_generator_loop(stop_event: threading.Event, input_dir: str,
-                         interval: float, file_size: int, files_per_cycle: int) -> None:
+def generate_single_input(input_dir: str, file_size: int, index: int) -> None:
+    data = os.urandom(file_size)
+    # Write to a temp name then rename so GetFile never reads a partial file.
+    tmp_path = os.path.join(input_dir, f".{index}.tmp")
+    final_path = os.path.join(input_dir, f"input_{index}.bin")
+    with open(tmp_path, "wb") as input_file:
+        input_file.write(data)
+    os.rename(tmp_path, final_path)
+
+
+def generate_input(input_dir: str, input_count: float, file_size: int) -> None:
+    for i in range(1, input_count + 1):
+        generate_single_input(input_dir, file_size, i)
+
+
+def input_generator_loop(stop_event: threading.Event, input_dir: str, interval: float, file_size: int) -> None:
     counter = 0
     while not stop_event.is_set():
-        for _ in range(files_per_cycle):
-            counter += 1
-            data = os.urandom(file_size)
-            # Write to a temp name then rename so GetFile never reads a partial file.
-            tmp_path = os.path.join(input_dir, f".{counter}.tmp")
-            final_path = os.path.join(input_dir, f"input_{counter}.bin")
-            with open(tmp_path, "wb") as input_file:
-                input_file.write(data)
-            os.rename(tmp_path, final_path)
+        counter += 1
+        generate_single_input(input_dir, file_size, counter)
         stop_event.wait(interval)
 
 
-def metrics_collector_loop(stop_event: threading.Event, container, samples: list,
-                           interval: float, start: float) -> None:
+def metrics_collector_loop(stop_event: threading.Event, container, samples: list, interval: float, start: float) -> None:
     while not stop_event.is_set():
         sample = {
             "elapsed_s": round(time.monotonic() - start, 3),
@@ -128,11 +134,10 @@ def wait_for_minifi_to_start(container, timeout: float = 30.0) -> None:
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         container.reload()
-        if container.status == "running":
-            return
-        time.sleep(0.5)
-    logs = container.logs().decode(errors="replace")
-    while time.monotonic() < deadline:
+        if container.status != "running":
+            time.sleep(0.5)
+            continue
+        logs = container.logs().decode(errors="replace")
         if "MiNiFi started" in logs:
             return
         time.sleep(0.5)
@@ -140,7 +145,7 @@ def wait_for_minifi_to_start(container, timeout: float = 30.0) -> None:
 
 
 def write_config_yml(args: argparse.Namespace, work_dir: str) -> None:
-    if args.input_file_generation_type == "GetFile":
+    if args.input_file_generation_type != "timed_generateflowfile":
         jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(RESOURCES_DIR))
         flow_config_template = jinja_env.get_template(GET_CONFIG_FILE_TEMPLATE)
         flow_config = flow_config_template.render(get_file_interval=args.input_interval)
@@ -155,11 +160,7 @@ def write_config_yml(args: argparse.Namespace, work_dir: str) -> None:
             config_file.write(flow_config)
 
 
-def create_minifi_container(args: argparse.Namespace) -> docker.models.containers.Container:
-    work_dir = tempfile.mkdtemp(prefix="repo_benchmark_")
-    input_dir = os.path.join(work_dir, "input")
-    os.makedirs(input_dir)
-
+def create_minifi_container(args: argparse.Namespace, work_dir: str, input_dir: str) -> docker.models.containers.Container:
     properties_path = os.path.join(work_dir, "minifi.properties")
     properties = build_properties(args.flowfile_repository, args.content_repository)
     write_properties_file(properties, properties_path)
@@ -177,21 +178,35 @@ def create_minifi_container(args: argparse.Namespace) -> docker.models.container
             input_dir: {"bind": INPUT_DIR, "mode": "rw"},
         },
     )
-    return container, input_dir, work_dir
+    return container
 
 
-def run_threads(container, input_dir: str, work_dir: str, samples: list[dict], args: argparse.Namespace) -> None:
+def wait_for_flow_files_to_be_processed(container, expected_count: int) -> None:
+    while True:
+        logs = container.logs().decode(errors="replace")
+        if f"key:flow_file_count value:{expected_count - 1}" in logs:
+            break
+        time.sleep(0.1)
+
+    # Wait a bit more to see how the repositories behave after all flow files have been processed.
+    time.sleep(3)
+
+
+def run_threads(samples: list[dict], args: argparse.Namespace) -> None:
     stop_event = threading.Event()
+    container = None
+    work_dir = tempfile.mkdtemp(prefix="repo_benchmark_")
+    input_dir = os.path.join(work_dir, "input")
+    os.makedirs(input_dir)
     try:
-        wait_for_minifi_to_start(container)
-
-        start = time.monotonic()
-        if args.input_file_generation_type == "GetFile":
+        if args.input_file_generation_type == "timed_getfile":
+            start = time.monotonic()
+            container = create_minifi_container(args, work_dir, input_dir)
+            wait_for_minifi_to_start(container)
             threads = [
                 threading.Thread(
                     target=input_generator_loop,
-                    args=(stop_event, input_dir, args.input_interval,
-                        args.input_file_size, args.input_files_per_cycle),
+                    args=(stop_event, input_dir, args.input_interval, args.input_file_size),
                     daemon=True,
                 ),
                 threading.Thread(
@@ -200,7 +215,21 @@ def run_threads(container, input_dir: str, work_dir: str, samples: list[dict], a
                     daemon=True,
                 ),
             ]
+        elif args.input_file_generation_type == "burst":
+            generate_input(input_dir, args.input_file_count, args.input_file_size)
+            start = time.monotonic()
+            container = create_minifi_container(args, work_dir, input_dir)
+            threads = [
+                threading.Thread(
+                    target=metrics_collector_loop,
+                    args=(stop_event, container, samples, args.metrics_interval, start),
+                    daemon=True,
+                ),
+            ]
         else:
+            start = time.monotonic()
+            container = create_minifi_container(args, work_dir, input_dir)
+            wait_for_minifi_to_start(container)
             threads = [
                 threading.Thread(
                     target=metrics_collector_loop,
@@ -212,8 +241,14 @@ def run_threads(container, input_dir: str, work_dir: str, samples: list[dict], a
         for thread in threads:
             thread.start()
 
-        time.sleep(args.duration)
-        stop_event.set()
+        if args.input_file_generation_type != "burst":
+            time.sleep(args.duration)
+            stop_event.set()
+        else:
+            print(f"Waiting for {args.input_file_count} flow files to be processed...")
+            wait_for_flow_files_to_be_processed(container, args.input_file_count)
+            stop_event.set()
+
         for thread in threads:
             thread.join(timeout=10)
     finally:
@@ -234,7 +269,6 @@ def write_results(samples: list[dict], args: argparse.Namespace) -> None:
             "duration_s": args.duration,
             "input_interval_s": args.input_interval,
             "input_file_size_bytes": args.input_file_size,
-            "input_files_per_cycle": args.input_files_per_cycle,
             "metrics_interval_s": args.metrics_interval,
             "started_at_utc": datetime.now(timezone.utc).isoformat(),
             "input_file_generation_type": args.input_file_generation_type
@@ -258,10 +292,9 @@ def write_results(samples: list[dict], args: argparse.Namespace) -> None:
 
 
 def run(args) -> None:
-    container, input_dir, work_dir = create_minifi_container(args)
 
     samples: list[dict] = []
-    run_threads(container, input_dir, work_dir, samples, args)
+    run_threads(samples, args)
 
     write_results(samples, args)
 
@@ -273,17 +306,18 @@ def main() -> None:
                         choices=sorted(FLOWFILE_REPOSITORY_CLASSES), help="Flowfile repository type.")
     parser.add_argument("--content-repository", required=True,
                         choices=sorted(CONTENT_REPOSITORY_CLASSES), help="Content repository type.")
-    parser.add_argument("--input-file-generation-type", default="GetFile",
-                        choices=sorted(INPUT_GENERATION_TYPES), help="Input file generation type. Either generate files to disk and use GetFile to read them, "
-                                                                     "or generate flow files directly using GenerateFlowFile processor.")
+    parser.add_argument("--input-file-generation-type", default="timed_getfile",
+                        choices=sorted(INPUT_GENERATION_TYPES), help="Input file generation type. timed_getfile: Generate input files at a fixed interval and use GetFile processor to ingest them. "
+                                                                     "timed_generateflowfile: Use GenerateFlowFile processor to generate flowfiles at a fixed interval. "
+                                                                     "burst: Generate a burst of input files at the start of the benchmark and use GetFile processor to ingest them.")
+    parser.add_argument("--input-file-count", type=int, default=100,
+                        help="Number of input files to generate for burst input generation type (default: 100).")
     parser.add_argument("--duration", type=int, default=120,
                         help="Total benchmark session length in seconds (default: 120).")
     parser.add_argument("--input-interval", type=float, default=1.0,
                         help="Seconds between input file generation cycles (default: 1).")
     parser.add_argument("--input-file-size", type=humanfriendly.parse_size, default=humanfriendly.parse_size("1M"),
                         help="Size of each generated input file, e.g. 512K, 1M, 1G (default: 1M).")
-    parser.add_argument("--input-files-per-cycle", type=int, default=1,
-                        help="Number of input files generated per cycle (default: 1).")
     parser.add_argument("--metrics-interval", type=float, default=5.0,
                         help="Seconds between metric samples (default: 5).")
     parser.add_argument("--output", default=None,
