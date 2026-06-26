@@ -114,6 +114,7 @@ def build_config_table(runs: list[dict]) -> str:
         ("Duration (s)", lambda r: r["config"].get("duration_s", "")),
         ("Samples", lambda r: len(r["samples"])),
         ("Input generation type", lambda r: r["config"].get("input_file_generation_type", "")),
+        ("Input file count", lambda r: r["config"].get("input_file_count", "")),
     ]
     header = "".join(f"<th>{name}</th>" for name, _ in columns)
     rows = ""

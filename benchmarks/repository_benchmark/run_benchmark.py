@@ -327,7 +327,8 @@ def write_results(samples: list[dict], throughput: float, args: argparse.Namespa
             "input_interval_s": args.input_interval,
             "input_file_size_bytes": args.input_file_size,
             "metrics_interval_s": args.metrics_interval,
-            "input_file_generation_type": args.input_file_generation_type
+            "input_file_generation_type": args.input_file_generation_type,
+            "input_file_count": args.input_file_count,
         },
         "samples": samples,
         "throughput": throughput,
