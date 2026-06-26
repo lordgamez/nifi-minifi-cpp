@@ -15,6 +15,7 @@
 # limitations under the License.
 
 import argparse
+import re
 import docker
 import humanfriendly
 import json
@@ -210,7 +211,7 @@ def wait_for_flow_files_to_be_processed(container, expected_count: int) -> None:
     time.sleep(3)
 
 
-def run_threads(samples: list[dict], args: argparse.Namespace) -> None:
+def run_threads(samples: list[dict], args: argparse.Namespace) -> float:
     stop_event = threading.Event()
     container = None
     work_dir = tempfile.mkdtemp(prefix="repo_benchmark_")
@@ -269,6 +270,8 @@ def run_threads(samples: list[dict], args: argparse.Namespace) -> None:
 
         for thread in threads:
             thread.join(timeout=10)
+
+        return calculate_throughput(container)
     finally:
         stop_event.set()
         try:
@@ -278,7 +281,43 @@ def run_threads(samples: list[dict], args: argparse.Namespace) -> None:
         shutil.rmtree(work_dir, ignore_errors=True)
 
 
-def write_results(samples: list[dict], args: argparse.Namespace) -> None:
+def parse_timestamp(log_line: str) -> datetime:
+    match = re.search(r'\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d+)\]', log_line)
+    if match:
+        timestamp_str = match.group(1)
+        return datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S.%f")
+
+    return None
+
+
+def calculate_throughput(container) -> float:
+    logs = container.logs().decode(errors="replace")
+    count = 0
+    first_timestamp = None
+    last_timestamp = None
+    for line in logs.splitlines():
+        if "MiNiFi started" in line:
+            timestamp = parse_timestamp(line)
+            if timestamp is not None:
+                if first_timestamp is None:
+                    first_timestamp = timestamp
+        if "Logging for flow file" in line:
+            timestamp = parse_timestamp(line)
+            if timestamp is not None:
+                if first_timestamp is None:
+                    first_timestamp = timestamp
+                last_timestamp = timestamp
+            count += 1
+
+    if first_timestamp is None or last_timestamp is None:
+        return 0.0
+    elapsed = (last_timestamp - first_timestamp).total_seconds()
+    if elapsed <= 0:
+        return 0.0
+    return count / elapsed
+
+
+def write_results(samples: list[dict], throughput: float, args: argparse.Namespace) -> None:
     result = {
         "config": {
             "image": args.image,
@@ -288,10 +327,10 @@ def write_results(samples: list[dict], args: argparse.Namespace) -> None:
             "input_interval_s": args.input_interval,
             "input_file_size_bytes": args.input_file_size,
             "metrics_interval_s": args.metrics_interval,
-            "started_at_utc": datetime.now(timezone.utc).isoformat(),
             "input_file_generation_type": args.input_file_generation_type
         },
         "samples": samples,
+        "throughput": throughput,
     }
 
     output_path = args.output
@@ -306,15 +345,15 @@ def write_results(samples: list[dict], args: argparse.Namespace) -> None:
     with open(output_path, "w") as output_file:
         json.dump(result, output_file, indent=2)
 
-    print(f"Collected {len(samples)} samples; results written to {output_path}")
+    print(f"Collected {len(samples)} samples; throughput: {throughput:.2f} flow files/sec; results written to {output_path}")
 
 
 def run(args) -> None:
 
     samples: list[dict] = []
-    run_threads(samples, args)
+    throughput = run_threads(samples, args)
 
-    write_results(samples, args)
+    write_results(samples, throughput, args)
 
 
 def main() -> None:

@@ -43,6 +43,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <div class="chart-container"><canvas id="contentChart"></canvas></div>
 <div class="chart-container"><canvas id="memoryChart"></canvas></div>
 <div class="chart-container"><canvas id="cpuChart"></canvas></div>
+<div class="chart-container"><canvas id="throughputChart"></canvas></div>
 <script>
 const RUNS = {runs_json};
 
@@ -71,10 +72,31 @@ function makeChart(canvasId, title, valueKey, transform, yAxisLabel) {{
 
 const identity = v => v;
 
+// Throughput is a single value per run, so it is shown as one bar per run.
+function makeBarChart(canvasId, title, valueKey, yAxisLabel) {{
+  new Chart(document.getElementById(canvasId), {{
+    type: 'bar',
+    data: {{
+      labels: RUNS.map(run => run.label),
+      datasets: [{{
+        label: title,
+        data: RUNS.map(run => run[valueKey]),
+      }}],
+    }},
+    options: {{
+      plugins: {{ title: {{ display: true, text: title }}, legend: {{ display: false }} }},
+      scales: {{
+        y: {{ title: {{ display: true, text: yAxisLabel }}, beginAtZero: true }},
+      }},
+    }},
+  }});
+}}
+
 makeChart('flowfileChart', 'FlowFile repository size', 'flowfile_repo_bytes', megabytes, 'Megabytes (MiB)');
 makeChart('contentChart', 'Content repository size', 'content_repo_bytes', megabytes, 'Megabytes (MiB)');
 makeChart('memoryChart', 'Process memory usage', 'memory_bytes', megabytes, 'Megabytes (MiB)');
 makeChart('cpuChart', 'Process CPU usage', 'cpu_percent', identity, 'CPU usage (%, 100 = 1 core)');
+makeBarChart('throughputChart', 'Throughput', 'throughput', 'Flow files / sec');
 </script>
 </body>
 </html>
@@ -111,7 +133,12 @@ def load_run(path: str) -> dict:
     )
     # Disambiguate runs with identical repo combinations by appending the file name.
     label = f"{label} ({os.path.basename(path)})"
-    return {"label": label, "config": config, "samples": data.get("samples", [])}
+    return {
+        "label": label,
+        "config": config,
+        "samples": data.get("samples", []),
+        "throughput": data.get("throughput", 0),
+    }
 
 
 def main() -> None:
