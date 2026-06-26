@@ -42,15 +42,16 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <div class="chart-container"><canvas id="flowfileChart"></canvas></div>
 <div class="chart-container"><canvas id="contentChart"></canvas></div>
 <div class="chart-container"><canvas id="memoryChart"></canvas></div>
+<div class="chart-container"><canvas id="cpuChart"></canvas></div>
 <script>
 const RUNS = {runs_json};
 
 function megabytes(bytes) {{ return bytes / (1024 * 1024); }}
 
-function makeChart(canvasId, title, valueKey) {{
+function makeChart(canvasId, title, valueKey, transform, yAxisLabel) {{
   const datasets = RUNS.map(run => ({{
     label: run.label,
-    data: run.samples.map(s => ({{ x: s.elapsed_s, y: megabytes(s[valueKey]) }})),
+    data: run.samples.map(s => ({{ x: s.elapsed_s, y: transform(s[valueKey]) }})),
     showLine: true,
     fill: false,
     tension: 0.1,
@@ -62,15 +63,18 @@ function makeChart(canvasId, title, valueKey) {{
       plugins: {{ title: {{ display: true, text: title }} }},
       scales: {{
         x: {{ title: {{ display: true, text: 'Elapsed time (s)' }} }},
-        y: {{ title: {{ display: true, text: 'Megabytes (MiB)' }}, beginAtZero: true }},
+        y: {{ title: {{ display: true, text: yAxisLabel }}, beginAtZero: true }},
       }},
     }},
   }});
 }}
 
-makeChart('flowfileChart', 'FlowFile repository size', 'flowfile_repo_bytes');
-makeChart('contentChart', 'Content repository size', 'content_repo_bytes');
-makeChart('memoryChart', 'Process memory usage', 'memory_bytes');
+const identity = v => v;
+
+makeChart('flowfileChart', 'FlowFile repository size', 'flowfile_repo_bytes', megabytes, 'Megabytes (MiB)');
+makeChart('contentChart', 'Content repository size', 'content_repo_bytes', megabytes, 'Megabytes (MiB)');
+makeChart('memoryChart', 'Process memory usage', 'memory_bytes', megabytes, 'Megabytes (MiB)');
+makeChart('cpuChart', 'Process CPU usage', 'cpu_percent', identity, 'CPU usage (%, 100 = 1 core)');
 </script>
 </body>
 </html>

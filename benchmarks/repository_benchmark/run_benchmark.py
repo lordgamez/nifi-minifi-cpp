@@ -85,14 +85,21 @@ def repo_size(container, path: str) -> int:
         return 0
 
 
-def memory_bytes(container) -> int:
+def read_container_stats(container) -> tuple[int, int, int, int]:
     stats = container.stats(stream=False, one_shot=True)
     memory_stats = stats.get("memory_stats", {})
     usage = memory_stats.get("usage")
     if usage is None:
-        return 0
-    inactive_file = memory_stats.get("stats", {}).get("inactive_file", 0)
-    return max(usage - inactive_file, 0)
+        mem = 0
+    else:
+        inactive_file = memory_stats.get("stats", {}).get("inactive_file", 0)
+        mem = max(usage - inactive_file, 0)
+
+    cpu_stats = stats.get("cpu_stats", {})
+    cpu_total = cpu_stats.get("cpu_usage", {}).get("total_usage", 0)
+    system_cpu = cpu_stats.get("system_cpu_usage", 0)
+    num_cpus = cpu_stats.get("online_cpus") or len(cpu_stats.get("cpu_usage", {}).get("percpu_usage") or [1])
+    return mem, cpu_total, system_cpu, num_cpus
 
 
 def generate_single_input(input_dir: str, file_size: int, index: int) -> None:
@@ -120,12 +127,21 @@ def input_generator_loop(stop_event: threading.Event, input_dir: str, interval: 
 
 def metrics_collector_loop(stop_event: threading.Event, container, samples: list, interval: float, start: float) -> None:
     next_sample = time.monotonic()
+    prev_cpu_total = None
+    prev_system_cpu = None
     while not stop_event.is_set():
+        memory_bytes, cpu_total, system_cpu, num_cpus = read_container_stats(container)
+        if prev_cpu_total is not None and system_cpu > prev_system_cpu:
+            cpu_percent = (cpu_total - prev_cpu_total) / (system_cpu - prev_system_cpu) * num_cpus * 100.0
+        else:
+            cpu_percent = 0.0
+        prev_cpu_total, prev_system_cpu = cpu_total, system_cpu
         sample = {
             "elapsed_s": round(time.monotonic() - start, 3),
             "flowfile_repo_bytes": repo_size(container, FLOWFILE_REPO_DIR),
             "content_repo_bytes": repo_size(container, CONTENT_REPO_DIR),
-            "memory_bytes": memory_bytes(container),
+            "memory_bytes": memory_bytes,
+            "cpu_percent": round(cpu_percent, 2),
         }
         samples.append(sample)
         next_sample += interval
