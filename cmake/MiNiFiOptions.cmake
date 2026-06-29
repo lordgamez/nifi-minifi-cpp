@@ -155,6 +155,7 @@ add_minifi_multi_option(MINIFI_CATCH2_SOURCE "Retrieves Catch2 from provided sou
 add_minifi_multi_option(MINIFI_LIBARCHIVE_SOURCE "Retrieves libarchive from provided source" "BUILD;SYSTEM;CONAN" "BUILD")
 add_minifi_multi_option(MINIFI_LUA_SOURCE "Retrieves Lua from provided source" "BUILD;SYSTEM;CONAN" "BUILD")
 add_minifi_multi_option(MINIFI_SOL2_SOURCE "Retrieves Sol2 from provided source" "BUILD;SYSTEM;CONAN" "BUILD")
+add_minifi_multi_option(MINIFI_ARGPARSE_SOURCE "Retrieves Argparse from provided source" "BUILD;SYSTEM;CONAN" "BUILD")
 
 # Docker options
 
