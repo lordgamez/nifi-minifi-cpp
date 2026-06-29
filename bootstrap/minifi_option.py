@@ -33,10 +33,12 @@ class MinifiOptions:
         self.build_type.possible_values = ["Release", "Debug", "RelWithDebInfo", "MinSizeRel"]
         additional_build_options = ["DOCKER_BUILD_ONLY", "DOCKER_SKIP_TESTS", "DOCKER_CREATE_RPM", "SKIP_TESTS", "PORTABLE"]
         self.use_ninja = CMakeCacheValue("Specifies if CMake should use the Ninja generator or the system default", "USE_NINJA", "BOOL", "ON")
+        self.use_conan = CMakeCacheValue("Specifies if CMake should use Conan package manager", "USE_CONAN", "BOOL", "OFF")
         self.bool_options = {name: cache_value for name, cache_value in cache_values.items() if
                              cache_value.value_type == "BOOL" and ("ENABLE" in name or "MINIFI" in name or name in additional_build_options)}
         self.build_options = {name: cache_value for name, cache_value in self.bool_options.items() if "MINIFI" in name or name in additional_build_options}
         self.build_options["USE_NINJA"] = self.use_ninja
+        self.build_options["USE_CONAN"] = self.use_conan
         self.extension_options = {name: cache_value for name, cache_value in self.bool_options.items() if "ENABLE" in name}
         self.multi_choice_options = [cache_value for name, cache_value in cache_values.items() if
                                      cache_value.value_type == "STRING" and cache_value.possible_values is not None]
@@ -54,6 +56,9 @@ class MinifiOptions:
 
     def create_cmake_generator_str(self) -> str:
         return "-G Ninja" if self.use_ninja.value == "ON" else ""
+
+    def create_cmake_use_conan_str(self) -> str:
+        return "-DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake" if self.use_conan.value == "ON" else ""
 
     def create_cmake_build_flags_str(self) -> str:
         additional_flags = ""
@@ -78,6 +83,7 @@ class MinifiOptions:
         for option_name in self.bool_options:
             options_dict[option_name] = self.bool_options[option_name].value
         options_dict[self.use_ninja.name] = self.use_ninja.value
+        options_dict[self.use_conan.name] = self.use_conan.value
         options_dict[self.build_type.name] = self.build_type.value
         options_dict["build_dir"] = str(self.build_dir)
 
@@ -96,6 +102,8 @@ class MinifiOptions:
                 self.bool_options[option_name].value = options_dict[option_name]
             if self.use_ninja.name in options_dict:
                 self.use_ninja.value = options_dict[self.use_ninja.name]
+            if self.use_conan.name in options_dict:
+                self.use_conan.value = options_dict[self.use_conan.name]
             if self.build_type.name in options_dict:
                 self.build_type.value = options_dict[self.build_type.name]
             if "build_dir" in options_dict:

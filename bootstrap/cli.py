@@ -28,10 +28,20 @@ def install_dependencies(minifi_options: MinifiOptions, package_manager: Package
     return res
 
 
+def run_conan_install(minifi_options: MinifiOptions, package_manager: PackageManager) -> bool:
+    if not minifi_options.use_conan.value == "ON":
+        print("Conan install skipped because USE_CONAN is OFF")
+        return True
+    build_cmd = f"conan install . --output-folder={minifi_options.build_dir} --build=missing --settings=build_type={minifi_options.build_type.value}"
+    res = package_manager.run_cmd(build_cmd)
+    print("Conan install was successful" if res else "Conan install was unsuccessful")
+    return res
+
+
 def run_cmake(minifi_options: MinifiOptions, package_manager: PackageManager):
     if not os.path.exists(minifi_options.build_dir):
         os.mkdir(minifi_options.build_dir)
-    cmake_cmd = f"cmake {minifi_options.create_cmake_generator_str()} {minifi_options.create_cmake_options_str()} {minifi_options.source_dir} -B {minifi_options.build_dir}"
+    cmake_cmd = f"cmake {minifi_options.create_cmake_generator_str()} {minifi_options.create_cmake_use_conan_str()} {minifi_options.create_cmake_options_str()} {minifi_options.source_dir} -B {minifi_options.build_dir}"
     res = package_manager.run_cmd(cmake_cmd)
     print("CMake command run successfully" if res else "CMake command run unsuccessfully")
     return res
@@ -56,6 +66,7 @@ def do_docker_build(minifi_options: MinifiOptions, package_manager: PackageManag
 
 def do_one_click_build(minifi_options: MinifiOptions, package_manager: PackageManager) -> bool:
     assert install_dependencies(minifi_options, package_manager)
+    assert run_conan_install(minifi_options, package_manager)
     assert run_cmake(minifi_options, package_manager)
     assert do_build(minifi_options, package_manager)
     assert do_package(minifi_options, package_manager)
@@ -64,6 +75,7 @@ def do_one_click_build(minifi_options: MinifiOptions, package_manager: PackageMa
 
 def do_one_click_configuration(minifi_options: MinifiOptions, package_manager: PackageManager) -> bool:
     assert install_dependencies(minifi_options, package_manager)
+    assert run_conan_install(minifi_options, package_manager)
     assert run_cmake(minifi_options, package_manager)
     return True
 
@@ -185,6 +197,7 @@ def step_by_step_menu(minifi_options: MinifiOptions, package_manager: PackageMan
             # All menu options' functions return True if the bootstrap should exit after execution
             f"Build dir: {minifi_options.build_dir}": build_dir_menu,
             "Install dependencies": install_dependencies,
+            "Run conan install": run_conan_install,
             "Run cmake": run_cmake,
             "Build": do_build,
             "Package": do_package,
