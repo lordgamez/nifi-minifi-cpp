@@ -26,6 +26,7 @@ import threading
 import time
 from datetime import datetime, timezone
 import jinja2
+from enum import Enum
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 RESOURCES_DIR = os.path.join(SCRIPT_DIR, "resources")
@@ -51,7 +52,13 @@ CONTENT_REPOSITORY_CLASSES = {
     "volatile": "VolatileContentRepository",
 }
 
-INPUT_GENERATION_TYPES = ["timed_getfile", "timed_generateflowfile", "burst"]
+LOG_TIMESTAMP_RE = re.compile(r'\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d+)\]')
+
+
+class InputGenerationType(str, Enum):
+    TIMED_GETFILE = "timed_getfile"
+    TIMED_GENERATEFLOWFILE = "timed_generateflowfile"
+    BURST = "burst"
 
 
 def build_properties(flowfile_repository: str, content_repository: str) -> dict[str, str]:
@@ -113,7 +120,7 @@ def generate_single_input(input_dir: str, file_size: int, index: int) -> None:
     os.rename(tmp_path, final_path)
 
 
-def generate_input(input_dir: str, input_count: float, file_size: int) -> None:
+def generate_input(input_dir: str, input_count: int, file_size: int) -> None:
     for i in range(1, input_count + 1):
         generate_single_input(input_dir, file_size, i)
 
@@ -151,12 +158,15 @@ def metrics_collector_loop(stop_event: threading.Event, container, samples: list
 
 def wait_for_minifi_to_start(container, timeout: float = 30.0) -> None:
     deadline = time.monotonic() + timeout
+    since = datetime.fromisoformat(container.attrs["Created"])
     while time.monotonic() < deadline:
         container.reload()
         if container.status != "running":
             time.sleep(0.5)
             continue
-        logs = container.logs().decode(errors="replace")
+        now = datetime.now(timezone.utc)
+        logs = container.logs(since=since).decode(errors="replace")
+        since = now
         if "MiNiFi started" in logs:
             return
         time.sleep(0.5)
@@ -164,14 +174,13 @@ def wait_for_minifi_to_start(container, timeout: float = 30.0) -> None:
 
 
 def write_config_yml(args: argparse.Namespace, work_dir: str) -> None:
-    if args.input_file_generation_type != "timed_generateflowfile":
-        jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(RESOURCES_DIR))
+    jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(RESOURCES_DIR))
+    if args.input_file_generation_type != InputGenerationType.TIMED_GENERATEFLOWFILE:
         flow_config_template = jinja_env.get_template(GET_CONFIG_FILE_TEMPLATE)
         flow_config = flow_config_template.render(get_file_interval=args.input_interval)
         with open(os.path.join(work_dir, "config.yml"), "w") as config_file:
             config_file.write(flow_config)
     else:
-        jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(RESOURCES_DIR))
         flow_config_template = jinja_env.get_template(GENERATE_CONFIG_FILE_TEMPLATE)
         flow_config = flow_config_template.render(generate_file_interval=args.input_interval,
                                                   generate_file_size=args.input_file_size)
@@ -186,8 +195,6 @@ def create_minifi_container(args: argparse.Namespace, work_dir: str, input_dir: 
 
     client = docker.from_env()
 
-    write_config_yml(args, work_dir)
-
     container = client.containers.run(
         args.image,
         detach=True,
@@ -201,14 +208,17 @@ def create_minifi_container(args: argparse.Namespace, work_dir: str, input_dir: 
 
 
 def wait_for_flow_files_to_be_processed(container, expected_count: int) -> None:
+    since = datetime.fromisoformat(container.attrs["Created"])
     while True:
-        logs = container.logs().decode(errors="replace")
+        now = datetime.now(timezone.utc)
+        logs = container.logs(since=since).decode(errors="replace")
+        since = now
         if f"key:flow_file_count value:{expected_count - 1}" in logs:
             break
         time.sleep(0.1)
 
     # Wait a bit more to see how the repositories behave after all flow files have been processed.
-    time.sleep(3)
+    time.sleep(2)
 
 
 def run_threads(samples: list[dict], args: argparse.Namespace) -> float:
@@ -217,8 +227,9 @@ def run_threads(samples: list[dict], args: argparse.Namespace) -> float:
     work_dir = tempfile.mkdtemp(prefix="repo_benchmark_")
     input_dir = os.path.join(work_dir, "input")
     os.makedirs(input_dir)
+    write_config_yml(args, work_dir)
     try:
-        if args.input_file_generation_type == "timed_getfile":
+        if args.input_file_generation_type == InputGenerationType.TIMED_GETFILE:
             start = time.monotonic()
             container = create_minifi_container(args, work_dir, input_dir)
             wait_for_minifi_to_start(container)
@@ -234,7 +245,7 @@ def run_threads(samples: list[dict], args: argparse.Namespace) -> float:
                     daemon=True,
                 ),
             ]
-        elif args.input_file_generation_type == "burst":
+        elif args.input_file_generation_type == InputGenerationType.BURST:
             generate_input(input_dir, args.input_file_count, args.input_file_size)
             start = time.monotonic()
             container = create_minifi_container(args, work_dir, input_dir)
@@ -260,7 +271,7 @@ def run_threads(samples: list[dict], args: argparse.Namespace) -> float:
         for thread in threads:
             thread.start()
 
-        if args.input_file_generation_type != "burst":
+        if args.input_file_generation_type != InputGenerationType.BURST:
             time.sleep(args.duration)
             stop_event.set()
         else:
@@ -275,18 +286,18 @@ def run_threads(samples: list[dict], args: argparse.Namespace) -> float:
     finally:
         stop_event.set()
         try:
-            container.stop()
+            if container is not None:
+                container.stop()
         finally:
-            container.remove()
+            if container is not None:
+                container.remove()
         shutil.rmtree(work_dir, ignore_errors=True)
 
 
-def parse_timestamp(log_line: str) -> datetime:
-    match = re.search(r'\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d+)\]', log_line)
+def parse_timestamp(log_line: str) -> datetime | None:
+    match = LOG_TIMESTAMP_RE.search(log_line)
     if match:
-        timestamp_str = match.group(1)
-        return datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S.%f")
-
+        return datetime.strptime(match.group(1), "%Y-%m-%d %H:%M:%S.%f")
     return None
 
 
@@ -296,16 +307,14 @@ def calculate_throughput(container) -> float:
     first_timestamp = None
     last_timestamp = None
     for line in logs.splitlines():
-        if "MiNiFi started" in line:
+        if first_timestamp is None and "MiNiFi started" in line:
             timestamp = parse_timestamp(line)
             if timestamp is not None:
-                if first_timestamp is None:
-                    first_timestamp = timestamp
+                first_timestamp = timestamp
+                continue
         if "Logging for flow file" in line:
             timestamp = parse_timestamp(line)
             if timestamp is not None:
-                if first_timestamp is None:
-                    first_timestamp = timestamp
                 last_timestamp = timestamp
             count += 1
 
@@ -350,10 +359,8 @@ def write_results(samples: list[dict], throughput: float, args: argparse.Namespa
 
 
 def run(args) -> None:
-
     samples: list[dict] = []
     throughput = run_threads(samples, args)
-
     write_results(samples, throughput, args)
 
 
@@ -364,10 +371,11 @@ def main() -> None:
                         choices=sorted(FLOWFILE_REPOSITORY_CLASSES), help="Flowfile repository type.")
     parser.add_argument("--content-repository", required=True,
                         choices=sorted(CONTENT_REPOSITORY_CLASSES), help="Content repository type.")
-    parser.add_argument("--input-file-generation-type", default="timed_getfile",
-                        choices=sorted(INPUT_GENERATION_TYPES), help="Input file generation type. timed_getfile: Generate input files at a fixed interval and use GetFile processor to ingest them. "
-                                                                     "timed_generateflowfile: Use GenerateFlowFile processor to generate flowfiles at a fixed interval. "
-                                                                     "burst: Generate a burst of input files at the start of the benchmark and use GetFile processor to ingest them.")
+    parser.add_argument("--input-file-generation-type", default=InputGenerationType.TIMED_GETFILE,
+                        choices=sorted(list(InputGenerationType)),
+                        help="Input file generation type. timed_getfile: Generate input files at a fixed interval and use GetFile processor to ingest them. "
+                             "timed_generateflowfile: Use GenerateFlowFile processor to generate flowfiles at a fixed interval. "
+                             "burst: Generate a burst of input files at the start of the benchmark and use GetFile processor to ingest them.")
     parser.add_argument("--input-file-count", type=int, default=100,
                         help="Number of input files to generate for burst input generation type (default: 100).")
     parser.add_argument("--duration", type=int, default=120,
