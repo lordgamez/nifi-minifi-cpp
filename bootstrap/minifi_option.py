@@ -42,12 +42,15 @@ class MinifiOptions:
         self.extension_options = {name: cache_value for name, cache_value in self.bool_options.items() if "ENABLE" in name}
         self.multi_choice_options = [cache_value for name, cache_value in cache_values.items() if
                                      cache_value.value_type == "STRING" and cache_value.possible_values is not None]
+        self.custom_malloc = cache_values.get("CUSTOM_MALLOC")
         self.build_dir = pathlib.Path(__file__).parent.parent.resolve() / "build"
         self.source_dir = pathlib.Path(__file__).parent.parent.resolve()
         self.no_confirm = False
 
     def create_cmake_options_str(self) -> str:
         cmake_options = [bool_option.create_cmake_option_str() for name, bool_option in self.bool_options.items()]
+        if self.custom_malloc is not None:
+            cmake_options.append(self.custom_malloc.create_cmake_option_str())
         if self.cmake_override:
             cmake_options.append(self.cmake_override)
         cmake_options.append(f'-DCMAKE_BUILD_TYPE={self.build_type.value}')
@@ -85,6 +88,8 @@ class MinifiOptions:
         options_dict[self.use_ninja.name] = self.use_ninja.value
         options_dict[self.use_conan.name] = self.use_conan.value
         options_dict[self.build_type.name] = self.build_type.value
+        if self.custom_malloc is not None:
+            options_dict[self.custom_malloc.name] = self.custom_malloc.value
         options_dict["build_dir"] = str(self.build_dir)
 
         with open(pathlib.Path(__file__).parent / "option_state.json", "w") as f:
@@ -106,6 +111,8 @@ class MinifiOptions:
                 self.use_conan.value = options_dict[self.use_conan.name]
             if self.build_type.name in options_dict:
                 self.build_type.value = options_dict[self.build_type.name]
+            if self.custom_malloc is not None and self.custom_malloc.name in options_dict:
+                self.custom_malloc.value = options_dict[self.custom_malloc.name]
             if "build_dir" in options_dict:
                 self.build_dir = pathlib.Path(options_dict["build_dir"])
 

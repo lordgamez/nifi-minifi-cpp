@@ -32,7 +32,10 @@ def run_conan_install(minifi_options: MinifiOptions, package_manager: PackageMan
     if not minifi_options.use_conan.value == "ON":
         print("Conan install skipped because USE_CONAN is OFF")
         return True
-    build_cmd = f"conan install . --output-folder={minifi_options.build_dir} --build=missing --settings=build_type={minifi_options.build_type.value}"
+    conan_options = ""
+    if minifi_options.custom_malloc is not None and minifi_options.custom_malloc.value not in (None, "OFF"):
+        conan_options = f"-o '&:custom_malloc={minifi_options.custom_malloc.value}'"
+    build_cmd = f"conan install . --output-folder={minifi_options.build_dir} --build=missing {conan_options} --settings=build_type={minifi_options.build_type.value}"
     res = package_manager.run_cmd(build_cmd)
     print("Conan install was successful" if res else "Conan install was unsuccessful")
     return res
@@ -87,6 +90,7 @@ def main_menu(minifi_options: MinifiOptions, package_manager: PackageManager):
             # All menu options' functions return True if the bootstrap should exit after execution
             f"Build dir: {minifi_options.build_dir}": build_dir_menu,
             f"Build type: {minifi_options.build_type.value}": build_type_menu,
+            f"Custom malloc: {minifi_options.custom_malloc.value if minifi_options.custom_malloc is not None else 'N/A'}": custom_malloc_menu,
             "Build options": build_options_menu,
             "Extension options": extension_options_menu,
             "One click build": do_one_click_build,
@@ -121,6 +125,25 @@ def build_type_menu(minifi_options: MinifiOptions, _package_manager: PackageMana
     if answers is None:
         return True
     minifi_options.build_type.value = answers["build_type"]
+    minifi_options.save_option_state()
+    return False
+
+
+def custom_malloc_menu(minifi_options: MinifiOptions, _package_manager: PackageManager) -> bool:
+    if minifi_options.custom_malloc is None:
+        return False
+    questions = [
+        inquirer.List(
+            "custom_malloc",
+            message="Custom malloc implementation (only jemalloc is provided via Conan)",
+            choices=minifi_options.custom_malloc.possible_values,
+        ),
+    ]
+
+    answers = inquirer.prompt(questions)
+    if answers is None:
+        return True
+    minifi_options.custom_malloc.value = answers["custom_malloc"]
     minifi_options.save_option_state()
     return False
 
