@@ -376,7 +376,7 @@ endif()
 ## Add extensions
 
 # PugiXML required for standard processors and WEL extension
-include(PugiXml)
+include(GetPugiXml)
 
 file(GLOB extension-directories "extensions/*")
 foreach(extension-dir ${extension-directories})

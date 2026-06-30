@@ -14,15 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-include(FetchContent)
 
-set(PUGIXML_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-
-FetchContent_Declare(
-    pugixml
-    URL      https://github.com/zeux/pugixml/archive/refs/tags/v1.15.tar.gz
-    URL_HASH SHA256=b39647064d9e28297a34278bfb897092bf33b7c487906ddfc094c9e8868bddcb
-)
-FetchContent_MakeAvailable(pugixml)
-
-add_library(pugixml::pugixml ALIAS pugixml)
+if(MINIFI_PUGIXML_SOURCE STREQUAL "CONAN")
+    message("Using Conan to install PugiXML")
+    find_package(PugiXML REQUIRED)
+elseif(MINIFI_PUGIXML_SOURCE STREQUAL "BUILD")
+    message("Using CMake to build PugiXML from source")
+    include(PugiXml)
+endif()

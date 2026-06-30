@@ -164,6 +164,7 @@ add_minifi_multi_option(MINIFI_GSL_LITE_SOURCE "Retrieves gsl-lite from provided
 add_minifi_multi_option(MINIFI_JSONCONS_SOURCE "Retrieves jsoncons from provided source" "BUILD;SYSTEM;CONAN" "BUILD")
 add_minifi_multi_option(MINIFI_JSONSCHEMA_VALIDATOR_SOURCE "Retrieves json-schema-validator from provided source" "BUILD;SYSTEM;CONAN" "BUILD")
 add_minifi_multi_option(MINIFI_MIMALLOC_SOURCE "Retrieves mimalloc from provided source" "BUILD;SYSTEM;CONAN" "BUILD")
+add_minifi_multi_option(MINIFI_PUGIXML_SOURCE "Retrieves PugiXML from provided source" "BUILD;SYSTEM;CONAN" "BUILD")
 
 # Docker options
 

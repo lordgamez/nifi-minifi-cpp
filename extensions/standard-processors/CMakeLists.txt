@@ -28,7 +28,7 @@ target_include_directories(minifi-standard-processors PUBLIC "${CMAKE_SOURCE_DIR
 include(RangeV3)
 include(Asio)
 include(GetJsoncons)
-target_link_libraries(minifi-standard-processors ${LIBMINIFI} Threads::Threads range-v3 asio pugixml jsoncons::jsoncons)
+target_link_libraries(minifi-standard-processors ${LIBMINIFI} Threads::Threads range-v3 asio pugixml::pugixml jsoncons::jsoncons)
 
 
 register_extension(minifi-standard-processors "STANDARD PROCESSORS" STANDARD-PROCESSORS "Provides standard processors" "extensions/standard-processors/tests/")
