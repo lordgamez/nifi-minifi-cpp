@@ -24,5 +24,3 @@ FetchContent_Declare(
     URL_HASH SHA256=b39647064d9e28297a34278bfb897092bf33b7c487906ddfc094c9e8868bddcb
 )
 FetchContent_MakeAvailable(pugixml)
-
-add_library(pugixml::pugixml ALIAS pugixml)

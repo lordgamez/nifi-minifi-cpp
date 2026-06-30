@@ -30,5 +30,3 @@ FetchContent_Declare(
 )
 
 FetchContent_MakeAvailable(yaml-cpp)
-
-add_library(yaml-cpp::yaml-cpp ALIAS yaml-cpp)
