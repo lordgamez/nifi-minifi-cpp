@@ -35,6 +35,8 @@ class MiNiFiCppMain(ConanFile):
             self.requires(req)
         if self.options.custom_malloc == "jemalloc":
             self.requires("jemalloc/5.3.1")
+        elif self.options.custom_malloc == "mimalloc":
+            self.requires("mimalloc/3.3.2")
         if self.options.enable_sftp:
             self.requires("libssh2/1.11.1")
         if not self.options.skip_tests:
@@ -62,10 +64,10 @@ class MiNiFiCppMain(ConanFile):
         tc.variables["MINIFI_LIBSODIUM_SOURCE"] = "CONAN"
         tc.variables["MINIFI_GSL_LITE_SOURCE"] = "CONAN"
         tc.variables["MINIFI_JSONCONS_SOURCE"] = "CONAN"
-        if self.options.custom_malloc:
-            tc.variables["CUSTOM_MALLOC"] = str(self.options.custom_malloc)
         if self.options.custom_malloc == "jemalloc":
             tc.variables["MINIFI_JEMALLOC_SOURCE"] = "CONAN"
+        elif self.options.custom_malloc == "mimalloc":
+            tc.variables["MINIFI_MIMALLOC_SOURCE"] = "CONAN"
         if self.options.enable_sftp:
             tc.variables["MINIFI_LIBSSH2_SOURCE"] = "CONAN"
         if not self.options.skip_tests:

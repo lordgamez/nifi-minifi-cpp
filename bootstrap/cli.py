@@ -139,7 +139,7 @@ def custom_malloc_menu(minifi_options: MinifiOptions, _package_manager: PackageM
     questions = [
         inquirer.List(
             "custom_malloc",
-            message="Custom malloc implementation (only jemalloc is provided via Conan)",
+            message="Custom malloc implementation (only jemalloc and mimalloc are provided via Conan)",
             choices=minifi_options.custom_malloc.possible_values,
         ),
     ]
