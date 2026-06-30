@@ -159,6 +159,7 @@ add_minifi_multi_option(MINIFI_ARGPARSE_SOURCE "Retrieves Argparse from provided
 add_minifi_multi_option(MINIFI_JEMALLOC_SOURCE "Retrieves jemalloc from provided source" "BUILD;SYSTEM;CONAN" "BUILD")
 add_minifi_multi_option(MINIFI_LIBSODIUM_SOURCE "Retrieves Libsodium from provided source" "BUILD;SYSTEM;CONAN" "BUILD")
 add_minifi_multi_option(MINIFI_LIBSSH2_SOURCE "Retrieves Libssh2 from provided source" "BUILD;SYSTEM;CONAN" "BUILD")
+add_minifi_multi_option(MINIFI_BENCHMARK_SOURCE "Retrieves benchmark from provided source" "BUILD;SYSTEM;CONAN" "BUILD")
 
 # Docker options
 
