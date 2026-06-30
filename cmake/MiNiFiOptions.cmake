@@ -167,6 +167,7 @@ add_minifi_multi_option(MINIFI_MIMALLOC_SOURCE "Retrieves mimalloc from provided
 add_minifi_multi_option(MINIFI_PUGIXML_SOURCE "Retrieves PugiXML from provided source" "BUILD;SYSTEM;CONAN" "BUILD")
 add_minifi_multi_option(MINIFI_YAMLCPP_SOURCE "Retrieves yaml-cpp from provided source" "BUILD;SYSTEM;CONAN" "BUILD")
 add_minifi_multi_option(MINIFI_PROMETHEUS_SOURCE "Retrieves prometheus-cpp from provided source" "BUILD;SYSTEM;CONAN" "BUILD")
+add_minifi_multi_option(MINIFI_RANGEV3_SOURCE "Retrieves range-v3 from provided source" "BUILD;SYSTEM;CONAN" "BUILD")
 
 # Docker options
 

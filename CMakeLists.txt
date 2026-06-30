@@ -321,11 +321,10 @@ if (NOT _gsl_lite_real_target)
 endif()
 target_compile_definitions(${_gsl_lite_real_target} INTERFACE ${GslDefinitions})
 
-# date
 include(Date)
-
-# magic_enum
 include(MagicEnum)
+include(GetRangeV3)
+include(Asio)
 
 # Setup warning flags
 if(MSVC)

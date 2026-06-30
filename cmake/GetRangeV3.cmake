@@ -1,4 +1,3 @@
-#
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,19 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-#
 
-
-include(${CMAKE_SOURCE_DIR}/extensions/ExtensionHeader.txt)
-
-file(GLOB SOURCES "processors/*.cpp" "controllers/*.cpp" "utils/*.cpp" "modbus/*.cpp")
-
-add_minifi_library(minifi-standard-processors SHARED ${SOURCES})
-target_include_directories(minifi-standard-processors PUBLIC "${CMAKE_SOURCE_DIR}/extensions/standard-processors")
-
-include(GetJsoncons)
-target_link_libraries(minifi-standard-processors ${LIBMINIFI} Threads::Threads range-v3::range-v3 asio pugixml::pugixml jsoncons::jsoncons)
-
-
-register_extension(minifi-standard-processors "STANDARD PROCESSORS" STANDARD-PROCESSORS "Provides standard processors" "extensions/standard-processors/tests/")
-
+if(MINIFI_RANGEV3_SOURCE STREQUAL "CONAN")
+    message("Using Conan to install range-v3")
+    find_package(range-v3 REQUIRED)
+elseif(MINIFI_RANGEV3_SOURCE STREQUAL "BUILD")
+    message("Using CMake to build range-v3 from source")
+    include(RangeV3)
+endif()
