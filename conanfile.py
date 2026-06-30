@@ -8,7 +8,7 @@ import shutil
 required_conan_version = ">=2.0"
 
 shared_requires = ("lz4/1.10.0", "openssl/3.6.2", "libcurl/8.20.0", "civetweb/1.16", "libxml2/2.15.3", "fmt/12.1.0", "spdlog/1.17.0", "catch2/3.14.0", "zlib/1.3.2", "zstd/1.5.7",
-                   "bzip2/1.0.8", "rocksdb/11.1.1@minifi/develop", "libarchive/3.8.7", "lua/5.4.6", "sol2/3.5.0", "argparse/3.2", "libsodium/1.0.22")
+                   "bzip2/1.0.8", "rocksdb/11.1.1@minifi/develop", "libarchive/3.8.7", "lua/5.4.6", "sol2/3.5.0", "argparse/3.2", "libsodium/1.0.22", "gsl-lite/1.1.0", "jsoncons/1.7.0")
 
 shared_sources = ("CMakeLists.txt", "libminifi/*", "extensions/*", "minifi_main/*", "behave_framework/*", "bin/*", "bootstrap/*", "cmake/*", "conf/*", "controller/*", "core-framework/*",
                   "docs/*", "encrypt-config/*", "etc/*", "examples/*", "extension-framework/*", "fips/*", "minifi-api/*", "packaging/*", "thirdparty/*", "docker/*", "LICENSE", "NOTICE",
@@ -59,6 +59,8 @@ class MiNiFiCppMain(ConanFile):
         tc.variables["MINIFI_SOL2_SOURCE"] = "CONAN"
         tc.variables["MINIFI_ARGPARSE_SOURCE"] = "CONAN"
         tc.variables["MINIFI_LIBSODIUM_SOURCE"] = "CONAN"
+        tc.variables["MINIFI_GSL_LITE_SOURCE"] = "CONAN"
+        tc.variables["MINIFI_JSONCONS_SOURCE"] = "CONAN"
         if self.options.custom_malloc:
             tc.variables["CUSTOM_MALLOC"] = str(self.options.custom_malloc)
         if self.options.custom_malloc == "jemalloc":

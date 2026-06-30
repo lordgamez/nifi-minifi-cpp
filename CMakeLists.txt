@@ -295,7 +295,7 @@ target_include_directories(RapidJSON SYSTEM INTERFACE "${CMAKE_CURRENT_SOURCE_DI
 target_compile_definitions(RapidJSON INTERFACE RAPIDJSON_HAS_STDSTRING)
 
 # gsl-lite
-include(GslLite)
+include(GetGslLite)
 
 # Add necessary definitions based on the value of STRICT_GSL_CHECKS, see gsl-lite README for more details
 list(APPEND GslDefinitions gsl_CONFIG_DEFAULTS_VERSION=1)
@@ -314,7 +314,7 @@ endif()
 if (STRICT_GSL_CHECKS STREQUAL "DEBUG_ONLY")
     list(APPEND GslDefinitions $<$<NOT:$<CONFIG:Debug>>:${GslDefinitionsNonStrict}>)
 endif()
-target_compile_definitions(gsl-lite INTERFACE ${GslDefinitions})
+target_compile_definitions(gsl-lite::gsl-lite INTERFACE ${GslDefinitions})
 
 # date
 include(Date)

@@ -26,3 +26,5 @@ FetchContent_Declare(jsoncons
 )
 
 FetchContent_MakeAvailable(jsoncons)
+
+add_library(jsoncons::jsoncons ALIAS jsoncons)

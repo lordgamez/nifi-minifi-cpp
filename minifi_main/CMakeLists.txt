@@ -65,7 +65,7 @@ endif()
 
 get_property(extensions GLOBAL PROPERTY EXTENSION-OPTIONS)
 include(GetArgparse)
-target_link_libraries(minifiexe spdlog libsodium::libsodium gsl-lite argparse::argparse core-minifi)
+target_link_libraries(minifiexe spdlog libsodium::libsodium gsl-lite::gsl-lite argparse::argparse core-minifi)
 
 set_target_properties(minifiexe PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 set_target_properties(minifiexe PROPERTIES OUTPUT_NAME minifi)

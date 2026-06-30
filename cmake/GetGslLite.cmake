@@ -1,4 +1,3 @@
-#
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,21 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-#
 
-
-include(${CMAKE_SOURCE_DIR}/extensions/ExtensionHeader.txt)
-
-file(GLOB SOURCES "processors/*.cpp" "controllers/*.cpp" "utils/*.cpp" "modbus/*.cpp")
-
-add_minifi_library(minifi-standard-processors SHARED ${SOURCES})
-target_include_directories(minifi-standard-processors PUBLIC "${CMAKE_SOURCE_DIR}/extensions/standard-processors")
-
-include(RangeV3)
-include(Asio)
-include(GetJsoncons)
-target_link_libraries(minifi-standard-processors ${LIBMINIFI} Threads::Threads range-v3 asio pugixml jsoncons::jsoncons)
-
-
-register_extension(minifi-standard-processors "STANDARD PROCESSORS" STANDARD-PROCESSORS "Provides standard processors" "extensions/standard-processors/tests/")
-
+if(MINIFI_GSL_LITE_SOURCE STREQUAL "CONAN")
+    message("Using Conan to install gsl-lite")
+    find_package(gsl-lite REQUIRED)
+elseif(MINIFI_GSL_LITE_SOURCE STREQUAL "BUILD")
+    message("Using CMake to build gsl-lite from source")
+    include(GslLite)
+endif()
