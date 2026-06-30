@@ -23,9 +23,9 @@ class MiNiFiCppMain(ConanFile):
     license = "Apache-2.0"
     settings = "os", "compiler", "build_type", "arch"
     generators = "CMakeDeps"
-    options = {"shared": [True, False], "fPIC": [True, False], "custom_malloc": [False, "jemalloc", "mimalloc", "rpmalloc"]}
+    options = {"shared": [True, False], "fPIC": [True, False], "custom_malloc": [False, "jemalloc", "mimalloc", "rpmalloc"], "enable_sftp": [True, False]}
 
-    default_options = {"shared": False, "fPIC": True, "custom_malloc": False}
+    default_options = {"shared": False, "fPIC": True, "custom_malloc": False, "enable_sftp": False}
 
     exports_sources = shared_sources
 
@@ -34,6 +34,8 @@ class MiNiFiCppMain(ConanFile):
             self.requires(req)
         if self.options.custom_malloc == "jemalloc":
             self.requires("jemalloc/5.3.1")
+        if self.options.enable_sftp:
+            self.requires("libssh2/1.11.1")
 
     def generate(self):
         tc = CMakeToolchain(self)
@@ -59,6 +61,8 @@ class MiNiFiCppMain(ConanFile):
             tc.variables["CUSTOM_MALLOC"] = str(self.options.custom_malloc)
         if self.options.custom_malloc == "jemalloc":
             tc.variables["MINIFI_JEMALLOC_SOURCE"] = "CONAN"
+        if self.options.enable_sftp:
+            tc.variables["MINIFI_LIBSSH2_SOURCE"] = "CONAN"
 
         tc.generate()
 

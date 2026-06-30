@@ -1,4 +1,3 @@
-#
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,23 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-#
 
-if (NOT (ENABLE_ALL OR ENABLE_SFTP))
-    return()
+if(MINIFI_LIBSSH2_SOURCE STREQUAL "CONAN")
+    message("Using Conan to install LibSSH2")
+    find_package(Libssh2 REQUIRED)
+elseif(MINIFI_LIBSSH2_SOURCE STREQUAL "BUILD")
+    message("Using CMake to build LibSSH2 from source")
+    include(FetchLibSSH2)
 endif()
-
-include(GetLibSSH2)
-
-include(${CMAKE_SOURCE_DIR}/extensions/ExtensionHeader.txt)
-include_directories(client processors)
-
-file(GLOB SOURCES  "*.cpp" "client/*.cpp" "processors/*.cpp")
-
-add_minifi_library(minifi-sftp SHARED ${SOURCES})
-set_target_properties(minifi-sftp PROPERTIES HAS_CUSTOM_INITIALIZER TRUE)
-
-target_link_libraries(minifi-sftp ${LIBMINIFI} Threads::Threads)
-target_link_libraries(minifi-sftp Libssh2::libssh2 RapidJSON)
-
-register_extension(minifi-sftp "SFTP EXTENSIONS" SFTP "This enables SFTP support" "extensions/sftp/tests")
