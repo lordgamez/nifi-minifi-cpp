@@ -283,7 +283,7 @@ include(GetSpdlog)
 get_spdlog()
 
 # yaml-cpp
-include(YamlCpp)
+include(GetYamlCpp)
 
 # concurrentqueue
 add_library(concurrentqueue INTERFACE)

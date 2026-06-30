@@ -52,7 +52,7 @@ if (NOT USE_SHARED_LIBS)
 endif(NOT USE_SHARED_LIBS)
 target_link_libraries(minifiexe Threads::Threads)
 
-target_link_libraries(minifiexe yaml-cpp)
+target_link_libraries(minifiexe yaml-cpp::yaml-cpp)
 if(CUSTOM_MALLOC_LIB)
     message(VERBOSE "Using custom malloc lib ${CUSTOM_MALLOC_LIB} for minifiexe")
     target_link_libraries(minifiexe ${CUSTOM_MALLOC_LIB})

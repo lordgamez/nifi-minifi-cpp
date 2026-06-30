@@ -15,20 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 
-include(FetchContent)
-
-set(CMAKE_DEBUG_POSTFIX "" CACHE STRING "" FORCE)
-set(YAML_BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
-set(YAML_CPP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-set(YAML_CPP_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
-
-FetchContent_Declare(
-    yaml-cpp
-    URL "https://github.com/jbeder/yaml-cpp/archive/refs/tags/yaml-cpp-0.9.0.tar.gz"
-    URL_HASH "SHA256=25cb043240f828a8c51beb830569634bc7ac603978e0f69d6b63558dadefd49a"
-    SYSTEM
-)
-
-FetchContent_MakeAvailable(yaml-cpp)
-
-add_library(yaml-cpp::yaml-cpp ALIAS yaml-cpp)
+if(MINIFI_YAMLCPP_SOURCE STREQUAL "CONAN")
+    message("Using Conan to install yaml-cpp")
+    find_package(yaml-cpp REQUIRED)
+elseif(MINIFI_YAMLCPP_SOURCE STREQUAL "BUILD")
+    message("Using CMake to build yaml-cpp from source")
+    include(YamlCpp)
+endif()
