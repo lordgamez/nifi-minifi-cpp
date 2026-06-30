@@ -166,6 +166,7 @@ add_minifi_multi_option(MINIFI_JSONSCHEMA_VALIDATOR_SOURCE "Retrieves json-schem
 add_minifi_multi_option(MINIFI_MIMALLOC_SOURCE "Retrieves mimalloc from provided source" "BUILD;SYSTEM;CONAN" "BUILD")
 add_minifi_multi_option(MINIFI_PUGIXML_SOURCE "Retrieves PugiXML from provided source" "BUILD;SYSTEM;CONAN" "BUILD")
 add_minifi_multi_option(MINIFI_YAMLCPP_SOURCE "Retrieves yaml-cpp from provided source" "BUILD;SYSTEM;CONAN" "BUILD")
+add_minifi_multi_option(MINIFI_PROMETHEUS_SOURCE "Retrieves prometheus-cpp from provided source" "BUILD;SYSTEM;CONAN" "BUILD")
 
 # Docker options
 

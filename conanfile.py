@@ -24,9 +24,9 @@ class MiNiFiCppMain(ConanFile):
     license = "Apache-2.0"
     settings = "os", "compiler", "build_type", "arch"
     generators = "CMakeDeps"
-    options = {"shared": [True, False], "fPIC": [True, False], "custom_malloc": [False, "jemalloc", "mimalloc", "rpmalloc"], "enable_sftp": [True, False], "skip_tests": [True, False]}
+    options = {"shared": [True, False], "fPIC": [True, False], "custom_malloc": [False, "jemalloc", "mimalloc", "rpmalloc"], "enable_sftp": [True, False], "enable_prometheus": [True, False], "skip_tests": [True, False]}
 
-    default_options = {"shared": False, "fPIC": True, "custom_malloc": False, "enable_sftp": False, "skip_tests": False}
+    default_options = {"shared": False, "fPIC": True, "custom_malloc": False, "enable_sftp": False, "enable_prometheus": False, "skip_tests": False}
 
     exports_sources = shared_sources
 
@@ -39,6 +39,8 @@ class MiNiFiCppMain(ConanFile):
             self.requires("mimalloc/3.3.2")
         if self.options.enable_sftp:
             self.requires("libssh2/1.11.1")
+        if self.options.enable_prometheus:
+            self.requires("prometheus-cpp/1.3.0")
         if not self.options.skip_tests:
             self.requires("benchmark/1.9.5")
 
@@ -66,15 +68,13 @@ class MiNiFiCppMain(ConanFile):
         tc.variables["MINIFI_JSONCONS_SOURCE"] = "CONAN"
         tc.variables["MINIFI_PUGIXML_SOURCE"] = "CONAN"
         tc.variables["MINIFI_YAMLCPP_SOURCE"] = "CONAN"
-        if self.options.custom_malloc == "jemalloc":
-            tc.variables["MINIFI_JEMALLOC_SOURCE"] = "CONAN"
-        elif self.options.custom_malloc == "mimalloc":
-            tc.variables["MINIFI_MIMALLOC_SOURCE"] = "CONAN"
-        if self.options.enable_sftp:
-            tc.variables["MINIFI_LIBSSH2_SOURCE"] = "CONAN"
-        if not self.options.skip_tests:
-            tc.variables["MINIFI_BENCHMARK_SOURCE"] = "CONAN"
-            tc.variables["MINIFI_JSONSCHEMA_VALIDATOR_SOURCE"] = "CONAN"
+        tc.variables["MINIFI_JEMALLOC_SOURCE"] = "CONAN"
+        tc.variables["MINIFI_MIMALLOC_SOURCE"] = "CONAN"
+        tc.variables["MINIFI_LIBSSH2_SOURCE"] = "CONAN"
+        tc.variables["MINIFI_PROMETHEUS_SOURCE"] = "CONAN"
+        tc.variables["MINIFI_BENCHMARK_SOURCE"] = "CONAN"
+        tc.variables["MINIFI_JSONSCHEMA_VALIDATOR_SOURCE"] = "CONAN"
+        tc.variables["MINIFI_PROMETHEUS_SOURCE"] = "CONAN"
 
         tc.generate()
 

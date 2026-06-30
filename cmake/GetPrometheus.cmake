@@ -1,4 +1,3 @@
-#
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,20 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-#
 
-if (NOT (ENABLE_PROMETHEUS OR ENABLE_ALL))
-    return()
+if(MINIFI_PROMETHEUS_SOURCE STREQUAL "CONAN")
+    message("Using Conan to install Prometheus")
+    find_package(prometheus-cpp REQUIRED)
+elseif(MINIFI_PROMETHEUS_SOURCE STREQUAL "BUILD")
+    message("Using CMake to build Prometheus from source")
+    include(Prometheus)
 endif()
-
-include(GetPrometheus)
-include(${CMAKE_SOURCE_DIR}/extensions/ExtensionHeader.txt)
-
-file(GLOB SOURCES "*.cpp")
-
-add_minifi_library(minifi-prometheus SHARED ${SOURCES})
-
-target_link_libraries(minifi-prometheus ${LIBMINIFI} prometheus-cpp::prometheus-cpp)
-target_include_directories(minifi-prometheus PUBLIC ${prometheus-cpp_INCLUDE_DIRS})
-
-register_extension(minifi-prometheus "PROMETHEUS EXTENSIONS" PROMETHEUS-EXTENSIONS "This enables Prometheus support" "extensions/prometheus/tests")
