@@ -34,6 +34,10 @@ class MinifiOptions:
         additional_build_options = ["DOCKER_BUILD_ONLY", "DOCKER_SKIP_TESTS", "DOCKER_CREATE_RPM", "SKIP_TESTS", "PORTABLE"]
         self.use_ninja = CMakeCacheValue("Specifies if CMake should use the Ninja generator or the system default", "USE_NINJA", "BOOL", "ON")
         self.use_conan = CMakeCacheValue("Specifies if CMake should use Conan package manager", "USE_CONAN", "BOOL", "OFF")
+        if "USE_NINJA" in cache_values:
+            self.use_ninja.value = cache_values["USE_NINJA"].value
+        if "USE_CONAN" in cache_values:
+            self.use_conan.value = cache_values["USE_CONAN"].value
         self.bool_options = {name: cache_value for name, cache_value in cache_values.items() if
                              cache_value.value_type == "BOOL" and ("ENABLE" in name or "MINIFI" in name or name in additional_build_options)}
         self.build_options = {name: cache_value for name, cache_value in self.bool_options.items() if "MINIFI" in name or name in additional_build_options}

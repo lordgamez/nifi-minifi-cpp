@@ -7,8 +7,8 @@ import shutil
 
 required_conan_version = ">=2.0"
 
-shared_requires = ("lz4/1.10.0", "openssl/3.6.2", "libcurl/8.20.0", "civetweb/1.16", "libxml2/2.15.3", "fmt/12.1.0", "spdlog/1.17.0", "catch2/3.14.0", "zlib/1.3.2", "zstd/1.5.7",
-                   "rocksdb/11.1.1@minifi/develop", "libarchive/3.8.7", "lua/5.4.6", "sol2/3.5.0", "argparse/3.2", "libsodium/1.0.22", "gsl-lite/1.1.0", "jsoncons/1.7.0",
+shared_requires = ("lz4/1.10.0", "openssl/3.6.2", "libcurl/8.20.0", "civetweb/1.16", "libxml2/2.15.3", "fmt/12.1.0", "spdlog/1.17.0", "catch2/3.15.0", "zlib/1.3.2", "zstd/1.5.7",
+                   "rocksdb/11.1.1@minifi/develop", "libarchive/3.8.7", "sol2/3.5.0", "argparse/3.2", "libsodium/1.0.22", "gsl-lite/1.1.0", "jsoncons/1.7.0",
                    "json-schema-validator/2.4.0", "pugixml/1.16", "yaml-cpp/0.9.0", "range-v3/0.12.0")
 
 shared_sources = ("CMakeLists.txt", "libminifi/*", "extensions/*", "minifi_main/*", "behave_framework/*", "bin/*", "bootstrap/*", "cmake/*", "conf/*", "controller/*", "core-framework/*",
@@ -32,6 +32,7 @@ class MiNiFiCppMain(ConanFile):
     exports_sources = shared_sources
 
     def requirements(self):
+        self.requires("lua/5.4.8", override=True)
         for req in shared_requires:
             self.requires(req)
         if self.options.custom_malloc == "jemalloc":

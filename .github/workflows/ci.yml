@@ -63,6 +63,7 @@ jobs:
         -DSKIP_TESTS=OFF
         -DUSE_SHARED_LIBS=ON
         -DMINIFI_PERFORMANCE_TESTS=ON
+        -DUSE_CONAN=ON
     steps:
       - id: checkout
         uses: actions/checkout@v6
@@ -84,6 +85,8 @@ jobs:
           echo "PATH=/opt/homebrew/opt/ccache:/opt/homebrew/opt/ccache/bin:/opt/homebrew/opt/ccache/libexec:$PATH" >> $GITHUB_ENV
           echo "DYLD_LIBRARY_PATH=$(brew --prefix)/lib" >> $GITHUB_ENV
           echo -e "127.0.0.1\t$HOSTNAME" | sudo tee -a /etc/hosts > /dev/null
+          mkdir -p ~/.conan2/extensions/plugins/compatibility
+          cp .github/conan/compatibility.py ~/.conan2/extensions/plugins/compatibility/compatibility.py
       - name: build
         run: |
           python -m venv venv && source venv/bin/activate && pip install -r requirements.txt && python main.py --noninteractive --skip-compiler-install --cmake-options="-DCMAKE_C_FLAGS=${CPPFLAGS} ${CFLAGS} -DCMAKE_CXX_FLAGS=${CPPFLAGS} ${CXXFLAGS}" --minifi-options="${MACOS_MINIFI_OPTIONS}"
@@ -171,6 +174,7 @@ jobs:
         -DMINIFI_USE_REAL_ODBC_TEST_DRIVER=ON
         -DUSE_SHARED_LIBS=OFF
         -DMINIFI_PERFORMANCE_TESTS=ON
+        -DUSE_CONAN=ON
     steps:
       - name: Support longpaths
         run: git config --system core.longpaths true

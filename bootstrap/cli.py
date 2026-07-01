@@ -12,14 +12,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-
 import os
+import re
 import inquirer
 
 from minifi_option import MinifiOptions
 from package_manager import PackageManager
 from system_dependency import install_required
+
+
+def get_rocksdb_version(source_dir) -> str:
+    conanfile = source_dir / "conanfile.py"
+    match = re.search(r"rocksdb/(?P<version>[^@\"']+)@minifi/develop", conanfile.read_text())
+    if not match:
+        raise ValueError("Could not find the custom rocksdb reference in conanfile.py")
+    return match.group("version")
 
 
 def install_dependencies(minifi_options: MinifiOptions, package_manager: PackageManager) -> bool:
@@ -34,20 +41,32 @@ def run_conan_install(minifi_options: MinifiOptions, package_manager: PackageMan
         return True
     conan_options = ""
     if minifi_options.custom_malloc is not None and minifi_options.custom_malloc.value not in (None, "OFF"):
-        conan_options = f"-o '&:custom_malloc={minifi_options.custom_malloc.value}'"
+        conan_options = f'-o "&:custom_malloc={minifi_options.custom_malloc.value}"'
     if minifi_options.bool_options["ENABLE_SFTP"].value not in (None, "OFF"):
-        conan_options += " -o '&:enable_sftp=True'"
+        conan_options += ' -o "&:enable_sftp=True"'
     if minifi_options.bool_options["ENABLE_PROMETHEUS"].value not in (None, "OFF"):
-        conan_options += " -o '&:enable_prometheus=True'"
+        conan_options += ' -o "&:enable_prometheus=True"'
     if minifi_options.bool_options["ENABLE_BZIP2"].value not in (None, "OFF"):
-        conan_options += " -o '&:enable_bzip2=True'"
+        conan_options += ' -o "&:enable_bzip2=True"'
     if minifi_options.bool_options["ENABLE_LZMA"].value not in (None, "OFF"):
-        conan_options += " -o '&:enable_lzma=True'"
+        conan_options += ' -o "&:enable_lzma=True"'
     if minifi_options.bool_options["ENABLE_MQTT"].value not in (None, "OFF"):
-        conan_options += " -o '&:enable_mqtt=True'"
+        conan_options += ' -o "&:enable_mqtt=True"'
     if minifi_options.bool_options["SKIP_TESTS"].value not in (None, "OFF"):
-        conan_options += " -o '&:skip_tests=True'"
-    build_cmd = f"conan install . --output-folder={minifi_options.build_dir} --build=missing {conan_options} --settings=build_type={minifi_options.build_type.value}"
+        conan_options += ' -o "&:skip_tests=True"'
+    if not package_manager.run_cmd("conan profile detect --exist-ok"):
+        print("Conan default profile detection failed")
+        return False
+
+    rocksdb_recipe_dir = minifi_options.source_dir / "thirdparty" / "rocksdb" / "all"
+    rocksdb_version = get_rocksdb_version(minifi_options.source_dir)
+    if not package_manager.run_cmd(f"conan export {rocksdb_recipe_dir} --version={rocksdb_version} --user=minifi --channel=develop"):
+        print("Exporting the custom RocksDB Conan recipe failed")
+        return False
+
+    compiler_settings = " --settings=compiler.cppstd=23"
+    generator_setting = " -c tools.cmake.cmaketoolchain:generator=Ninja" if minifi_options.use_ninja.value == "ON" else ""
+    build_cmd = f"conan install {minifi_options.source_dir} --output-folder={minifi_options.build_dir} --build=missing {conan_options} --settings=build_type={minifi_options.build_type.value}{generator_setting}{compiler_settings}"
     res = package_manager.run_cmd(build_cmd)
     print("Conan install was successful" if res else "Conan install was unsuccessful")
     return res
