@@ -36,11 +36,11 @@ def run_conan_install(minifi_options: MinifiOptions, package_manager: PackageMan
     if minifi_options.custom_malloc is not None and minifi_options.custom_malloc.value not in (None, "OFF"):
         conan_options = f"-o '&:custom_malloc={minifi_options.custom_malloc.value}'"
     if minifi_options.bool_options["ENABLE_SFTP"].value not in (None, "OFF"):
-        conan_options += f" -o '&:enable_sftp=True'"
+        conan_options += " -o '&:enable_sftp=True'"
     if minifi_options.bool_options["ENABLE_PROMETHEUS"].value not in (None, "OFF"):
-        conan_options += f" -o '&:enable_prometheus=True'"
+        conan_options += " -o '&:enable_prometheus=True'"
     if minifi_options.bool_options["SKIP_TESTS"].value not in (None, "OFF"):
-        conan_options += f" -o '&:skip_tests=True'"
+        conan_options += " -o '&:skip_tests=True'"
     build_cmd = f"conan install . --output-folder={minifi_options.build_dir} --build=missing {conan_options} --settings=build_type={minifi_options.build_type.value}"
     res = package_manager.run_cmd(build_cmd)
     print("Conan install was successful" if res else "Conan install was unsuccessful")
