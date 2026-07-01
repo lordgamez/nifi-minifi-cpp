@@ -8,7 +8,7 @@ import shutil
 required_conan_version = ">=2.0"
 
 shared_requires = ("lz4/1.10.0", "openssl/3.6.2", "libcurl/8.20.0", "civetweb/1.16", "libxml2/2.15.3", "fmt/12.1.0", "spdlog/1.17.0", "catch2/3.14.0", "zlib/1.3.2", "zstd/1.5.7",
-                   "bzip2/1.0.8", "rocksdb/11.1.1@minifi/develop", "libarchive/3.8.7", "lua/5.4.6", "sol2/3.5.0", "argparse/3.2", "libsodium/1.0.22", "gsl-lite/1.1.0", "jsoncons/1.7.0",
+                   "rocksdb/11.1.1@minifi/develop", "libarchive/3.8.7", "lua/5.4.6", "sol2/3.5.0", "argparse/3.2", "libsodium/1.0.22", "gsl-lite/1.1.0", "jsoncons/1.7.0",
                    "json-schema-validator/2.4.0", "pugixml/1.16", "yaml-cpp/0.9.0", "range-v3/0.12.0")
 
 shared_sources = ("CMakeLists.txt", "libminifi/*", "extensions/*", "minifi_main/*", "behave_framework/*", "bin/*", "bootstrap/*", "cmake/*", "conf/*", "controller/*", "core-framework/*",
@@ -24,9 +24,10 @@ class MiNiFiCppMain(ConanFile):
     license = "Apache-2.0"
     settings = "os", "compiler", "build_type", "arch"
     generators = "CMakeDeps"
-    options = {"shared": [True, False], "fPIC": [True, False], "custom_malloc": [False, "jemalloc", "mimalloc", "rpmalloc"], "enable_sftp": [True, False], "enable_prometheus": [True, False], "skip_tests": [True, False]}
+    options = {"shared": [True, False], "fPIC": [True, False], "custom_malloc": [False, "jemalloc", "mimalloc", "rpmalloc"], "enable_sftp": [True, False], "enable_prometheus": [True, False],
+               "enable_bzip2": [True, False], "enable_lzma": [True, False], "skip_tests": [True, False]}
 
-    default_options = {"shared": False, "fPIC": True, "custom_malloc": False, "enable_sftp": False, "enable_prometheus": False, "skip_tests": False}
+    default_options = {"shared": False, "fPIC": True, "custom_malloc": False, "enable_sftp": False, "enable_prometheus": False, "enable_bzip2": False, "enable_lzma": False, "skip_tests": False}
 
     exports_sources = shared_sources
 
@@ -43,6 +44,17 @@ class MiNiFiCppMain(ConanFile):
             self.requires("prometheus-cpp/1.3.0")
         if not self.options.skip_tests:
             self.requires("benchmark/1.9.5")
+        if self.options.enable_bzip2:
+            self.requires("bzip2/1.0.8")
+        if self.options.enable_lzma:
+            self.requires("xz_utils/5.8.3")
+
+    def configure(self):
+        self.options["libarchive"].with_openssl = True
+        if self.options.enable_bzip2:
+            self.options["libarchive"].with_bzip2 = True
+        if self.options.enable_lzma:
+            self.options["libarchive"].with_lzma = True
 
     def generate(self):
         tc = CMakeToolchain(self)
@@ -75,7 +87,7 @@ class MiNiFiCppMain(ConanFile):
         tc.variables["MINIFI_RANGEV3_SOURCE"] = "CONAN"
         tc.variables["MINIFI_BENCHMARK_SOURCE"] = "CONAN"
         tc.variables["MINIFI_JSONSCHEMA_VALIDATOR_SOURCE"] = "CONAN"
-        tc.variables["MINIFI_PROMETHEUS_SOURCE"] = "CONAN"
+        tc.variables["MINIFI_LIBLZMA_SOURCE"] = "CONAN"
 
         tc.generate()
 

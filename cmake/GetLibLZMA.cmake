@@ -1,4 +1,3 @@
-#
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,25 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-#
 
-if (NOT (ENABLE_ALL OR ENABLE_LIBARCHIVE))
-    return()
+if(MINIFI_LIBLZMA_SOURCE STREQUAL "CONAN")
+    message("Using Conan to install LibLZMA")
+    find_package(LibLZMA REQUIRED)
+elseif(MINIFI_LIBLZMA_SOURCE STREQUAL "BUILD")
+    message("Using CMake to build LibLZMA from source")
+    include(LibLZMA)
 endif()
-
-if (ENABLE_LZMA)
-    include(GetLibLZMA)
-endif()
-
-include(GetLibArchive)
-
-include(${CMAKE_SOURCE_DIR}/extensions/ExtensionHeader.txt)
-
-file(GLOB SOURCES  "*.cpp")
-
-add_minifi_library(minifi-archive-extensions SHARED ${SOURCES})
-
-target_link_libraries(minifi-archive-extensions ${LIBMINIFI} Threads::Threads)
-target_link_libraries(minifi-archive-extensions LibArchive::LibArchive)
-
-register_extension(minifi-archive-extensions "ARCHIVE EXTENSIONS" ARCHIVE-EXTENSIONS "This Enables libarchive functionality including MergeContent, CompressContent, (Un)FocusArchiveEntry and ManipulateArchive." "extensions/libarchive/tests")
