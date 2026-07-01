@@ -1,4 +1,3 @@
-#
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,22 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-#
 
-if(NOT (ENABLE_ALL OR ENABLE_MQTT))
-    return()
+if(MINIFI_PAHO_MQTT_C_SOURCE STREQUAL "CONAN")
+    message("Using Conan to install paho-mqtt-c")
+    find_package(eclipse-paho-mqtt-c REQUIRED)
+elseif(MINIFI_PAHO_MQTT_C_SOURCE STREQUAL "BUILD")
+    message("Using CMake to build paho-mqtt-c from source")
+    include(PahoMqttC)
 endif()
-
-include(${CMAKE_SOURCE_DIR}/extensions/ExtensionHeader.txt)
-include_directories(./processors ../../libminifi/include  ../../libminifi/include/core)
-
-file(GLOB SOURCES "processors/*.cpp")
-
-add_minifi_library(minifi-mqtt-extensions SHARED ${SOURCES})
-
-target_link_libraries(minifi-mqtt-extensions ${LIBMINIFI})
-
-include(GetPahoMqttC)
-target_link_libraries(minifi-mqtt-extensions eclipse-paho-mqtt-c::paho-mqtt3as-static)
-
-register_extension(minifi-mqtt-extensions "MQTT EXTENSIONS" MQTT-EXTENSIONS "This Enables MQTT functionality including PublishMQTT/ConsumeMQTT" "${CMAKE_CURRENT_SOURCE_DIR}/tests")

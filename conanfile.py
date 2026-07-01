@@ -25,9 +25,9 @@ class MiNiFiCppMain(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
     generators = "CMakeDeps"
     options = {"shared": [True, False], "fPIC": [True, False], "custom_malloc": [False, "jemalloc", "mimalloc", "rpmalloc"], "enable_sftp": [True, False], "enable_prometheus": [True, False],
-               "enable_bzip2": [True, False], "enable_lzma": [True, False], "skip_tests": [True, False]}
+               "enable_bzip2": [True, False], "enable_lzma": [True, False], "enable_mqtt": [True, False], "skip_tests": [True, False]}
 
-    default_options = {"shared": False, "fPIC": True, "custom_malloc": False, "enable_sftp": False, "enable_prometheus": False, "enable_bzip2": False, "enable_lzma": False, "skip_tests": False}
+    default_options = {"shared": False, "fPIC": True, "custom_malloc": False, "enable_sftp": False, "enable_prometheus": False, "enable_bzip2": False, "enable_lzma": False, "enable_mqtt": False, "skip_tests": False}
 
     exports_sources = shared_sources
 
@@ -48,6 +48,8 @@ class MiNiFiCppMain(ConanFile):
             self.requires("bzip2/1.0.8")
         if self.options.enable_lzma:
             self.requires("xz_utils/5.8.3")
+        if self.options.enable_mqtt:
+            self.requires("paho-mqtt-c/1.3.16")
 
     def configure(self):
         self.options["libarchive"].with_openssl = True
@@ -88,6 +90,7 @@ class MiNiFiCppMain(ConanFile):
         tc.variables["MINIFI_BENCHMARK_SOURCE"] = "CONAN"
         tc.variables["MINIFI_JSONSCHEMA_VALIDATOR_SOURCE"] = "CONAN"
         tc.variables["MINIFI_LIBLZMA_SOURCE"] = "CONAN"
+        tc.variables["MINIFI_PAHO_MQTT_C_SOURCE"] = "CONAN"
 
         tc.generate()
 

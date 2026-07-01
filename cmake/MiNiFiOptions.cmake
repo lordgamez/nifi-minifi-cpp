@@ -169,6 +169,7 @@ add_minifi_multi_option(MINIFI_YAMLCPP_SOURCE "Retrieves yaml-cpp from provided 
 add_minifi_multi_option(MINIFI_PROMETHEUS_SOURCE "Retrieves prometheus-cpp from provided source" "BUILD;SYSTEM;CONAN" "BUILD")
 add_minifi_multi_option(MINIFI_RANGEV3_SOURCE "Retrieves range-v3 from provided source" "BUILD;SYSTEM;CONAN" "BUILD")
 add_minifi_multi_option(MINIFI_LIBLZMA_SOURCE "Retrieves LibLZMA from provided source" "BUILD;SYSTEM;CONAN" "BUILD")
+add_minifi_multi_option(MINIFI_PAHO_MQTT_C_SOURCE "Retrieves paho-mqtt-c from provided source" "BUILD;SYSTEM;CONAN" "BUILD")
 
 # Docker options
 
