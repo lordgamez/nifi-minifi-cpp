@@ -196,6 +196,12 @@ jobs:
           if ((Get-FileHash 'sqliteodbc_w64.exe').Hash -ne "a4804e4f54f42c721df1323c5fcac101a8c7a577e7f20979227324ceab572d51") {Write "Hash mismatch"; Exit 1}
           Start-Process -FilePath ".\sqliteodbc_w64.exe" -ArgumentList "/S" -Wait
         shell: powershell
+      - name: Copy conan compatibility.py
+        shell: powershell
+        run: |
+          $compatDir = Join-Path $env:USERPROFILE ".conan2\extensions\plugins\compatibility"
+          New-Item -ItemType Directory -Force -Path $compatDir | Out-Null
+          Copy-Item ".github\conan\compatibility.py" (Join-Path $compatDir "compatibility.py")
       - name: Zero sccache stats
         run: sccache --zero-stats
         shell: bash

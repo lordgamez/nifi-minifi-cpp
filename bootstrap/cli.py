@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import platform
 import re
 import inquirer
 
@@ -72,24 +73,31 @@ def run_conan_install(minifi_options: MinifiOptions, package_manager: PackageMan
     return res
 
 
+def _conan_build_env_prefix(minifi_options: MinifiOptions) -> str:
+    if minifi_options.use_conan.value == "ON" and platform.system() == "Windows":
+        conanbuild = os.path.join(str(minifi_options.build_dir), "conanbuild.bat")
+        return f'call "{conanbuild}" && '
+    return ""
+
+
 def run_cmake(minifi_options: MinifiOptions, package_manager: PackageManager):
     if not os.path.exists(minifi_options.build_dir):
         os.mkdir(minifi_options.build_dir)
-    cmake_cmd = f"cmake {minifi_options.create_cmake_generator_str()} {minifi_options.create_cmake_use_conan_str()} {minifi_options.create_cmake_options_str()} {minifi_options.source_dir} -B {minifi_options.build_dir}"
+    cmake_cmd = f"{_conan_build_env_prefix(minifi_options)}cmake {minifi_options.create_cmake_generator_str()} {minifi_options.create_cmake_use_conan_str()} {minifi_options.create_cmake_options_str()} {minifi_options.source_dir} -B {minifi_options.build_dir}"
     res = package_manager.run_cmd(cmake_cmd)
     print("CMake command run successfully" if res else "CMake command run unsuccessfully")
     return res
 
 
 def do_build(minifi_options: MinifiOptions, package_manager: PackageManager):
-    build_cmd = f"cmake --build {str(minifi_options.build_dir)} {minifi_options.create_cmake_build_flags_str()}"
+    build_cmd = f"{_conan_build_env_prefix(minifi_options)}cmake --build {str(minifi_options.build_dir)} {minifi_options.create_cmake_build_flags_str()}"
     res = package_manager.run_cmd(build_cmd)
     print("Build was successful" if res else "Build was unsuccessful")
     return res
 
 
 def do_package(minifi_options: MinifiOptions, package_manager: PackageManager):
-    build_cmd = f"cmake --build {str(minifi_options.build_dir)} --target package {minifi_options.create_cmake_build_flags_str()}"
+    build_cmd = f"{_conan_build_env_prefix(minifi_options)}cmake --build {str(minifi_options.build_dir)} --target package {minifi_options.create_cmake_build_flags_str()}"
     return package_manager.run_cmd(build_cmd)
 
 

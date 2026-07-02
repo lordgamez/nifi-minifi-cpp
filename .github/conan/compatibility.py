@@ -48,13 +48,17 @@ def compatibility(conanfile):
     # factors is a list of lists
     factors = cppstd_compat(conanfile)
 
-    # MSVC 194->193 fallback compatibility
+    # MSVC fallback compatibility
     compiler = conanfile.settings.get_safe("compiler")
     compiler_version = conanfile.settings.get_safe("compiler.version")
     if compiler == "msvc":
-        msvc_fallback = {"194": "193"}.get(compiler_version)
-        if msvc_fallback:
-            factors.append([{"compiler.version": msvc_fallback}])
+        msvc_fallbacks = {
+            "195": ["194", "193"],
+            "194": ["193"],
+        }.get(compiler_version, [])
+
+        if msvc_fallbacks:
+            factors.append([{"compiler.version": v} for v in msvc_fallbacks])
 
     # macOS / apple-clang: accept any compiler.version >= 13 as compatible
     os_ = conanfile.settings.get_safe("os")
