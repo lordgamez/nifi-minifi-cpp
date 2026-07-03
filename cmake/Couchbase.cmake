@@ -19,7 +19,7 @@ include(FetchContent)
 
 include(GetFmt)
 include(GetSpdlog)
-include(Asio)
+include(GetAsio)
 
 set(COUCHBASE_CXX_CLIENT_BUILD_STATIC ON CACHE BOOL "" FORCE)
 set(COUCHBASE_CXX_CLIENT_BUILD_SHARED OFF CACHE BOOL "" FORCE)
@@ -53,3 +53,5 @@ FetchContent_Declare(couchbase-cxx-client
 FetchContent_MakeAvailable(couchbase-cxx-client)
 
 set(COUCHBASE_INCLUDE_DIR "${couchbase-cxx-client_SOURCE_DIR}" CACHE STRING "" FORCE)
+
+add_library(couchbase_cxx_client::couchbase_cxx_client ALIAS couchbase-cxx-client::couchbase_cxx_client_static)

@@ -53,6 +53,8 @@ def run_conan_install(minifi_options: MinifiOptions, package_manager: PackageMan
         conan_options += ' -o "&:enable_lzma=True"'
     if minifi_options.bool_options["ENABLE_MQTT"].value not in (None, "OFF"):
         conan_options += ' -o "&:enable_mqtt=True"'
+    if minifi_options.bool_options["ENABLE_COUCHBASE"].value not in (None, "OFF"):
+        conan_options += ' -o "&:enable_couchbase=True"'
     if minifi_options.bool_options["SKIP_TESTS"].value not in (None, "OFF"):
         conan_options += ' -o "&:skip_tests=True"'
     if not package_manager.run_cmd("conan profile detect --exist-ok"):

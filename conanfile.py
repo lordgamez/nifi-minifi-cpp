@@ -25,14 +25,16 @@ class MiNiFiCppMain(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
     generators = "CMakeDeps"
     options = {"shared": [True, False], "fPIC": [True, False], "custom_malloc": [False, "jemalloc", "mimalloc", "rpmalloc"], "enable_sftp": [True, False], "enable_prometheus": [True, False],
-               "enable_bzip2": [True, False], "enable_lzma": [True, False], "enable_mqtt": [True, False], "skip_tests": [True, False]}
+               "enable_bzip2": [True, False], "enable_lzma": [True, False], "enable_mqtt": [True, False], "skip_tests": [True, False], "enable_couchbase": [True, False]}
 
-    default_options = {"shared": False, "fPIC": True, "custom_malloc": False, "enable_sftp": False, "enable_prometheus": False, "enable_bzip2": False, "enable_lzma": False, "enable_mqtt": False, "skip_tests": False}
+    default_options = {"shared": False, "fPIC": True, "custom_malloc": False, "enable_sftp": False, "enable_prometheus": False, "enable_bzip2": False, "enable_lzma": False, "enable_mqtt": False,
+                       "enable_couchbase": False, "skip_tests": False}
 
     exports_sources = shared_sources
 
     def requirements(self):
-        self.requires("lua/5.4.8", override=True)
+        self.requires("lua/5.4.8", force=True)
+        self.requires("asio/1.38.0", force=True)
         for req in shared_requires:
             self.requires(req)
         if self.options.custom_malloc == "jemalloc":
@@ -51,6 +53,13 @@ class MiNiFiCppMain(ConanFile):
             self.requires("xz_utils/5.8.3")
         if self.options.enable_mqtt:
             self.requires("paho-mqtt-c/1.3.16")
+        if self.options.get_safe("enable_couchbase"):
+            self.requires("couchbase_cxx_client/1.3.1")
+            self.requires("ms-gsl/4.0.0")
+            self.requires("snappy/1.2.1")
+            self.requires("hdrhistogram-c/0.11.8")
+            self.requires("taocpp-json/1.0.0-beta.14")
+            self.requires("llhttp/9.3.0")
 
     def configure(self):
         self.options["libarchive"].with_openssl = True
@@ -92,6 +101,8 @@ class MiNiFiCppMain(ConanFile):
         tc.variables["MINIFI_JSONSCHEMA_VALIDATOR_SOURCE"] = "CONAN"
         tc.variables["MINIFI_LIBLZMA_SOURCE"] = "CONAN"
         tc.variables["MINIFI_PAHO_MQTT_C_SOURCE"] = "CONAN"
+        tc.variables["MINIFI_COUCHBASE_SOURCE"] = "CONAN"
+        tc.variables["MINIFI_ASIO_SOURCE"] = "CONAN"
 
         tc.generate()
 

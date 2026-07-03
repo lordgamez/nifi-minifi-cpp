@@ -15,20 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 
-include(FetchContent)
-
-FetchContent_Declare(asio
-        URL https://github.com/chriskohlhoff/asio/archive/refs/tags/asio-1-38-0.tar.gz
-        URL_HASH SHA256=5cf78ede456fd13b95fe692711f4f689be26c826f1f5541c7a1df3aa32bd9dbd
-        SYSTEM)
-
-FetchContent_GetProperties(asio)
-if(NOT asio_POPULATED)
-    FetchContent_Populate(asio)
-    add_library(asio INTERFACE)
-    target_include_directories(asio SYSTEM INTERFACE ${asio_SOURCE_DIR}/include)
-    find_package(Threads)
-    target_link_libraries(asio INTERFACE Threads::Threads OpenSSL::SSL OpenSSL::Crypto)
+if(MINIFI_COUCHBASE_SOURCE STREQUAL "CONAN")
+    message("Using Conan to install Couchbase")
+    find_package(couchbase_cxx_client REQUIRED)
+elseif(MINIFI_COUCHBASE_SOURCE STREQUAL "BUILD")
+    message("Using CMake to build Couchbase from source")
+    include(Couchbase)
 endif()
-
-add_library(asio::asio ALIAS asio)

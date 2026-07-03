@@ -324,7 +324,7 @@ target_compile_definitions(${_gsl_lite_real_target} INTERFACE ${GslDefinitions})
 include(Date)
 include(MagicEnum)
 include(GetRangeV3)
-include(Asio)
+include(GetAsio)
 
 # Setup warning flags
 if(MSVC)
