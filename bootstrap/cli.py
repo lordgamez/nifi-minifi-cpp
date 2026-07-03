@@ -67,6 +67,12 @@ def run_conan_install(minifi_options: MinifiOptions, package_manager: PackageMan
         print("Exporting the custom RocksDB Conan recipe failed")
         return False
 
+    if minifi_options.bool_options["ENABLE_COUCHBASE"].value not in (None, "OFF"):
+        couchbase_recipe_dir = minifi_options.source_dir / "thirdparty" / "couchbase" / "all"
+        if not package_manager.run_cmd(f"conan export {couchbase_recipe_dir} --version=1.3.1 --user=minifi --channel=develop"):
+            print("Exporting the custom Couchbase Conan recipe failed")
+            return False
+
     compiler_settings = " --settings=compiler.cppstd=23"
     generator_setting = " -c tools.cmake.cmaketoolchain:generator=Ninja" if minifi_options.use_ninja.value == "ON" else ""
     build_cmd = f"conan install {minifi_options.source_dir} --output-folder={minifi_options.build_dir} --build=missing {conan_options} --settings=build_type={minifi_options.build_type.value}{generator_setting}{compiler_settings}"

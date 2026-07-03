@@ -54,7 +54,7 @@ class MiNiFiCppMain(ConanFile):
         if self.options.enable_mqtt:
             self.requires("paho-mqtt-c/1.3.16")
         if self.options.get_safe("enable_couchbase"):
-            self.requires("couchbase_cxx_client/1.3.1")
+            self.requires("couchbase_cxx_client/1.3.1@minifi/develop")
             self.requires("ms-gsl/4.0.0")
             self.requires("snappy/1.2.1")
             self.requires("hdrhistogram-c/0.11.8")

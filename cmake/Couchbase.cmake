@@ -35,9 +35,9 @@ if(MSVC)
     add_compile_definitions(ASIO_DISABLE_CONCEPTS)
 endif()
 
-set(PATCH_FILE_1 "${CMAKE_SOURCE_DIR}/thirdparty/couchbase/remove-thirdparty.patch")
-set(PATCH_FILE_2 "${CMAKE_SOURCE_DIR}/thirdparty/couchbase/c++23_fixes.patch")
-set(PATCH_FILE_3 "${CMAKE_SOURCE_DIR}/thirdparty/couchbase/use_fmt_instead_of_spdlog_fmt.patch")
+set(PATCH_FILE_1 "${CMAKE_SOURCE_DIR}/thirdparty/couchbase/all/patches/remove-thirdparty.patch")
+set(PATCH_FILE_2 "${CMAKE_SOURCE_DIR}/thirdparty/couchbase/all/patches/c++23_fixes.patch")
+set(PATCH_FILE_3 "${CMAKE_SOURCE_DIR}/thirdparty/couchbase/all/patches/use_fmt_instead_of_spdlog_fmt.patch")
 
 set(PC ${Bash_EXECUTABLE}  -c "set -x &&\
             (\\\"${Patch_EXECUTABLE}\\\" -p1 -R -s -f --dry-run -i \\\"${PATCH_FILE_1}\\\" || \\\"${Patch_EXECUTABLE}\\\" -p1 -N -i \\\"${PATCH_FILE_1}\\\") &&\
