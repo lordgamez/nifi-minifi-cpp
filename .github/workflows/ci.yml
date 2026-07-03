@@ -64,6 +64,8 @@ jobs:
         -DUSE_SHARED_LIBS=ON
         -DMINIFI_PERFORMANCE_TESTS=ON
         -DUSE_CONAN=ON
+      CONAN_LOGIN_USERNAME_NIFI_CONAN: ${{ secrets.CONAN_USERNAME }}
+      CONAN_PASSWORD_NIFI_CONAN: ${{ secrets.CONAN_ACCESS_TOKEN }}
     steps:
       - id: checkout
         uses: actions/checkout@v6
@@ -89,7 +91,13 @@ jobs:
           cp .github/conan/compatibility.py ~/.conan2/extensions/plugins/compatibility/compatibility.py
       - name: build
         run: |
-          python -m venv venv && source venv/bin/activate && pip install -r requirements.txt && python main.py --noninteractive --skip-compiler-install --cmake-options="-DCMAKE_C_FLAGS=${CPPFLAGS} ${CFLAGS} -DCMAKE_CXX_FLAGS=${CPPFLAGS} ${CXXFLAGS}" --minifi-options="${MACOS_MINIFI_OPTIONS}"
+          python -m venv venv && source venv/bin/activate && pip install -r requirements.txt && conan remote add nifi-conan https://apache.jfrog.io/artifactory/api/conan/nifi-conan && \
+          python main.py --noninteractive --skip-compiler-install --cmake-options="-DCMAKE_C_FLAGS=${CPPFLAGS} ${CFLAGS} -DCMAKE_CXX_FLAGS=${CPPFLAGS} ${CXXFLAGS}" --minifi-options="${MACOS_MINIFI_OPTIONS}"
+        working-directory: bootstrap
+      - name: Upload conan packages
+        if: always()
+        run: |
+          source venv/bin/activate && conan remote login nifi-conan $CONAN_LOGIN_USERNAME_NIFI_CONAN -p $CONAN_PASSWORD_NIFI_CONAN && conan upload "*" -r nifi-conan --confirm
         working-directory: bootstrap
       - name: cache save
         uses: actions/cache/save@v5
@@ -175,6 +183,8 @@ jobs:
         -DUSE_SHARED_LIBS=OFF
         -DMINIFI_PERFORMANCE_TESTS=ON
         -DUSE_CONAN=ON
+      CONAN_LOGIN_USERNAME_NIFI_CONAN: ${{ secrets.CONAN_USERNAME }}
+      CONAN_PASSWORD_NIFI_CONAN: ${{ secrets.CONAN_ACCESS_TOKEN }}
     steps:
       - name: Support longpaths
         run: git config --system core.longpaths true
@@ -206,10 +216,18 @@ jobs:
         run: sccache --zero-stats
         shell: bash
       - name: build
-        run: |
-          python -m venv venv & venv\Scripts\activate & pip install -r requirements.txt & python main.py --noninteractive --skip-compiler-install --minifi-options="%WINDOWS_MINIFI_OPTIONS%" --cmake-options="-DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache"
-        shell: cmd
         working-directory: bootstrap
+        run: |
+          python -m venv venv && venv\Scripts\activate && pip install -r requirements.txt && ^
+          conan remote add nifi-conan https://apache.jfrog.io/artifactory/api/conan/nifi-conan && ^
+          python main.py --noninteractive --skip-compiler-install --minifi-options="%WINDOWS_MINIFI_OPTIONS%" --cmake-options="-DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache"
+        shell: cmd
+      - name: Upload conan packages
+        if: always()
+        working-directory: bootstrap
+        run: |
+          venv\Scripts\activate && conan remote login nifi-conan %CONAN_LOGIN_USERNAME_NIFI_CONAN% -p %CONAN_PASSWORD_NIFI_CONAN% && conan upload "*" -r nifi-conan --confirm
+        shell: cmd
       - name: Save cache
         uses: actions/cache/save@v5
         if: always()
