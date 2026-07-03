@@ -21,6 +21,6 @@ set(PUGIXML_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 FetchContent_Declare(
     pugixml
     URL      https://github.com/zeux/pugixml/archive/refs/tags/v1.16.tar.gz
-    URL_HASH SHA256=4cee1ca4aad395170f4c7a07824f3bdd41f28316c6e1e1090a1425b278ec0b4b
+    URL_HASH SHA256=357bcab8877dc9943f355d3a72daba1b053238ba955f50fa81586afb65090219
 )
 FetchContent_MakeAvailable(pugixml)

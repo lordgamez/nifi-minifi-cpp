@@ -31,4 +31,6 @@ if(NOT asio_POPULATED)
     target_link_libraries(asio INTERFACE Threads::Threads OpenSSL::SSL OpenSSL::Crypto)
 endif()
 
-add_library(asio::asio ALIAS asio)
+if (NOT TARGET asio::asio)
+    add_library(asio::asio ALIAS asio)
+endif()
