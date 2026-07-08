@@ -60,6 +60,8 @@ class MiNiFiCppMain(ConanFile):
         self.requires("openssl/3.6.2", force=True)
         self.requires("zlib/1.3.2", force=True)
         self.requires("nlohmann_json/3.12.0", force=True)
+        if self.settings.os != "Windows":
+            self.requires("ossp-uuid/1.6.2@minifi/develop")
         if self.options.enable_all or self.options.enable_rocksdb:
             self.requires("rocksdb/11.1.1@minifi/develop")
         if self.options.enable_all or self.options.enable_sftp:
@@ -129,6 +131,8 @@ class MiNiFiCppMain(ConanFile):
         tc.variables["MINIFI_SOL2_SOURCE"] = "CONAN"
         tc.variables["MINIFI_ARGPARSE_SOURCE"] = "CONAN"
         tc.variables["MINIFI_LIBSODIUM_SOURCE"] = "CONAN"
+        if self.settings.os != "Windows":
+            tc.variables["MINIFI_OSSP_UUID_SOURCE"] = "CONAN"
         tc.variables["MINIFI_GSL_LITE_SOURCE"] = "CONAN"
         tc.variables["MINIFI_JSONCONS_SOURCE"] = "CONAN"
         tc.variables["MINIFI_PUGIXML_SOURCE"] = "CONAN"

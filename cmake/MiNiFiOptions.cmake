@@ -157,6 +157,7 @@ add_minifi_multi_option(MINIFI_SOL2_SOURCE "Retrieves Sol2 from provided source"
 add_minifi_multi_option(MINIFI_ARGPARSE_SOURCE "Retrieves Argparse from provided source" "BUILD;CONAN" "BUILD")
 add_minifi_multi_option(MINIFI_JEMALLOC_SOURCE "Retrieves jemalloc from provided source" "BUILD;CONAN" "BUILD")
 add_minifi_multi_option(MINIFI_LIBSODIUM_SOURCE "Retrieves Libsodium from provided source" "BUILD;CONAN" "BUILD")
+add_minifi_multi_option(MINIFI_OSSP_UUID_SOURCE "Retrieves ossp-uuid from provided source" "BUILD;CONAN" "BUILD")
 add_minifi_multi_option(MINIFI_LIBSSH2_SOURCE "Retrieves Libssh2 from provided source" "BUILD;CONAN" "BUILD")
 add_minifi_multi_option(MINIFI_BENCHMARK_SOURCE "Retrieves benchmark from provided source" "BUILD;CONAN" "BUILD")
 add_minifi_multi_option(MINIFI_GSL_LITE_SOURCE "Retrieves gsl-lite from provided source" "BUILD;CONAN" "BUILD")

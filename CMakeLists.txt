@@ -259,8 +259,8 @@ endif()
 
 # ossp-uuid
 if(NOT WIN32)
-    include(BundledOSSPUUID)
-    use_bundled_osspuuid(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
+    include(GetOSSPUUID)
+    get_ossp_uuid(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 endif()
 
 # libsodium
