@@ -174,6 +174,8 @@ add_minifi_multi_option(MINIFI_ASIO_SOURCE "Retrieves Asio from provided source"
 add_minifi_multi_option(MINIFI_KAFKA_SOURCE "Retrieves librdkafka from provided source" "BUILD;CONAN" "BUILD")
 add_minifi_multi_option(MINIFI_MAGIC_ENUM_SOURCE "Retrieves magic_enum from provided source" "BUILD;CONAN" "BUILD")
 add_minifi_multi_option(MINIFI_OPC_SOURCE "Retrieves open62541 from provided source" "BUILD;CONAN" "BUILD")
+add_minifi_multi_option(MINIFI_GCP_SOURCE "Retrieves Google Cloud Platform SDK from provided source" "BUILD;CONAN" "BUILD")
+add_minifi_multi_option(MINIFI_GRPC_SOURCE "Retrieves gRPC from provided source" "BUILD;CONAN" "BUILD")
 
 # Docker options
 

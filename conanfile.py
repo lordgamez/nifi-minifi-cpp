@@ -22,9 +22,9 @@ import shutil
 
 required_conan_version = ">=2.0"
 
-shared_requires = ("openssl/3.6.2", "libcurl/8.20.0", "civetweb/1.16", "libxml2/2.15.3", "fmt/12.1.0", "spdlog/1.17.0", "catch2/3.15.0", "zlib/1.3.2", "zstd/1.5.7",
-                   "libarchive/3.8.7", "sol2/3.5.0", "argparse/3.2", "libsodium/1.0.22", "gsl-lite/1.1.0", "jsoncons/1.7.0",
-                   "json-schema-validator/2.4.0", "pugixml/1.16", "yaml-cpp/0.9.0", "range-v3/0.12.0", "magic_enum/0.9.8@minifi/develop")
+shared_requires = ("openssl/3.6.2", "libcurl/8.20.0", "civetweb/1.16", "libxml2/2.15.3", "fmt/12.1.0", "spdlog/1.17.0", "catch2/3.15.0", "zlib/1.3.2", "zstd/1.5.7", "libarchive/3.8.7", "sol2/3.5.0",
+                   "argparse/3.2", "libsodium/1.0.22", "gsl-lite/1.1.0", "jsoncons/1.7.0", "json-schema-validator/2.4.0", "pugixml/1.16", "yaml-cpp/0.9.0", "range-v3/0.12.0",
+                   "magic_enum/0.9.8@minifi/develop")
 
 shared_sources = ("CMakeLists.txt", "libminifi/*", "extensions/*", "minifi_main/*", "behave_framework/*", "bin/*", "bootstrap/*", "cmake/*", "conf/*", "controller/*", "core-framework/*",
                   "docs/*", "encrypt-config/*", "etc/*", "examples/*", "extension-framework/*", "fips/*", "minifi-api/*", "packaging/*", "thirdparty/*", "docker/*", "LICENSE", "NOTICE",
@@ -41,10 +41,12 @@ class MiNiFiCppMain(ConanFile):
     generators = "CMakeDeps"
     options = {"shared": [True, False], "fPIC": [True, False], "custom_malloc": [False, "jemalloc", "mimalloc", "rpmalloc"], "enable_all": [True, False], "enable_rocksdb": [True, False],
                "enable_sftp": [True, False], "enable_prometheus": [True, False], "enable_bzip2": [True, False], "enable_lzma": [True, False], "enable_mqtt": [True, False],
-               "enable_couchbase": [True, False], "enable_kafka": [True, False], "enable_opc": [True, False], "skip_tests": [True, False]}
+               "enable_couchbase": [True, False], "enable_kafka": [True, False], "enable_opc": [True, False], "enable_gcp": [True, False], "enable_grpc_for_loki": [True, False],
+               "skip_tests": [True, False]}
 
     default_options = {"shared": False, "fPIC": True, "custom_malloc": False, "enable_all": False, "enable_rocksdb": False, "enable_sftp": False, "enable_prometheus": False, "enable_bzip2": False,
-                       "enable_lzma": False, "enable_mqtt": False, "enable_couchbase": False, "enable_kafka": False, "enable_opc": False, "skip_tests": False}
+                       "enable_lzma": False, "enable_mqtt": False, "enable_couchbase": False, "enable_kafka": False, "enable_opc": False, "enable_gcp": False, "enable_grpc_for_loki": False,
+                       "skip_tests": False}
 
     exports_sources = shared_sources
 
@@ -77,6 +79,12 @@ class MiNiFiCppMain(ConanFile):
             self.requires("librdkafka/2.14.2")
         if self.options.enable_all or self.options.get_safe("enable_opc"):
             self.requires("open62541/1.5.4@minifi/develop")
+        if self.options.enable_all or self.options.get_safe("enable_gcp") or self.options.get_safe("enable_grpc_for_loki"):
+            self.requires("abseil/20260526.0", force=True)
+        if self.options.enable_all or self.options.get_safe("enable_grpc_for_loki"):
+            self.requires("protobuf/7.35.0", force=True)
+            self.requires("grpc/1.82.0")
+            self.tool_requires("protobuf/7.35.0")
 
         if self.options.custom_malloc == "jemalloc":
             self.requires("jemalloc/5.3.1")
@@ -131,6 +139,8 @@ class MiNiFiCppMain(ConanFile):
         tc.variables["MINIFI_KAFKA_SOURCE"] = "CONAN"
         tc.variables["MINIFI_MAGIC_ENUM_SOURCE"] = "CONAN"
         tc.variables["MINIFI_OPC_SOURCE"] = "CONAN"
+        tc.variables["MINIFI_GCP_SOURCE"] = "CONAN"
+        tc.variables["MINIFI_GRPC_SOURCE"] = "CONAN"
         tc.generate()
 
     def build(self):

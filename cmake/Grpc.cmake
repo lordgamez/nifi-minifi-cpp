@@ -43,7 +43,7 @@ set(PC ${Bash_EXECUTABLE}  -c "set -x &&\
 FetchContent_Declare(
   grpc
   GIT_REPOSITORY https://github.com/grpc/grpc
-  GIT_TAG        v1.80.0
+  GIT_TAG        v1.82.0
   GIT_SUBMODULES "third_party/cares/cares third_party/re2 third_party/upb"
   PATCH_COMMAND "${PC}"
   SYSTEM
@@ -55,3 +55,7 @@ add_dependencies(grpc++ OpenSSL::SSL OpenSSL::Crypto ZLIB::ZLIB)
 
 set(GRPC_INCLUDE_DIR "${grpc_SOURCE_DIR}/include" CACHE STRING "" FORCE)
 set(GRPC_CPP_PLUGIN "$<TARGET_FILE:grpc_cpp_plugin>" CACHE STRING "" FORCE)
+
+if (NOT TARGET gRPC::grpc++)
+    add_library(gRPC::grpc++ ALIAS grpc++)
+endif()
