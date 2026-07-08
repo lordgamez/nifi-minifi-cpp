@@ -1,4 +1,3 @@
-#
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,23 +14,18 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-#
 
-if (NOT (ENABLE_ALL OR ENABLE_GCP))
-    return()
+if(MINIFI_GCP_SOURCE STREQUAL "CONAN")
+    message("Using Conan to install Google Cloud C++")
+    find_package(GoogleCloudCpp REQUIRED)
+    if (NOT SKIP_TESTS)
+        find_package(GTest REQUIRED)
+        include(GoogleTest)
+        set_target_properties(GTest::gtest_main PROPERTIES IMPORTED_GLOBAL TRUE)
+        set_target_properties(GTest::gmock PROPERTIES IMPORTED_GLOBAL TRUE)
+        set(MINIFI_GCP_TEST_GTEST_LIBRARIES GTest::gtest_main GTest::gmock CACHE INTERNAL "")
+    endif()
+elseif(MINIFI_GCP_SOURCE STREQUAL "BUILD")
+    message("Using CMake to build Google Cloud C++ from source")
+    include(GoogleCloudCpp)
 endif()
-
-include(GetGoogleCloudCpp)
-include(${CMAKE_SOURCE_DIR}/extensions/ExtensionHeader.txt)
-file(GLOB SOURCES "*.cpp" "controllerservices/*.cpp" "processors/*.cpp")
-
-add_minifi_library(minifi-gcp SHARED ${SOURCES})
-
-if (NOT WIN32)
-    target_compile_options(minifi-gcp PRIVATE -Wno-error=deprecated-declarations)  # Suppress deprecation warnings for std::rel_ops usage
-endif()
-target_link_libraries(minifi-gcp minifi-cpp-extension-lib google-cloud-cpp::storage)
-
-target_include_directories(minifi-gcp SYSTEM PUBLIC ${google-cloud-cpp_INCLUDE_DIRS})
-
-register_c_api_extension(minifi-gcp "GCP EXTENSIONS" GCP-EXTENSIONS "This enables Google Cloud Platform support" "extensions/gcp/tests")

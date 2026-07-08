@@ -22,7 +22,7 @@ import shutil
 
 required_conan_version = ">=2.0"
 
-shared_requires = ("openssl/3.6.2", "libcurl/8.20.0", "civetweb/1.16", "libxml2/2.15.3", "fmt/12.1.0", "spdlog/1.17.0", "catch2/3.15.0", "zlib/1.3.2", "zstd/1.5.7", "libarchive/3.8.7", "sol2/3.5.0",
+shared_requires = ("civetweb/1.16", "libxml2/2.15.3", "fmt/12.1.0", "spdlog/1.17.0", "catch2/3.15.0", "zstd/1.5.7", "libarchive/3.8.7", "sol2/3.5.0",
                    "argparse/3.2", "libsodium/1.0.22", "gsl-lite/1.1.0", "jsoncons/1.7.0", "json-schema-validator/2.4.0", "pugixml/1.16", "yaml-cpp/0.9.0", "range-v3/0.12.0",
                    "magic_enum/0.9.8@minifi/develop")
 
@@ -56,6 +56,10 @@ class MiNiFiCppMain(ConanFile):
         self.requires("lua/5.4.8", force=True)
         self.requires("asio/1.38.0", force=True)
         self.requires("lz4/1.10.0", force=True)
+        self.requires("libcurl/8.20.0", force=True)
+        self.requires("openssl/3.6.2", force=True)
+        self.requires("zlib/1.3.2", force=True)
+        self.requires("nlohmann_json/3.12.0", force=True)
         if self.options.enable_all or self.options.enable_rocksdb:
             self.requires("rocksdb/11.1.1@minifi/develop")
         if self.options.enable_all or self.options.enable_sftp:
@@ -80,11 +84,13 @@ class MiNiFiCppMain(ConanFile):
         if self.options.enable_all or self.options.get_safe("enable_opc"):
             self.requires("open62541/1.5.4@minifi/develop")
         if self.options.enable_all or self.options.get_safe("enable_gcp") or self.options.get_safe("enable_grpc_for_loki"):
-            self.requires("abseil/20260526.0", force=True)
-        if self.options.enable_all or self.options.get_safe("enable_grpc_for_loki"):
             self.requires("protobuf/7.35.0", force=True)
-            self.requires("grpc/1.82.0")
-            self.tool_requires("protobuf/7.35.0")
+            self.requires("grpc/1.82.0", force=True)
+        if self.options.enable_all or self.options.get_safe("enable_gcp"):
+            self.requires("abseil/20260526.0", force=True)
+            self.requires("google-cloud-cpp/2.47.1@minifi/develop")
+            if not self.options.skip_tests:
+                self.requires("gtest/1.17.0")
 
         if self.options.custom_malloc == "jemalloc":
             self.requires("jemalloc/5.3.1")
@@ -100,6 +106,8 @@ class MiNiFiCppMain(ConanFile):
             self.options["libarchive"].with_bzip2 = True
         if self.options.enable_all or self.options.enable_lzma:
             self.options["libarchive"].with_lzma = True
+        if (self.options.enable_all or self.options.get_safe("enable_gcp")) and not self.options.skip_tests:
+            self.options["google-cloud-cpp"].with_mocks = True
 
     def generate(self):
         tc = CMakeToolchain(self)

@@ -73,7 +73,7 @@ def run_conan_install(minifi_options: MinifiOptions, package_manager: PackageMan
     if not export_custom_conan_recipes(minifi_options, package_manager):
         return False
 
-    compiler_settings = " --settings=compiler.cppstd=23"
+    compiler_settings = " -s:a compiler.cppstd=23"
     generator_setting = " -c tools.cmake.cmaketoolchain:generator=Ninja" if minifi_options.use_ninja.value == "ON" else ""
     conan_remote_add_cmd = "conan remote add nifi-conan https://apache.jfrog.io/artifactory/api/conan/nifi-conan --force"
     if not package_manager.run_cmd(conan_remote_add_cmd):
