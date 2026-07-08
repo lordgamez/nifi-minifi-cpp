@@ -1,4 +1,3 @@
-#
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,21 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-#
 
-if (NOT (ENABLE_ALL OR ENABLE_BUSTACHE))
-    return()
+if(MINIFI_RPMALLOC_SOURCE STREQUAL "CONAN")
+    message("Using Conan to install rpmalloc")
+    find_package(rpmalloc REQUIRED)
+elseif(MINIFI_RPMALLOC_SOURCE STREQUAL "BUILD")
+    message("Using CMake to build rpmalloc from source")
+    include(RpMalloc)
 endif()
-
-include(GetBustache)
-
-include(${CMAKE_SOURCE_DIR}/extensions/ExtensionHeader.txt)
-
-file(GLOB SOURCES "*.cpp")
-
-add_minifi_library(minifi-bustache-extensions SHARED ${SOURCES})
-
-target_link_libraries(minifi-bustache-extensions ${LIBMINIFI})
-target_link_libraries(minifi-bustache-extensions bustache)
-
-register_extension(minifi-bustache-extensions "BUSTACHE EXTENSIONS" BUSTACHE-EXTENSIONS "This enables bustache functionality including ApplyTemplate." "extensions/bustache/tests")

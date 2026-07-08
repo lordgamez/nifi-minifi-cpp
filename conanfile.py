@@ -42,11 +42,11 @@ class MiNiFiCppMain(ConanFile):
     options = {"shared": [True, False], "fPIC": [True, False], "custom_malloc": [False, "jemalloc", "mimalloc", "rpmalloc"], "enable_all": [True, False], "enable_rocksdb": [True, False],
                "enable_sftp": [True, False], "enable_prometheus": [True, False], "enable_bzip2": [True, False], "enable_lzma": [True, False], "enable_mqtt": [True, False],
                "enable_couchbase": [True, False], "enable_kafka": [True, False], "enable_opc": [True, False], "enable_gcp": [True, False], "enable_grpc_for_loki": [True, False],
-               "skip_tests": [True, False]}
+               "enable_bustache": [True, False], "skip_tests": [True, False]}
 
     default_options = {"shared": False, "fPIC": True, "custom_malloc": False, "enable_all": False, "enable_rocksdb": False, "enable_sftp": False, "enable_prometheus": False, "enable_bzip2": False,
                        "enable_lzma": False, "enable_mqtt": False, "enable_couchbase": False, "enable_kafka": False, "enable_opc": False, "enable_gcp": False, "enable_grpc_for_loki": False,
-                       "skip_tests": False}
+                       "enable_bustache": False, "skip_tests": False}
 
     exports_sources = shared_sources
 
@@ -85,6 +85,8 @@ class MiNiFiCppMain(ConanFile):
             self.requires("librdkafka/2.14.2")
         if self.options.enable_all or self.options.get_safe("enable_opc"):
             self.requires("open62541/1.5.4@minifi/develop")
+        if self.options.enable_all or self.options.get_safe("enable_bustache"):
+            self.requires("bustache/0.1.0@minifi/develop")
         if self.options.enable_all or self.options.get_safe("enable_gcp") or self.options.get_safe("enable_grpc_for_loki"):
             self.requires("protobuf/7.35.0", force=True)
             self.requires("grpc/1.82.0", force=True)
@@ -98,9 +100,12 @@ class MiNiFiCppMain(ConanFile):
             self.requires("jemalloc/5.3.1")
         elif self.options.custom_malloc == "mimalloc":
             self.requires("mimalloc/3.3.2")
+        elif self.options.custom_malloc == "rpmalloc":
+            self.requires("rpmalloc/1.4.5@minifi/develop")
 
         if not self.options.skip_tests:
             self.requires("benchmark/1.9.5")
+            self.requires("jolt-tests/0.1.8@minifi/develop")
 
     def configure(self):
         self.options["libarchive"].with_openssl = True
@@ -139,14 +144,18 @@ class MiNiFiCppMain(ConanFile):
         tc.variables["MINIFI_YAMLCPP_SOURCE"] = "CONAN"
         tc.variables["MINIFI_JEMALLOC_SOURCE"] = "CONAN"
         tc.variables["MINIFI_MIMALLOC_SOURCE"] = "CONAN"
+        tc.variables["MINIFI_RPMALLOC_SOURCE"] = "CONAN"
         tc.variables["MINIFI_LIBSSH2_SOURCE"] = "CONAN"
         tc.variables["MINIFI_PROMETHEUS_SOURCE"] = "CONAN"
         tc.variables["MINIFI_RANGEV3_SOURCE"] = "CONAN"
         tc.variables["MINIFI_BENCHMARK_SOURCE"] = "CONAN"
+        if not self.options.skip_tests:
+            tc.variables["MINIFI_JOLT_TESTS_SOURCE"] = "CONAN"
         tc.variables["MINIFI_JSONSCHEMA_VALIDATOR_SOURCE"] = "CONAN"
         tc.variables["MINIFI_LIBLZMA_SOURCE"] = "CONAN"
         tc.variables["MINIFI_PAHO_MQTT_C_SOURCE"] = "CONAN"
         tc.variables["MINIFI_COUCHBASE_SOURCE"] = "CONAN"
+        tc.variables["MINIFI_BUSTACHE_SOURCE"] = "CONAN"
         tc.variables["MINIFI_ASIO_SOURCE"] = "CONAN"
         tc.variables["MINIFI_KAFKA_SOURCE"] = "CONAN"
         tc.variables["MINIFI_MAGIC_ENUM_SOURCE"] = "CONAN"
