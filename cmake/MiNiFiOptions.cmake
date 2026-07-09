@@ -183,6 +183,8 @@ add_minifi_multi_option(MINIFI_GRPC_SOURCE "Retrieves gRPC from provided source"
 add_minifi_multi_option(MINIFI_KUBERNETES_CLIENT_C_SOURCE "Retrieves Kubernetes Client C SDK from provided source" "BUILD;CONAN" "BUILD")
 add_minifi_multi_option(MINIFI_AZURE_SDK_CPP_SOURCE "Retrieves Azure SDK for C++ from provided source" "BUILD;CONAN" "BUILD")
 add_minifi_multi_option(MINIFI_LLAMACPP_SOURCE "Retrieves llama.cpp from provided source" "BUILD;CONAN" "BUILD")
+add_minifi_multi_option(MINIFI_DATE_SOURCE "Retrieves date from provided source" "BUILD;CONAN" "BUILD")
+add_minifi_multi_option(MINIFI_WINFLEXBISON_SOURCE "Retrieves winflexbison from provided source" "BUILD;CONAN" "BUILD")
 
 # Docker options
 

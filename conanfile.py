@@ -24,7 +24,7 @@ required_conan_version = ">=2.0"
 
 shared_requires = ("civetweb/1.16", "libxml2/2.15.3", "fmt/12.1.0", "spdlog/1.17.0", "catch2/3.15.0", "zstd/1.5.7", "libarchive/3.8.7", "sol2/3.5.0",
                    "argparse/3.2", "libsodium/1.0.22", "gsl-lite/1.1.0", "jsoncons/1.7.0", "json-schema-validator/2.4.0", "pugixml/1.16", "yaml-cpp/0.9.0", "range-v3/0.12.0",
-                   "magic_enum/0.9.8@minifi/develop")
+                   "magic_enum/0.9.8@minifi/develop", "date/3.0.4")
 
 shared_sources = ("CMakeLists.txt", "libminifi/*", "extensions/*", "minifi_main/*", "behave_framework/*", "bin/*", "bootstrap/*", "cmake/*", "conf/*", "controller/*", "core-framework/*",
                   "docs/*", "encrypt-config/*", "etc/*", "examples/*", "extension-framework/*", "fips/*", "minifi-api/*", "packaging/*", "thirdparty/*", "docker/*", "LICENSE", "NOTICE",
@@ -112,8 +112,15 @@ class MiNiFiCppMain(ConanFile):
             self.requires("benchmark/1.9.5")
             self.requires("jolt-tests/0.1.8@minifi/develop")
 
+    def build_requirements(self):
+        if self.settings.os == "Windows":
+            self.tool_requires("winflexbison/2.5.25")
+
     def configure(self):
         self.options["libarchive"].with_openssl = True
+        # On Windows the tz database is installed alongside the agent and loaded via date::set_install (manual mode),
+        # elsewhere the OS-provided tz database is used, matching the from-source build in cmake/Date.cmake
+        self.options["date"].tz_db = "manual" if self.settings.os == "Windows" else "system"
         if self.options.enable_all or self.options.enable_bzip2:
             self.options["libarchive"].with_bzip2 = True
         if self.options.enable_all or self.options.enable_lzma:
@@ -168,6 +175,9 @@ class MiNiFiCppMain(ConanFile):
         tc.variables["MINIFI_KUBERNETES_CLIENT_C_SOURCE"] = "CONAN"
         tc.variables["MINIFI_AZURE_SDK_CPP_SOURCE"] = "CONAN"
         tc.variables["MINIFI_LLAMACPP_SOURCE"] = "CONAN"
+        tc.variables["MINIFI_DATE_SOURCE"] = "CONAN"
+        if self.settings.os == "Windows":
+            tc.variables["MINIFI_WINFLEXBISON_SOURCE"] = "CONAN"
         tc.generate()
 
     def build(self):

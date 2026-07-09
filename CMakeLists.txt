@@ -326,7 +326,7 @@ if (NOT _gsl_lite_real_target)
 endif()
 target_compile_definitions(${_gsl_lite_real_target} INTERFACE ${GslDefinitions})
 
-include(Date)
+include(GetDate)
 include(GetMagicEnum)
 include(GetRangeV3)
 include(GetAsio)
