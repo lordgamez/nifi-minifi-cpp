@@ -87,11 +87,10 @@ class MiNiFiCppMain(ConanFile):
             self.requires("open62541/1.5.4@minifi/develop")
         if self.options.enable_all or self.options.get_safe("enable_bustache"):
             self.requires("bustache/0.1.0@minifi/develop")
-        if self.options.enable_all or self.options.get_safe("enable_gcp") or self.options.get_safe("enable_grpc_for_loki"):
-            self.requires("protobuf/7.35.0", force=True)
-            self.requires("grpc/1.82.0", force=True)
+        if self.options.enable_all or self.options.get_safe("enable_grpc_for_loki"):
+            self.requires("protobuf/7.35.0", transitive_headers=True)
+            self.requires("grpc/1.82.0@minifi/develop", force=True)
         if self.options.enable_all or self.options.get_safe("enable_gcp"):
-            self.requires("abseil/20260526.0", force=True)
             self.requires("google-cloud-cpp/2.47.1@minifi/develop")
             if not self.options.skip_tests:
                 self.requires("gtest/1.17.0")

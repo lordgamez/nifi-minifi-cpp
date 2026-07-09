@@ -22,13 +22,19 @@ if(MINIFI_GRPC_SOURCE STREQUAL "CONAN")
     find_package(protobuf CONFIG REQUIRED)
     find_package(gRPC CONFIG REQUIRED)
 
+    find_program(LOKI_PROTOC_EXECUTABLE
+        NAMES protoc
+        PATHS "${protobuf_INCLUDE_DIR}/../bin"
+        NO_DEFAULT_PATH
+        REQUIRED)
+
     add_custom_command(
         OUTPUT
             ${LOKI_PROTOBUF_GENERATED_DIR}/grafana-loki-push.grpc.pb.cc
             ${LOKI_PROTOBUF_GENERATED_DIR}/grafana-loki-push.grpc.pb.h
             ${LOKI_PROTOBUF_GENERATED_DIR}/grafana-loki-push.pb.h
             ${LOKI_PROTOBUF_GENERATED_DIR}/grafana-loki-push.pb.cc
-        COMMAND protobuf::protoc
+        COMMAND ${LOKI_PROTOC_EXECUTABLE}
         ARGS
             --plugin=protoc-gen-grpc=$<TARGET_FILE:gRPC::grpc_cpp_plugin>
             --proto_path=.
@@ -37,7 +43,7 @@ if(MINIFI_GRPC_SOURCE STREQUAL "CONAN")
             grafana-loki-push.proto
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/protos
         DEPENDS
-            protobuf::protoc
+            ${LOKI_PROTOC_EXECUTABLE}
             gRPC::grpc_cpp_plugin
             ${CMAKE_CURRENT_SOURCE_DIR}/protos/grafana-loki-push.proto
     )
