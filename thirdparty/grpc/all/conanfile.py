@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Recipe based on https://github.com/conan-io/conan-center-index/blob/master/recipes/grpc/all/conanfile.py with added patches and removing with_libsystemd option
+
 import os
 import yaml
 
@@ -25,8 +27,6 @@ from conan.tools.files import apply_conandata_patches, copy, export_conandata_pa
 from conan.tools.microsoft import check_min_vs, is_msvc
 
 required_conan_version = ">=2.0.5"
-
-# Based on https://github.com/conan-io/conan-center-index/blob/master/recipes/grpc/all/conanfile.py with added patches and removing with_libsystemd option
 
 class GrpcConan(ConanFile):
     name = "grpc"

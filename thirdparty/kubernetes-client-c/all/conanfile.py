@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Recipe based on https://github.com/conan-io/conan-center-index/blob/master/recipes/kubernetes/all/conanfile.py
 from conan import ConanFile
 from conan.tools.cmake import CMakeToolchain, CMake, cmake_layout, CMakeDeps
 from conan.tools.files import get, copy, rmdir
@@ -20,8 +21,6 @@ from conan.errors import ConanInvalidConfiguration
 from os.path import join
 
 required_conan_version = ">=2.4"
-
-# Based on https://github.com/conan-io/conan-center-index/blob/master/recipes/kubernetes/all/conanfile.py
 
 class kubernetesRecipe(ConanFile):
     name = "kubernetes"

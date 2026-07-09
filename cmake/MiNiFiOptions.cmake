@@ -181,6 +181,7 @@ add_minifi_multi_option(MINIFI_OPC_SOURCE "Retrieves open62541 from provided sou
 add_minifi_multi_option(MINIFI_GCP_SOURCE "Retrieves Google Cloud Platform SDK from provided source" "BUILD;CONAN" "BUILD")
 add_minifi_multi_option(MINIFI_GRPC_SOURCE "Retrieves gRPC from provided source" "BUILD;CONAN" "BUILD")
 add_minifi_multi_option(MINIFI_KUBERNETES_CLIENT_C_SOURCE "Retrieves Kubernetes Client C SDK from provided source" "BUILD;CONAN" "BUILD")
+add_minifi_multi_option(MINIFI_AZURE_SDK_CPP_SOURCE "Retrieves Azure SDK for C++ from provided source" "BUILD;CONAN" "BUILD")
 
 # Docker options
 
