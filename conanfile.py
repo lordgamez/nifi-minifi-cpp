@@ -93,7 +93,7 @@ class MiNiFiCppMain(ConanFile):
             self.requires("google-cloud-cpp/2.47.1@minifi/develop")
             if not self.options.skip_tests:
                 self.requires("gtest/1.17.0")
-        if self.options.enable_all or self.options.get_safe("enable_kubernetes"):
+        if (self.options.enable_all or self.options.get_safe("enable_kubernetes")) and self.settings.os != "Windows":
             self.requires("kubernetes/0.14.0@minifi/develop")
         if self.options.enable_all or self.options.get_safe("enable_azure"):
             self.requires("azure-sdk-for-cpp/12.18.0@minifi/develop")
