@@ -23,7 +23,7 @@ from conan.errors import ConanInvalidConfiguration
 from conan.tools.apple import is_apple_os
 from conan.tools.build import check_min_cppstd, cross_building
 from conan.tools.cmake import CMake, CMakeDeps, CMakeToolchain, cmake_layout
-from conan.tools.files import save, copy, get, rmdir
+from conan.tools.files import save, copy, get, rmdir, export_conandata_patches, apply_conandata_patches
 
 required_conan_version = ">=2.0.9"
 
@@ -87,6 +87,9 @@ class LlamaCppConan(ConanFile):
         if self.settings.compiler == "msvc" and "arm" in self.settings.arch:
             raise ConanInvalidConfiguration("llama-cpp does not support ARM architecture on msvc, it recommends to use clang instead")
 
+    def export_sources(self):
+        export_conandata_patches(self)
+
     def layout(self):
         cmake_layout(self, src_folder="src")
 
@@ -103,18 +106,25 @@ class LlamaCppConan(ConanFile):
 
     def source(self):
         get(self, **self.conan_data["sources"][self.version], strip_root=True)
+        apply_conandata_patches(self)
 
     def generate(self):
         deps = CMakeDeps(self)
         deps.generate()
 
         tc = CMakeToolchain(self)
+        if self.settings.compiler == "msvc":
+            # llama-chat.cpp's LU8 macro relies on __cplusplus to cast u8 literals to (const char*),
+            # but MSVC only reports the real __cplusplus value with /Zc:__cplusplus. Without it, the
+            # literals stay char8_t under /std:c++latest and fail to compile.
+            tc.extra_cxxflags.append("/Zc:__cplusplus")
         tc.variables["BUILD_SHARED_LIBS"] = bool(self.options.shared)
         tc.variables["LLAMA_STANDALONE"] = False
         tc.variables["LLAMA_BUILD_TESTS"] = False
         tc.variables["LLAMA_BUILD_EXAMPLES"] = self.options.get_safe("with_examples")
         tc.variables["LLAMA_CURL"] = self.options.get_safe("with_curl")
         tc.variables["LLAMA_BUILD_SERVER"] = False
+        tc.variables["LLAMA_BUILD_TOOLS"] = False
         tc.variables["LLAMA_BUILD_COMMON"] = True
         tc.variables["GGML_OPENMP"] = False
         tc.variables["GGML_METAL"] = False
@@ -170,9 +180,6 @@ class LlamaCppConan(ConanFile):
 
     def _get_backends(self):
         results = ["cpu"]
-        if is_apple_os(self):
-            results.append("blas")
-            results.append("metal")
         if self.options.with_cuda:
             results.append("cuda")
         if self.options.get_safe("with_vulkan"):

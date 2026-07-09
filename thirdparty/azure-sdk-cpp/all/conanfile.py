@@ -21,6 +21,7 @@ from conan.tools.build import check_min_cppstd
 from conan.tools.cmake import CMakeToolchain, CMake, CMakeDeps, cmake_layout
 from conan.tools.files import get, copy, rmdir, replace_in_file
 from conan.tools.scm import Version
+import glob
 import os
 
 required_conan_version = ">=2.1"
@@ -53,12 +54,11 @@ class AzureSDKForCppConan(ConanFile):
 
     def source(self):
         get(self, **self.conan_data["sources"][self.version], strip_root=True)
-        # The Azure SDK hard-codes `set(CMAKE_CXX_STANDARD 14)` in src/CMakeLists.txt, which overrides
-        # the standard requested by the Conan toolchain. Since wil requires C++17+, this fails to compile
-        # on Windows. Bump it to C++23 to match the rest of the project.
-        replace_in_file(self, os.path.join(self.source_folder, "CMakeLists.txt"),
-                        "set(CMAKE_CXX_STANDARD 14)",
-                        "set(CMAKE_CXX_STANDARD 23)")
+        for cmake_file in glob.glob(os.path.join(self.source_folder, "sdk", "identity", "azure-identity", "**", "CMakeLists.txt"), recursive=True):
+            replace_in_file(self, cmake_file,
+                            "set(CMAKE_CXX_STANDARD 14)",
+                            "set(CMAKE_CXX_STANDARD 17)",
+                            strict=False)
 
     def config_options(self):
         if self.settings.os == "Windows":
@@ -169,6 +169,8 @@ class AzureSDKForCppConan(ConanFile):
         self.cpp_info.components["azure-storage-common"].requires = ["azure-core"]
         if not self.settings.os == "Windows":
             self.cpp_info.components["azure-storage-common"].requires.extend(["openssl::openssl", "libxml2::libxml2"])
+        else:
+            self.cpp_info.components["azure-storage-common"].system_libs = ["bcrypt", "webservices"]
 
         self.cpp_info.components["azure-storage-blobs"].set_property("cmake_target_name", "Azure::azure-storage-blobs")
         self.cpp_info.components["azure-storage-blobs"].libs = ["azure-storage-blobs"]
