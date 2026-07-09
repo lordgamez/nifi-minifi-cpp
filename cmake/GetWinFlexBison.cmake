@@ -17,15 +17,12 @@
 
 if(MINIFI_WINFLEXBISON_SOURCE STREQUAL "CONAN")
     message("Using Conan to install winflexbison")
-    # The winflexbison Conan package sets cmake_find_mode to none, so no config file is generated.
-    # Its executables are made available on PATH through the Conan build environment.
     find_program(WIN_FLEX_EXECUTABLE NAMES win_flex REQUIRED)
     find_program(WIN_BISON_EXECUTABLE NAMES win_bison REQUIRED)
 
     set(BISON_EXECUTABLE "${WIN_BISON_EXECUTABLE}" CACHE PATH "bison executable")
     set(FLEX_EXECUTABLE "${WIN_FLEX_EXECUTABLE}" CACHE PATH "flex executable")
 
-    # FlexLexer.h is packaged in <package>/include, next to the <package>/bin directory holding the executables
     get_filename_component(WINFLEXBISON_BIN_DIR "${WIN_FLEX_EXECUTABLE}" DIRECTORY)
     get_filename_component(WINFLEXBISON_ROOT_DIR "${WINFLEXBISON_BIN_DIR}" DIRECTORY)
     include_directories("${WINFLEXBISON_ROOT_DIR}/include")

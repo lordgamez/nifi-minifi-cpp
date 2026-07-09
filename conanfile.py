@@ -118,8 +118,6 @@ class MiNiFiCppMain(ConanFile):
 
     def configure(self):
         self.options["libarchive"].with_openssl = True
-        # On Windows the tz database is installed alongside the agent and loaded via date::set_install (manual mode),
-        # elsewhere the OS-provided tz database is used, matching the from-source build in cmake/Date.cmake
         self.options["date"].tz_db = "manual" if self.settings.os == "Windows" else "system"
         if self.options.enable_all or self.options.enable_bzip2:
             self.options["libarchive"].with_bzip2 = True

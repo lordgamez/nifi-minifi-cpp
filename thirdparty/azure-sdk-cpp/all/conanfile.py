@@ -21,6 +21,7 @@ from conan.tools.build import check_min_cppstd
 from conan.tools.cmake import CMakeToolchain, CMake, CMakeDeps, cmake_layout
 from conan.tools.files import get, copy, rmdir, replace_in_file
 from conan.tools.scm import Version
+import glob
 import os
 
 required_conan_version = ">=2.1"
@@ -53,12 +54,33 @@ class AzureSDKForCppConan(ConanFile):
 
     def source(self):
         get(self, **self.conan_data["sources"][self.version], strip_root=True)
-        # The Azure SDK hard-codes `set(CMAKE_CXX_STANDARD 14)` in src/CMakeLists.txt, which overrides
-        # the standard requested by the Conan toolchain. Since wil requires C++17+, this fails to compile
-        # on Windows. Bump it to C++23 to match the rest of the project.
-        replace_in_file(self, os.path.join(self.source_folder, "CMakeLists.txt"),
-                        "set(CMAKE_CXX_STANDARD 14)",
-                        "set(CMAKE_CXX_STANDARD 23)")
+        # Each Azure SDK component hard-codes `set(CMAKE_CXX_STANDARD 14)` in its own CMakeLists.txt.
+        # A per-directory set() shadows the root, overriding the standard requested by the Conan
+        # toolchain, so azure-identity builds at C++14 and fails against wil (which needs C++17+).
+        # Bump every occurrence to C++23 to match the rest of the project.
+        for cmake_file in glob.glob(os.path.join(self.source_folder, "**", "CMakeLists.txt"), recursive=True):
+            replace_in_file(self, cmake_file,
+                            "set(CMAKE_CXX_STANDARD 14)",
+                            "set(CMAKE_CXX_STANDARD 23)",
+                            strict=False)
+
+        # Only azure-core, azure-identity and azure-storage-* are packaged, but the SDK otherwise builds
+        # every service. Some of the unused ones (e.g. attestation) don't compile under C++23. Drop them
+        # from the top-level build so we only build what we ship.
+        root_cmake = os.path.join(self.source_folder, "CMakeLists.txt")
+        for service in ("appconfiguration", "attestation", "keyvault", "template", "tables"):
+            replace_in_file(self, root_cmake,
+                            f"add_subdirectory(sdk/{service})",
+                            "",
+                            strict=False)
+
+        # share_responses.cpp uses std::inserter without including <iterator>; libc++ no longer pulls it
+        # in transitively under C++23, so it fails to compile on macOS. Add the missing include.
+        replace_in_file(self, os.path.join(self.source_folder, "sdk", "storage", "azure-storage-files-shares",
+                                           "src", "share_responses.cpp"),
+                        "#include <thread>",
+                        "#include <iterator>\n#include <thread>",
+                        strict=False)
 
     def config_options(self):
         if self.settings.os == "Windows":
@@ -169,6 +191,8 @@ class AzureSDKForCppConan(ConanFile):
         self.cpp_info.components["azure-storage-common"].requires = ["azure-core"]
         if not self.settings.os == "Windows":
             self.cpp_info.components["azure-storage-common"].requires.extend(["openssl::openssl", "libxml2::libxml2"])
+        else:
+            self.cpp_info.components["azure-storage-common"].system_libs = ["bcrypt", "webservices"]
 
         self.cpp_info.components["azure-storage-blobs"].set_property("cmake_target_name", "Azure::azure-storage-blobs")
         self.cpp_info.components["azure-storage-blobs"].libs = ["azure-storage-blobs"]
