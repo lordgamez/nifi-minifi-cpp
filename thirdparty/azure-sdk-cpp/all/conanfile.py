@@ -19,7 +19,7 @@ from conan import ConanFile
 from conan.errors import ConanInvalidConfiguration
 from conan.tools.build import check_min_cppstd
 from conan.tools.cmake import CMakeToolchain, CMake, CMakeDeps, cmake_layout
-from conan.tools.files import get, copy, rmdir
+from conan.tools.files import get, copy, rmdir, replace_in_file
 from conan.tools.scm import Version
 import os
 
@@ -53,6 +53,12 @@ class AzureSDKForCppConan(ConanFile):
 
     def source(self):
         get(self, **self.conan_data["sources"][self.version], strip_root=True)
+        # The Azure SDK hard-codes `set(CMAKE_CXX_STANDARD 14)` in src/CMakeLists.txt, which overrides
+        # the standard requested by the Conan toolchain. Since wil requires C++17+, this fails to compile
+        # on Windows. Bump it to C++23 to match the rest of the project.
+        replace_in_file(self, os.path.join(self.source_folder, "CMakeLists.txt"),
+                        "set(CMAKE_CXX_STANDARD 14)",
+                        "set(CMAKE_CXX_STANDARD 23)")
 
     def config_options(self):
         if self.settings.os == "Windows":
