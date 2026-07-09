@@ -54,33 +54,11 @@ class AzureSDKForCppConan(ConanFile):
 
     def source(self):
         get(self, **self.conan_data["sources"][self.version], strip_root=True)
-        # Each Azure SDK component hard-codes `set(CMAKE_CXX_STANDARD 14)` in its own CMakeLists.txt.
-        # A per-directory set() shadows the root, overriding the standard requested by the Conan
-        # toolchain, so azure-identity builds at C++14 and fails against wil (which needs C++17+).
-        # Bump every occurrence to C++23 to match the rest of the project.
-        for cmake_file in glob.glob(os.path.join(self.source_folder, "**", "CMakeLists.txt"), recursive=True):
+        for cmake_file in glob.glob(os.path.join(self.source_folder, "sdk", "identity", "azure-identity", "**", "CMakeLists.txt"), recursive=True):
             replace_in_file(self, cmake_file,
                             "set(CMAKE_CXX_STANDARD 14)",
-                            "set(CMAKE_CXX_STANDARD 23)",
+                            "set(CMAKE_CXX_STANDARD 17)",
                             strict=False)
-
-        # Only azure-core, azure-identity and azure-storage-* are packaged, but the SDK otherwise builds
-        # every service. Some of the unused ones (e.g. attestation) don't compile under C++23. Drop them
-        # from the top-level build so we only build what we ship.
-        root_cmake = os.path.join(self.source_folder, "CMakeLists.txt")
-        for service in ("appconfiguration", "attestation", "keyvault", "template", "tables"):
-            replace_in_file(self, root_cmake,
-                            f"add_subdirectory(sdk/{service})",
-                            "",
-                            strict=False)
-
-        # share_responses.cpp uses std::inserter without including <iterator>; libc++ no longer pulls it
-        # in transitively under C++23, so it fails to compile on macOS. Add the missing include.
-        replace_in_file(self, os.path.join(self.source_folder, "sdk", "storage", "azure-storage-files-shares",
-                                           "src", "share_responses.cpp"),
-                        "#include <thread>",
-                        "#include <iterator>\n#include <thread>",
-                        strict=False)
 
     def config_options(self):
         if self.settings.os == "Windows":
