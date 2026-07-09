@@ -1,4 +1,3 @@
-#
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,26 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-#
-
-if (NOT (ENABLE_ALL OR ENABLE_LLAMACPP))
-    return()
-endif()
 
 if(MINIFI_LLAMACPP_SOURCE STREQUAL "CONAN")
-    find_package(nlohmann_json REQUIRED)
+    message("Using Conan to install LlamaCpp")
+    find_package(llamacpp REQUIRED)
+elseif(MINIFI_LLAMACPP_SOURCE STREQUAL "BUILD")
+    message("Using CMake to build LlamaCpp from source")
+    include(LlamaCpp)
 endif()
-include(GetLlamaCpp)
-
-include(${CMAKE_SOURCE_DIR}/extensions/ExtensionHeader.txt)
-
-file(GLOB SOURCES "processors/*.cpp" "ExtensionInitializer.cpp")
-
-add_minifi_library(minifi-llamacpp SHARED ${SOURCES})
-target_include_directories(minifi-llamacpp PUBLIC "${CMAKE_SOURCE_DIR}/extensions/llamacpp")
-target_include_directories(minifi-llamacpp PUBLIC "${LLAMACPP_INCLUDE_DIRS}")
-
-target_link_libraries(minifi-llamacpp minifi-cpp-extension-lib nlohmann_json::nlohmann_json llama-cpp::llama llama-cpp::mtmd llama-cpp::common)
-
-register_c_api_extension(minifi-llamacpp "LLAMACPP EXTENSION" LLAMACPP-EXTENSION "Provides llama.cpp support" "extensions/llamacpp/tests")
-
