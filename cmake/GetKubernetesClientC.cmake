@@ -14,16 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-if (NOT (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND (ENABLE_ALL OR ENABLE_KUBERNETES)))
-    return()
+
+if(MINIFI_KUBERNETES_CLIENT_C_SOURCE STREQUAL "CONAN")
+    message("Using Conan to install Kubernetes Client C")
+    find_package(KubernetesClientC REQUIRED)
+elseif(MINIFI_KUBERNETES_CLIENT_C_SOURCE STREQUAL "BUILD")
+    message("Using CMake to build Kubernetes Client C from source")
+    include(KubernetesClientC)
 endif()
-
-include(GetKubernetesClientC)
-
-include(${CMAKE_SOURCE_DIR}/extensions/ExtensionHeader.txt)
-
-file(GLOB SOURCES "*.cpp" "controllerservice/*.cpp" "processors/*.cpp")
-add_minifi_library(minifi-kubernetes-extensions SHARED ${SOURCES})
-target_link_libraries(minifi-kubernetes-extensions ${LIBMINIFI} kubernetes)
-
-register_extension(minifi-kubernetes-extensions "KUBERNETES EXTENSIONS" KUBERNETES-EXTENSIONS "This enables Kubernetes support" "extensions/kubernetes/tests")
