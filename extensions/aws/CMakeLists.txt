@@ -21,8 +21,8 @@ if (NOT (ENABLE_ALL OR ENABLE_AWS))
     return()
 endif()
 
-include(BundledAwsSdkCpp)
-use_bundled_libaws(${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR})
+include(GetAwsSdkCpp)
+get_aws_sdk_cpp(${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR})
 
 include(${CMAKE_SOURCE_DIR}/extensions/ExtensionHeader.txt)
 include_directories(controllerservices processors s3 ${CMAKE_SOURCE_DIR}/extensions/aws)

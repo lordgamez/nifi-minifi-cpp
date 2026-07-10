@@ -185,6 +185,7 @@ add_minifi_multi_option(MINIFI_AZURE_SDK_CPP_SOURCE "Retrieves Azure SDK for C++
 add_minifi_multi_option(MINIFI_LLAMACPP_SOURCE "Retrieves llama.cpp from provided source" "BUILD;CONAN" "BUILD")
 add_minifi_multi_option(MINIFI_DATE_SOURCE "Retrieves date from provided source" "BUILD;CONAN" "BUILD")
 add_minifi_multi_option(MINIFI_WINFLEXBISON_SOURCE "Retrieves winflexbison from provided source" "BUILD;CONAN" "BUILD")
+add_minifi_multi_option(MINIFI_AWS_SDK_CPP_SOURCE "Retrieves AWS SDK for C++ from provided source" "BUILD;CONAN" "BUILD")
 
 # Docker options
 

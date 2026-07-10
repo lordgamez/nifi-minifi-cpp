@@ -42,12 +42,12 @@ class MiNiFiCppMain(ConanFile):
     options = {"shared": [True, False], "fPIC": [True, False], "custom_malloc": [False, "jemalloc", "mimalloc", "rpmalloc"], "enable_all": [True, False], "enable_rocksdb": [True, False],
                "enable_sftp": [True, False], "enable_prometheus": [True, False], "enable_bzip2": [True, False], "enable_lzma": [True, False], "enable_mqtt": [True, False],
                "enable_couchbase": [True, False], "enable_kafka": [True, False], "enable_opc": [True, False], "enable_gcp": [True, False], "enable_grpc_for_loki": [True, False],
-               "enable_bustache": [True, False], "enable_kubernetes": [True, False], "enable_azure": [True, False], "enable_llamacpp": [True, False], "skip_tests": [True, False],
-               "portable": [True, False]}
+               "enable_bustache": [True, False], "enable_kubernetes": [True, False], "enable_azure": [True, False], "enable_llamacpp": [True, False], "enable_aws": [True, False],
+               "skip_tests": [True, False], "portable": [True, False]}
 
     default_options = {"shared": False, "fPIC": True, "custom_malloc": False, "enable_all": False, "enable_rocksdb": False, "enable_sftp": False, "enable_prometheus": False, "enable_bzip2": False,
                        "enable_lzma": False, "enable_mqtt": False, "enable_couchbase": False, "enable_kafka": False, "enable_opc": False, "enable_gcp": False, "enable_grpc_for_loki": False,
-                       "enable_bustache": False, "enable_kubernetes": False, "enable_azure": False, "enable_llamacpp": False, "skip_tests": False, "portable": True}
+                       "enable_bustache": False, "enable_kubernetes": False, "enable_azure": False, "enable_llamacpp": False, "enable_aws": False, "skip_tests": False, "portable": True}
 
     exports_sources = shared_sources
 
@@ -100,6 +100,8 @@ class MiNiFiCppMain(ConanFile):
             self.requires("azure-sdk-for-cpp/12.18.0@minifi/develop")
         if self.options.enable_all or self.options.get_safe("enable_llamacpp"):
             self.requires("llama-cpp/b8944@minifi/develop")
+        if self.options.enable_all or self.options.get_safe("enable_aws"):
+            self.requires("aws-sdk-cpp/1.11.807@minifi/develop")
 
         if self.options.custom_malloc == "jemalloc":
             self.requires("jemalloc/5.3.1")
@@ -125,6 +127,11 @@ class MiNiFiCppMain(ConanFile):
             self.options["libarchive"].with_lzma = True
         if (self.options.enable_all or self.options.get_safe("enable_gcp")) and not self.options.skip_tests:
             self.options["google-cloud-cpp"].with_mocks = True
+        if self.options.enable_all or self.options.get_safe("enable_aws"):
+            self.options["aws-sdk-cpp"].s3 = True
+            self.options["aws-sdk-cpp"].kinesis = True
+            setattr(self.options["aws-sdk-cpp"], "s3-crt", True)
+            setattr(self.options["aws-sdk-cpp"], "text-to-speech", False)
 
     def generate(self):
         tc = CMakeToolchain(self)
@@ -174,6 +181,7 @@ class MiNiFiCppMain(ConanFile):
         tc.variables["MINIFI_AZURE_SDK_CPP_SOURCE"] = "CONAN"
         tc.variables["MINIFI_LLAMACPP_SOURCE"] = "CONAN"
         tc.variables["MINIFI_DATE_SOURCE"] = "CONAN"
+        tc.variables["MINIFI_AWS_SDK_CPP_SOURCE"] = "CONAN"
         if self.settings.os == "Windows":
             tc.variables["MINIFI_WINFLEXBISON_SOURCE"] = "CONAN"
         tc.generate()
