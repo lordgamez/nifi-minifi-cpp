@@ -674,11 +674,13 @@ class AwsSdkCppConan(ConanFile):
         if self.options.get_safe("s3-crt"):
             self.cpp_info.components["s3-crt"].requires.append("aws-crt-cpp")
 
-        # platform-specific system libs / frameworks (mirrors BundledAwsSdkCpp.cmake:220-226)
+        # platform-specific system libs / frameworks (mirrors BundledAwsSdkCpp.cmake:157-226)
         if is_windows:
             core.system_libs.extend([
                 "userenv", "ws2_32", "wininet", "bcrypt", "version",
                 "secur32", "crypt32", "shlwapi", "winhttp"])
+            # aws-c-io's Windows TLS (windows_pki_utils.c) needs the NCrypt API.
+            self.cpp_info.components["aws-c-io"].system_libs.append("ncrypt")
             if self.options.get_safe("text-to-speech"):
                 self.cpp_info.components["text-to-speech"].system_libs.append("winmm")
         elif is_apple:
