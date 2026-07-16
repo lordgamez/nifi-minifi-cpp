@@ -30,6 +30,9 @@ DISTRO_NAME=
 BUILD_NUMBER=
 DOCKER_CCACHE_DUMP_LOCATION=
 DOCKER_SKIP_TESTS=ON
+DOCKER_USE_CONAN=OFF
+DOCKER_NIFI_CONAN_USER=
+DOCKER_NIFI_CONAN_PASSWORD=
 DOCKER_CREATE_RPM=ON
 CMAKE_BUILD_TYPE=Release
 PLATFORMS=
@@ -108,6 +111,12 @@ while [[ $# -gt 0 ]]; do
         DOCKER_SKIP_TESTS="${ARR[1]}"
       elif [ "${ARR[0]}" == "DOCKER_CREATE_RPM" ]; then
         DOCKER_CREATE_RPM="${ARR[1]}"
+      elif [ "${ARR[0]}" == "DOCKER_USE_CONAN" ]; then
+        DOCKER_USE_CONAN="${ARR[1]}"
+      elif [ "${ARR[0]}" == "DOCKER_NIFI_CONAN_USER" ]; then
+        DOCKER_NIFI_CONAN_USER="${ARR[1]}"
+      elif [ "${ARR[0]}" == "DOCKER_NIFI_CONAN_PASSWORD" ]; then
+        DOCKER_NIFI_CONAN_PASSWORD="${ARR[1]}"
       elif [ "${ARR[0]}" == "CMAKE_BUILD_TYPE" ]; then
         CMAKE_BUILD_TYPE="${ARR[1]}"
       elif [ "${ARR[0]}" == "DOCKER_PLATFORMS" ] && [ -n "${ARR[1]}" ]; then
@@ -202,6 +211,9 @@ BUILD_ARGS+=("--build-arg" "UID=${UID_ARG}"
              "--build-arg" "DISTRO_NAME=${DISTRO_NAME}"
              "--build-arg" "DOCKER_SKIP_TESTS=${DOCKER_SKIP_TESTS}"
              "--build-arg" "DOCKER_CREATE_RPM=${DOCKER_CREATE_RPM}"
+             "--build-arg" "DOCKER_USE_CONAN=${DOCKER_USE_CONAN}"
+             "--build-arg" "DOCKER_NIFI_CONAN_USER=${DOCKER_NIFI_CONAN_USER}"
+             "--build-arg" "DOCKER_NIFI_CONAN_PASSWORD=${DOCKER_NIFI_CONAN_PASSWORD}"
              "--build-arg" "CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}")
 if [ -n "${DUMP_LOCATION}" ]; then
   BUILD_ARGS+=("--build-arg" "DOCKER_MAKE_TARGET=package")

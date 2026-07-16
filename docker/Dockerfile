@@ -31,6 +31,9 @@ ARG GID=1000
 ARG MINIFI_OPTIONS=""
 ARG CMAKE_BUILD_TYPE=Release
 ARG DOCKER_SKIP_TESTS=ON
+ARG DOCKER_USE_CONAN=OFF
+ARG DOCKER_NIFI_CONAN_USER=
+ARG DOCKER_NIFI_CONAN_PASSWORD=
 
 # Install the system dependencies needed for a build
 RUN apk --no-cache add gcc \
@@ -50,7 +53,11 @@ RUN apk --no-cache add gcc \
   patch \
   python3-dev \
   doxygen \
-  ccache
+  ccache \
+  python3 \
+  py3-pip \
+  m4 \
+  pkgconf
 
 ENV USER=minificpp
 ENV MINIFI_BASE_DIR=/opt/minifi
@@ -64,11 +71,25 @@ COPY --chown=${USER}:${USER} . ${MINIFI_BASE_DIR}
 
 USER ${USER}
 
-RUN mkdir ${MINIFI_BASE_DIR}/build
+RUN if [ "${DOCKER_USE_CONAN}" == "ON" ]; then \
+      set -e; \
+      cd ${MINIFI_BASE_DIR}/bootstrap && \
+      python3 -m venv venv && \
+      source venv/bin/activate && \
+      pip install -r requirements.txt && \
+      python3 main.py --skip-compiler-install --run-conan-install --minifi-options="${MINIFI_OPTIONS}" && \
+      if [ -n "${DOCKER_NIFI_CONAN_USER}" ] && [ -n "${DOCKER_NIFI_CONAN_PASSWORD}" ]; then \
+        conan remote login nifi-conan ${DOCKER_NIFI_CONAN_USER} -p ${DOCKER_NIFI_CONAN_PASSWORD} || true; \
+        conan upload "*" -r nifi-conan --confirm || true; \
+      fi; \
+    fi
+
+RUN mkdir -p ${MINIFI_BASE_DIR}/build
 WORKDIR ${MINIFI_BASE_DIR}/build
 RUN export PATH=/usr/lib64/ccache/bin${PATH:+:${PATH}} && \
     export CCACHE_DIR=${MINIFI_BASE_DIR}/.ccache && \
-    cmake -DSTATIC_BUILD= -DSKIP_TESTS=${DOCKER_SKIP_TESTS} ${MINIFI_OPTIONS} -DAWS_ENABLE_UNITY_BUILD=OFF -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" .. && \
+    if [ "${DOCKER_USE_CONAN}" == "ON" ]; then CONAN_TOOLCHAIN="-DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake"; fi && \
+    cmake -DSTATIC_BUILD= -DSKIP_TESTS=${DOCKER_SKIP_TESTS} ${CONAN_TOOLCHAIN:-} ${MINIFI_OPTIONS} -DAWS_ENABLE_UNITY_BUILD=OFF -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" .. && \
     make -j "$(nproc)" package && \
     tar -xzvf "${MINIFI_BASE_DIR}/build/nifi-minifi-cpp-${MINIFI_VERSION}.tar.gz" -C "${MINIFI_BASE_DIR}"
 
