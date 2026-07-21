@@ -77,6 +77,9 @@ RUN if [ "${DOCKER_USE_CONAN}" == "ON" ]; then \
       python3 -m venv venv && \
       source venv/bin/activate && \
       pip install -r requirements.txt && \
+      conan profile detect --exist-ok && \
+      cp ${MINIFI_BASE_DIR}/docker/settings_user.yml "$(conan config home)/settings_user.yml" && \
+      printf '\nos.libc=musl\n' >> "$(conan config home)/profiles/default" && \
       python3 main.py --skip-compiler-install --run-conan-install --minifi-options="${MINIFI_OPTIONS}" && \
       if [ -n "${DOCKER_NIFI_CONAN_USER}" ] && [ -n "${DOCKER_NIFI_CONAN_PASSWORD}" ]; then \
         conan remote login nifi-conan ${DOCKER_NIFI_CONAN_USER} -p ${DOCKER_NIFI_CONAN_PASSWORD} || true; \
