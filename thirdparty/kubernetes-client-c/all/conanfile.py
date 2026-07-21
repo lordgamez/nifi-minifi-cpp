@@ -34,7 +34,7 @@ class kubernetesRecipe(ConanFile):
 
     settings = "os", "compiler", "build_type", "arch"
     options = {"shared": [True, False], "fPIC": [True, False]}
-    default_options = {"shared": True, "fPIC": True}
+    default_options = {"shared": False, "fPIC": True}
 
     implements = ["auto_shared_fpic", "auto_language"]
     languages = "C"
@@ -58,7 +58,16 @@ class kubernetesRecipe(ConanFile):
     def generate(self):
         deps = CMakeDeps(self)
         deps.generate()
+
         tc = CMakeToolchain(self)
+        if self.options.shared:
+            tc.cache_variables["BUILD_STATIC_LIBS"] = "OFF"
+            tc.cache_variables["BUILD_SHARED_LIBS"] = "ON"
+        else:
+            tc.cache_variables["BUILD_STATIC_LIBS"] = "ON"
+            tc.cache_variables["BUILD_SHARED_LIBS"] = "OFF"
+        tc.cache_variables["LZ4_BUILD_CLI"] = "OFF"
+        tc.cache_variables["LZ4_BUILD_LEGACY_LZ4C"] = "OFF"
         tc.generate()
 
     def build(self):
