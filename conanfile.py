@@ -127,6 +127,11 @@ class MiNiFiCppMain(ConanFile):
             self.options["libarchive"].with_bzip2 = True
         if self.options.enable_all or self.options.enable_lzma:
             self.options["libarchive"].with_lzma = True
+        if self.options.enable_all or self.options.enable_kafka:
+            self.options["librdkafka"].ssl = True
+            self.options["librdkafka"].sasl = False
+            self.options["librdkafka"].zstd = True
+            self.options["librdkafka"].zlib = True
         if (self.options.enable_all or self.options.get_safe("enable_gcp")) and not self.options.skip_tests:
             self.options["google-cloud-cpp"].with_mocks = True
         if self.options.enable_all or self.options.get_safe("enable_aws"):
