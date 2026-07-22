@@ -195,6 +195,8 @@ class MiNiFiCppMain(ConanFile):
         tc.variables["MINIFI_AWS_SDK_CPP_SOURCE"] = "CONAN"
         if self.settings.os == "Windows":
             tc.variables["MINIFI_WINFLEXBISON_SOURCE"] = "CONAN"
+
+        tc.blocks.remove("output_dirs")
         tc.generate()
 
     def build(self):
