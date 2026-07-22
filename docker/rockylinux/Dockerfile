@@ -33,7 +33,6 @@ ARG DOCKER_MAKE_TARGET="all"
 ARG DOCKER_CREATE_RPM=ON
 ARG DOCKER_USE_CONAN=OFF
 ARG DOCKER_NIFI_CONAN_USER=
-ARG DOCKER_NIFI_CONAN_PASSWORD=
 
 ENV MINIFI_BASE_DIR=/opt/minifi
 ENV MINIFI_HOME=$MINIFI_BASE_DIR/nifi-minifi-cpp-$MINIFI_VERSION
@@ -58,7 +57,7 @@ RUN groupadd -g ${GID} ${USER} && useradd -g ${GID} ${USER} && \
 
 USER ${USER}
 
-RUN echo "DOCKER_USE_CONAN=${DOCKER_USE_CONAN}" && if [ "${DOCKER_USE_CONAN}" == "ON" ]; then \
+RUN --mount=type=secret,id=nifi_conan_password,mode=0444 echo "DOCKER_USE_CONAN=${DOCKER_USE_CONAN}" && if [ "${DOCKER_USE_CONAN}" == "ON" ]; then \
         set -e; \
         cd ${MINIFI_BASE_DIR}/bootstrap && \
         python3.9 -m venv venv && \
@@ -66,8 +65,8 @@ RUN echo "DOCKER_USE_CONAN=${DOCKER_USE_CONAN}" && if [ "${DOCKER_USE_CONAN}" ==
         source venv/bin/activate && \
         pip3.9 install -r requirements.txt && \
         python3.9 main.py --skip-compiler-install --run-conan-install --minifi-options="${MINIFI_OPTIONS}" && \
-        if [ -n "${DOCKER_NIFI_CONAN_USER}" ] && [ -n "${DOCKER_NIFI_CONAN_PASSWORD}" ]; then \
-            conan remote login nifi-conan ${DOCKER_NIFI_CONAN_USER} -p ${DOCKER_NIFI_CONAN_PASSWORD} || true; \
+        if [ -n "${DOCKER_NIFI_CONAN_USER}" ] && [ -f /run/secrets/nifi_conan_password ]; then \
+            conan remote login nifi-conan ${DOCKER_NIFI_CONAN_USER} -p "$(cat /run/secrets/nifi_conan_password)" || true; \
             conan upload "*" -r nifi-conan --confirm || true; \
         fi; \
     fi

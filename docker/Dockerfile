@@ -33,7 +33,6 @@ ARG CMAKE_BUILD_TYPE=Release
 ARG DOCKER_SKIP_TESTS=ON
 ARG DOCKER_USE_CONAN=OFF
 ARG DOCKER_NIFI_CONAN_USER=
-ARG DOCKER_NIFI_CONAN_PASSWORD=
 
 # Install the system dependencies needed for a build
 RUN apk --no-cache add gcc \
@@ -71,7 +70,7 @@ COPY --chown=${USER}:${USER} . ${MINIFI_BASE_DIR}
 
 USER ${USER}
 
-RUN if [ "${DOCKER_USE_CONAN}" == "ON" ]; then \
+RUN --mount=type=secret,id=nifi_conan_password,mode=0444 if [ "${DOCKER_USE_CONAN}" == "ON" ]; then \
       set -e; \
       cd ${MINIFI_BASE_DIR}/bootstrap && \
       python3 -m venv venv && \
@@ -81,8 +80,8 @@ RUN if [ "${DOCKER_USE_CONAN}" == "ON" ]; then \
       cp ${MINIFI_BASE_DIR}/docker/settings_user.yml "$(conan config home)/settings_user.yml" && \
       printf '\nos.libc=musl\n' >> "$(conan config home)/profiles/default" && \
       python3 main.py --skip-compiler-install --run-conan-install --minifi-options="${MINIFI_OPTIONS}" && \
-      if [ -n "${DOCKER_NIFI_CONAN_USER}" ] && [ -n "${DOCKER_NIFI_CONAN_PASSWORD}" ]; then \
-        conan remote login nifi-conan ${DOCKER_NIFI_CONAN_USER} -p ${DOCKER_NIFI_CONAN_PASSWORD} || true; \
+      if [ -n "${DOCKER_NIFI_CONAN_USER}" ] && [ -f /run/secrets/nifi_conan_password ]; then \
+        conan remote login nifi-conan ${DOCKER_NIFI_CONAN_USER} -p "$(cat /run/secrets/nifi_conan_password)" || true; \
         conan upload "*" -r nifi-conan --confirm || true; \
       fi; \
     fi

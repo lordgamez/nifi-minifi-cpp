@@ -213,8 +213,11 @@ BUILD_ARGS+=("--build-arg" "UID=${UID_ARG}"
              "--build-arg" "DOCKER_CREATE_RPM=${DOCKER_CREATE_RPM}"
              "--build-arg" "DOCKER_USE_CONAN=${DOCKER_USE_CONAN}"
              "--build-arg" "DOCKER_NIFI_CONAN_USER=${DOCKER_NIFI_CONAN_USER}"
-             "--build-arg" "DOCKER_NIFI_CONAN_PASSWORD=${DOCKER_NIFI_CONAN_PASSWORD}"
              "--build-arg" "CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}")
+if [ -n "${DOCKER_NIFI_CONAN_PASSWORD}" ]; then
+  export DOCKER_NIFI_CONAN_PASSWORD
+  BUILD_ARGS+=("--secret" "id=nifi_conan_password,env=DOCKER_NIFI_CONAN_PASSWORD")
+fi
 if [ -n "${DUMP_LOCATION}" ]; then
   BUILD_ARGS+=("--build-arg" "DOCKER_MAKE_TARGET=package")
 fi
@@ -226,8 +229,6 @@ done
 
 if [ -n "${DISTRO_NAME}" ]; then
   # shellcheck disable=SC2086
-  echo docker buildx build "${BUILD_ARGS[@]}" -f "${DOCKERFILE}" ${PLATFORMS} ${PUSH_OR_LOAD} ${TAGGING_CMD} ..
-  # shellcheck disable=SC2086
   docker buildx build "${BUILD_ARGS[@]}" -f "${DOCKERFILE}" ${PLATFORMS} ${PUSH_OR_LOAD} ${TAGGING_CMD} ..
 
   if [ -n "${DOCKER_CCACHE_DUMP_LOCATION}" ]; then
@@ -238,8 +239,6 @@ else
     docker buildx build "${BUILD_ARGS[@]}" -f "${DOCKERFILE}" --target build -t minifi_build ..
     dump_ccache "minifi_build" "${DOCKER_CCACHE_DUMP_LOCATION}"
   fi
-  # shellcheck disable=SC2086
-  echo docker buildx build "${BUILD_ARGS[@]}" -f "${DOCKERFILE}" ${PLATFORMS} ${PUSH_OR_LOAD} ${TAGGING_CMD} ..
   # shellcheck disable=SC2086
   docker buildx build "${BUILD_ARGS[@]}" -f "${DOCKERFILE}" ${PLATFORMS} ${PUSH_OR_LOAD} ${TAGGING_CMD} ..
 fi
