@@ -1,0 +1,13 @@
+diff --git a/src/backends/odbc/vector-use-type.cpp b/src/backends/odbc/vector-use-type.cpp
+index ab7246d9..fd27be3d 100644
+--- a/src/backends/odbc/vector-use-type.cpp
++++ b/src/backends/odbc/vector-use-type.cpp
+@@ -243,7 +243,7 @@ void* odbc_vector_use_type_backend::prepare_for_bind(SQLUINTEGER &size,
+             buf_ = new char[maxSize * vecSize * sizeof(SQLWCHAR)];
+             memset(buf_, 0, maxSize * vecSize * sizeof(SQLWCHAR));
+
+-            static_assert(sizeof(SQLWCHAR) == sizeof(char16_t), "unexpected SQLWCHAR size");
++            static_assert(sizeof(SQLWCHAR) == sizeof(char16_t) || sizeof(SQLWCHAR) == sizeof(char32_t), "unexpected SQLWCHAR size");
+             char16_t* pos = reinterpret_cast<char16_t*>(buf_);
+
+             for (std::size_t i = 0; i != vecSize; ++i)

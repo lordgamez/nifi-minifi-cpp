@@ -42,12 +42,12 @@ class MiNiFiCppMain(ConanFile):
                "enable_rocksdb": [True, False], "enable_sftp": [True, False], "enable_prometheus": [True, False], "enable_bzip2": [True, False], "enable_lzma": [True, False],
                "enable_mqtt": [True, False], "enable_couchbase": [True, False], "enable_kafka": [True, False], "enable_opc": [True, False], "enable_gcp": [True, False],
                "enable_grpc_for_loki": [True, False], "enable_bustache": [True, False], "enable_kubernetes": [True, False], "enable_azure": [True, False], "enable_llamacpp": [True, False],
-               "enable_aws": [True, False], "skip_tests": [True, False], "portable": [True, False]}
+               "enable_aws": [True, False], "enable_sql": [True, False], "skip_tests": [True, False], "portable": [True, False]}
 
     default_options = {"shared": False, "fPIC": True, "custom_malloc": False, "enable_all": False, "enable_libarchive": False, "enable_rocksdb": False, "enable_sftp": False,
                        "enable_prometheus": False, "enable_bzip2": False, "enable_lzma": False, "enable_mqtt": False, "enable_couchbase": False, "enable_kafka": False, "enable_opc": False,
                        "enable_gcp": False, "enable_grpc_for_loki": False, "enable_bustache": False, "enable_kubernetes": False, "enable_azure": False, "enable_llamacpp": False, "enable_aws": False,
-                       "skip_tests": False, "portable": True}
+                       "enable_sql": False, "skip_tests": False, "portable": True}
 
     exports_sources = shared_sources
 
@@ -104,6 +104,8 @@ class MiNiFiCppMain(ConanFile):
             self.requires("llama-cpp/b8944@minifi/develop")
         if self.options.enable_all or self.options.enable_aws:
             self.requires("aws-sdk-cpp/1.11.807@minifi/develop")
+        if self.options.enable_all or self.options.enable_sql:
+            self.requires("soci/4.1.4@minifi/develop")
 
         if self.options.custom_malloc == "jemalloc":
             self.requires("jemalloc/5.3.1")
@@ -143,6 +145,9 @@ class MiNiFiCppMain(ConanFile):
             self.options["llama-cpp"].portable = self.options.portable
         if self.options.enable_all or self.options.get_safe("enable_mqtt"):
             self.options["paho-mqtt-c"].high_performance = True
+        if self.options.enable_all or self.options.get_safe("enable_sql"):
+            self.options["soci"].shared = False
+            self.options["soci"].with_odbc = True
 
     def generate(self):
         tc = CMakeToolchain(self)
@@ -193,6 +198,9 @@ class MiNiFiCppMain(ConanFile):
         tc.variables["MINIFI_LLAMACPP_SOURCE"] = "CONAN"
         tc.variables["MINIFI_DATE_SOURCE"] = "CONAN"
         tc.variables["MINIFI_AWS_SDK_CPP_SOURCE"] = "CONAN"
+        tc.variables["MINIFI_SOCI_SOURCE"] = "CONAN"
+        if self.settings.os != "Windows":
+            tc.variables["MINIFI_IODBC_SOURCE"] = "CONAN"
         if self.settings.os == "Windows":
             tc.variables["MINIFI_WINFLEXBISON_SOURCE"] = "CONAN"
 
