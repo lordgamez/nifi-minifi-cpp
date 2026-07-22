@@ -57,6 +57,15 @@ def add_conan_options_from_cmake_options(extension_options: list[str], minifi_op
     return conan_options
 
 
+def _host_m4_needs_build(package_manager: PackageManager) -> bool:
+    # Conan needs m4 >= 1.4. Build it only when the host m4 is missing or older, otherwise reuse the system m4.
+    m4_version_check_cmd = (
+        r"""ver=$(m4 --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+' | head -n1) && """
+        r"""[ -n "$ver" ] && [ "$(printf '1.4\n%s\n' "$ver" | sort -V | head -n1)" = "1.4" ]"""
+    )
+    return not package_manager.run_cmd(m4_version_check_cmd)
+
+
 def run_conan_install(minifi_options: MinifiOptions, package_manager: PackageManager) -> bool:
     if not minifi_options.use_conan.value == "ON":
         print("Conan install skipped because USE_CONAN is OFF")
@@ -85,11 +94,8 @@ def run_conan_install(minifi_options: MinifiOptions, package_manager: PackageMan
         return False
     build_cmd = f"conan install {minifi_options.source_dir} --output-folder={minifi_options.build_dir} --build=missing {conan_options} " \
                 f"--settings=build_type={minifi_options.build_type.value}{generator_setting}{compiler_settings}"
-    try:
-        if platform.system() == "Linux":
-            build_cmd += " --build=m4/*"
-    except Exception:
-        pass
+    if platform.system() == "Linux" and _host_m4_needs_build(package_manager):
+        build_cmd += " --build=m4/*"
     res = package_manager.run_cmd(build_cmd)
     print("Conan install was successful" if res else "Conan install was unsuccessful")
     return res
