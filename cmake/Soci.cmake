@@ -19,11 +19,13 @@ include(FetchContent)
 
 include(fmt)
 
-set(PATCH_FILE1 "${CMAKE_SOURCE_DIR}/thirdparty/soci/patches/relax-sqlwchar-static-assert.patch")
-set(PATCH_FILE2 "${CMAKE_SOURCE_DIR}/thirdparty/soci/patches/odbc-map-wide-columns-to-string.patch")
+set(PATCH_FILE1 "${CMAKE_SOURCE_DIR}/thirdparty/soci/all/patches/relax-sqlwchar-static-assert.patch")
+set(PATCH_FILE2 "${CMAKE_SOURCE_DIR}/thirdparty/soci/all/patches/odbc-map-wide-columns-to-string.patch")
+set(PATCH_FILE3 "${CMAKE_SOURCE_DIR}/thirdparty/soci/all/patches/odbc-get-parameter-name-bounds-safe.patch")
 set(PC ${Bash_EXECUTABLE} -c "set -x &&\
         (\\\"${Patch_EXECUTABLE}\\\" -p1 -R -s -f --dry-run -i \\\"${PATCH_FILE1}\\\" || \\\"${Patch_EXECUTABLE}\\\" -p1 -N -i \\\"${PATCH_FILE1}\\\") &&\
-        (\\\"${Patch_EXECUTABLE}\\\" -p1 -R -s -f --dry-run -i \\\"${PATCH_FILE2}\\\" || \\\"${Patch_EXECUTABLE}\\\" -p1 -N -i \\\"${PATCH_FILE2}\\\")")
+        (\\\"${Patch_EXECUTABLE}\\\" -p1 -R -s -f --dry-run -i \\\"${PATCH_FILE2}\\\" || \\\"${Patch_EXECUTABLE}\\\" -p1 -N -i \\\"${PATCH_FILE2}\\\") &&\
+        (\\\"${Patch_EXECUTABLE}\\\" -p1 -R -s -f --dry-run -i \\\"${PATCH_FILE3}\\\" || \\\"${Patch_EXECUTABLE}\\\" -p1 -N -i \\\"${PATCH_FILE3}\\\")")
 
 if(WIN32)
     set(SOCI_TESTS OFF CACHE BOOL "" FORCE)

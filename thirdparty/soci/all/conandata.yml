@@ -25,3 +25,6 @@ patches:
     - patch_file: "patches/odbc-map-wide-columns-to-string.patch"
       patch_description: "Map wide ODBC column types to db_string (restores 4.0.x behavior; avoids buggy wide rowset path on Windows/macOS)"
       patch_type: "portability"
+    - patch_file: "patches/odbc-get-parameter-name-bounds-safe.patch"
+      patch_description: "Return empty name for positional use elements instead of throwing (fixes out_of_range on execute with positional binds)"
+      patch_type: "portability"
