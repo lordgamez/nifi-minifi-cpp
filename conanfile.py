@@ -148,6 +148,13 @@ class MiNiFiCppMain(ConanFile):
         if self.options.enable_all or self.options.enable_sql:
             self.options["soci"].shared = False
             self.options["soci"].with_odbc = True
+        if self.options.enable_all or self.options.enable_grpc_for_loki:
+            self.options["grpc"].csharp_plugin = False
+            self.options["grpc"].node_plugin = False
+            self.options["grpc"].objective_c_plugin = False
+            self.options["grpc"].php_plugin = False
+            self.options["grpc"].python_plugin = False
+            self.options["grpc"].ruby_plugin = False
 
     def generate(self):
         tc = CMakeToolchain(self)

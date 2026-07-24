@@ -22,7 +22,11 @@ if(MINIFI_GRPC_SOURCE STREQUAL "CONAN")
     find_package(protobuf CONFIG REQUIRED)
     find_package(gRPC CONFIG REQUIRED)
 
-    set(LOKI_PROTOC_EXECUTABLE $<TARGET_FILE:protobuf::protoc>)
+    find_program(LOKI_PROTOC_EXECUTABLE
+        NAMES protoc
+        PATHS "${protobuf_INCLUDE_DIR}/../bin"
+        NO_DEFAULT_PATH
+        REQUIRED)
 
     add_custom_command(
         OUTPUT
