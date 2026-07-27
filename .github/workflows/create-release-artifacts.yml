@@ -63,7 +63,7 @@ jobs:
         shell: powershell
       - name: build
         run: |
-          python -m venv venv && venv\Scripts\activate && pip install -r requirements.txt && python main.py --noninteractive --skip-compiler-install --minifi-options="-DCMAKE_BUILD_TYPE=Release -DCI_BUILD=OFF -DENABLE_ALL=ON -DMINIFI_FAIL_ON_WARNINGS=OFF -DSKIP_TESTS=ON"
+          python -m venv venv && venv\Scripts\activate && pip install -r requirements.txt && python main.py --noninteractive --skip-compiler-install --minifi-options="-DCMAKE_BUILD_TYPE=Release -DCI_BUILD=OFF -DENABLE_ALL=ON -DUSE_CONAN=ON -DMINIFI_FAIL_ON_WARNINGS=OFF -DSKIP_TESTS=ON"
         shell: cmd
         working-directory: bootstrap
       - name: Upload artifact
@@ -93,11 +93,11 @@ jobs:
       - name: Bundle SDK Artifacts into ZIP
         run: |
           mkdir minifi-native-sdk
-          
+
           cp behave_framework/dist/*.whl minifi-native-sdk/
           cp minifi-api/minifi-c-api.def minifi-native-sdk/
           cp minifi-api/include/minifi-c/minifi-c.h minifi-native-sdk/
-          
+
           zip -r minifi-native-sdk.zip minifi-native-sdk/
 
       - name: Upload artifact
