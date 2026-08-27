@@ -164,7 +164,7 @@ class OpcUaTestServer {
 
     UA_NodeId node_id;
     auto status = UA_Server_addVariableNode(
-      server_, UA_NODEID_NULL, parent,
+      server_, UA_NODEID_STRING_ALLOC(ns_index_, const_cast<char*>(name)), parent,
       UA_NODEID_NUMERIC(0, UA_NS0ID_HASCOMPONENT),
       UA_QUALIFIEDNAME(ns_index_, const_cast<char*>(name)),
       UA_NODEID_NUMERIC(0, UA_NS0ID_BASEDATAVARIABLETYPE),
