@@ -44,6 +44,17 @@ enum class OutputFormatOption {
   JSON
 };
 
+struct NodeModificationData {
+  std::string value;
+  std::string username;
+  std::string modification_time;
+  std::string updateType;
+};
+
+struct FetchOpcHistoryContext {
+  core::ProcessSession& session;
+};
+
 class FetchOpcHistory final : public BaseOPCProcessor {
  public:
   using BaseOPCProcessor::BaseOPCProcessor;
@@ -117,6 +128,11 @@ class FetchOpcHistory final : public BaseOPCProcessor {
   void initialize() override;
 
  private:
+  static UA_Boolean historyReadCallback(UA_Client * /*client*/,
+                                                 const UA_NodeId * /*nodeId*/,
+                                                 UA_Boolean moreDataAvailable,
+                                                 const UA_ExtensionObject *data,
+                                                 void *callbackContext);
 
   OutputFormatOption output_format_ = OutputFormatOption::Attributes;
 };

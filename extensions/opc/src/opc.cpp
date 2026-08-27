@@ -621,4 +621,10 @@ std::optional<UA_UInt32> mapOpcReferenceType(const std::string& ref_type) {
   return std::nullopt;
 }
 
+UA_StatusCode Client::readHistory(const UA_NodeId& node_id, const HistoryCallback callback,
+                                  UA_DateTime startTime, UA_DateTime endTime,
+                                  UA_UInt32 maxItems, void *callbackContext) {
+  return UA_Client_HistoryRead_modified(client_, &node_id, callback, startTime, endTime, UA_STRING_NULL, false, maxItems, UA_TIMESTAMPSTORETURN_BOTH, callbackContext);
+}
+
 }  // namespace org::apache::nifi::minifi::opc
