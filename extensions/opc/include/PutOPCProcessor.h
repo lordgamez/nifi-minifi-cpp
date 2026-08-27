@@ -22,8 +22,8 @@
 #include <utility>
 #include <vector>
 
-#include "opc.h"
-#include "opcbase.h"
+#include "OPCCommon.h"
+#include "BaseOPCProcessor.h"
 #include "minifi-cpp/FlowFileRecord.h"
 #include "core/ProcessSession.h"
 #include "minifi-cpp/core/Property.h"

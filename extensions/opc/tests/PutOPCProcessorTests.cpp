@@ -19,7 +19,7 @@
 #include "unit/Catch.h"
 #include "OpcUaTestServer.h"
 #include "unit/SingleProcessorTestController.h"
-#include "include/putopc.h"
+#include "include/PutOPCProcessor.h"
 #include "utils/StringUtils.h"
 #include "unit/TestUtils.h"
 #include "minifi-cpp/utils/gsl.h"
