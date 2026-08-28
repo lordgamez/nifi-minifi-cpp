@@ -29,13 +29,13 @@ namespace org::apache::nifi::minifi::processors {
 
 namespace {
 
-const char *updateTypeToString(UA_HistoryUpdateType type) {
+std::string updateTypeToString(UA_HistoryUpdateType type) {
   switch (type) {
-    case UA_HISTORYUPDATETYPE_INSERT:  return "Insert";
+    case UA_HISTORYUPDATETYPE_INSERT: return "Insert";
     case UA_HISTORYUPDATETYPE_REPLACE: return "Replace";
-    case UA_HISTORYUPDATETYPE_UPDATE:  return "Update";
-    case UA_HISTORYUPDATETYPE_DELETE:  return "Delete";
-    default:                            return "Unknown";
+    case UA_HISTORYUPDATETYPE_UPDATE: return "Update";
+    case UA_HISTORYUPDATETYPE_DELETE: return "Delete";
+    default: return "Unknown";
   }
 }
 
@@ -46,43 +46,43 @@ void FetchOpcHistory::initialize() {
   setSupportedRelationships(Relationships);
 }
 
-UA_Boolean FetchOpcHistory::historyReadCallback(UA_Client * /*client*/,
-                                                 const UA_NodeId * /*nodeId*/,
-                                                 UA_Boolean moreDataAvailable,
-                                                 const UA_ExtensionObject *data,
-                                                 void *ctx) {
+void FetchOpcHistory::onSchedule(core::ProcessContext& context, core::ProcessSessionFactory& factory) {
+  logger_->log_trace("FetchOpcHistory::onSchedule");
+  BaseOPCProcessor::onSchedule(context, factory);
+  node_id_ = utils::parseProperty(context, NodeID);
+  parseIdType(context, NodeIDType);
+  namespace_idx_ = gsl::narrow<int32_t>(utils::parseI64Property(context, NameSpaceIndex));
+}
 
-  const UA_DataValue *dataValues = nullptr;
-  size_t dataValuesSize = 0;
-  const UA_ModificationInfo *modificationInfos = nullptr;
-  size_t modificationInfosSize = 0;
+UA_Boolean FetchOpcHistory::historyReadCallback(UA_Client* /*client*/, const UA_NodeId* /*node_id*/, UA_Boolean /*more_data_available*/, const UA_ExtensionObject* data, void* ctx) {
+  const UA_DataValue* data_values = nullptr;
+  size_t data_value_size = 0;
+  const UA_ModificationInfo* modification_infos = nullptr;
+  size_t modification_infos_size = 0;
 
-  // A modified history read (UA_Client_HistoryRead_modified) delivers
-  // UA_HistoryModifiedData: the values plus a parallel array of modification
-  // metadata (who/when/what) describing each edit.
   if (data->content.decoded.type == &UA_TYPES[UA_TYPES_HISTORYMODIFIEDDATA]) {
     const auto *modifiedData = static_cast<const UA_HistoryModifiedData *>(data->content.decoded.data);
-    dataValues = modifiedData->dataValues;
-    dataValuesSize = modifiedData->dataValuesSize;
-    modificationInfos = modifiedData->modificationInfos;
-    modificationInfosSize = modifiedData->modificationInfosSize;
+    data_values = modifiedData->dataValues;
+    data_value_size = modifiedData->dataValuesSize;
+    modification_infos = modifiedData->modificationInfos;
+    modification_infos_size = modifiedData->modificationInfosSize;
   } else {
-    // Unexpected data type received in the callback
+    // TODO: Unexpected data type received in the callback, how to handle this?
     return false;
   }
 
-  for (size_t i = 0; i < dataValuesSize; ++i) {
-    const UA_DataValue &value = dataValues[i];
+  for (size_t i = 0; i < data_value_size; ++i) {
+    const UA_DataValue &value = data_values[i];
     // modificationInfos is parallel to dataValues by index (OPC UA Part 11):
     // entry i describes value i, or is absent if the value was never edited.
-    const UA_ModificationInfo *mod_info = (modificationInfos && i < modificationInfosSize) ? &modificationInfos[i] : nullptr;
+    const UA_ModificationInfo* mod_info = (modification_infos && i < modification_infos_size) ? &modification_infos[i] : nullptr;
 
     NodeModificationData node_mod_data;
     try {
       node_mod_data.value = opc::variantToString(value.value);
     } catch (const opc::OPCException&) {
-      // Unsupported value type: leave content empty. An exception must not unwind
-      // across the C history-read callback boundary in open62541.
+      // Unsupported value type: leave content empty. An exception must not unwind across the C history-read callback boundary in open62541.
+      // TODO: Log a warning about the unsupported value type.
     }
 
     if (mod_info) {
@@ -93,7 +93,7 @@ UA_Boolean FetchOpcHistory::historyReadCallback(UA_Client * /*client*/,
       node_mod_data.updateType = updateTypeToString(mod_info->updateType);
     }
 
-    FetchOpcHistoryContext *context = static_cast<FetchOpcHistoryContext*>(ctx);
+    auto* context = static_cast<FetchOpcHistoryContext*>(ctx);
     auto flow_file = context->session.create();
     context->session.write(flow_file, [&](const std::shared_ptr<io::OutputStream>& output_stream) -> io::IoResult {
       output_stream->write(reinterpret_cast<const uint8_t*>(node_mod_data.value.data()), node_mod_data.value.size());
@@ -106,22 +106,7 @@ UA_Boolean FetchOpcHistory::historyReadCallback(UA_Client * /*client*/,
     context->session.transfer(flow_file, Success);
   }
 
-
   return true;
-}
-
-
-void FetchOpcHistory::onSchedule(core::ProcessContext& context, core::ProcessSessionFactory& factory) {
-  logger_->log_trace("FetchOpcHistory::onSchedule");
-
-  BaseOPCProcessor::onSchedule(context, factory);
-
-  node_id_ = utils::parseProperty(context, NodeID);
-
-  parseIdType(context, NodeIDType);
-
-  namespace_idx_ = gsl::narrow<int32_t>(utils::parseI64Property(context, NameSpaceIndex));
-
 }
 
 void FetchOpcHistory::onTrigger(core::ProcessContext& context, core::ProcessSession& session) {
@@ -134,20 +119,23 @@ void FetchOpcHistory::onTrigger(core::ProcessContext& context, core::ProcessSess
 
   auto* state_manager = context.getStateManager();
   std::unordered_map<std::string, std::string> state_map;
+
+  // TODO: handle previous state to avoid fetching the same history entries multiple times. This may require storing the last fetched timestamp or entry ID in the state manager.
   state_manager->get(state_map);
 
   UA_NodeId node = UA_NODEID_STRING(namespace_idx_, const_cast<char*>(node_id_.c_str()));
 
   FetchOpcHistoryContext ctx{session};
+
+  // TODO: change 10 to a configurable batch size property
   auto retval = connection_->readHistory(node, &FetchOpcHistory::historyReadCallback, UA_DateTime_fromUnixTime(0), UA_DateTime_now(), 10, (void *)&ctx);
 
   if (retval != UA_STATUSCODE_GOOD) {
-    throw std::runtime_error(fmt::format("Failed to read history for node {}: {}", node_id_, UA_StatusCode_name(retval)));
+    // TODO: handle error, possibly yield and log the error
   }
 
   state_manager->set(state_map);
 }
-
 
 REGISTER_RESOURCE(FetchOpcHistory, Processor);
 

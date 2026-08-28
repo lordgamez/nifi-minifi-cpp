@@ -35,8 +35,6 @@ using namespace std::literals::chrono_literals;
 
 namespace org::apache::nifi::minifi::test {
 
-// One modified-history entry the mock server returns for a node: the value plus
-// the modification metadata (who/when/what) the client processor is meant to read.
 struct HistoryModificationRecord {
   int32_t value = 0;
   std::string username;
@@ -73,10 +71,6 @@ class OpcUaTestServer {
 
     config->logging->context = this;
 
-    // Install a mock history database: it serves modified-history reads from the
-    // records held in this instance (history_records_), so tests can control the
-    // returned values and modification metadata. `context` is `this` so the
-    // static callback can find us back.
     UA_HistoryDatabase history_database;
     memset(&history_database, 0, sizeof(history_database));
     history_database.context = this;
@@ -98,8 +92,6 @@ class OpcUaTestServer {
     auto int4_node = addIntVariable("INT4", int3_node, 4);
     node_ids_["Simulator/Default/Device1/INT4"] = int4_node;
 
-    // Seed a default modified-history entry for INT1 so a plain fetch returns a
-    // flow file with value "1" and populated modification metadata.
     setHistory("INT1", {HistoryModificationRecord{
         .value = 1,
         .username = "test_user",
@@ -136,15 +128,11 @@ class OpcUaTestServer {
     return ns_index_;
   }
 
-  // Defines the modified-history entries the server returns for a node,
-  // identified by its string node id (e.g. "INT1").
   void setHistory(const std::string& node_id, std::vector<HistoryModificationRecord> records) {
     std::lock_guard<std::mutex> lock(history_mutex_);
     history_records_[node_id] = std::move(records);
   }
 
-  // Builds a UA_DateTime (UTC) from calendar components, matching how the
-  // processor formats timestamps back, so tests can assert exact values.
   static UA_DateTime makeDateTime(uint16_t year, uint16_t month, uint16_t day,
                                   uint16_t hour, uint16_t min, uint16_t sec, uint16_t milli) {
     UA_DateTimeStruct dts{};
@@ -195,9 +183,6 @@ class OpcUaTestServer {
     return {};
   }
 
-  // Mock UA_HistoryDatabase::readModified. For each requested node it returns the
-  // records configured via setHistory, packing the values and their modification
-  // metadata into the pre-allocated UA_HistoryModifiedData objects.
   static void readModifiedCallback(UA_Server* /*server*/, void* hdbContext,
                                    const UA_NodeId* /*sessionId*/, void* /*sessionContext*/,
                                    const UA_RequestHeader* /*requestHeader*/,

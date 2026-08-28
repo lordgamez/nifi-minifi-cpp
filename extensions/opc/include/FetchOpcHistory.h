@@ -44,6 +44,11 @@ enum class OutputFormatOption {
   JSON
 };
 
+enum class HistoryReadTypeOption {
+  Raw,
+  Modified
+};
+
 struct NodeModificationData {
   std::string value;
   std::string username;
@@ -91,13 +96,20 @@ class FetchOpcHistory final : public BaseOPCProcessor {
       .withAllowedValues(magic_enum::enum_names<OutputFormatOption>())
       .withDefaultValue(magic_enum::enum_name<OutputFormatOption::Attributes>())
       .build();
+  EXTENSIONAPI static constexpr auto HistoryReadType = core::PropertyDefinitionBuilder<magic_enum::enum_count<HistoryReadTypeOption>()>::createProperty("History Read Type")
+      .withDescription("Whether to fetch raw historical values or the audit trail of modifications to historical values")
+      .isRequired(true)
+      .withAllowedValues(magic_enum::enum_names<HistoryReadTypeOption>())
+      .withDefaultValue(magic_enum::enum_name<HistoryReadTypeOption::Modified>())  // TODO: Change the default later
+      .build();
   EXTENSIONAPI static constexpr auto Properties = utils::array_cat(BaseOPCProcessor::Properties, std::to_array<core::PropertyReference>({
       NodeIDType,
       NodeID,
       NameSpaceIndex,
       StartTimestamp,
       BatchSize,
-      OutputFormat
+      OutputFormat,
+      HistoryReadType
   }));
 
 
@@ -128,11 +140,7 @@ class FetchOpcHistory final : public BaseOPCProcessor {
   void initialize() override;
 
  private:
-  static UA_Boolean historyReadCallback(UA_Client * /*client*/,
-                                                 const UA_NodeId * /*nodeId*/,
-                                                 UA_Boolean moreDataAvailable,
-                                                 const UA_ExtensionObject *data,
-                                                 void *callbackContext);
+  static UA_Boolean historyReadCallback(UA_Client* client, const UA_NodeId* node_id, UA_Boolean more_data_available, const UA_ExtensionObject* data, void* ctx);
 
   OutputFormatOption output_format_ = OutputFormatOption::Attributes;
 };
