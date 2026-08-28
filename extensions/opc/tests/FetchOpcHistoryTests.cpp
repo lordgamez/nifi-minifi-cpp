@@ -37,14 +37,10 @@ TEST_CASE("Test fetching full history of a freshly created node", "[fetchopchist
   const auto results = controller.trigger();
   REQUIRE(results.at(processors::FetchOpcHistory::Success).size() == 1);
   auto flow_file = results.at(processors::FetchOpcHistory::Success)[0];
-  // CHECK(flow_file->getAttribute("Browsename") == "INT1");
-  // CHECK(flow_file->getAttribute("Datasize") == "4");
-  // CHECK(flow_file->getAttribute("Full path") == "/INT1");
-  // CHECK(flow_file->getAttribute("NodeID"));
-  // CHECK(flow_file->getAttribute("NodeID type") == "string");
-  // CHECK(flow_file->getAttribute("Typename") == "Int32");
-  // CHECK(flow_file->getAttribute("Sourcetimestamp"));
   CHECK(controller.plan->getContent(flow_file) == "1");
+  CHECK(flow_file->getAttribute("ModificationUsername") == "test_user");
+  CHECK(flow_file->getAttribute("ModificationUpdateType") == "Replace");
+  CHECK(flow_file->getAttribute("ModificationTime") == "2024-06-15T10:30:00.000Z");
 }
 
 }  // namespace org::apache::nifi::minifi::test

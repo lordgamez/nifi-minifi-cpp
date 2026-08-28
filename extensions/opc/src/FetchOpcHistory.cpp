@@ -37,6 +37,49 @@ std::string formatUADateTime(UA_DateTime dt) {
   return buf;
 }
 
+// Converts an OPC UA value to a string, covering the same built-in types as
+// opc::nodeValue2String in opc.cpp. Unsupported types yield an empty string.
+// TODO: consider refactor to use a single function in opc.cpp to avoid duplication.
+std::string variantToString(const UA_Variant& variant) {
+  if (variant.type == nullptr || variant.data == nullptr) {
+    return {};
+  }
+  switch (variant.type->typeKind) {
+    case UA_DATATYPEKIND_STRING:
+    case UA_DATATYPEKIND_LOCALIZEDTEXT:
+    case UA_DATATYPEKIND_BYTESTRING: {
+      const auto *value = static_cast<const UA_String *>(variant.data);
+      return std::string(reinterpret_cast<const char *>(value->data), value->length);
+    }
+    case UA_DATATYPEKIND_BOOLEAN:
+      return *static_cast<const UA_Boolean *>(variant.data) ? "True" : "False";
+    case UA_DATATYPEKIND_SBYTE:
+      return std::to_string(*static_cast<const UA_SByte *>(variant.data));
+    case UA_DATATYPEKIND_BYTE:
+      return std::to_string(*static_cast<const UA_Byte *>(variant.data));
+    case UA_DATATYPEKIND_INT16:
+      return std::to_string(*static_cast<const UA_Int16 *>(variant.data));
+    case UA_DATATYPEKIND_UINT16:
+      return std::to_string(*static_cast<const UA_UInt16 *>(variant.data));
+    case UA_DATATYPEKIND_INT32:
+      return std::to_string(*static_cast<const UA_Int32 *>(variant.data));
+    case UA_DATATYPEKIND_UINT32:
+      return std::to_string(*static_cast<const UA_UInt32 *>(variant.data));
+    case UA_DATATYPEKIND_INT64:
+      return std::to_string(*static_cast<const UA_Int64 *>(variant.data));
+    case UA_DATATYPEKIND_UINT64:
+      return std::to_string(*static_cast<const UA_UInt64 *>(variant.data));
+    case UA_DATATYPEKIND_FLOAT:
+      return std::to_string(*static_cast<const UA_Float *>(variant.data));
+    case UA_DATATYPEKIND_DOUBLE:
+      return std::to_string(*static_cast<const UA_Double *>(variant.data));
+    case UA_DATATYPEKIND_DATETIME:
+      return opc::OPCDateTime2String(*static_cast<const UA_DateTime *>(variant.data));
+    default:
+      return {};
+  }
+}
+
 const char *updateTypeToString(UA_HistoryUpdateType type) {
   switch (type) {
     case UA_HISTORYUPDATETYPE_INSERT:  return "Insert";
@@ -65,9 +108,11 @@ UA_Boolean FetchOpcHistory::historyReadCallback(UA_Client * /*client*/,
   const UA_ModificationInfo *modificationInfos = nullptr;
   size_t modificationInfosSize = 0;
 
+  // A modified history read (UA_Client_HistoryRead_modified) delivers
+  // UA_HistoryModifiedData: the values plus a parallel array of modification
+  // metadata (who/when/what) describing each edit.
   if (data->content.decoded.type == &UA_TYPES[UA_TYPES_HISTORYMODIFIEDDATA]) {
-    const auto *modifiedData =
-        static_cast<const UA_HistoryModifiedData *>(data->content.decoded.data);
+    const auto *modifiedData = static_cast<const UA_HistoryModifiedData *>(data->content.decoded.data);
     dataValues = modifiedData->dataValues;
     dataValuesSize = modifiedData->dataValuesSize;
     modificationInfos = modifiedData->modificationInfos;
@@ -78,19 +123,13 @@ UA_Boolean FetchOpcHistory::historyReadCallback(UA_Client * /*client*/,
   }
 
   for (size_t i = 0; i < dataValuesSize; ++i) {
-
     const UA_DataValue &value = dataValues[i];
-    // modificationInfos is parallel to dataValues by index per the OPC UA
-    // spec (Part 11): entry i describes value i, or is "empty" (Insert with
-    // no prior value / null username) if the value was never edited.
+    // modificationInfos is parallel to dataValues by index (OPC UA Part 11):
+    // entry i describes value i, or is absent if the value was never edited.
     const UA_ModificationInfo *mod_info = (modificationInfos && i < modificationInfosSize) ? &modificationInfos[i] : nullptr;
 
     NodeModificationData node_mod_data;
-    if (value.value.type == &UA_TYPES[UA_TYPES_DOUBLE]) {
-      node_mod_data.value = std::to_string(*static_cast<UA_Double *>(value.value.data));
-    } else if (value.value.type == &UA_TYPES[UA_TYPES_UINT32]) {
-      node_mod_data.value = std::to_string(*static_cast<UA_UInt32 *>(value.value.data));
-    }
+    node_mod_data.value = variantToString(value.value);
 
     if (mod_info) {
       if (mod_info->userName.length > 0) {

@@ -18,8 +18,13 @@
 
 #include <open62541/server.h>
 #include <open62541/server_config_default.h>
+#include <open62541/plugin/historydatabase.h>
+#include <cstring>
+#include <string>
 #include <thread>
 #include <mutex>
+#include <unordered_map>
+#include <vector>
 #include <algorithm>
 #include "unit/TestUtils.h"
 #include "unit/Catch.h"
@@ -29,6 +34,15 @@ extern "C" int mp_vsnprintf(char* s, size_t count, const char* format, va_list a
 using namespace std::literals::chrono_literals;
 
 namespace org::apache::nifi::minifi::test {
+
+// One modified-history entry the mock server returns for a node: the value plus
+// the modification metadata (who/when/what) the client processor is meant to read.
+struct HistoryModificationRecord {
+  int32_t value = 0;
+  std::string username;
+  UA_HistoryUpdateType update_type = UA_HISTORYUPDATETYPE_INSERT;
+  UA_DateTime modification_time = 0;
+};
 
 class OpcUaTestServer {
  public:
@@ -59,6 +73,16 @@ class OpcUaTestServer {
 
     config->logging->context = this;
 
+    // Install a mock history database: it serves modified-history reads from the
+    // records held in this instance (history_records_), so tests can control the
+    // returned values and modification metadata. `context` is `this` so the
+    // static callback can find us back.
+    UA_HistoryDatabase history_database;
+    memset(&history_database, 0, sizeof(history_database));
+    history_database.context = this;
+    history_database.readModified = &OpcUaTestServer::readModifiedCallback;
+    config->historyDatabase = history_database;
+
     ns_index_ = UA_Server_addNamespace(server_, "custom.namespace");
 
     UA_NodeId simulator_node = addObject("Simulator", UA_NODEID_NUMERIC(0, UA_NS0ID_OBJECTSFOLDER));
@@ -73,6 +97,14 @@ class OpcUaTestServer {
     node_ids_["Simulator/Default/Device1/INT3"] = int3_node;
     auto int4_node = addIntVariable("INT4", int3_node, 4);
     node_ids_["Simulator/Default/Device1/INT4"] = int4_node;
+
+    // Seed a default modified-history entry for INT1 so a plain fetch returns a
+    // flow file with value "1" and populated modification metadata.
+    setHistory("INT1", {HistoryModificationRecord{
+        .value = 1,
+        .username = "test_user",
+        .update_type = UA_HISTORYUPDATETYPE_REPLACE,
+        .modification_time = makeDateTime(2024, 6, 15, 10, 30, 0, 0)}});
   }
 
   void start() {
@@ -102,6 +134,28 @@ class OpcUaTestServer {
 
   UA_UInt16 getNamespaceIndex() const {
     return ns_index_;
+  }
+
+  // Defines the modified-history entries the server returns for a node,
+  // identified by its string node id (e.g. "INT1").
+  void setHistory(const std::string& node_id, std::vector<HistoryModificationRecord> records) {
+    std::lock_guard<std::mutex> lock(history_mutex_);
+    history_records_[node_id] = std::move(records);
+  }
+
+  // Builds a UA_DateTime (UTC) from calendar components, matching how the
+  // processor formats timestamps back, so tests can assert exact values.
+  static UA_DateTime makeDateTime(uint16_t year, uint16_t month, uint16_t day,
+                                  uint16_t hour, uint16_t min, uint16_t sec, uint16_t milli) {
+    UA_DateTimeStruct dts{};
+    dts.year = year;
+    dts.month = month;
+    dts.day = day;
+    dts.hour = hour;
+    dts.min = min;
+    dts.sec = sec;
+    dts.milliSec = milli;
+    return UA_DateTime_fromStruct(dts);
   }
 
   void addLog(const std::string& log) {
@@ -134,6 +188,64 @@ class OpcUaTestServer {
   }
 
  private:
+  static std::string nodeIdToString(const UA_NodeId& id) {
+    if (id.identifierType == UA_NODEIDTYPE_STRING) {
+      return std::string(reinterpret_cast<const char*>(id.identifier.string.data), id.identifier.string.length);
+    }
+    return {};
+  }
+
+  // Mock UA_HistoryDatabase::readModified. For each requested node it returns the
+  // records configured via setHistory, packing the values and their modification
+  // metadata into the pre-allocated UA_HistoryModifiedData objects.
+  static void readModifiedCallback(UA_Server* /*server*/, void* hdbContext,
+                                   const UA_NodeId* /*sessionId*/, void* /*sessionContext*/,
+                                   const UA_RequestHeader* /*requestHeader*/,
+                                   const UA_ReadRawModifiedDetails* /*historyReadDetails*/,
+                                   UA_TimestampsToReturn /*timestampsToReturn*/,
+                                   UA_Boolean /*releaseContinuationPoints*/,
+                                   size_t nodesToReadSize,
+                                   const UA_HistoryReadValueId* nodesToRead,
+                                   UA_HistoryReadResponse* response,
+                                   UA_HistoryModifiedData* const* const historyData) {
+    auto* self = static_cast<OpcUaTestServer*>(hdbContext);
+    std::lock_guard<std::mutex> lock(self->history_mutex_);
+
+    for (size_t i = 0; i < nodesToReadSize; ++i) {
+      auto it = self->history_records_.find(nodeIdToString(nodesToRead[i].nodeId));
+      if (it == self->history_records_.end()) {
+        response->results[i].statusCode = UA_STATUSCODE_BADNODEIDUNKNOWN;
+        continue;
+      }
+
+      const std::vector<HistoryModificationRecord>& records = it->second;
+      const size_t n = records.size();
+
+      auto* values = static_cast<UA_DataValue*>(UA_Array_new(n, &UA_TYPES[UA_TYPES_DATAVALUE]));
+      auto* mods = static_cast<UA_ModificationInfo*>(UA_Array_new(n, &UA_TYPES[UA_TYPES_MODIFICATIONINFO]));
+
+      for (size_t j = 0; j < n; ++j) {
+        UA_Int32 value = records[j].value;
+        UA_Variant_setScalarCopy(&values[j].value, &value, &UA_TYPES[UA_TYPES_INT32]);
+        values[j].hasValue = true;
+        values[j].hasSourceTimestamp = true;
+        values[j].sourceTimestamp = records[j].modification_time;
+
+        mods[j].updateType = records[j].update_type;
+        mods[j].modificationTime = records[j].modification_time;
+        mods[j].userName = UA_STRING_ALLOC(records[j].username.c_str());
+      }
+
+      historyData[i]->dataValues = values;
+      historyData[i]->dataValuesSize = n;
+      historyData[i]->modificationInfos = mods;
+      historyData[i]->modificationInfosSize = n;
+      response->results[i].statusCode = UA_STATUSCODE_GOOD;
+    }
+
+    response->responseHeader.serviceResult = UA_STATUSCODE_GOOD;
+  }
+
   UA_NodeId addObject(const char *name, UA_NodeId parent) {
     UA_NodeId object_id;
     UA_ObjectAttributes attr = UA_ObjectAttributes_default;
@@ -158,7 +270,7 @@ class OpcUaTestServer {
   UA_NodeId addIntVariable(const char *name, UA_NodeId parent, UA_Int32 value) {
     UA_VariableAttributes attr = UA_VariableAttributes_default;
     attr.displayName = UA_LOCALIZEDTEXT_ALLOC("en-US", name);
-    attr.accessLevel = UA_ACCESSLEVELMASK_READ | UA_ACCESSLEVELMASK_WRITE;
+    attr.accessLevel = UA_ACCESSLEVELMASK_READ | UA_ACCESSLEVELMASK_WRITE | UA_ACCESSLEVELMASK_HISTORYREAD;
 
     UA_Variant_setScalar(&attr.value, &value, &UA_TYPES[UA_TYPES_INT32]);
 
@@ -197,6 +309,8 @@ class OpcUaTestServer {
   mutable std::mutex server_logs_mutex_;
   std::vector<std::string> server_logs_;
   std::unordered_map<std::string, UA_NodeId> node_ids_;
+  std::mutex history_mutex_;
+  std::unordered_map<std::string, std::vector<HistoryModificationRecord>> history_records_;
 };
 
 }  // namespace org::apache::nifi::minifi::test
