@@ -145,6 +145,8 @@ struct NodeData {
 
 std::string nodeValue2String(const NodeData& nd);
 
+std::string variantToString(const UA_Variant& variant);
+
 std::string OPCDateTime2String(UA_DateTime raw_date);
 
 void logFunc(void *context, UA_LogLevel level, UA_LogCategory category, const char *msg, va_list args);

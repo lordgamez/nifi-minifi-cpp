@@ -29,57 +29,6 @@ namespace org::apache::nifi::minifi::processors {
 
 namespace {
 
-std::string formatUADateTime(UA_DateTime dt) {
-  UA_DateTimeStruct dts = UA_DateTime_toStruct(dt);
-  char buf[32];
-  snprintf(buf, sizeof(buf), "%04u-%02u-%02uT%02u:%02u:%02u.%03uZ",
-           dts.year, dts.month, dts.day, dts.hour, dts.min, dts.sec, dts.milliSec);
-  return buf;
-}
-
-// Converts an OPC UA value to a string, covering the same built-in types as
-// opc::nodeValue2String in opc.cpp. Unsupported types yield an empty string.
-// TODO: consider refactor to use a single function in opc.cpp to avoid duplication.
-std::string variantToString(const UA_Variant& variant) {
-  if (variant.type == nullptr || variant.data == nullptr) {
-    return {};
-  }
-  switch (variant.type->typeKind) {
-    case UA_DATATYPEKIND_STRING:
-    case UA_DATATYPEKIND_LOCALIZEDTEXT:
-    case UA_DATATYPEKIND_BYTESTRING: {
-      const auto *value = static_cast<const UA_String *>(variant.data);
-      return std::string(reinterpret_cast<const char *>(value->data), value->length);
-    }
-    case UA_DATATYPEKIND_BOOLEAN:
-      return *static_cast<const UA_Boolean *>(variant.data) ? "True" : "False";
-    case UA_DATATYPEKIND_SBYTE:
-      return std::to_string(*static_cast<const UA_SByte *>(variant.data));
-    case UA_DATATYPEKIND_BYTE:
-      return std::to_string(*static_cast<const UA_Byte *>(variant.data));
-    case UA_DATATYPEKIND_INT16:
-      return std::to_string(*static_cast<const UA_Int16 *>(variant.data));
-    case UA_DATATYPEKIND_UINT16:
-      return std::to_string(*static_cast<const UA_UInt16 *>(variant.data));
-    case UA_DATATYPEKIND_INT32:
-      return std::to_string(*static_cast<const UA_Int32 *>(variant.data));
-    case UA_DATATYPEKIND_UINT32:
-      return std::to_string(*static_cast<const UA_UInt32 *>(variant.data));
-    case UA_DATATYPEKIND_INT64:
-      return std::to_string(*static_cast<const UA_Int64 *>(variant.data));
-    case UA_DATATYPEKIND_UINT64:
-      return std::to_string(*static_cast<const UA_UInt64 *>(variant.data));
-    case UA_DATATYPEKIND_FLOAT:
-      return std::to_string(*static_cast<const UA_Float *>(variant.data));
-    case UA_DATATYPEKIND_DOUBLE:
-      return std::to_string(*static_cast<const UA_Double *>(variant.data));
-    case UA_DATATYPEKIND_DATETIME:
-      return opc::OPCDateTime2String(*static_cast<const UA_DateTime *>(variant.data));
-    default:
-      return {};
-  }
-}
-
 const char *updateTypeToString(UA_HistoryUpdateType type) {
   switch (type) {
     case UA_HISTORYUPDATETYPE_INSERT:  return "Insert";
@@ -129,13 +78,18 @@ UA_Boolean FetchOpcHistory::historyReadCallback(UA_Client * /*client*/,
     const UA_ModificationInfo *mod_info = (modificationInfos && i < modificationInfosSize) ? &modificationInfos[i] : nullptr;
 
     NodeModificationData node_mod_data;
-    node_mod_data.value = variantToString(value.value);
+    try {
+      node_mod_data.value = opc::variantToString(value.value);
+    } catch (const opc::OPCException&) {
+      // Unsupported value type: leave content empty. An exception must not unwind
+      // across the C history-read callback boundary in open62541.
+    }
 
     if (mod_info) {
       if (mod_info->userName.length > 0) {
         node_mod_data.username = std::string(reinterpret_cast<char *>(mod_info->userName.data), mod_info->userName.length);
       }
-      node_mod_data.modification_time = formatUADateTime(mod_info->modificationTime);
+      node_mod_data.modification_time = opc::OPCDateTime2String(mod_info->modificationTime);
       node_mod_data.updateType = updateTypeToString(mod_info->updateType);
     }
 
