@@ -144,6 +144,7 @@ class FetchOpcHistory final : public BaseOPCProcessor {
   OutputFormatOption output_format_ = OutputFormatOption::Attributes;
   opc::HistoryReadTypeOption history_type_ = opc::HistoryReadTypeOption::Raw;
   std::optional<std::chrono::system_clock::time_point> start_timestamp_;
+  std::optional<std::chrono::system_clock::time_point> end_timestamp_;
 };
 
 }  // namespace org::apache::nifi::minifi::processors

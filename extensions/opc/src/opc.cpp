@@ -578,16 +578,22 @@ std::optional<UA_UInt32> mapOpcReferenceType(const std::string& ref_type) {
   return std::nullopt;
 }
 
-UA_StatusCode Client::readHistory(HistoryReadTypeOption history_type, const UA_NodeId& node_id, const HistoryCallback callback, const std::optional<std::chrono::system_clock::time_point>& start_time, UA_DateTime end_time, UA_UInt32 max_items,
-    void* callback_context) {
-  uint64_t count = 0;
+UA_StatusCode Client::readHistory(HistoryReadTypeOption history_type, const UA_NodeId& node_id, const HistoryCallback callback,
+      const std::optional<std::chrono::system_clock::time_point>& start_time, const std::optional<std::chrono::system_clock::time_point>& end_time, UA_UInt32 max_items, void* callback_context) {
+  UA_DateTime ua_start_time = UA_DateTime_fromUnixTime(0);
+  UA_DateTime ua_end_time = UA_DateTime_now();
   if (start_time.has_value()) {
-    count = std::chrono::duration_cast<std::chrono::seconds>(start_time->time_since_epoch()).count();
+    uint64_t start_time_seconds = std::chrono::duration_cast<std::chrono::seconds>(start_time->time_since_epoch()).count();
+    ua_start_time = UA_DateTime_fromUnixTime(start_time_seconds);
+  }
+  if (end_time.has_value()) {
+    uint64_t end_time_seconds = std::chrono::duration_cast<std::chrono::seconds>(end_time->time_since_epoch()).count();
+    ua_end_time = UA_DateTime_fromUnixTime(end_time_seconds);
   }
   if (history_type == HistoryReadTypeOption::Modified) {
-    return UA_Client_HistoryRead_modified(client_, &node_id, callback, start_time ? UA_DateTime_fromUnixTime(count) : UA_DateTime_fromUnixTime(0), end_time, UA_STRING_NULL, false, max_items, UA_TIMESTAMPSTORETURN_BOTH, callback_context);
+    return UA_Client_HistoryRead_modified(client_, &node_id, callback, ua_start_time, ua_end_time, UA_STRING_NULL, false, max_items, UA_TIMESTAMPSTORETURN_BOTH, callback_context);
   }
-  return UA_Client_HistoryRead_raw(client_, &node_id, callback, start_time ? UA_DateTime_fromUnixTime(count) : UA_DateTime_fromUnixTime(0), end_time, UA_STRING_NULL, false, max_items, UA_TIMESTAMPSTORETURN_BOTH, callback_context);
+  return UA_Client_HistoryRead_raw(client_, &node_id, callback, ua_start_time, ua_end_time, UA_STRING_NULL, false, max_items, UA_TIMESTAMPSTORETURN_BOTH, callback_context);
 }
 
 }  // namespace org::apache::nifi::minifi::opc
