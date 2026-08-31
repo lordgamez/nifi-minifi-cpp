@@ -78,7 +78,10 @@ class FetchOpcHistory final : public BaseOPCProcessor {
       .isRequired(true)
       .build();
   EXTENSIONAPI static constexpr auto StartTimestamp = core::PropertyDefinitionBuilder<>::createProperty("Start timestamp")
-      .withDescription("Timestamp after which the events should be returned. If not specified all entries are returned.")
+      .withDescription("Timestamp after which the events should be returned. If not specified entries are returned from the beginning of the history.")
+      .build();
+  EXTENSIONAPI static constexpr auto EndTimestamp = core::PropertyDefinitionBuilder<>::createProperty("End timestamp")
+      .withDescription("Timestamp before which the events should be returned. If not specified entries are returned until the end of the history.")
       .build();
   EXTENSIONAPI static constexpr auto BatchSize = core::PropertyDefinitionBuilder<>::createProperty("Batch Size")
         .withDescription("Maximum number entries to read and return in a single batch. If set to zero all available entries are returned.")
@@ -102,6 +105,7 @@ class FetchOpcHistory final : public BaseOPCProcessor {
       NodeID,
       NameSpaceIndex,
       StartTimestamp,
+      EndTimestamp,
       BatchSize,
       OutputFormat,
       HistoryReadType
@@ -139,6 +143,7 @@ class FetchOpcHistory final : public BaseOPCProcessor {
 
   OutputFormatOption output_format_ = OutputFormatOption::Attributes;
   opc::HistoryReadTypeOption history_type_ = opc::HistoryReadTypeOption::Raw;
+  std::optional<std::chrono::system_clock::time_point> start_timestamp_;
 };
 
 }  // namespace org::apache::nifi::minifi::processors

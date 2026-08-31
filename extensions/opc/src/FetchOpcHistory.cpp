@@ -24,6 +24,7 @@
 #include "core/ProcessSession.h"
 #include "core/Resource.h"
 #include "utils/ProcessorConfigUtils.h"
+#include "utils/TimeUtil.h"
 
 namespace org::apache::nifi::minifi::processors {
 
@@ -54,6 +55,7 @@ void FetchOpcHistory::onSchedule(core::ProcessContext& context, core::ProcessSes
   namespace_idx_ = gsl::narrow<int32_t>(utils::parseI64Property(context, NameSpaceIndex));
 
   history_type_ = utils::parseEnumProperty<opc::HistoryReadTypeOption>(context, HistoryReadType);
+  start_timestamp_ = utils::parseOptionalProperty(context, StartTimestamp) | utils::andThen(utils::timeutils::parseDateTimeStr);
 }
 
 UA_Boolean FetchOpcHistory::historyReadCallback(UA_Client* /*client*/, const UA_NodeId* /*node_id*/, UA_Boolean /*more_data_available*/, const UA_ExtensionObject* data, void* ctx) {
@@ -132,7 +134,7 @@ void FetchOpcHistory::onTrigger(core::ProcessContext& context, core::ProcessSess
   FetchOpcHistoryContext ctx{session};
 
   // TODO: change 10 to a configurable batch size property
-  auto retval = connection_->readHistory(history_type_, node, &FetchOpcHistory::historyReadCallback, UA_DateTime_fromUnixTime(0), UA_DateTime_now(), 10, (void *)&ctx);
+  auto retval = connection_->readHistory(history_type_, node, &FetchOpcHistory::historyReadCallback, start_timestamp_, UA_DateTime_now(), 10, (void *)&ctx);
 
   if (retval != UA_STATUSCODE_GOOD) {
     // TODO: handle error, possibly yield and log the error

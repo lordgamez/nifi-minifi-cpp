@@ -578,12 +578,16 @@ std::optional<UA_UInt32> mapOpcReferenceType(const std::string& ref_type) {
   return std::nullopt;
 }
 
-UA_StatusCode Client::readHistory(HistoryReadTypeOption history_type, const UA_NodeId& node_id, const HistoryCallback callback, UA_DateTime start_time, UA_DateTime end_time, UA_UInt32 max_items,
+UA_StatusCode Client::readHistory(HistoryReadTypeOption history_type, const UA_NodeId& node_id, const HistoryCallback callback, const std::optional<std::chrono::system_clock::time_point>& start_time, UA_DateTime end_time, UA_UInt32 max_items,
     void* callback_context) {
-  if (history_type == HistoryReadTypeOption::Modified) {
-    return UA_Client_HistoryRead_modified(client_, &node_id, callback, start_time, end_time, UA_STRING_NULL, false, max_items, UA_TIMESTAMPSTORETURN_BOTH, callback_context);
+  uint64_t count = 0;
+  if (start_time.has_value()) {
+    count = std::chrono::duration_cast<std::chrono::seconds>(start_time->time_since_epoch()).count();
   }
-  return UA_Client_HistoryRead_raw(client_, &node_id, callback, start_time, end_time, UA_STRING_NULL, false, max_items, UA_TIMESTAMPSTORETURN_BOTH, callback_context);
+  if (history_type == HistoryReadTypeOption::Modified) {
+    return UA_Client_HistoryRead_modified(client_, &node_id, callback, start_time ? UA_DateTime_fromUnixTime(count) : UA_DateTime_fromUnixTime(0), end_time, UA_STRING_NULL, false, max_items, UA_TIMESTAMPSTORETURN_BOTH, callback_context);
+  }
+  return UA_Client_HistoryRead_raw(client_, &node_id, callback, start_time ? UA_DateTime_fromUnixTime(count) : UA_DateTime_fromUnixTime(0), end_time, UA_STRING_NULL, false, max_items, UA_TIMESTAMPSTORETURN_BOTH, callback_context);
 }
 
 }  // namespace org::apache::nifi::minifi::opc

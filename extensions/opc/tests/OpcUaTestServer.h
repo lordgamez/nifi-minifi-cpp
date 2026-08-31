@@ -98,6 +98,22 @@ class OpcUaTestServer {
         .username = "test_user",
         .update_type = UA_HISTORYUPDATETYPE_REPLACE,
         .modification_time = makeDateTime(2024, 6, 15, 10, 30, 0, 0)}});
+    setHistory("INT2", {
+      HistoryModificationRecord{
+        .value = 2,
+        .username = "admin_user",
+        .update_type = UA_HISTORYUPDATETYPE_INSERT,
+        .modification_time = makeDateTime(2021, 3, 15, 11, 30, 0, 0)},
+      HistoryModificationRecord{
+        .value = 3,
+        .username = "admin_user",
+        .update_type = UA_HISTORYUPDATETYPE_UPDATE,
+        .modification_time = makeDateTime(2025, 11, 11, 11, 30, 0, 0)},
+      HistoryModificationRecord{
+        .value = 4,
+        .username = "test_user",
+        .update_type = UA_HISTORYUPDATETYPE_REPLACE,
+        .modification_time = makeDateTime(2026, 3, 11, 11, 30, 0, 0)}});
   }
 
   void start() {
@@ -184,10 +200,20 @@ class OpcUaTestServer {
     return {};
   }
 
+  static std::vector<const HistoryModificationRecord*> selectRecords(const std::vector<HistoryModificationRecord>& records, UA_DateTime start_time, UA_DateTime end_time) {
+    std::vector<const HistoryModificationRecord*> selected;
+    for (const auto& record : records) {
+      if (record.modification_time >= start_time && record.modification_time <= end_time) {
+        selected.push_back(&record);
+      }
+    }
+    return selected;
+  }
+
   static void readRawCallback(UA_Server* /*server*/, void* hdbContext,
                               const UA_NodeId* /*sessionId*/, void* /*sessionContext*/,
                               const UA_RequestHeader* /*requestHeader*/,
-                              const UA_ReadRawModifiedDetails* /*historyReadDetails*/,
+                              const UA_ReadRawModifiedDetails* historyReadDetails,
                               UA_TimestampsToReturn /*timestampsToReturn*/,
                               UA_Boolean /*releaseContinuationPoints*/,
                               size_t nodesToReadSize,
@@ -204,17 +230,17 @@ class OpcUaTestServer {
         continue;
       }
 
-      const std::vector<HistoryModificationRecord>& records = it->second;
+      const std::vector<const HistoryModificationRecord*> records = selectRecords(it->second, historyReadDetails->startTime, historyReadDetails->endTime);
       const size_t n = records.size();
 
       auto* values = static_cast<UA_DataValue*>(UA_Array_new(n, &UA_TYPES[UA_TYPES_DATAVALUE]));
 
       for (size_t j = 0; j < n; ++j) {
-        UA_Int32 value = records[j].value;
+        UA_Int32 value = records[j]->value;
         UA_Variant_setScalarCopy(&values[j].value, &value, &UA_TYPES[UA_TYPES_INT32]);
         values[j].hasValue = true;
         values[j].hasSourceTimestamp = true;
-        values[j].sourceTimestamp = records[j].modification_time;
+        values[j].sourceTimestamp = records[j]->modification_time;
       }
 
       historyData[i]->dataValues = values;
@@ -228,7 +254,7 @@ class OpcUaTestServer {
   static void readModifiedCallback(UA_Server* /*server*/, void* hdbContext,
                                    const UA_NodeId* /*sessionId*/, void* /*sessionContext*/,
                                    const UA_RequestHeader* /*requestHeader*/,
-                                   const UA_ReadRawModifiedDetails* /*historyReadDetails*/,
+                                   const UA_ReadRawModifiedDetails* historyReadDetails,
                                    UA_TimestampsToReturn /*timestampsToReturn*/,
                                    UA_Boolean /*releaseContinuationPoints*/,
                                    size_t nodesToReadSize,
@@ -245,22 +271,22 @@ class OpcUaTestServer {
         continue;
       }
 
-      const std::vector<HistoryModificationRecord>& records = it->second;
+      const std::vector<const HistoryModificationRecord*> records = selectRecords(it->second, historyReadDetails->startTime, historyReadDetails->endTime);
       const size_t n = records.size();
 
       auto* values = static_cast<UA_DataValue*>(UA_Array_new(n, &UA_TYPES[UA_TYPES_DATAVALUE]));
       auto* mods = static_cast<UA_ModificationInfo*>(UA_Array_new(n, &UA_TYPES[UA_TYPES_MODIFICATIONINFO]));
 
       for (size_t j = 0; j < n; ++j) {
-        UA_Int32 value = records[j].value;
+        UA_Int32 value = records[j]->value;
         UA_Variant_setScalarCopy(&values[j].value, &value, &UA_TYPES[UA_TYPES_INT32]);
         values[j].hasValue = true;
         values[j].hasSourceTimestamp = true;
-        values[j].sourceTimestamp = records[j].modification_time;
+        values[j].sourceTimestamp = records[j]->modification_time;
 
-        mods[j].updateType = records[j].update_type;
-        mods[j].modificationTime = records[j].modification_time;
-        mods[j].userName = UA_STRING_ALLOC(records[j].username.c_str());
+        mods[j].updateType = records[j]->update_type;
+        mods[j].modificationTime = records[j]->modification_time;
+        mods[j].userName = UA_STRING_ALLOC(records[j]->username.c_str());
       }
 
       historyData[i]->dataValues = values;
