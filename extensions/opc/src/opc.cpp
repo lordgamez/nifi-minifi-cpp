@@ -578,10 +578,12 @@ std::optional<UA_UInt32> mapOpcReferenceType(const std::string& ref_type) {
   return std::nullopt;
 }
 
-UA_StatusCode Client::readHistory(const UA_NodeId& node_id, const HistoryCallback callback,
-                                  UA_DateTime startTime, UA_DateTime endTime,
-                                  UA_UInt32 maxItems, void *callbackContext) {
-  return UA_Client_HistoryRead_modified(client_, &node_id, callback, startTime, endTime, UA_STRING_NULL, false, maxItems, UA_TIMESTAMPSTORETURN_BOTH, callbackContext);
+UA_StatusCode Client::readHistory(HistoryReadTypeOption history_type, const UA_NodeId& node_id, const HistoryCallback callback, UA_DateTime start_time, UA_DateTime end_time, UA_UInt32 max_items,
+    void* callback_context) {
+  if (history_type == HistoryReadTypeOption::Modified) {
+    return UA_Client_HistoryRead_modified(client_, &node_id, callback, start_time, end_time, UA_STRING_NULL, false, max_items, UA_TIMESTAMPSTORETURN_BOTH, callback_context);
+  }
+  return UA_Client_HistoryRead_raw(client_, &node_id, callback, start_time, end_time, UA_STRING_NULL, false, max_items, UA_TIMESTAMPSTORETURN_BOTH, callback_context);
 }
 
 }  // namespace org::apache::nifi::minifi::opc

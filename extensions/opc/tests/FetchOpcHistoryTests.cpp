@@ -24,7 +24,7 @@
 
 namespace org::apache::nifi::minifi::test {
 
-TEST_CASE("Test fetching full history of a freshly created node", "[fetchopchistory]") {
+TEST_CASE("Test fetching history of node with a single entry", "[fetchopchistory]") {
   OpcUaTestServer server(4841);
   server.start();
   SingleProcessorTestController controller{minifi::test::utils::make_processor<processors::FetchOpcHistory>("FetchOpcHistory")};
@@ -34,13 +34,30 @@ TEST_CASE("Test fetching full history of a freshly created node", "[fetchopchist
   REQUIRE(fetch_opc_processor->setProperty(processors::FetchOpcHistory::NodeID.name, "INT1"));
   REQUIRE(fetch_opc_processor->setProperty(processors::FetchOpcHistory::NameSpaceIndex.name, std::to_string(server.getNamespaceIndex())));
 
+  bool contains_modification_attributes = false;
+  SECTION("Fetch full history") {
+    contains_modification_attributes = true;
+    REQUIRE(fetch_opc_processor->setProperty(processors::FetchOpcHistory::HistoryReadType.name, "Modified"));
+  }
+
+  SECTION("Fetch raw history") {
+    contains_modification_attributes = false;
+  }
+
   const auto results = controller.trigger();
   REQUIRE(results.at(processors::FetchOpcHistory::Success).size() == 1);
   auto flow_file = results.at(processors::FetchOpcHistory::Success)[0];
   CHECK(controller.plan->getContent(flow_file) == "1");
-  CHECK(flow_file->getAttribute("ModificationUsername") == "test_user");
-  CHECK(flow_file->getAttribute("ModificationUpdateType") == "Replace");
-  CHECK(flow_file->getAttribute("ModificationTime") == "2024-06-15T10:30:00.000Z");
+  if (contains_modification_attributes) {
+    CHECK(flow_file->getAttribute("ModificationUsername") == "test_user");
+    CHECK(flow_file->getAttribute("ModificationUpdateType") == "Replace");
+    CHECK(flow_file->getAttribute("ModificationTime") == "2024-06-15T10:30:00.000Z");
+  } else {
+    CHECK(flow_file->getAttribute("ModificationUsername") == std::nullopt);
+    CHECK(flow_file->getAttribute("ModificationUsername") == std::nullopt);
+    CHECK(flow_file->getAttribute("ModificationUpdateType") == std::nullopt);
+    CHECK(flow_file->getAttribute("ModificationTime") == std::nullopt);
+  }
 }
 
 }  // namespace org::apache::nifi::minifi::test

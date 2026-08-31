@@ -74,6 +74,7 @@ class OpcUaTestServer {
     UA_HistoryDatabase history_database;
     memset(&history_database, 0, sizeof(history_database));
     history_database.context = this;
+    history_database.readRaw = &OpcUaTestServer::readRawCallback;
     history_database.readModified = &OpcUaTestServer::readModifiedCallback;
     config->historyDatabase = history_database;
 
@@ -181,6 +182,47 @@ class OpcUaTestServer {
       return std::string(reinterpret_cast<const char*>(id.identifier.string.data), id.identifier.string.length);
     }
     return {};
+  }
+
+  static void readRawCallback(UA_Server* /*server*/, void* hdbContext,
+                              const UA_NodeId* /*sessionId*/, void* /*sessionContext*/,
+                              const UA_RequestHeader* /*requestHeader*/,
+                              const UA_ReadRawModifiedDetails* /*historyReadDetails*/,
+                              UA_TimestampsToReturn /*timestampsToReturn*/,
+                              UA_Boolean /*releaseContinuationPoints*/,
+                              size_t nodesToReadSize,
+                              const UA_HistoryReadValueId* nodesToRead,
+                              UA_HistoryReadResponse* response,
+                              UA_HistoryData* const* const historyData) {
+    auto* self = static_cast<OpcUaTestServer*>(hdbContext);
+    std::lock_guard<std::mutex> lock(self->history_mutex_);
+
+    for (size_t i = 0; i < nodesToReadSize; ++i) {
+      auto it = self->history_records_.find(nodeIdToString(nodesToRead[i].nodeId));
+      if (it == self->history_records_.end()) {
+        response->results[i].statusCode = UA_STATUSCODE_BADNODEIDUNKNOWN;
+        continue;
+      }
+
+      const std::vector<HistoryModificationRecord>& records = it->second;
+      const size_t n = records.size();
+
+      auto* values = static_cast<UA_DataValue*>(UA_Array_new(n, &UA_TYPES[UA_TYPES_DATAVALUE]));
+
+      for (size_t j = 0; j < n; ++j) {
+        UA_Int32 value = records[j].value;
+        UA_Variant_setScalarCopy(&values[j].value, &value, &UA_TYPES[UA_TYPES_INT32]);
+        values[j].hasValue = true;
+        values[j].hasSourceTimestamp = true;
+        values[j].sourceTimestamp = records[j].modification_time;
+      }
+
+      historyData[i]->dataValues = values;
+      historyData[i]->dataValuesSize = n;
+      response->results[i].statusCode = UA_STATUSCODE_GOOD;
+    }
+
+    response->responseHeader.serviceResult = UA_STATUSCODE_GOOD;
   }
 
   static void readModifiedCallback(UA_Server* /*server*/, void* hdbContext,

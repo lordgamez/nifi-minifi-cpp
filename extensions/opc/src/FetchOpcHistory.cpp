@@ -52,6 +52,8 @@ void FetchOpcHistory::onSchedule(core::ProcessContext& context, core::ProcessSes
   node_id_ = utils::parseProperty(context, NodeID);
   parseIdType(context, NodeIDType);
   namespace_idx_ = gsl::narrow<int32_t>(utils::parseI64Property(context, NameSpaceIndex));
+
+  history_type_ = utils::parseEnumProperty<opc::HistoryReadTypeOption>(context, HistoryReadType);
 }
 
 UA_Boolean FetchOpcHistory::historyReadCallback(UA_Client* /*client*/, const UA_NodeId* /*node_id*/, UA_Boolean /*more_data_available*/, const UA_ExtensionObject* data, void* ctx) {
@@ -60,7 +62,11 @@ UA_Boolean FetchOpcHistory::historyReadCallback(UA_Client* /*client*/, const UA_
   const UA_ModificationInfo* modification_infos = nullptr;
   size_t modification_infos_size = 0;
 
-  if (data->content.decoded.type == &UA_TYPES[UA_TYPES_HISTORYMODIFIEDDATA]) {
+  if (data->content.decoded.type == &UA_TYPES[UA_TYPES_HISTORYDATA]) {
+    const auto *historyData = static_cast<const UA_HistoryData *>(data->content.decoded.data);
+    data_values = historyData->dataValues;
+    data_value_size = historyData->dataValuesSize;
+  } else if (data->content.decoded.type == &UA_TYPES[UA_TYPES_HISTORYMODIFIEDDATA]) {
     const auto *modifiedData = static_cast<const UA_HistoryModifiedData *>(data->content.decoded.data);
     data_values = modifiedData->dataValues;
     data_value_size = modifiedData->dataValuesSize;
@@ -77,32 +83,30 @@ UA_Boolean FetchOpcHistory::historyReadCallback(UA_Client* /*client*/, const UA_
     // entry i describes value i, or is absent if the value was never edited.
     const UA_ModificationInfo* mod_info = (modification_infos && i < modification_infos_size) ? &modification_infos[i] : nullptr;
 
-    NodeModificationData node_mod_data;
+    std::string node_mod_data_value;
     try {
-      node_mod_data.value = opc::variantToString(value.value);
+      node_mod_data_value = opc::variantToString(value.value);
     } catch (const opc::OPCException&) {
       // Unsupported value type: leave content empty. An exception must not unwind across the C history-read callback boundary in open62541.
       // TODO: Log a warning about the unsupported value type.
     }
 
-    if (mod_info) {
-      if (mod_info->userName.length > 0) {
-        node_mod_data.username = std::string(reinterpret_cast<char *>(mod_info->userName.data), mod_info->userName.length);
-      }
-      node_mod_data.modification_time = opc::OPCDateTime2String(mod_info->modificationTime);
-      node_mod_data.updateType = updateTypeToString(mod_info->updateType);
-    }
-
     auto* context = static_cast<FetchOpcHistoryContext*>(ctx);
     auto flow_file = context->session.create();
     context->session.write(flow_file, [&](const std::shared_ptr<io::OutputStream>& output_stream) -> io::IoResult {
-      output_stream->write(reinterpret_cast<const uint8_t*>(node_mod_data.value.data()), node_mod_data.value.size());
-      return io::IoResult::from(node_mod_data.value.size());
+      output_stream->write(reinterpret_cast<const uint8_t*>(node_mod_data_value.data()), node_mod_data_value.size());
+      return io::IoResult::from(node_mod_data_value.size());
     });
 
-    flow_file->addAttribute("ModificationUsername", node_mod_data.username);
-    flow_file->addAttribute("ModificationTime", node_mod_data.modification_time);
-    flow_file->addAttribute("ModificationUpdateType", node_mod_data.updateType);
+    if (mod_info) {
+      if (mod_info->userName.length > 0) {
+        flow_file->addAttribute("ModificationUsername", std::string(reinterpret_cast<char *>(mod_info->userName.data), mod_info->userName.length));
+      }
+
+      flow_file->addAttribute("ModificationTime", opc::OPCDateTime2String(mod_info->modificationTime));
+      flow_file->addAttribute("ModificationUpdateType", updateTypeToString(mod_info->updateType));
+    }
+
     context->session.transfer(flow_file, Success);
   }
 
@@ -128,7 +132,7 @@ void FetchOpcHistory::onTrigger(core::ProcessContext& context, core::ProcessSess
   FetchOpcHistoryContext ctx{session};
 
   // TODO: change 10 to a configurable batch size property
-  auto retval = connection_->readHistory(node, &FetchOpcHistory::historyReadCallback, UA_DateTime_fromUnixTime(0), UA_DateTime_now(), 10, (void *)&ctx);
+  auto retval = connection_->readHistory(history_type_, node, &FetchOpcHistory::historyReadCallback, UA_DateTime_fromUnixTime(0), UA_DateTime_now(), 10, (void *)&ctx);
 
   if (retval != UA_STATUSCODE_GOOD) {
     // TODO: handle error, possibly yield and log the error
