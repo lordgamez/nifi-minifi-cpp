@@ -36,6 +36,7 @@
 #include "utils/Id.h"
 #include "minifi-cpp/utils/gsl.h"
 #include "minifi-cpp/core/StateManager.h"
+#include "minifi-cpp/controllers/RecordSetWriter.h"
 
 namespace org::apache::nifi::minifi::processors {
 
@@ -53,6 +54,7 @@ struct NodeModificationData {
 
 struct FetchOpcHistoryContext {
   core::ProcessSession& session;
+  std::shared_ptr<core::RecordSetWriter> record_set_writer;
 };
 
 class FetchOpcHistory final : public BaseOPCProcessor {
@@ -87,17 +89,16 @@ class FetchOpcHistory final : public BaseOPCProcessor {
         .withDescription("Maximum number entries to read and return in a single batch. If set to zero or empty all available entries are returned.")
         .withValidator(core::StandardPropertyValidators::UNSIGNED_INTEGER_VALIDATOR)
         .build();
-  EXTENSIONAPI static constexpr auto OutputFormat = core::PropertyDefinitionBuilder<magic_enum::enum_count<OutputFormatOption>()>::createProperty("Output format")
-      .withDescription("Specifies the type of the provided node ID")
-      .isRequired(true)
-      .withAllowedValues(magic_enum::enum_names<OutputFormatOption>())
-      .withDefaultValue(magic_enum::enum_name<OutputFormatOption::Attributes>())
-      .build();
   EXTENSIONAPI static constexpr auto HistoryReadType = core::PropertyDefinitionBuilder<magic_enum::enum_count<opc::HistoryReadTypeOption>()>::createProperty("History Read Type")
       .withDescription("Whether to fetch raw historical values or the audit trail of modifications to historical values")
       .isRequired(true)
       .withAllowedValues(magic_enum::enum_names<opc::HistoryReadTypeOption>())
       .withDefaultValue(magic_enum::enum_name<opc::HistoryReadTypeOption::Raw>())
+      .build();
+  EXTENSIONAPI static constexpr auto RecordSetWriter = core::PropertyDefinitionBuilder<>::createProperty("Record Set Writer")
+      .withDescription("Specifies the Controller Service to use for writing results to a FlowFile instead of using the default output format.")
+      .isRequired(true)
+      .withAllowedTypes<core::RecordSetWriter>()
       .build();
   EXTENSIONAPI static constexpr auto Properties = utils::array_cat(BaseOPCProcessor::Properties, std::to_array<core::PropertyReference>({
       NodeIDType,
@@ -106,8 +107,8 @@ class FetchOpcHistory final : public BaseOPCProcessor {
       StartTimestamp,
       EndTimestamp,
       BatchSize,
-      OutputFormat,
-      HistoryReadType
+      HistoryReadType,
+      RecordSetWriter
   }));
 
 
@@ -140,11 +141,11 @@ class FetchOpcHistory final : public BaseOPCProcessor {
  private:
   static UA_Boolean historyReadCallback(UA_Client* client, const UA_NodeId* node_id, UA_Boolean more_data_available, const UA_ExtensionObject* data, void* ctx);
 
-  OutputFormatOption output_format_ = OutputFormatOption::Attributes;
   opc::HistoryReadTypeOption history_type_ = opc::HistoryReadTypeOption::Raw;
   std::optional<std::chrono::system_clock::time_point> start_timestamp_;
   std::optional<std::chrono::system_clock::time_point> end_timestamp_;
   uint64_t batch_size_ = 0;
+  std::shared_ptr<core::RecordSetWriter> record_set_writer_;
 };
 
 }  // namespace org::apache::nifi::minifi::processors
