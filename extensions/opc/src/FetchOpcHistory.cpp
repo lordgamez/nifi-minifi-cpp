@@ -57,6 +57,7 @@ void FetchOpcHistory::onSchedule(core::ProcessContext& context, core::ProcessSes
   history_type_ = utils::parseEnumProperty<opc::HistoryReadTypeOption>(context, HistoryReadType);
   start_timestamp_ = utils::parseOptionalProperty(context, StartTimestamp) | utils::andThen(utils::timeutils::parseDateTimeStr);
   end_timestamp_ = utils::parseOptionalProperty(context, EndTimestamp) | utils::andThen(utils::timeutils::parseDateTimeStr);
+  batch_size_ = utils::parseOptionalU64Property(context, BatchSize).value_or(0);
 }
 
 UA_Boolean FetchOpcHistory::historyReadCallback(UA_Client* /*client*/, const UA_NodeId* /*node_id*/, UA_Boolean /*more_data_available*/, const UA_ExtensionObject* data, void* ctx) {
@@ -134,8 +135,7 @@ void FetchOpcHistory::onTrigger(core::ProcessContext& context, core::ProcessSess
 
   FetchOpcHistoryContext ctx{session};
 
-  // TODO: change 10 to a configurable batch size property
-  auto retval = connection_->readHistory(history_type_, node, &FetchOpcHistory::historyReadCallback, start_timestamp_, end_timestamp_, 10, (void *)&ctx);
+  auto retval = connection_->readHistory(history_type_, node, &FetchOpcHistory::historyReadCallback, start_timestamp_, end_timestamp_, batch_size_, (void *)&ctx);
 
   if (retval != UA_STATUSCODE_GOOD) {
     // TODO: handle error, possibly yield and log the error

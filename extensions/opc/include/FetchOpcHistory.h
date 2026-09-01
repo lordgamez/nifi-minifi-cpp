@@ -84,9 +84,8 @@ class FetchOpcHistory final : public BaseOPCProcessor {
       .withDescription("Timestamp before which the events should be returned. If not specified entries are returned until the end of the history.")
       .build();
   EXTENSIONAPI static constexpr auto BatchSize = core::PropertyDefinitionBuilder<>::createProperty("Batch Size")
-        .withDescription("Maximum number entries to read and return in a single batch. If set to zero all available entries are returned.")
+        .withDescription("Maximum number entries to read and return in a single batch. If set to zero or empty all available entries are returned.")
         .withValidator(core::StandardPropertyValidators::UNSIGNED_INTEGER_VALIDATOR)
-        .withDefaultValue("0")
         .build();
   EXTENSIONAPI static constexpr auto OutputFormat = core::PropertyDefinitionBuilder<magic_enum::enum_count<OutputFormatOption>()>::createProperty("Output format")
       .withDescription("Specifies the type of the provided node ID")
@@ -145,6 +144,7 @@ class FetchOpcHistory final : public BaseOPCProcessor {
   opc::HistoryReadTypeOption history_type_ = opc::HistoryReadTypeOption::Raw;
   std::optional<std::chrono::system_clock::time_point> start_timestamp_;
   std::optional<std::chrono::system_clock::time_point> end_timestamp_;
+  uint64_t batch_size_ = 0;
 };
 
 }  // namespace org::apache::nifi::minifi::processors

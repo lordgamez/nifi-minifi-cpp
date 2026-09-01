@@ -200,11 +200,14 @@ class OpcUaTestServer {
     return {};
   }
 
-  static std::vector<const HistoryModificationRecord*> selectRecords(const std::vector<HistoryModificationRecord>& records, UA_DateTime start_time, UA_DateTime end_time) {
+  static std::vector<const HistoryModificationRecord*> selectRecords(const std::vector<HistoryModificationRecord>& records, UA_DateTime start_time, UA_DateTime end_time, size_t num_values_per_node) {
     std::vector<const HistoryModificationRecord*> selected;
     for (const auto& record : records) {
       if (record.modification_time >= start_time && record.modification_time <= end_time) {
         selected.push_back(&record);
+      }
+      if (num_values_per_node > 0 && selected.size() >= num_values_per_node) {
+        break;
       }
     }
     return selected;
@@ -230,7 +233,7 @@ class OpcUaTestServer {
         continue;
       }
 
-      const std::vector<const HistoryModificationRecord*> records = selectRecords(it->second, historyReadDetails->startTime, historyReadDetails->endTime);
+      const std::vector<const HistoryModificationRecord*> records = selectRecords(it->second, historyReadDetails->startTime, historyReadDetails->endTime, historyReadDetails->numValuesPerNode);
       const size_t n = records.size();
 
       auto* values = static_cast<UA_DataValue*>(UA_Array_new(n, &UA_TYPES[UA_TYPES_DATAVALUE]));
@@ -271,7 +274,7 @@ class OpcUaTestServer {
         continue;
       }
 
-      const std::vector<const HistoryModificationRecord*> records = selectRecords(it->second, historyReadDetails->startTime, historyReadDetails->endTime);
+      const std::vector<const HistoryModificationRecord*> records = selectRecords(it->second, historyReadDetails->startTime, historyReadDetails->endTime, historyReadDetails->numValuesPerNode);
       const size_t n = records.size();
 
       auto* values = static_cast<UA_DataValue*>(UA_Array_new(n, &UA_TYPES[UA_TYPES_DATAVALUE]));
