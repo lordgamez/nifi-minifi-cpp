@@ -200,14 +200,18 @@ class OpcUaTestServer {
     return {};
   }
 
-  static std::vector<const HistoryModificationRecord*> selectRecords(const std::vector<HistoryModificationRecord>& records, UA_DateTime start_time, UA_DateTime end_time, size_t num_values_per_node) {
+  static std::vector<const HistoryModificationRecord*> selectRecords(const std::vector<HistoryModificationRecord>& records, UA_DateTime start_time, UA_DateTime end_time, size_t num_values_per_node,
+      bool& has_more_data) {
+    has_more_data = false;
     std::vector<const HistoryModificationRecord*> selected;
     for (const auto& record : records) {
-      if (record.modification_time >= start_time && record.modification_time <= end_time) {
+      if (record.modification_time >= start_time && record.modification_time < end_time) {
+        if (num_values_per_node > 0 && selected.size() >= num_values_per_node) {
+          // A qualifying record exists beyond the requested window: the server must signal this with a continuation point.
+          has_more_data = true;
+          break;
+        }
         selected.push_back(&record);
-      }
-      if (num_values_per_node > 0 && selected.size() >= num_values_per_node) {
-        break;
       }
     }
     return selected;
@@ -233,7 +237,9 @@ class OpcUaTestServer {
         continue;
       }
 
-      const std::vector<const HistoryModificationRecord*> records = selectRecords(it->second, historyReadDetails->startTime, historyReadDetails->endTime, historyReadDetails->numValuesPerNode);
+      bool has_more_data = false;
+      const std::vector<const HistoryModificationRecord*> records = selectRecords(it->second, historyReadDetails->startTime, historyReadDetails->endTime, historyReadDetails->numValuesPerNode,
+          has_more_data);
       const size_t n = records.size();
 
       auto* values = static_cast<UA_DataValue*>(UA_Array_new(n, &UA_TYPES[UA_TYPES_DATAVALUE]));
@@ -248,6 +254,9 @@ class OpcUaTestServer {
 
       historyData[i]->dataValues = values;
       historyData[i]->dataValuesSize = n;
+      if (has_more_data) {
+        response->results[i].continuationPoint = UA_BYTESTRING_ALLOC("cp");
+      }
       response->results[i].statusCode = UA_STATUSCODE_GOOD;
     }
 
@@ -274,7 +283,9 @@ class OpcUaTestServer {
         continue;
       }
 
-      const std::vector<const HistoryModificationRecord*> records = selectRecords(it->second, historyReadDetails->startTime, historyReadDetails->endTime, historyReadDetails->numValuesPerNode);
+      bool has_more_data = false;
+      const std::vector<const HistoryModificationRecord*> records = selectRecords(it->second, historyReadDetails->startTime, historyReadDetails->endTime, historyReadDetails->numValuesPerNode,
+          has_more_data);
       const size_t n = records.size();
 
       auto* values = static_cast<UA_DataValue*>(UA_Array_new(n, &UA_TYPES[UA_TYPES_DATAVALUE]));
@@ -296,6 +307,9 @@ class OpcUaTestServer {
       historyData[i]->dataValuesSize = n;
       historyData[i]->modificationInfos = mods;
       historyData[i]->modificationInfosSize = n;
+      if (has_more_data) {
+        response->results[i].continuationPoint = UA_BYTESTRING_ALLOC("cp");
+      }
       response->results[i].statusCode = UA_STATUSCODE_GOOD;
     }
 
