@@ -18,7 +18,10 @@
 #include "FetchOpcHistory.h"
 
 #include <memory>
+#include <optional>
 #include <string>
+#include <unordered_map>
+#include <vector>
 
 #include "minifi-cpp/core/ProcessContext.h"
 #include "core/ProcessSession.h"
@@ -35,6 +38,9 @@ namespace org::apache::nifi::minifi::processors {
 
 namespace {
 
+constexpr const char* LAST_FETCHED_TIMESTAMP_KEY = "last_fetched_timestamp";
+constexpr const char* LAST_FETCHED_FINGERPRINT_KEY = "last_fetched_fingerprint";
+
 std::string updateTypeToString(UA_HistoryUpdateType type) {
   switch (type) {
     case UA_HISTORYUPDATETYPE_INSERT: return "Insert";
@@ -43,6 +49,188 @@ std::string updateTypeToString(UA_HistoryUpdateType type) {
     case UA_HISTORYUPDATETYPE_DELETE: return "Delete";
     default: return "Unknown";
   }
+}
+
+std::string uaStringToString(const UA_String& str) {
+  return std::string(reinterpret_cast<const char*>(str.data), str.length);
+}
+
+// A single historical value together with its modification metadata, if the value was ever edited.
+struct HistoryEntry {
+  std::string value;
+  int64_t source_timestamp = 0;
+  const UA_ModificationInfo* modification_info = nullptr;
+
+  int64_t modificationTime() const {
+    return modification_info ? modification_info->modificationTime : UA_DateTime_fromUnixTime(0);
+  }
+};
+
+struct HistoryBatch {
+  std::vector<HistoryEntry> entries;
+  bool has_modification_info = false;
+};
+
+// Identifies the last entry emitted on a previous read so that already-fetched entries can be skipped.
+struct Fingerprint {
+  int64_t source_timestamp = 0;
+  std::optional<int64_t> modification_timestamp;
+  std::string value;
+};
+
+std::optional<HistoryBatch> extractHistoryBatch(const UA_ExtensionObject* data) {
+  const UA_DataValue* data_values = nullptr;
+  size_t data_value_size = 0;
+  const UA_ModificationInfo* modification_infos = nullptr;
+  size_t modification_infos_size = 0;
+
+  if (data->content.decoded.type == &UA_TYPES[UA_TYPES_HISTORYDATA]) {
+    const auto* history_data = static_cast<const UA_HistoryData*>(data->content.decoded.data);
+    data_values = history_data->dataValues;
+    data_value_size = history_data->dataValuesSize;
+  } else if (data->content.decoded.type == &UA_TYPES[UA_TYPES_HISTORYMODIFIEDDATA]) {
+    const auto* modified_data = static_cast<const UA_HistoryModifiedData*>(data->content.decoded.data);
+    data_values = modified_data->dataValues;
+    data_value_size = modified_data->dataValuesSize;
+    modification_infos = modified_data->modificationInfos;
+    modification_infos_size = modified_data->modificationInfosSize;
+  } else {
+    // TODO: Unexpected data type received in the callback, how to handle this?
+    return std::nullopt;
+  }
+
+  HistoryBatch batch;
+  batch.has_modification_info = modification_infos != nullptr;
+  batch.entries.reserve(data_value_size);
+  for (size_t i = 0; i < data_value_size; ++i) {
+    HistoryEntry entry;
+    try {
+      entry.value = opc::variantToString(data_values[i].value);
+    } catch (const opc::OPCException&) {
+      // Unsupported value type: leave content empty. An exception must not unwind across the C history-read callback boundary in open62541.
+      // TODO: Log a warning about the unsupported value type.
+    }
+    entry.source_timestamp = data_values[i].sourceTimestamp;
+    // modificationInfos is parallel to dataValues by index (OPC UA Part 11):
+    // entry i describes value i, or is absent if the value was never edited.
+    entry.modification_info = (modification_infos && i < modification_infos_size) ? &modification_infos[i] : nullptr;
+    batch.entries.push_back(std::move(entry));
+  }
+  return batch;
+}
+
+std::optional<Fingerprint> parseFingerprint(const std::unordered_map<std::string, std::string>& state_map, bool has_modification_info) {
+  const auto it = state_map.find(LAST_FETCHED_FINGERPRINT_KEY);
+  if (it == state_map.end()) {
+    return std::nullopt;
+  }
+
+  const auto parts = utils::string::split(it->second, ":");
+  Fingerprint fingerprint;
+  if (has_modification_info) {
+    if (parts.size() != 3) {
+      return std::nullopt;  // TODO: warning
+    }
+    fingerprint.source_timestamp = std::stoll(parts[0]);
+    fingerprint.modification_timestamp = std::stoll(parts[1]);
+    fingerprint.value = parts[2];
+  } else {
+    if (parts.size() != 2) {
+      return std::nullopt;  // TODO: warning
+    }
+    fingerprint.source_timestamp = std::stoll(parts[0]);
+    fingerprint.value = parts[1];
+  }
+  return fingerprint;
+}
+
+// Drops the entries that were already emitted on a previous read. Several entries may share the last-fetched
+// source timestamp, so entries at that timestamp are skipped until the previously-emitted one has been passed.
+std::vector<HistoryEntry> selectNewEntries(std::vector<HistoryEntry> entries, const std::optional<Fingerprint>& last_fetched) {
+  if (!last_fetched) {
+    return entries;
+  }
+
+  std::vector<HistoryEntry> new_entries;
+  new_entries.reserve(entries.size());
+  bool already_fetched_found = false;
+  for (auto& entry : entries) {
+    if (!already_fetched_found && entry.source_timestamp == last_fetched->source_timestamp) {
+      const bool matches = last_fetched->modification_timestamp
+          ? entry.modificationTime() == *last_fetched->modification_timestamp && entry.value == last_fetched->value
+          : entry.value == last_fetched->value;
+      if (matches) {
+        already_fetched_found = true;
+      }
+      continue;
+    }
+    new_entries.push_back(std::move(entry));
+  }
+  return new_entries;
+}
+
+void addModificationInfo(core::Record& record, const UA_ModificationInfo& modification_info) {
+  if (modification_info.userName.length > 0) {
+    record.emplace("ModificationUsername", core::RecordField(uaStringToString(modification_info.userName)));
+  }
+  record.emplace("ModificationTime", core::RecordField(opc::OPCDateTime2String(modification_info.modificationTime)));
+  record.emplace("ModificationUpdateType", core::RecordField(updateTypeToString(modification_info.updateType)));
+}
+
+void addModificationInfo(core::FlowFile& flow_file, const UA_ModificationInfo& modification_info) {
+  if (modification_info.userName.length > 0) {
+    flow_file.addAttribute("ModificationUsername", uaStringToString(modification_info.userName));
+  }
+  flow_file.addAttribute("ModificationTime", opc::OPCDateTime2String(modification_info.modificationTime));
+  flow_file.addAttribute("ModificationUpdateType", updateTypeToString(modification_info.updateType));
+}
+
+core::Record toRecord(const HistoryEntry& entry) {
+  core::Record record;
+  record.emplace("Value", core::RecordField(std::string(entry.value)));
+  if (entry.modification_info) {
+    addModificationInfo(record, *entry.modification_info);
+  }
+  return record;
+}
+
+// Emits all new entries as a single FlowFile written through the configured record set writer.
+void writeAsRecordSet(FetchOpcHistoryContext& context, const std::vector<HistoryEntry>& entries) {
+  core::RecordSet record_set;
+  for (const auto& entry : entries) {
+    record_set.push_back(toRecord(entry));
+  }
+
+  auto flow_file = context.session.create();
+  context.record_set_writer->write(record_set, flow_file, context.session);
+  context.session.transfer(flow_file, FetchOpcHistory::Success);
+  ++context.flow_files_transferred;
+}
+
+// Emits each new entry as its own FlowFile whose content is the raw value.
+void writeAsFlowFiles(FetchOpcHistoryContext& context, const std::vector<HistoryEntry>& entries) {
+  for (const auto& entry : entries) {
+    auto flow_file = context.session.create();
+    context.session.write(flow_file, [&entry](const std::shared_ptr<io::OutputStream>& output_stream) -> io::IoResult {
+      output_stream->write(reinterpret_cast<const uint8_t*>(entry.value.data()), entry.value.size());
+      return io::IoResult::from(entry.value.size());
+    });
+    if (entry.modification_info) {
+      addModificationInfo(*flow_file, *entry.modification_info);
+    }
+    context.session.transfer(flow_file, FetchOpcHistory::Success);
+    ++context.flow_files_transferred;
+  }
+}
+
+void updateState(std::unordered_map<std::string, std::string>& state_map, const HistoryEntry& last_entry) {
+  std::string fingerprint = std::to_string(last_entry.source_timestamp) + ":";
+  if (last_entry.modification_info && last_entry.modification_info->modificationTime > 0) {
+    fingerprint += std::to_string(last_entry.modification_info->modificationTime) + ":";
+  }
+  fingerprint += last_entry.value;
+  state_map[LAST_FETCHED_TIMESTAMP_KEY] = std::to_string(last_entry.source_timestamp);
+  state_map[LAST_FETCHED_FINGERPRINT_KEY] = fingerprint;
 }
 
 }  // namespace
@@ -68,192 +256,27 @@ void FetchOpcHistory::onSchedule(core::ProcessContext& context, core::ProcessSes
 }
 
 UA_Boolean FetchOpcHistory::historyReadCallback(UA_Client* /*client*/, const UA_NodeId* /*node_id*/, UA_Boolean more_data_available, const UA_ExtensionObject* data, void* ctx) {
-  const UA_DataValue* data_values = nullptr;
-  size_t data_value_size = 0;
-  const UA_ModificationInfo* modification_infos = nullptr;
-  size_t modification_infos_size = 0;
-
-  if (data->content.decoded.type == &UA_TYPES[UA_TYPES_HISTORYDATA]) {
-    const auto *historyData = static_cast<const UA_HistoryData *>(data->content.decoded.data);
-    data_values = historyData->dataValues;
-    data_value_size = historyData->dataValuesSize;
-  } else if (data->content.decoded.type == &UA_TYPES[UA_TYPES_HISTORYMODIFIEDDATA]) {
-    const auto *modifiedData = static_cast<const UA_HistoryModifiedData *>(data->content.decoded.data);
-    data_values = modifiedData->dataValues;
-    data_value_size = modifiedData->dataValuesSize;
-    modification_infos = modifiedData->modificationInfos;
-    modification_infos_size = modifiedData->modificationInfosSize;
-  } else {
-    // TODO: Unexpected data type received in the callback, how to handle this?
-    return false;
-  }
-
-  if (data_value_size == 0) {
-    return false;  // No data to process
-  }
-
   auto* context = static_cast<FetchOpcHistoryContext*>(ctx);
   context->has_more_data = more_data_available;
 
-  std::optional<int64_t> last_fetched_source_timestamp;
-  std::optional<int64_t> last_fetched_modification_timestamp;
-  std::optional<std::string> last_fetched_value;
-  if (context->state_map.find("last_fetched_fingerprint") != context->state_map.end()) {
-    auto splitted_state = utils::string::split(context->state_map["last_fetched_fingerprint"], ":");
-    if (modification_infos) {
-      if (splitted_state.size() == 3) {
-        last_fetched_source_timestamp = std::stoll(splitted_state[0]);
-        last_fetched_modification_timestamp = std::stoll(splitted_state[1]);
-        last_fetched_value = splitted_state[2];
-      } else {
-        // TODO: warning
-      }
-    } else {
-      if (splitted_state.size() == 2) {
-        last_fetched_source_timestamp = std::stoll(splitted_state[0]);
-        last_fetched_value = splitted_state[1];
-      } else {
-        // TODO: warning
-      }
-    }
+  auto batch = extractHistoryBatch(data);
+  if (!batch || batch->entries.empty()) {
+    return false;
   }
 
-  std::string new_last_fetched_value;
-  int64_t new_last_fetched_source_timestamp = 0;
-  int64_t new_last_fetched_modification_timestamp = 0;
+  const auto last_fetched = parseFingerprint(context->state_map, batch->has_modification_info);
+  const auto new_entries = selectNewEntries(std::move(batch->entries), last_fetched);
+  if (new_entries.empty()) {
+    return false;
+  }
+
   if (context->record_set_writer) {
-    core::RecordSet record_set;
-    bool already_fetched_found = false;
-    for (size_t i = 0; i < data_value_size; ++i) {
-      const UA_DataValue &value = data_values[i];
-      // modificationInfos is parallel to dataValues by index (OPC UA Part 11):
-      // entry i describes value i, or is absent if the value was never edited.
-      const UA_ModificationInfo* mod_info = (modification_infos && i < modification_infos_size) ? &modification_infos[i] : nullptr;
-
-      std::string node_mod_data_value;
-      try {
-        node_mod_data_value = opc::variantToString(value.value);
-      } catch (const opc::OPCException&) {
-        // Unsupported value type: leave content empty. An exception must not unwind across the C history-read callback boundary in open62541.
-        // TODO: Log a warning about the unsupported value type.
-      }
-
-      auto source_timestamp = value.sourceTimestamp;
-      auto modification_timestamp = mod_info ? mod_info->modificationTime : UA_DateTime_fromUnixTime(0);
-      if (last_fetched_source_timestamp && last_fetched_value) {
-        if (source_timestamp == *last_fetched_source_timestamp) {
-          if (last_fetched_modification_timestamp) {
-            if (!already_fetched_found) {
-              if (modification_timestamp == *last_fetched_modification_timestamp && node_mod_data_value == *last_fetched_value) {
-                already_fetched_found = true;
-              }
-              continue;
-            }
-          } else {
-            if (!already_fetched_found) {
-              if (node_mod_data_value == *last_fetched_value) {
-                already_fetched_found = true;
-              }
-              continue;
-            }
-          }
-        }
-      }
-
-      core::Record record;
-      new_last_fetched_source_timestamp = source_timestamp;
-      new_last_fetched_value = node_mod_data_value;
-      record.emplace("Value", core::RecordField(std::move(node_mod_data_value)));
-      if (mod_info) {
-        if (mod_info->userName.length > 0) {
-          record.emplace("ModificationUsername", core::RecordField(std::string(reinterpret_cast<char *>(mod_info->userName.data), mod_info->userName.length)));
-        }
-        new_last_fetched_modification_timestamp = mod_info->modificationTime;
-        record.emplace("ModificationTime", core::RecordField(opc::OPCDateTime2String(mod_info->modificationTime)));
-        record.emplace("ModificationUpdateType", core::RecordField(updateTypeToString(mod_info->updateType)));
-      }
-      record_set.push_back(std::move(record));
-    }
-
-    if (record_set.empty()) {
-      return false;
-    }
-
-    auto flow_file = context->session.create();
-    context->record_set_writer->write(record_set, flow_file, context->session);
-    context->session.transfer(flow_file, Success);
-    ++context->flow_files_transferred;
+    writeAsRecordSet(*context, new_entries);
   } else {
-    bool already_fetched_found = false;
-    for (size_t i = 0; i < data_value_size; ++i) {
-      const UA_DataValue &value = data_values[i];
-      // modificationInfos is parallel to dataValues by index (OPC UA Part 11):
-      // entry i describes value i, or is absent if the value was never edited.
-      const UA_ModificationInfo* mod_info = (modification_infos && i < modification_infos_size) ? &modification_infos[i] : nullptr;
-
-      std::string node_mod_data_value;
-      try {
-        node_mod_data_value = opc::variantToString(value.value);
-      } catch (const opc::OPCException&) {
-        // Unsupported value type: leave content empty. An exception must not unwind across the C history-read callback boundary in open62541.
-        // TODO: Log a warning about the unsupported value type.
-      }
-
-      auto source_timestamp = value.sourceTimestamp;
-      auto modification_timestamp = mod_info ? mod_info->modificationTime : UA_DateTime_fromUnixTime(0);
-      if (last_fetched_source_timestamp && last_fetched_value) {
-        if (source_timestamp == *last_fetched_source_timestamp) {
-          if (last_fetched_modification_timestamp) {
-            if (!already_fetched_found) {
-              if (modification_timestamp == *last_fetched_modification_timestamp && node_mod_data_value == *last_fetched_value) {
-                already_fetched_found = true;
-              }
-              continue;
-            }
-          } else {
-            if (!already_fetched_found) {
-              if (node_mod_data_value == *last_fetched_value) {
-                already_fetched_found = true;
-              }
-              continue;
-            }
-          }
-        }
-      }
-
-      new_last_fetched_source_timestamp = source_timestamp;
-      new_last_fetched_value = node_mod_data_value;
-      auto flow_file = context->session.create();
-      context->session.write(flow_file, [&](const std::shared_ptr<io::OutputStream>& output_stream) -> io::IoResult {
-        output_stream->write(reinterpret_cast<const uint8_t*>(node_mod_data_value.data()), node_mod_data_value.size());
-        return io::IoResult::from(node_mod_data_value.size());
-      });
-
-      if (mod_info) {
-        if (mod_info->userName.length > 0) {
-          flow_file->addAttribute("ModificationUsername", std::string(reinterpret_cast<char *>(mod_info->userName.data), mod_info->userName.length));
-        }
-
-        new_last_fetched_modification_timestamp = mod_info->modificationTime;
-        flow_file->addAttribute("ModificationTime", opc::OPCDateTime2String(mod_info->modificationTime));
-        flow_file->addAttribute("ModificationUpdateType", updateTypeToString(mod_info->updateType));
-      }
-
-      context->session.transfer(flow_file, Success);
-      ++context->flow_files_transferred;
-    }
+    writeAsFlowFiles(*context, new_entries);
   }
 
-  if (new_last_fetched_source_timestamp > 0) {
-    std::string new_fingerprint = std::to_string(new_last_fetched_source_timestamp) + ":";
-    if (new_last_fetched_modification_timestamp > 0) {
-      new_fingerprint += std::to_string(new_last_fetched_modification_timestamp) + ":";
-    }
-    new_fingerprint += new_last_fetched_value;
-    context->state_map["last_fetched_timestamp"] = std::to_string(new_last_fetched_source_timestamp);
-    context->state_map["last_fetched_fingerprint"] = new_fingerprint;
-  }
-
+  updateState(context->state_map, new_entries.back());
   return false;
 }
 
@@ -278,8 +301,8 @@ void FetchOpcHistory::onTrigger(core::ProcessContext& context, core::ProcessSess
 
   UA_DateTime ua_start_time = UA_DateTime_fromUnixTime(0);
   UA_DateTime ua_end_time = UA_DateTime_now();
-  if (state_map.find("last_fetched_timestamp") != state_map.end()) {
-    ua_start_time = std::stoll(state_map["last_fetched_timestamp"].c_str());
+  if (state_map.find(LAST_FETCHED_TIMESTAMP_KEY) != state_map.end()) {
+    ua_start_time = std::stoll(state_map[LAST_FETCHED_TIMESTAMP_KEY].c_str());
   } else if (start_timestamp_.has_value()) {
     uint64_t start_time_seconds = std::chrono::duration_cast<std::chrono::seconds>(start_timestamp_->time_since_epoch()).count();
     ua_start_time = UA_DateTime_fromUnixTime(start_time_seconds);
