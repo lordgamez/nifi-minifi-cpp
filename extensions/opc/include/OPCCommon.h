@@ -49,7 +49,8 @@ class OPCException : public minifi::Exception {
 enum class OPCNodeIDType{
   Path,
   Int,
-  String
+  String,
+  Guid
 };
 
 enum class OPCNodeDataType{

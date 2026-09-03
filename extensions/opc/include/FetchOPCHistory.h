@@ -59,6 +59,7 @@ struct FetchOPCHistoryContext {
   bool& has_more_data;
   size_t& flow_files_transferred;
   const std::string& node_id;
+  const int32_t namespace_index;
 };
 
 class FetchOPCHistory final : public BaseOPCProcessor {
@@ -70,16 +71,14 @@ class FetchOPCHistory final : public BaseOPCProcessor {
       "A history entry is only fetched once, on every trigger only the not yet fetched entries are returned.";
 
   EXTENSIONAPI static constexpr auto NodeIDType =
-      core::PropertyDefinitionBuilder<magic_enum::enum_count<opc::OPCNodeIDType>()>::createProperty("Node ID type")
+      core::PropertyDefinitionBuilder<3>::createProperty("Node ID type")
           .withDescription("Specifies the type of the provided node ID")
           .isRequired(true)
-          .withAllowedValues(magic_enum::enum_names<opc::OPCNodeIDType>())
+          .withAllowedValues({"String", "Int", "Guid"})
           .build();
   EXTENSIONAPI static constexpr auto NodeID =
       core::PropertyDefinitionBuilder<>::createProperty("Node ID")
-          .withDescription(
-              "Specifies the ID of the root node to traverse. In case of a Path Node ID Type, the path should be provided in the format of "
-              "'path/to/node'.")
+          .withDescription("Specifies the ID of the root node to fetch history for.")
           .isRequired(true)
           .build();
   EXTENSIONAPI static constexpr auto NameSpaceIndex =
@@ -125,6 +124,7 @@ class FetchOPCHistory final : public BaseOPCProcessor {
   EXTENSIONAPI static constexpr auto Relationships = std::array{Success};
 
   EXTENSIONAPI static constexpr auto NodeIDAttr = core::OutputAttributeDefinition<>{"NodeID", {Success}, "ID of the node."};
+  EXTENSIONAPI static constexpr auto NamespaceIndexAttr = core::OutputAttributeDefinition<>{"Namespace index", {Success}, "Namespace index of the node."};
   EXTENSIONAPI static constexpr auto SourcetimestampAttr = core::OutputAttributeDefinition<>{
       "Sourcetimestamp", {Success}, "The timestamp of when the node was created in the server as 'YYYY-MM-DDTHH:MM:SS.sssZ'."};
   EXTENSIONAPI static constexpr auto ModificationUsernameAttr = core::OutputAttributeDefinition<>{
@@ -134,8 +134,8 @@ class FetchOPCHistory final : public BaseOPCProcessor {
   EXTENSIONAPI static constexpr auto ModificationUpdateTypeAttr = core::OutputAttributeDefinition<>{
       "ModificationUpdateType", {Success}, "Type of modification performed on the node."};
 
-  EXTENSIONAPI static constexpr auto OutputAttributes = std::array<core::OutputAttributeReference, 5>{
-      NodeIDAttr, SourcetimestampAttr, ModificationUsernameAttr, ModificationTimeAttr, ModificationUpdateTypeAttr};
+  EXTENSIONAPI static constexpr auto OutputAttributes = std::array<core::OutputAttributeReference, 6>{
+      NodeIDAttr, NamespaceIndexAttr, SourcetimestampAttr, ModificationUsernameAttr, ModificationTimeAttr, ModificationUpdateTypeAttr};
 
   EXTENSIONAPI static constexpr bool SupportsDynamicProperties = false;
   EXTENSIONAPI static constexpr bool SupportsDynamicRelationships = false;
@@ -157,6 +157,7 @@ class FetchOPCHistory final : public BaseOPCProcessor {
   std::optional<std::chrono::system_clock::time_point> end_timestamp_;
   uint64_t batch_size_ = 0;
   std::shared_ptr<core::RecordSetWriter> record_set_writer_;
+  UA_NodeId node_;
 };
 
 }  // namespace org::apache::nifi::minifi::processors

@@ -16,6 +16,7 @@
  */
 #pragma once
 
+#include <cinttypes>
 #include <open62541/server.h>
 #include <open62541/server_config_default.h>
 #include <open62541/plugin/historydatabase.h>
@@ -28,6 +29,7 @@
 #include <algorithm>
 #include "unit/TestUtils.h"
 #include "unit/Catch.h"
+#include "include/OPCCommon.h"
 
 extern "C" int mp_vsnprintf(char* s, size_t count, const char* format, va_list arg);
 
@@ -84,14 +86,16 @@ class OpcUaTestServer {
     UA_NodeId default_node = addObject("Default", simulator_node);
     UA_NodeId device1_node = addObject("Device1", default_node);
 
-    auto int1_node = addIntVariable("INT1", device1_node, 1);
-    node_ids_["Simulator/Default/Device1/INT1"] = int1_node;
-    auto int2_node = addIntVariable("INT2", device1_node, 2);
-    node_ids_["Simulator/Default/Device1/INT2"] = int2_node;
-    auto int3_node = addIntVariable("INT3", device1_node, 3);
-    node_ids_["Simulator/Default/Device1/INT3"] = int3_node;
-    auto int4_node = addIntVariable("INT4", int3_node, 4);
-    node_ids_["Simulator/Default/Device1/INT4"] = int4_node;
+    auto int1_node = addIntVariable("INT1", opc::OPCNodeIDType::String, device1_node, 1);
+    node_ids_["INT1"] = int1_node;
+    auto int2_node = addIntVariable("INT2", opc::OPCNodeIDType::String, device1_node, 2);
+    node_ids_["INT2"] = int2_node;
+    auto int3_node = addIntVariable("INT3", opc::OPCNodeIDType::String, device1_node, 3);
+    node_ids_["INT3"] = int3_node;
+    auto int4_node = addIntVariable("INT4", opc::OPCNodeIDType::String, int3_node, 4);
+    node_ids_["INT4"] = int4_node;
+    auto int666_node = addIntVariable("666", opc::OPCNodeIDType::Int, device1_node, 256);
+    node_ids_["666"] = int666_node;
 
     setHistory("INT1", {HistoryModificationRecord{
         .value = 1,
@@ -114,6 +118,11 @@ class OpcUaTestServer {
         .username = "test_user",
         .update_type = UA_HISTORYUPDATETYPE_REPLACE,
         .modification_time = makeDateTime(2026, 3, 11, 11, 30, 0, 0)}});
+    setHistory("666", {HistoryModificationRecord{
+        .value = 256,
+        .username = "integer_user",
+        .update_type = UA_HISTORYUPDATETYPE_INSERT,
+        .modification_time = makeDateTime(2001, 1, 1, 22, 22, 0, 0)}});
   }
 
   void start() {
@@ -196,6 +205,17 @@ class OpcUaTestServer {
   static std::string nodeIdToString(const UA_NodeId& id) {
     if (id.identifierType == UA_NODEIDTYPE_STRING) {
       return std::string(reinterpret_cast<const char*>(id.identifier.string.data), id.identifier.string.length);
+    } else if (id.identifierType == UA_NODEIDTYPE_NUMERIC) {
+      return std::to_string(id.identifier.numeric);
+    } else if (id.identifierType == UA_NODEIDTYPE_GUID) {
+      char guid_str[37];
+      snprintf(guid_str, sizeof(guid_str), "%08x-%04x-%04x-%04x-%012" PRIx64,
+              id.identifier.guid.data1, id.identifier.guid.data2, id.identifier.guid.data3,
+              (id.identifier.guid.data4[0] << 8) | id.identifier.guid.data4[1],
+              ((uint64_t)id.identifier.guid.data4[2] << 40) | ((uint64_t)id.identifier.guid.data4[3] << 32) |
+              ((uint64_t)id.identifier.guid.data4[4] << 24) | ((uint64_t)id.identifier.guid.data4[5] << 16) |
+              ((uint64_t)id.identifier.guid.data4[6] << 8)  | (uint64_t)id.identifier.guid.data4[7]);
+      return std::string(guid_str);
     }
     return {};
   }
@@ -231,8 +251,9 @@ class OpcUaTestServer {
     std::lock_guard<std::mutex> lock(self->history_mutex_);
 
     for (size_t i = 0; i < nodesToReadSize; ++i) {
-      auto it = self->history_records_.find(nodeIdToString(nodesToRead[i].nodeId));
-      if (it == self->history_records_.end()) {
+      auto node_id_str = nodeIdToString(nodesToRead[i].nodeId);
+      auto it = self->history_records_.find(node_id_str);
+      if (it == self->history_records_.end() || nodesToRead[i].nodeId.identifierType != self->node_ids_[node_id_str].identifierType) {
         response->results[i].statusCode = UA_STATUSCODE_BADNODEIDUNKNOWN;
         continue;
       }
@@ -277,8 +298,9 @@ class OpcUaTestServer {
     std::lock_guard<std::mutex> lock(self->history_mutex_);
 
     for (size_t i = 0; i < nodesToReadSize; ++i) {
-      auto it = self->history_records_.find(nodeIdToString(nodesToRead[i].nodeId));
-      if (it == self->history_records_.end()) {
+      auto node_id_str = nodeIdToString(nodesToRead[i].nodeId);
+      auto it = self->history_records_.find(node_id_str);
+      if (it == self->history_records_.end() || nodesToRead[i].nodeId.identifierType != self->node_ids_[node_id_str].identifierType) {
         response->results[i].statusCode = UA_STATUSCODE_BADNODEIDUNKNOWN;
         continue;
       }
@@ -337,20 +359,38 @@ class OpcUaTestServer {
     return object_id;
   }
 
-  UA_NodeId addIntVariable(const char *name, UA_NodeId parent, UA_Int32 value) {
+  UA_StatusCode addNode(UA_NodeId parent_node_id, UA_NodeId& target_node_id, opc::OPCNodeIDType type, const std::string& browse_name, const UA_VariableAttributes& attr) {
+    UA_QualifiedName qname = UA_QUALIFIEDNAME(ns_index_, const_cast<char*>(browse_name.c_str()));
+    UA_NodeId node_id;
+
+    switch (type) {
+      case opc::OPCNodeIDType::Int:
+        node_id = UA_NODEID_NUMERIC(ns_index_, std::stoi(browse_name));
+        break;
+      case opc::OPCNodeIDType::String:
+        node_id = UA_NODEID_STRING_ALLOC(ns_index_, browse_name.c_str());
+        break;
+      case opc::OPCNodeIDType::Guid:
+        node_id = UA_NODEID_GUID(ns_index_, UA_GUID(browse_name.c_str()));
+        break;
+      default:
+        return UA_STATUSCODE_BADNOTSUPPORTED;
+    }
+
+    return UA_Server_addVariableNode(server_, node_id, parent_node_id,
+                                     UA_NODEID_NUMERIC(0, UA_NS0ID_HASCOMPONENT),
+                                     qname, UA_NODEID_NUMERIC(0, UA_NS0ID_BASEDATAVARIABLETYPE), attr, nullptr, &target_node_id);
+  }
+
+  UA_NodeId addIntVariable(const std::string& name, opc::OPCNodeIDType type, UA_NodeId parent, UA_Int32 value) {
     UA_VariableAttributes attr = UA_VariableAttributes_default;
-    attr.displayName = UA_LOCALIZEDTEXT_ALLOC("en-US", name);
+    attr.displayName = UA_LOCALIZEDTEXT_ALLOC("en-US", name.c_str());
     attr.accessLevel = UA_ACCESSLEVELMASK_READ | UA_ACCESSLEVELMASK_WRITE | UA_ACCESSLEVELMASK_HISTORYREAD;
 
     UA_Variant_setScalar(&attr.value, &value, &UA_TYPES[UA_TYPES_INT32]);
 
     UA_NodeId node_id;
-    auto status = UA_Server_addVariableNode(
-      server_, UA_NODEID_STRING_ALLOC(ns_index_, const_cast<char*>(name)), parent,
-      UA_NODEID_NUMERIC(0, UA_NS0ID_HASCOMPONENT),
-      UA_QUALIFIEDNAME(ns_index_, const_cast<char*>(name)),
-      UA_NODEID_NUMERIC(0, UA_NS0ID_BASEDATAVARIABLETYPE),
-      attr, nullptr, &node_id);
+    auto status = addNode(parent, node_id, type, name, attr);
 
     if (status != UA_STATUSCODE_GOOD) {
       UA_LocalizedText_clear(&attr.displayName);

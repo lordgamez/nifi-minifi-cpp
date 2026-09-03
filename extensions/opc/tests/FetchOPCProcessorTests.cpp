@@ -218,7 +218,7 @@ TEST_CASE("Test fetch for nodes with changed timestamps with lazy mode", "[fetch
   REQUIRE(results.at(processors::FetchOPCProcessor::Failure).empty());
   REQUIRE(results.at(processors::FetchOPCProcessor::Success).size() == 4);
 
-  server.updateNodeTimestamp("Simulator/Default/Device1/INT3");
+  server.updateNodeTimestamp("INT3");
   results = controller.trigger();
   REQUIRE(results.at(processors::FetchOPCProcessor::Failure).empty());
   REQUIRE(results.at(processors::FetchOPCProcessor::Success).size() == 1);
@@ -242,7 +242,7 @@ TEST_CASE("Test no fetch result using lazy new value mode when no values are cha
   REQUIRE(results.at(processors::FetchOPCProcessor::Failure).empty());
   REQUIRE(results.at(processors::FetchOPCProcessor::Success).size() == 4);
 
-  server.updateNodeTimestamp("Simulator/Default/Device1/INT3");
+  server.updateNodeTimestamp("INT3");
   results = controller.trigger();
   REQUIRE(results.at(processors::FetchOPCProcessor::Failure).empty());
   REQUIRE(results.at(processors::FetchOPCProcessor::Success).empty());
@@ -265,8 +265,8 @@ TEST_CASE("Test fetching new values using lazy new value mode", "[fetchopcproces
   REQUIRE(results.at(processors::FetchOPCProcessor::Failure).empty());
   REQUIRE(results.at(processors::FetchOPCProcessor::Success).size() == 4);
 
-  server.updateNodeTimestamp("Simulator/Default/Device1/INT3");
-  server.updateNodeValue("Simulator/Default/Device1/INT2", 42);
+  server.updateNodeTimestamp("INT3");
+  server.updateNodeValue("INT2", 42);
   results = controller.trigger();
   REQUIRE(results.at(processors::FetchOPCProcessor::Failure).empty());
   REQUIRE(results.at(processors::FetchOPCProcessor::Success).size() == 1);
