@@ -119,7 +119,7 @@ class FetchOPCProcessor final : public BaseOPCProcessor {
   EXTENSIONAPI static constexpr auto BrowsenameAttr = core::OutputAttributeDefinition<>{"Browsename", { Success }, "The browse name of the node."};
   EXTENSIONAPI static constexpr auto FullPathAttr = core::OutputAttributeDefinition<>{"Full path", { Success }, "The full path of the node."};
   EXTENSIONAPI static constexpr auto SourcetimestampAttr = core::OutputAttributeDefinition<>{"Sourcetimestamp", { Success },
-    "The timestamp of when the node was created in the server as 'MM-dd-yyyy HH:mm:ss.mmm'."};
+    "The timestamp of when the node was created in the server as 'YYYY-MM-DDTHH:MM:SS.sssZ'."};
   EXTENSIONAPI static constexpr auto TypenameAttr = core::OutputAttributeDefinition<>{"Typename", { Success }, "The type name of the node data."};
   EXTENSIONAPI static constexpr auto DatasizeAttr = core::OutputAttributeDefinition<>{"Datasize", { Success }, "The size of the node data."};
 

@@ -55,8 +55,8 @@ std::string uaStringToString(const UA_String& str) {
   return std::string(reinterpret_cast<const char*>(str.data), str.length);
 }
 
-// A single historical value together with its modification metadata, if the value was ever edited.
 struct HistoryEntry {
+
   std::string value;
   int64_t source_timestamp = 0;
   const UA_ModificationInfo* modification_info = nullptr;
@@ -71,7 +71,6 @@ struct HistoryBatch {
   bool has_modification_info = false;
 };
 
-// Identifies the last entry emitted on a previous read so that already-fetched entries can be skipped.
 struct Fingerprint {
   int64_t source_timestamp = 0;
   std::optional<int64_t> modification_timestamp;
@@ -185,9 +184,11 @@ void addModificationInfo(core::FlowFile& flow_file, const UA_ModificationInfo& m
   flow_file.addAttribute("ModificationUpdateType", updateTypeToString(modification_info.updateType));
 }
 
-core::Record toRecord(const HistoryEntry& entry) {
+core::Record toRecord(const std::string& node_id, const HistoryEntry& entry) {
   core::Record record;
   record.emplace("Value", core::RecordField(std::string(entry.value)));
+  record.emplace("NodeID", core::RecordField(node_id));
+  record.emplace("Sourcetimestamp", core::RecordField(opc::OPCDateTime2String(entry.source_timestamp)));
   if (entry.modification_info) {
     addModificationInfo(record, *entry.modification_info);
   }
@@ -198,7 +199,7 @@ core::Record toRecord(const HistoryEntry& entry) {
 void writeAsRecordSet(FetchOpcHistoryContext& context, const std::vector<HistoryEntry>& entries) {
   core::RecordSet record_set;
   for (const auto& entry : entries) {
-    record_set.push_back(toRecord(entry));
+    record_set.push_back(toRecord(context.node_id, entry));
   }
 
   auto flow_file = context.session.create();
@@ -215,6 +216,8 @@ void writeAsFlowFiles(FetchOpcHistoryContext& context, const std::vector<History
       output_stream->write(reinterpret_cast<const uint8_t*>(entry.value.data()), entry.value.size());
       return io::IoResult::from(entry.value.size());
     });
+    flow_file->addAttribute("NodeID", context.node_id);
+    flow_file->addAttribute("Sourcetimestamp", opc::OPCDateTime2String(entry.source_timestamp));
     if (entry.modification_info) {
       addModificationInfo(*flow_file, *entry.modification_info);
     }
@@ -256,27 +259,27 @@ void FetchOpcHistory::onSchedule(core::ProcessContext& context, core::ProcessSes
 }
 
 UA_Boolean FetchOpcHistory::historyReadCallback(UA_Client* /*client*/, const UA_NodeId* /*node_id*/, UA_Boolean more_data_available, const UA_ExtensionObject* data, void* ctx) {
-  auto* context = static_cast<FetchOpcHistoryContext*>(ctx);
-  context->has_more_data = more_data_available;
+  auto* opc_history_context = static_cast<FetchOpcHistoryContext*>(ctx);
+  opc_history_context->has_more_data = more_data_available;
 
   auto batch = extractHistoryBatch(data);
   if (!batch || batch->entries.empty()) {
     return false;
   }
 
-  const auto last_fetched = parseFingerprint(context->state_map, batch->has_modification_info);
+  const auto last_fetched = parseFingerprint(opc_history_context->state_map, batch->has_modification_info);
   const auto new_entries = selectNewEntries(std::move(batch->entries), last_fetched);
   if (new_entries.empty()) {
     return false;
   }
 
-  if (context->record_set_writer) {
-    writeAsRecordSet(*context, new_entries);
+  if (opc_history_context->record_set_writer) {
+    writeAsRecordSet(*opc_history_context, new_entries);
   } else {
-    writeAsFlowFiles(*context, new_entries);
+    writeAsFlowFiles(*opc_history_context, new_entries);
   }
 
-  updateState(context->state_map, new_entries.back());
+  updateState(opc_history_context->state_map, new_entries.back());
   return false;
 }
 
@@ -297,7 +300,7 @@ void FetchOpcHistory::onTrigger(core::ProcessContext& context, core::ProcessSess
   UA_NodeId node = UA_NODEID_STRING(namespace_idx_, const_cast<char*>(node_id_.c_str()));
   bool has_more_data = true;
   size_t flow_files_transferred = 0;
-  FetchOpcHistoryContext ctx{session, record_set_writer_, state_map, has_more_data, flow_files_transferred};
+  FetchOpcHistoryContext history_context{session, record_set_writer_, state_map, has_more_data, flow_files_transferred, node_id_};
 
   UA_DateTime ua_start_time = UA_DateTime_fromUnixTime(0);
   UA_DateTime ua_end_time = UA_DateTime_now();
@@ -315,7 +318,7 @@ void FetchOpcHistory::onTrigger(core::ProcessContext& context, core::ProcessSess
 
   auto number_of_entries_to_fetch = batch_size_;
   while (has_more_data && (batch_size_ == 0 || flow_files_transferred < batch_size_)) {
-    auto retval = connection_->readHistory(history_type_, node, &FetchOpcHistory::historyReadCallback, ua_start_time, ua_end_time, number_of_entries_to_fetch, (void *)&ctx);
+    auto retval = connection_->readHistory(history_type_, node, &FetchOpcHistory::historyReadCallback, ua_start_time, ua_end_time, number_of_entries_to_fetch, (void *)&history_context);
 
     if (retval != UA_STATUSCODE_GOOD) {
       // TODO: handle error, possibly yield and log the error

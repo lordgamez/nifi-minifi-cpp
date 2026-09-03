@@ -58,6 +58,9 @@ TEST_CASE("Test fetching history of node with a single entry", "[fetchopchistory
   REQUIRE(results.at(processors::FetchOpcHistory::Success).size() == 1);
   auto flow_file = results.at(processors::FetchOpcHistory::Success)[0];
   CHECK(controller.plan->getContent(flow_file) == "1");
+
+  CHECK(flow_file->getAttribute("NodeID") == "INT1");
+  CHECK(flow_file->getAttribute("Sourcetimestamp") == "2024-06-15T10:30:00.000Z");
   if (contains_modification_attributes) {
     CHECK(flow_file->getAttribute("ModificationUsername") == "test_user");
     CHECK(flow_file->getAttribute("ModificationUpdateType") == "Replace");
@@ -94,6 +97,8 @@ TEST_CASE("Test fetching history after a specific timestamp", "[fetchopchistory]
   REQUIRE(results.at(processors::FetchOpcHistory::Success).size() == 2);
   auto flow_file = results.at(processors::FetchOpcHistory::Success)[0];
   CHECK(controller.plan->getContent(flow_file) == "3");
+  CHECK(flow_file->getAttribute("NodeID") == "INT2");
+  CHECK(flow_file->getAttribute("Sourcetimestamp") == "2025-11-11T11:30:00.000Z");
   if (contains_modification_attributes) {
     CHECK(flow_file->getAttribute("ModificationUsername") == "admin_user");
     CHECK(flow_file->getAttribute("ModificationUpdateType") == "Update");
@@ -105,6 +110,8 @@ TEST_CASE("Test fetching history after a specific timestamp", "[fetchopchistory]
   }
   flow_file = results.at(processors::FetchOpcHistory::Success)[1];
   CHECK(controller.plan->getContent(flow_file) == "4");
+  CHECK(flow_file->getAttribute("NodeID") == "INT2");
+  CHECK(flow_file->getAttribute("Sourcetimestamp") == "2026-03-11T11:30:00.000Z");
   if (contains_modification_attributes) {
     CHECK(flow_file->getAttribute("ModificationUsername") == "test_user");
     CHECK(flow_file->getAttribute("ModificationUpdateType") == "Replace");
@@ -141,6 +148,8 @@ TEST_CASE("Test fetching history before a specific timestamp", "[fetchopchistory
   REQUIRE(results.at(processors::FetchOpcHistory::Success).size() == 2);
   auto flow_file = results.at(processors::FetchOpcHistory::Success)[0];
   CHECK(controller.plan->getContent(flow_file) == "2");
+  CHECK(flow_file->getAttribute("NodeID") == "INT2");
+  CHECK(flow_file->getAttribute("Sourcetimestamp") == "2021-03-15T11:30:00.000Z");
   if (contains_modification_attributes) {
     CHECK(flow_file->getAttribute("ModificationUsername") == "admin_user");
     CHECK(flow_file->getAttribute("ModificationUpdateType") == "Insert");
@@ -152,6 +161,8 @@ TEST_CASE("Test fetching history before a specific timestamp", "[fetchopchistory
   }
   flow_file = results.at(processors::FetchOpcHistory::Success)[1];
   CHECK(controller.plan->getContent(flow_file) == "3");
+  CHECK(flow_file->getAttribute("NodeID") == "INT2");
+  CHECK(flow_file->getAttribute("Sourcetimestamp") == "2025-11-11T11:30:00.000Z");
   if (contains_modification_attributes) {
     CHECK(flow_file->getAttribute("ModificationUsername") == "admin_user");
     CHECK(flow_file->getAttribute("ModificationUpdateType") == "Update");
@@ -188,6 +199,8 @@ TEST_CASE("Test batch size limit", "[fetchopchistory]") {
   REQUIRE(results.at(processors::FetchOpcHistory::Success).size() == 2);
   auto flow_file = results.at(processors::FetchOpcHistory::Success)[0];
   CHECK(controller.plan->getContent(flow_file) == "2");
+  CHECK(flow_file->getAttribute("NodeID") == "INT2");
+  CHECK(flow_file->getAttribute("Sourcetimestamp") == "2021-03-15T11:30:00.000Z");
   if (contains_modification_attributes) {
     CHECK(flow_file->getAttribute("ModificationUsername") == "admin_user");
     CHECK(flow_file->getAttribute("ModificationUpdateType") == "Insert");
@@ -199,6 +212,8 @@ TEST_CASE("Test batch size limit", "[fetchopchistory]") {
   }
   flow_file = results.at(processors::FetchOpcHistory::Success)[1];
   CHECK(controller.plan->getContent(flow_file) == "3");
+  CHECK(flow_file->getAttribute("NodeID") == "INT2");
+  CHECK(flow_file->getAttribute("Sourcetimestamp") == "2025-11-11T11:30:00.000Z");
   if (contains_modification_attributes) {
     CHECK(flow_file->getAttribute("ModificationUsername") == "admin_user");
     CHECK(flow_file->getAttribute("ModificationUpdateType") == "Update");
@@ -225,12 +240,12 @@ TEST_CASE("Test RecordSetWriter with JSON output format", "[fetchopchistory]") {
 
   std::string expected_json_content;
   SECTION("Fetch full history") {
-    expected_json_content = R"({"Value":"1","ModificationUsername":"test_user","ModificationUpdateType":"Replace","ModificationTime":"2024-06-15T10:30:00.000Z"})";
+    expected_json_content = R"({"Value":"1","Sourcetimestamp":"2024-06-15T10:30:00.000Z","NodeID":"INT1","ModificationUsername":"test_user","ModificationUpdateType":"Replace","ModificationTime":"2024-06-15T10:30:00.000Z"})";
     REQUIRE(fetch_opc_processor->setProperty(processors::FetchOpcHistory::HistoryReadType.name, "Modified"));
   }
 
   SECTION("Fetch raw history") {
-    expected_json_content = R"({"Value":"1"})";
+    expected_json_content = R"({"Value":"1","Sourcetimestamp":"2024-06-15T10:30:00.000Z","NodeID":"INT1"})";
   }
 
   const auto results = controller.trigger();
@@ -251,12 +266,12 @@ TEST_CASE("Test RecordSetWriter with JSON output format with multiple values", "
 
   std::string expected_json_content;
   SECTION("Fetch full history") {
-    expected_json_content = R"([{"Value":"2","ModificationUsername":"admin_user","ModificationUpdateType":"Insert","ModificationTime":"2021-03-15T11:30:00.000Z"}, {"Value":"3","ModificationUsername":"admin_user","ModificationUpdateType":"Update","ModificationTime":"2025-11-11T11:30:00.000Z"}, {"Value":"4","ModificationUsername":"test_user","ModificationUpdateType":"Replace","ModificationTime":"2026-03-11T11:30:00.000Z"}])";
+    expected_json_content = R"([{"Value":"2","Sourcetimestamp":"2021-03-15T11:30:00.000Z","NodeID":"INT2","ModificationUsername":"admin_user","ModificationUpdateType":"Insert","ModificationTime":"2021-03-15T11:30:00.000Z"}, {"Value":"3","Sourcetimestamp":"2025-11-11T11:30:00.000Z","NodeID":"INT2","ModificationUsername":"admin_user","ModificationUpdateType":"Update","ModificationTime":"2025-11-11T11:30:00.000Z"}, {"Value":"4","Sourcetimestamp":"2026-03-11T11:30:00.000Z","NodeID":"INT2","ModificationUsername":"test_user","ModificationUpdateType":"Replace","ModificationTime":"2026-03-11T11:30:00.000Z"}])";
     REQUIRE(fetch_opc_processor->setProperty(processors::FetchOpcHistory::HistoryReadType.name, "Modified"));
   }
 
   SECTION("Fetch raw history") {
-    expected_json_content = R"([{"Value":"2"}, {"Value":"3"}, {"Value":"4"}])";
+    expected_json_content = R"([{"Value":"2", "Sourcetimestamp":"2021-03-15T11:30:00.000Z", "NodeID":"INT2"}, {"Value":"3", "Sourcetimestamp":"2025-11-11T11:30:00.000Z", "NodeID":"INT2"}, {"Value":"4", "Sourcetimestamp":"2026-03-11T11:30:00.000Z", "NodeID":"INT2"}])";
   }
 
   const auto results = controller.trigger();
@@ -288,6 +303,8 @@ TEST_CASE("Test multiple triggers with state kept in state manager", "[fetchopch
   REQUIRE(results.at(processors::FetchOpcHistory::Success).size() == 1);
   auto flow_file = results.at(processors::FetchOpcHistory::Success)[0];
   CHECK(controller.plan->getContent(flow_file) == "2");
+  CHECK(flow_file->getAttribute("NodeID") == "INT2");
+  CHECK(flow_file->getAttribute("Sourcetimestamp") == "2021-03-15T11:30:00.000Z");
   if (contains_modification_attributes) {
     CHECK(flow_file->getAttribute("ModificationUsername") == "admin_user");
     CHECK(flow_file->getAttribute("ModificationUpdateType") == "Insert");
@@ -302,6 +319,8 @@ TEST_CASE("Test multiple triggers with state kept in state manager", "[fetchopch
   REQUIRE(results.at(processors::FetchOpcHistory::Success).size() == 1);
   flow_file = results.at(processors::FetchOpcHistory::Success)[0];
   CHECK(controller.plan->getContent(flow_file) == "3");
+  CHECK(flow_file->getAttribute("NodeID") == "INT2");
+  CHECK(flow_file->getAttribute("Sourcetimestamp") == "2025-11-11T11:30:00.000Z");
   if (contains_modification_attributes) {
     CHECK(flow_file->getAttribute("ModificationUsername") == "admin_user");
     CHECK(flow_file->getAttribute("ModificationUpdateType") == "Update");
@@ -316,6 +335,8 @@ TEST_CASE("Test multiple triggers with state kept in state manager", "[fetchopch
   REQUIRE(results.at(processors::FetchOpcHistory::Success).size() == 1);
   flow_file = results.at(processors::FetchOpcHistory::Success)[0];
   CHECK(controller.plan->getContent(flow_file) == "4");
+  CHECK(flow_file->getAttribute("NodeID") == "INT2");
+  CHECK(flow_file->getAttribute("Sourcetimestamp") == "2026-03-11T11:30:00.000Z");
   if (contains_modification_attributes) {
     CHECK(flow_file->getAttribute("ModificationUsername") == "test_user");
     CHECK(flow_file->getAttribute("ModificationUpdateType") == "Replace");

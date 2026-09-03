@@ -58,6 +58,7 @@ struct FetchOpcHistoryContext {
   std::unordered_map<std::string, std::string>& state_map;
   bool& has_more_data;
   size_t& flow_files_transferred;
+  const std::string& node_id;
 };
 
 class FetchOpcHistory final : public BaseOPCProcessor {
@@ -114,21 +115,18 @@ class FetchOpcHistory final : public BaseOPCProcessor {
       RecordSetWriter
   }));
 
-
   EXTENSIONAPI static constexpr auto Success = core::RelationshipDefinition{"success", "Successfully retrieved OPC-UA node history entries"};
   EXTENSIONAPI static constexpr auto Relationships = std::array{Success};
 
-  // EXTENSIONAPI static constexpr auto NodeIDAttr = core::OutputAttributeDefinition<>{"NodeID", { Success }, "ID of the node."};
-  // EXTENSIONAPI static constexpr auto NodeIDTypeAttr = core::OutputAttributeDefinition<>{"NodeID type", { Success }, "Type of the node ID."};
-  // EXTENSIONAPI static constexpr auto BrowsenameAttr = core::OutputAttributeDefinition<>{"Browsename", { Success }, "The browse name of the node."};
-  // EXTENSIONAPI static constexpr auto FullPathAttr = core::OutputAttributeDefinition<>{"Full path", { Success }, "The full path of the node."};
-  // EXTENSIONAPI static constexpr auto SourcetimestampAttr = core::OutputAttributeDefinition<>{"Sourcetimestamp", { Success },
-  //   "The timestamp of when the node was created in the server as 'MM-dd-yyyy HH:mm:ss.mmm'."};
-  // EXTENSIONAPI static constexpr auto TypenameAttr = core::OutputAttributeDefinition<>{"Typename", { Success }, "The type name of the node data."};
-  // EXTENSIONAPI static constexpr auto DatasizeAttr = core::OutputAttributeDefinition<>{"Datasize", { Success }, "The size of the node data."};
+  EXTENSIONAPI static constexpr auto NodeIDAttr = core::OutputAttributeDefinition<>{"NodeID", { Success }, "ID of the node."};
+  EXTENSIONAPI static constexpr auto SourcetimestampAttr = core::OutputAttributeDefinition<>{"Sourcetimestamp", { Success },
+    "The timestamp of when the node was created in the server as 'YYYY-MM-DDTHH:MM:SS.sssZ'."};
+  EXTENSIONAPI static constexpr auto ModificationUsernameAttr = core::OutputAttributeDefinition<>{"ModificationUsername", { Success }, "Username of the user who modified the node."};
+  EXTENSIONAPI static constexpr auto ModificationTimeAttr = core::OutputAttributeDefinition<>{"ModificationTime", { Success }, "Timestamp of when the node was modified."};
+  EXTENSIONAPI static constexpr auto ModificationUpdateTypeAttr = core::OutputAttributeDefinition<>{"ModificationUpdateType", { Success }, "Type of modification performed on the node."};
 
-  // EXTENSIONAPI static constexpr auto OutputAttributes = std::array<core::OutputAttributeReference, 7> {NodeIDAttr, NodeIDTypeAttr, BrowsenameAttr, FullPathAttr, SourcetimestampAttr,
-  //   TypenameAttr, DatasizeAttr};
+  EXTENSIONAPI static constexpr auto OutputAttributes = std::array<core::OutputAttributeReference, 5> {NodeIDAttr, SourcetimestampAttr, ModificationUsernameAttr, ModificationTimeAttr,
+    ModificationUpdateTypeAttr};
 
   EXTENSIONAPI static constexpr bool SupportsDynamicProperties = false;
   EXTENSIONAPI static constexpr bool SupportsDynamicRelationships = false;
