@@ -240,7 +240,9 @@ TEST_CASE("Test RecordSetWriter with JSON output format", "[fetchopchistory]") {
 
   std::string expected_json_content;
   SECTION("Fetch full history") {
-    expected_json_content = R"({"Value":"1","Sourcetimestamp":"2024-06-15T10:30:00.000Z","NodeID":"INT1","ModificationUsername":"test_user","ModificationUpdateType":"Replace","ModificationTime":"2024-06-15T10:30:00.000Z"})";
+    expected_json_content =
+      R"({"Value":"1","Sourcetimestamp":"2024-06-15T10:30:00.000Z","NodeID":"INT1",)"
+      R"("ModificationUsername":"test_user","ModificationUpdateType":"Replace","ModificationTime":"2024-06-15T10:30:00.000Z"})";
     REQUIRE(fetch_opc_processor->setProperty(processors::FetchOpcHistory::HistoryReadType.name, "Modified"));
   }
 
@@ -266,12 +268,21 @@ TEST_CASE("Test RecordSetWriter with JSON output format with multiple values", "
 
   std::string expected_json_content;
   SECTION("Fetch full history") {
-    expected_json_content = R"([{"Value":"2","Sourcetimestamp":"2021-03-15T11:30:00.000Z","NodeID":"INT2","ModificationUsername":"admin_user","ModificationUpdateType":"Insert","ModificationTime":"2021-03-15T11:30:00.000Z"}, {"Value":"3","Sourcetimestamp":"2025-11-11T11:30:00.000Z","NodeID":"INT2","ModificationUsername":"admin_user","ModificationUpdateType":"Update","ModificationTime":"2025-11-11T11:30:00.000Z"}, {"Value":"4","Sourcetimestamp":"2026-03-11T11:30:00.000Z","NodeID":"INT2","ModificationUsername":"test_user","ModificationUpdateType":"Replace","ModificationTime":"2026-03-11T11:30:00.000Z"}])";
+    expected_json_content =
+      R"([{"Value":"2","Sourcetimestamp":"2021-03-15T11:30:00.000Z","NodeID":"INT2",)"
+      R"("ModificationUsername":"admin_user","ModificationUpdateType":"Insert","ModificationTime":"2021-03-15T11:30:00.000Z"}, )"
+      R"({"Value":"3","Sourcetimestamp":"2025-11-11T11:30:00.000Z","NodeID":"INT2",)"
+      R"("ModificationUsername":"admin_user","ModificationUpdateType":"Update","ModificationTime":"2025-11-11T11:30:00.000Z"}, )"
+      R"({"Value":"4","Sourcetimestamp":"2026-03-11T11:30:00.000Z","NodeID":"INT2",)"
+      R"("ModificationUsername":"test_user","ModificationUpdateType":"Replace","ModificationTime":"2026-03-11T11:30:00.000Z"}])";
     REQUIRE(fetch_opc_processor->setProperty(processors::FetchOpcHistory::HistoryReadType.name, "Modified"));
   }
 
   SECTION("Fetch raw history") {
-    expected_json_content = R"([{"Value":"2", "Sourcetimestamp":"2021-03-15T11:30:00.000Z", "NodeID":"INT2"}, {"Value":"3", "Sourcetimestamp":"2025-11-11T11:30:00.000Z", "NodeID":"INT2"}, {"Value":"4", "Sourcetimestamp":"2026-03-11T11:30:00.000Z", "NodeID":"INT2"}])";
+    expected_json_content =
+      R"([{"Value":"2", "Sourcetimestamp":"2021-03-15T11:30:00.000Z", "NodeID":"INT2"}, )"
+      R"({"Value":"3", "Sourcetimestamp":"2025-11-11T11:30:00.000Z", "NodeID":"INT2"}, )"
+      R"({"Value":"4", "Sourcetimestamp":"2026-03-11T11:30:00.000Z", "NodeID":"INT2"}])";
   }
 
   const auto results = controller.trigger();
@@ -347,7 +358,5 @@ TEST_CASE("Test multiple triggers with state kept in state manager", "[fetchopch
     CHECK(flow_file->getAttribute("ModificationTime") == std::nullopt);
   }
 }
-
-// TODO: add and test additional output attributes
 
 }  // namespace org::apache::nifi::minifi::test

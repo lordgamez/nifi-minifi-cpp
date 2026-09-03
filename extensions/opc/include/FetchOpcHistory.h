@@ -22,21 +22,21 @@
 #include <utility>
 #include <vector>
 
-#include "opc.h"
-#include "opcbase.h"
-#include "minifi-cpp/FlowFileRecord.h"
 #include "core/ProcessSession.h"
-#include "minifi-cpp/core/Property.h"
 #include "core/PropertyDefinitionBuilder.h"
+#include "core/logging/LoggerFactory.h"
+#include "minifi-cpp/FlowFileRecord.h"
+#include "minifi-cpp/controllers/RecordSetWriter.h"
+#include "minifi-cpp/controllers/SSLContextServiceInterface.h"
+#include "minifi-cpp/core/Property.h"
 #include "minifi-cpp/core/PropertyValidator.h"
 #include "minifi-cpp/core/RelationshipDefinition.h"
-#include "minifi-cpp/controllers/SSLContextServiceInterface.h"
-#include "core/logging/LoggerFactory.h"
+#include "minifi-cpp/core/StateManager.h"
+#include "minifi-cpp/utils/gsl.h"
+#include "opc.h"
+#include "opcbase.h"
 #include "utils/ArrayUtils.h"
 #include "utils/Id.h"
-#include "minifi-cpp/utils/gsl.h"
-#include "minifi-cpp/core/StateManager.h"
-#include "minifi-cpp/controllers/RecordSetWriter.h"
 
 namespace org::apache::nifi::minifi::processors {
 
@@ -65,68 +65,77 @@ class FetchOpcHistory final : public BaseOPCProcessor {
  public:
   using BaseOPCProcessor::BaseOPCProcessor;
 
-  EXTENSIONAPI static constexpr const char* Description = "Fetches OPC-UA node history after the start timestamp. "
-        "A history entry is only fetched once, on every trigger only the not yet fetched entries are returned.";
+  EXTENSIONAPI static constexpr const char* Description =
+      "Fetches OPC-UA node history after the start timestamp. "
+      "A history entry is only fetched once, on every trigger only the not yet fetched entries are returned.";
 
-  EXTENSIONAPI static constexpr auto NodeIDType = core::PropertyDefinitionBuilder<magic_enum::enum_count<opc::OPCNodeIDType>()>::createProperty("Node ID type")
-      .withDescription("Specifies the type of the provided node ID")
-      .isRequired(true)
-      .withAllowedValues(magic_enum::enum_names<opc::OPCNodeIDType>())
-      .build();
-  EXTENSIONAPI static constexpr auto NodeID = core::PropertyDefinitionBuilder<>::createProperty("Node ID")
-      .withDescription("Specifies the ID of the root node to traverse. In case of a Path Node ID Type, the path should be provided in the format of 'path/to/node'.")
-      .isRequired(true)
-      .build();
-  EXTENSIONAPI static constexpr auto NameSpaceIndex = core::PropertyDefinitionBuilder<>::createProperty("Namespace index")
-      .withDescription("The index of the namespace.")
-      .withValidator(core::StandardPropertyValidators::INTEGER_VALIDATOR)
-      .withDefaultValue("0")
-      .isRequired(true)
-      .build();
-  EXTENSIONAPI static constexpr auto StartTimestamp = core::PropertyDefinitionBuilder<>::createProperty("Start timestamp")
-      .withDescription("Timestamp after which the events should be returned. If not specified entries are returned from the beginning of the history.")
-      .build();
-  EXTENSIONAPI static constexpr auto EndTimestamp = core::PropertyDefinitionBuilder<>::createProperty("End timestamp")
-      .withDescription("Timestamp before which the events should be returned. If not specified entries are returned until the end of the history.")
-      .build();
-  EXTENSIONAPI static constexpr auto BatchSize = core::PropertyDefinitionBuilder<>::createProperty("Batch Size")
-        .withDescription("Maximum number entries to read and return in a single batch. If set to zero or empty all available entries are returned.")
-        .withValidator(core::StandardPropertyValidators::UNSIGNED_INTEGER_VALIDATOR)
-        .build();
-  EXTENSIONAPI static constexpr auto HistoryReadType = core::PropertyDefinitionBuilder<magic_enum::enum_count<opc::HistoryReadTypeOption>()>::createProperty("History Read Type")
-      .withDescription("Whether to fetch raw historical values or the audit trail of modifications to historical values")
-      .isRequired(true)
-      .withAllowedValues(magic_enum::enum_names<opc::HistoryReadTypeOption>())
-      .withDefaultValue(magic_enum::enum_name<opc::HistoryReadTypeOption::Raw>())
-      .build();
-  EXTENSIONAPI static constexpr auto RecordSetWriter = core::PropertyDefinitionBuilder<>::createProperty("Record Set Writer")
-      .withDescription("Specifies the Controller Service to use for writing results to a FlowFile instead of using the default output format.")
-      .isRequired(true)
-      .withAllowedTypes<core::RecordSetWriter>()
-      .build();
-  EXTENSIONAPI static constexpr auto Properties = utils::array_cat(BaseOPCProcessor::Properties, std::to_array<core::PropertyReference>({
-      NodeIDType,
-      NodeID,
-      NameSpaceIndex,
-      StartTimestamp,
-      EndTimestamp,
-      BatchSize,
-      HistoryReadType,
-      RecordSetWriter
-  }));
+  EXTENSIONAPI static constexpr auto NodeIDType =
+      core::PropertyDefinitionBuilder<magic_enum::enum_count<opc::OPCNodeIDType>()>::createProperty("Node ID type")
+          .withDescription("Specifies the type of the provided node ID")
+          .isRequired(true)
+          .withAllowedValues(magic_enum::enum_names<opc::OPCNodeIDType>())
+          .build();
+  EXTENSIONAPI static constexpr auto NodeID =
+      core::PropertyDefinitionBuilder<>::createProperty("Node ID")
+          .withDescription(
+              "Specifies the ID of the root node to traverse. In case of a Path Node ID Type, the path should be provided in the format of "
+              "'path/to/node'.")
+          .isRequired(true)
+          .build();
+  EXTENSIONAPI static constexpr auto NameSpaceIndex =
+      core::PropertyDefinitionBuilder<>::createProperty("Namespace index")
+          .withDescription("The index of the namespace.")
+          .withValidator(core::StandardPropertyValidators::INTEGER_VALIDATOR)
+          .withDefaultValue("0")
+          .isRequired(true)
+          .build();
+  EXTENSIONAPI static constexpr auto StartTimestamp =
+      core::PropertyDefinitionBuilder<>::createProperty("Start timestamp")
+          .withDescription(
+              "Timestamp after which the events should be returned. If not specified entries are returned from the beginning of the history.")
+          .build();
+  EXTENSIONAPI static constexpr auto EndTimestamp =
+      core::PropertyDefinitionBuilder<>::createProperty("End timestamp")
+          .withDescription(
+              "Timestamp before which the events should be returned. If not specified entries are returned until the end of the history.")
+          .build();
+  EXTENSIONAPI static constexpr auto BatchSize =
+      core::PropertyDefinitionBuilder<>::createProperty("Batch Size")
+          .withDescription("Maximum number entries to read and return in a single batch. If set to zero or empty all available entries are returned.")
+          .withValidator(core::StandardPropertyValidators::UNSIGNED_INTEGER_VALIDATOR)
+          .build();
+  EXTENSIONAPI static constexpr auto HistoryReadType =
+      core::PropertyDefinitionBuilder<magic_enum::enum_count<opc::HistoryReadTypeOption>()>::createProperty("History Read Type")
+          .withDescription("Whether to fetch raw historical values or the audit trail of modifications to historical values")
+          .isRequired(true)
+          .withAllowedValues(magic_enum::enum_names<opc::HistoryReadTypeOption>())
+          .withDefaultValue(magic_enum::enum_name<opc::HistoryReadTypeOption::Raw>())
+          .build();
+  EXTENSIONAPI static constexpr auto RecordSetWriter =
+      core::PropertyDefinitionBuilder<>::createProperty("Record Set Writer")
+          .withDescription("Specifies the Controller Service to use for writing results to a FlowFile instead of using the default output format.")
+          .isRequired(true)
+          .withAllowedTypes<core::RecordSetWriter>()
+          .build();
+  EXTENSIONAPI static constexpr auto Properties = utils::array_cat(BaseOPCProcessor::Properties,
+      std::to_array<core::PropertyReference>(
+          {NodeIDType, NodeID, NameSpaceIndex, StartTimestamp, EndTimestamp, BatchSize, HistoryReadType, RecordSetWriter}));
 
   EXTENSIONAPI static constexpr auto Success = core::RelationshipDefinition{"success", "Successfully retrieved OPC-UA node history entries"};
   EXTENSIONAPI static constexpr auto Relationships = std::array{Success};
 
-  EXTENSIONAPI static constexpr auto NodeIDAttr = core::OutputAttributeDefinition<>{"NodeID", { Success }, "ID of the node."};
-  EXTENSIONAPI static constexpr auto SourcetimestampAttr = core::OutputAttributeDefinition<>{"Sourcetimestamp", { Success },
-    "The timestamp of when the node was created in the server as 'YYYY-MM-DDTHH:MM:SS.sssZ'."};
-  EXTENSIONAPI static constexpr auto ModificationUsernameAttr = core::OutputAttributeDefinition<>{"ModificationUsername", { Success }, "Username of the user who modified the node."};
-  EXTENSIONAPI static constexpr auto ModificationTimeAttr = core::OutputAttributeDefinition<>{"ModificationTime", { Success }, "Timestamp of when the node was modified."};
-  EXTENSIONAPI static constexpr auto ModificationUpdateTypeAttr = core::OutputAttributeDefinition<>{"ModificationUpdateType", { Success }, "Type of modification performed on the node."};
+  EXTENSIONAPI static constexpr auto NodeIDAttr = core::OutputAttributeDefinition<>{"NodeID", {Success}, "ID of the node."};
+  EXTENSIONAPI static constexpr auto SourcetimestampAttr = core::OutputAttributeDefinition<>{
+      "Sourcetimestamp", {Success}, "The timestamp of when the node was created in the server as 'YYYY-MM-DDTHH:MM:SS.sssZ'."};
+  EXTENSIONAPI static constexpr auto ModificationUsernameAttr = core::OutputAttributeDefinition<>{
+      "ModificationUsername", {Success}, "Username of the user who modified the node."};
+  EXTENSIONAPI static constexpr auto ModificationTimeAttr = core::OutputAttributeDefinition<>{
+      "ModificationTime", {Success}, "Timestamp of when the node was modified."};
+  EXTENSIONAPI static constexpr auto ModificationUpdateTypeAttr = core::OutputAttributeDefinition<>{
+      "ModificationUpdateType", {Success}, "Type of modification performed on the node."};
 
-  EXTENSIONAPI static constexpr auto OutputAttributes = std::array<core::OutputAttributeReference, 5> {NodeIDAttr, SourcetimestampAttr, ModificationUsernameAttr, ModificationTimeAttr,
-    ModificationUpdateTypeAttr};
+  EXTENSIONAPI static constexpr auto OutputAttributes = std::array<core::OutputAttributeReference, 5>{
+      NodeIDAttr, SourcetimestampAttr, ModificationUsernameAttr, ModificationTimeAttr, ModificationUpdateTypeAttr};
 
   EXTENSIONAPI static constexpr bool SupportsDynamicProperties = false;
   EXTENSIONAPI static constexpr bool SupportsDynamicRelationships = false;
@@ -140,7 +149,8 @@ class FetchOpcHistory final : public BaseOPCProcessor {
   void initialize() override;
 
  private:
-  static UA_Boolean historyReadCallback(UA_Client* client, const UA_NodeId* node_id, UA_Boolean more_data_available, const UA_ExtensionObject* data, void* ctx);
+  static UA_Boolean historyReadCallback(UA_Client* client, const UA_NodeId* node_id, UA_Boolean more_data_available, const UA_ExtensionObject* data,
+      void* ctx);
 
   opc::HistoryReadTypeOption history_type_ = opc::HistoryReadTypeOption::Raw;
   std::optional<std::chrono::system_clock::time_point> start_timestamp_;

@@ -23,16 +23,16 @@
 #include <unordered_map>
 #include <vector>
 
-#include "minifi-cpp/core/ProcessContext.h"
 #include "core/ProcessSession.h"
 #include "core/Resource.h"
-#include "utils/ProcessorConfigUtils.h"
-#include "utils/TimeUtil.h"
-#include "rapidjson/rapidjson.h"
+#include "minifi-cpp/core/ProcessContext.h"
 #include "rapidjson/document.h"
+#include "rapidjson/rapidjson.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
+#include "utils/ProcessorConfigUtils.h"
 #include "utils/StringUtils.h"
+#include "utils/TimeUtil.h"
 
 namespace org::apache::nifi::minifi::processors {
 
@@ -43,11 +43,16 @@ constexpr const char* LAST_FETCHED_FINGERPRINT_KEY = "last_fetched_fingerprint";
 
 std::string updateTypeToString(UA_HistoryUpdateType type) {
   switch (type) {
-    case UA_HISTORYUPDATETYPE_INSERT: return "Insert";
-    case UA_HISTORYUPDATETYPE_REPLACE: return "Replace";
-    case UA_HISTORYUPDATETYPE_UPDATE: return "Update";
-    case UA_HISTORYUPDATETYPE_DELETE: return "Delete";
-    default: return "Unknown";
+    case UA_HISTORYUPDATETYPE_INSERT:
+      return "Insert";
+    case UA_HISTORYUPDATETYPE_REPLACE:
+      return "Replace";
+    case UA_HISTORYUPDATETYPE_UPDATE:
+      return "Update";
+    case UA_HISTORYUPDATETYPE_DELETE:
+      return "Delete";
+    default:
+      return "Unknown";
   }
 }
 
@@ -56,7 +61,6 @@ std::string uaStringToString(const UA_String& str) {
 }
 
 struct HistoryEntry {
-
   std::string value;
   int64_t source_timestamp = 0;
   const UA_ModificationInfo* modification_info = nullptr;
@@ -254,11 +258,12 @@ void FetchOpcHistory::onSchedule(core::ProcessContext& context, core::ProcessSes
   start_timestamp_ = utils::parseOptionalProperty(context, StartTimestamp) | utils::andThen(utils::timeutils::parseDateTimeStr);
   end_timestamp_ = utils::parseOptionalProperty(context, EndTimestamp) | utils::andThen(utils::timeutils::parseDateTimeStr);
   batch_size_ = utils::parseOptionalU64Property(context, BatchSize).value_or(0);
-  const auto record_set_writer_name = context.getProperty(RecordSetWriter).value_or("");;
+  const auto record_set_writer_name = context.getProperty(RecordSetWriter).value_or("");
   record_set_writer_ = std::dynamic_pointer_cast<core::RecordSetWriter>(context.getControllerService(record_set_writer_name, getUUID()));
 }
 
-UA_Boolean FetchOpcHistory::historyReadCallback(UA_Client* /*client*/, const UA_NodeId* /*node_id*/, UA_Boolean more_data_available, const UA_ExtensionObject* data, void* ctx) {
+UA_Boolean FetchOpcHistory::historyReadCallback(UA_Client* /*client*/, const UA_NodeId* /*node_id*/, UA_Boolean more_data_available,
+    const UA_ExtensionObject* data, void* ctx) {
   auto* opc_history_context = static_cast<FetchOpcHistoryContext*>(ctx);
   opc_history_context->has_more_data = more_data_available;
 
@@ -294,7 +299,8 @@ void FetchOpcHistory::onTrigger(core::ProcessContext& context, core::ProcessSess
   auto* state_manager = context.getStateManager();
   std::unordered_map<std::string, std::string> state_map;
 
-  // TODO: handle previous state to avoid fetching the same history entries multiple times. This may require storing the last fetched timestamp or entry ID in the state manager.
+  // TODO: handle previous state to avoid fetching the same history entries multiple times. This may require storing the last fetched timestamp or
+  // entry ID in the state manager.
   state_manager->get(state_map);
 
   UA_NodeId node = UA_NODEID_STRING(namespace_idx_, const_cast<char*>(node_id_.c_str()));
@@ -318,7 +324,13 @@ void FetchOpcHistory::onTrigger(core::ProcessContext& context, core::ProcessSess
 
   auto number_of_entries_to_fetch = batch_size_;
   while (has_more_data && (batch_size_ == 0 || flow_files_transferred < batch_size_)) {
-    auto retval = connection_->readHistory(history_type_, node, &FetchOpcHistory::historyReadCallback, ua_start_time, ua_end_time, number_of_entries_to_fetch, (void *)&history_context);
+    auto retval = connection_->readHistory(history_type_,
+        node,
+        &FetchOpcHistory::historyReadCallback,
+        ua_start_time,
+        ua_end_time,
+        number_of_entries_to_fetch,
+        (void*)&history_context);
 
     if (retval != UA_STATUSCODE_GOOD) {
       // TODO: handle error, possibly yield and log the error
