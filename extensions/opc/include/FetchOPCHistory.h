@@ -33,8 +33,8 @@
 #include "minifi-cpp/core/RelationshipDefinition.h"
 #include "minifi-cpp/core/StateManager.h"
 #include "minifi-cpp/utils/gsl.h"
-#include "opc.h"
-#include "opcbase.h"
+#include "OPCCommon.h"
+#include "BaseOPCProcessor.h"
 #include "utils/ArrayUtils.h"
 #include "utils/Id.h"
 
@@ -52,7 +52,7 @@ struct NodeModificationData {
   std::string updateType;
 };
 
-struct FetchOpcHistoryContext {
+struct FetchOPCHistoryContext {
   core::ProcessSession& session;
   std::shared_ptr<core::RecordSetWriter> record_set_writer;
   std::unordered_map<std::string, std::string>& state_map;
@@ -61,7 +61,7 @@ struct FetchOpcHistoryContext {
   const std::string& node_id;
 };
 
-class FetchOpcHistory final : public BaseOPCProcessor {
+class FetchOPCHistory final : public BaseOPCProcessor {
  public:
   using BaseOPCProcessor::BaseOPCProcessor;
 

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-#include "fetchopc.h"
+#include "FetchOPCProcessor.h"
 
 #include <list>
 #include <memory>
@@ -24,7 +24,7 @@
 #include "minifi-cpp/core/ProcessContext.h"
 #include "core/ProcessSession.h"
 #include "core/Resource.h"
-#include "opc.h"
+#include "OPCCommon.h"
 #include "utils/Enum.h"
 #include "utils/StringUtils.h"
 #include "utils/ProcessorConfigUtils.h"

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-#include "putopc.h"
+#include "PutOPCProcessor.h"
 
 #include <memory>
 #include <string>
@@ -23,7 +23,7 @@
 #include "minifi-cpp/core/ProcessContext.h"
 #include "core/ProcessSession.h"
 #include "core/Resource.h"
-#include "opc.h"
+#include "OPCCommon.h"
 #include "utils/StringUtils.h"
 #include "utils/ProcessorConfigUtils.h"
 

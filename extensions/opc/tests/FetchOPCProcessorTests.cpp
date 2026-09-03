@@ -19,7 +19,7 @@
 #include "unit/Catch.h"
 #include "OpcUaTestServer.h"
 #include "unit/SingleProcessorTestController.h"
-#include "include/fetchopc.h"
+#include "include/FetchOPCProcessor.h"
 #include "unit/TestUtils.h"
 
 namespace org::apache::nifi::minifi::test {

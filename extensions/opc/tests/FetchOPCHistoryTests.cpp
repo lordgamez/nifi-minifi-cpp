@@ -19,13 +19,13 @@
 #include "unit/Catch.h"
 #include "OpcUaTestServer.h"
 #include "unit/SingleProcessorTestController.h"
-#include "include/FetchOpcHistory.h"
+#include "include/FetchOPCHistory.h"
 #include "unit/TestUtils.h"
 
 namespace org::apache::nifi::minifi::test {
 
 void verifyResults(SingleProcessorTestController& controller, const ProcessorTriggerResult& results, const std::string& expected_contents) {
-  auto& fetch_results = results.at(processors::FetchOpcHistory::Success);
+  auto& fetch_results = results.at(processors::FetchOPCHistory::Success);
   REQUIRE(fetch_results.size() == 1);
   rapidjson::Document result_document;
   result_document.Parse(controller.plan->getContent(fetch_results[0]).c_str());
@@ -37,17 +37,17 @@ void verifyResults(SingleProcessorTestController& controller, const ProcessorTri
 TEST_CASE("Test fetching history of node with a single entry", "[fetchopchistory]") {
   OpcUaTestServer server(4841);
   server.start();
-  SingleProcessorTestController controller{minifi::test::utils::make_processor<processors::FetchOpcHistory>("FetchOpcHistory")};
+  SingleProcessorTestController controller{minifi::test::utils::make_processor<processors::FetchOPCHistory>("FetchOPCHistory")};
   auto fetch_opc_processor = controller.getProcessor();
-  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOpcHistory::OPCServerEndPoint.name, "opc.tcp://127.0.0.1:4841/"));
-  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOpcHistory::NodeIDType.name, "String"));
-  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOpcHistory::NodeID.name, "INT1"));
-  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOpcHistory::NameSpaceIndex.name, std::to_string(server.getNamespaceIndex())));
+  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::OPCServerEndPoint.name, "opc.tcp://127.0.0.1:4841/"));
+  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::NodeIDType.name, "String"));
+  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::NodeID.name, "INT1"));
+  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::NameSpaceIndex.name, std::to_string(server.getNamespaceIndex())));
 
   bool contains_modification_attributes = false;
   SECTION("Fetch full history") {
     contains_modification_attributes = true;
-    REQUIRE(fetch_opc_processor->setProperty(processors::FetchOpcHistory::HistoryReadType.name, "Modified"));
+    REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::HistoryReadType.name, "Modified"));
   }
 
   SECTION("Fetch raw history") {
@@ -55,8 +55,8 @@ TEST_CASE("Test fetching history of node with a single entry", "[fetchopchistory
   }
 
   const auto results = controller.trigger();
-  REQUIRE(results.at(processors::FetchOpcHistory::Success).size() == 1);
-  auto flow_file = results.at(processors::FetchOpcHistory::Success)[0];
+  REQUIRE(results.at(processors::FetchOPCHistory::Success).size() == 1);
+  auto flow_file = results.at(processors::FetchOPCHistory::Success)[0];
   CHECK(controller.plan->getContent(flow_file) == "1");
 
   CHECK(flow_file->getAttribute("NodeID") == "INT1");
@@ -75,18 +75,18 @@ TEST_CASE("Test fetching history of node with a single entry", "[fetchopchistory
 TEST_CASE("Test fetching history after a specific timestamp", "[fetchopchistory]") {
   OpcUaTestServer server(4841);
   server.start();
-  SingleProcessorTestController controller{minifi::test::utils::make_processor<processors::FetchOpcHistory>("FetchOpcHistory")};
+  SingleProcessorTestController controller{minifi::test::utils::make_processor<processors::FetchOPCHistory>("FetchOPCHistory")};
   auto fetch_opc_processor = controller.getProcessor();
-  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOpcHistory::OPCServerEndPoint.name, "opc.tcp://127.0.0.1:4841/"));
-  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOpcHistory::NodeIDType.name, "String"));
-  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOpcHistory::NodeID.name, "INT2"));
-  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOpcHistory::NameSpaceIndex.name, std::to_string(server.getNamespaceIndex())));
-  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOpcHistory::StartTimestamp.name, "2025-10-01T00:00:00Z"));
+  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::OPCServerEndPoint.name, "opc.tcp://127.0.0.1:4841/"));
+  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::NodeIDType.name, "String"));
+  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::NodeID.name, "INT2"));
+  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::NameSpaceIndex.name, std::to_string(server.getNamespaceIndex())));
+  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::StartTimestamp.name, "2025-10-01T00:00:00Z"));
 
   bool contains_modification_attributes = false;
   SECTION("Fetch full history") {
     contains_modification_attributes = true;
-    REQUIRE(fetch_opc_processor->setProperty(processors::FetchOpcHistory::HistoryReadType.name, "Modified"));
+    REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::HistoryReadType.name, "Modified"));
   }
 
   SECTION("Fetch raw history") {
@@ -94,8 +94,8 @@ TEST_CASE("Test fetching history after a specific timestamp", "[fetchopchistory]
   }
 
   const auto results = controller.trigger();
-  REQUIRE(results.at(processors::FetchOpcHistory::Success).size() == 2);
-  auto flow_file = results.at(processors::FetchOpcHistory::Success)[0];
+  REQUIRE(results.at(processors::FetchOPCHistory::Success).size() == 2);
+  auto flow_file = results.at(processors::FetchOPCHistory::Success)[0];
   CHECK(controller.plan->getContent(flow_file) == "3");
   CHECK(flow_file->getAttribute("NodeID") == "INT2");
   CHECK(flow_file->getAttribute("Sourcetimestamp") == "2025-11-11T11:30:00.000Z");
@@ -108,7 +108,7 @@ TEST_CASE("Test fetching history after a specific timestamp", "[fetchopchistory]
     CHECK(flow_file->getAttribute("ModificationUpdateType") == std::nullopt);
     CHECK(flow_file->getAttribute("ModificationTime") == std::nullopt);
   }
-  flow_file = results.at(processors::FetchOpcHistory::Success)[1];
+  flow_file = results.at(processors::FetchOPCHistory::Success)[1];
   CHECK(controller.plan->getContent(flow_file) == "4");
   CHECK(flow_file->getAttribute("NodeID") == "INT2");
   CHECK(flow_file->getAttribute("Sourcetimestamp") == "2026-03-11T11:30:00.000Z");
@@ -126,18 +126,18 @@ TEST_CASE("Test fetching history after a specific timestamp", "[fetchopchistory]
 TEST_CASE("Test fetching history before a specific timestamp", "[fetchopchistory]") {
   OpcUaTestServer server(4841);
   server.start();
-  SingleProcessorTestController controller{minifi::test::utils::make_processor<processors::FetchOpcHistory>("FetchOpcHistory")};
+  SingleProcessorTestController controller{minifi::test::utils::make_processor<processors::FetchOPCHistory>("FetchOPCHistory")};
   auto fetch_opc_processor = controller.getProcessor();
-  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOpcHistory::OPCServerEndPoint.name, "opc.tcp://127.0.0.1:4841/"));
-  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOpcHistory::NodeIDType.name, "String"));
-  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOpcHistory::NodeID.name, "INT2"));
-  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOpcHistory::NameSpaceIndex.name, std::to_string(server.getNamespaceIndex())));
-  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOpcHistory::EndTimestamp.name, "2025-11-12T00:00:00Z"));
+  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::OPCServerEndPoint.name, "opc.tcp://127.0.0.1:4841/"));
+  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::NodeIDType.name, "String"));
+  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::NodeID.name, "INT2"));
+  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::NameSpaceIndex.name, std::to_string(server.getNamespaceIndex())));
+  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::EndTimestamp.name, "2025-11-12T00:00:00Z"));
 
   bool contains_modification_attributes = false;
   SECTION("Fetch full history") {
     contains_modification_attributes = true;
-    REQUIRE(fetch_opc_processor->setProperty(processors::FetchOpcHistory::HistoryReadType.name, "Modified"));
+    REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::HistoryReadType.name, "Modified"));
   }
 
   SECTION("Fetch raw history") {
@@ -145,8 +145,8 @@ TEST_CASE("Test fetching history before a specific timestamp", "[fetchopchistory
   }
 
   const auto results = controller.trigger();
-  REQUIRE(results.at(processors::FetchOpcHistory::Success).size() == 2);
-  auto flow_file = results.at(processors::FetchOpcHistory::Success)[0];
+  REQUIRE(results.at(processors::FetchOPCHistory::Success).size() == 2);
+  auto flow_file = results.at(processors::FetchOPCHistory::Success)[0];
   CHECK(controller.plan->getContent(flow_file) == "2");
   CHECK(flow_file->getAttribute("NodeID") == "INT2");
   CHECK(flow_file->getAttribute("Sourcetimestamp") == "2021-03-15T11:30:00.000Z");
@@ -159,7 +159,7 @@ TEST_CASE("Test fetching history before a specific timestamp", "[fetchopchistory
     CHECK(flow_file->getAttribute("ModificationUpdateType") == std::nullopt);
     CHECK(flow_file->getAttribute("ModificationTime") == std::nullopt);
   }
-  flow_file = results.at(processors::FetchOpcHistory::Success)[1];
+  flow_file = results.at(processors::FetchOPCHistory::Success)[1];
   CHECK(controller.plan->getContent(flow_file) == "3");
   CHECK(flow_file->getAttribute("NodeID") == "INT2");
   CHECK(flow_file->getAttribute("Sourcetimestamp") == "2025-11-11T11:30:00.000Z");
@@ -177,18 +177,18 @@ TEST_CASE("Test fetching history before a specific timestamp", "[fetchopchistory
 TEST_CASE("Test batch size limit", "[fetchopchistory]") {
   OpcUaTestServer server(4841);
   server.start();
-  SingleProcessorTestController controller{minifi::test::utils::make_processor<processors::FetchOpcHistory>("FetchOpcHistory")};
+  SingleProcessorTestController controller{minifi::test::utils::make_processor<processors::FetchOPCHistory>("FetchOPCHistory")};
   auto fetch_opc_processor = controller.getProcessor();
-  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOpcHistory::OPCServerEndPoint.name, "opc.tcp://127.0.0.1:4841/"));
-  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOpcHistory::NodeIDType.name, "String"));
-  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOpcHistory::NodeID.name, "INT2"));
-  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOpcHistory::NameSpaceIndex.name, std::to_string(server.getNamespaceIndex())));
-  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOpcHistory::BatchSize.name, "2"));
+  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::OPCServerEndPoint.name, "opc.tcp://127.0.0.1:4841/"));
+  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::NodeIDType.name, "String"));
+  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::NodeID.name, "INT2"));
+  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::NameSpaceIndex.name, std::to_string(server.getNamespaceIndex())));
+  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::BatchSize.name, "2"));
 
   bool contains_modification_attributes = false;
   SECTION("Fetch full history") {
     contains_modification_attributes = true;
-    REQUIRE(fetch_opc_processor->setProperty(processors::FetchOpcHistory::HistoryReadType.name, "Modified"));
+    REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::HistoryReadType.name, "Modified"));
   }
 
   SECTION("Fetch raw history") {
@@ -196,8 +196,8 @@ TEST_CASE("Test batch size limit", "[fetchopchistory]") {
   }
 
   const auto results = controller.trigger();
-  REQUIRE(results.at(processors::FetchOpcHistory::Success).size() == 2);
-  auto flow_file = results.at(processors::FetchOpcHistory::Success)[0];
+  REQUIRE(results.at(processors::FetchOPCHistory::Success).size() == 2);
+  auto flow_file = results.at(processors::FetchOPCHistory::Success)[0];
   CHECK(controller.plan->getContent(flow_file) == "2");
   CHECK(flow_file->getAttribute("NodeID") == "INT2");
   CHECK(flow_file->getAttribute("Sourcetimestamp") == "2021-03-15T11:30:00.000Z");
@@ -210,7 +210,7 @@ TEST_CASE("Test batch size limit", "[fetchopchistory]") {
     CHECK(flow_file->getAttribute("ModificationUpdateType") == std::nullopt);
     CHECK(flow_file->getAttribute("ModificationTime") == std::nullopt);
   }
-  flow_file = results.at(processors::FetchOpcHistory::Success)[1];
+  flow_file = results.at(processors::FetchOPCHistory::Success)[1];
   CHECK(controller.plan->getContent(flow_file) == "3");
   CHECK(flow_file->getAttribute("NodeID") == "INT2");
   CHECK(flow_file->getAttribute("Sourcetimestamp") == "2025-11-11T11:30:00.000Z");
@@ -228,22 +228,22 @@ TEST_CASE("Test batch size limit", "[fetchopchistory]") {
 TEST_CASE("Test RecordSetWriter with JSON output format", "[fetchopchistory]") {
   OpcUaTestServer server(4841);
   server.start();
-  SingleProcessorTestController controller{minifi::test::utils::make_processor<processors::FetchOpcHistory>("FetchOpcHistory")};
+  SingleProcessorTestController controller{minifi::test::utils::make_processor<processors::FetchOPCHistory>("FetchOPCHistory")};
   auto json_record_set_writer = controller.plan->addController("JsonRecordSetWriter", "JsonRecordSetWriter");
   REQUIRE(controller.plan->setProperty(json_record_set_writer, "Output Grouping", "One Line Per Object"));
   auto fetch_opc_processor = controller.getProcessor();
-  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOpcHistory::OPCServerEndPoint.name, "opc.tcp://127.0.0.1:4841/"));
-  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOpcHistory::NodeIDType.name, "String"));
-  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOpcHistory::NodeID.name, "INT1"));
-  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOpcHistory::NameSpaceIndex.name, std::to_string(server.getNamespaceIndex())));
-  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOpcHistory::RecordSetWriter.name, "JsonRecordSetWriter"));
+  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::OPCServerEndPoint.name, "opc.tcp://127.0.0.1:4841/"));
+  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::NodeIDType.name, "String"));
+  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::NodeID.name, "INT1"));
+  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::NameSpaceIndex.name, std::to_string(server.getNamespaceIndex())));
+  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::RecordSetWriter.name, "JsonRecordSetWriter"));
 
   std::string expected_json_content;
   SECTION("Fetch full history") {
     expected_json_content =
       R"({"Value":"1","Sourcetimestamp":"2024-06-15T10:30:00.000Z","NodeID":"INT1",)"
       R"("ModificationUsername":"test_user","ModificationUpdateType":"Replace","ModificationTime":"2024-06-15T10:30:00.000Z"})";
-    REQUIRE(fetch_opc_processor->setProperty(processors::FetchOpcHistory::HistoryReadType.name, "Modified"));
+    REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::HistoryReadType.name, "Modified"));
   }
 
   SECTION("Fetch raw history") {
@@ -257,14 +257,14 @@ TEST_CASE("Test RecordSetWriter with JSON output format", "[fetchopchistory]") {
 TEST_CASE("Test RecordSetWriter with JSON output format with multiple values", "[fetchopchistory]") {
   OpcUaTestServer server(4841);
   server.start();
-  SingleProcessorTestController controller{minifi::test::utils::make_processor<processors::FetchOpcHistory>("FetchOpcHistory")};
+  SingleProcessorTestController controller{minifi::test::utils::make_processor<processors::FetchOPCHistory>("FetchOPCHistory")};
   auto json_record_set_writer = controller.plan->addController("JsonRecordSetWriter", "JsonRecordSetWriter");
   auto fetch_opc_processor = controller.getProcessor();
-  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOpcHistory::OPCServerEndPoint.name, "opc.tcp://127.0.0.1:4841/"));
-  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOpcHistory::NodeIDType.name, "String"));
-  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOpcHistory::NodeID.name, "INT2"));
-  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOpcHistory::NameSpaceIndex.name, std::to_string(server.getNamespaceIndex())));
-  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOpcHistory::RecordSetWriter.name, "JsonRecordSetWriter"));
+  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::OPCServerEndPoint.name, "opc.tcp://127.0.0.1:4841/"));
+  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::NodeIDType.name, "String"));
+  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::NodeID.name, "INT2"));
+  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::NameSpaceIndex.name, std::to_string(server.getNamespaceIndex())));
+  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::RecordSetWriter.name, "JsonRecordSetWriter"));
 
   std::string expected_json_content;
   SECTION("Fetch full history") {
@@ -275,7 +275,7 @@ TEST_CASE("Test RecordSetWriter with JSON output format with multiple values", "
       R"("ModificationUsername":"admin_user","ModificationUpdateType":"Update","ModificationTime":"2025-11-11T11:30:00.000Z"}, )"
       R"({"Value":"4","Sourcetimestamp":"2026-03-11T11:30:00.000Z","NodeID":"INT2",)"
       R"("ModificationUsername":"test_user","ModificationUpdateType":"Replace","ModificationTime":"2026-03-11T11:30:00.000Z"}])";
-    REQUIRE(fetch_opc_processor->setProperty(processors::FetchOpcHistory::HistoryReadType.name, "Modified"));
+    REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::HistoryReadType.name, "Modified"));
   }
 
   SECTION("Fetch raw history") {
@@ -292,18 +292,18 @@ TEST_CASE("Test RecordSetWriter with JSON output format with multiple values", "
 TEST_CASE("Test multiple triggers with state kept in state manager", "[fetchopchistory]") {
   OpcUaTestServer server(4841);
   server.start();
-  SingleProcessorTestController controller{minifi::test::utils::make_processor<processors::FetchOpcHistory>("FetchOpcHistory")};
+  SingleProcessorTestController controller{minifi::test::utils::make_processor<processors::FetchOPCHistory>("FetchOPCHistory")};
   auto fetch_opc_processor = controller.getProcessor();
-  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOpcHistory::OPCServerEndPoint.name, "opc.tcp://127.0.0.1:4841/"));
-  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOpcHistory::NodeIDType.name, "String"));
-  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOpcHistory::NodeID.name, "INT2"));
-  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOpcHistory::NameSpaceIndex.name, std::to_string(server.getNamespaceIndex())));
-  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOpcHistory::BatchSize.name, "1"));
+  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::OPCServerEndPoint.name, "opc.tcp://127.0.0.1:4841/"));
+  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::NodeIDType.name, "String"));
+  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::NodeID.name, "INT2"));
+  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::NameSpaceIndex.name, std::to_string(server.getNamespaceIndex())));
+  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::BatchSize.name, "1"));
 
   bool contains_modification_attributes = false;
   SECTION("Fetch full history") {
     contains_modification_attributes = true;
-    REQUIRE(fetch_opc_processor->setProperty(processors::FetchOpcHistory::HistoryReadType.name, "Modified"));
+    REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::HistoryReadType.name, "Modified"));
   }
 
   SECTION("Fetch raw history") {
@@ -311,8 +311,8 @@ TEST_CASE("Test multiple triggers with state kept in state manager", "[fetchopch
   }
 
   auto results = controller.trigger();
-  REQUIRE(results.at(processors::FetchOpcHistory::Success).size() == 1);
-  auto flow_file = results.at(processors::FetchOpcHistory::Success)[0];
+  REQUIRE(results.at(processors::FetchOPCHistory::Success).size() == 1);
+  auto flow_file = results.at(processors::FetchOPCHistory::Success)[0];
   CHECK(controller.plan->getContent(flow_file) == "2");
   CHECK(flow_file->getAttribute("NodeID") == "INT2");
   CHECK(flow_file->getAttribute("Sourcetimestamp") == "2021-03-15T11:30:00.000Z");
@@ -327,8 +327,8 @@ TEST_CASE("Test multiple triggers with state kept in state manager", "[fetchopch
   }
 
   results = controller.trigger();
-  REQUIRE(results.at(processors::FetchOpcHistory::Success).size() == 1);
-  flow_file = results.at(processors::FetchOpcHistory::Success)[0];
+  REQUIRE(results.at(processors::FetchOPCHistory::Success).size() == 1);
+  flow_file = results.at(processors::FetchOPCHistory::Success)[0];
   CHECK(controller.plan->getContent(flow_file) == "3");
   CHECK(flow_file->getAttribute("NodeID") == "INT2");
   CHECK(flow_file->getAttribute("Sourcetimestamp") == "2025-11-11T11:30:00.000Z");
@@ -343,8 +343,8 @@ TEST_CASE("Test multiple triggers with state kept in state manager", "[fetchopch
   }
 
   results = controller.trigger();
-  REQUIRE(results.at(processors::FetchOpcHistory::Success).size() == 1);
-  flow_file = results.at(processors::FetchOpcHistory::Success)[0];
+  REQUIRE(results.at(processors::FetchOPCHistory::Success).size() == 1);
+  flow_file = results.at(processors::FetchOPCHistory::Success)[0];
   CHECK(controller.plan->getContent(flow_file) == "4");
   CHECK(flow_file->getAttribute("NodeID") == "INT2");
   CHECK(flow_file->getAttribute("Sourcetimestamp") == "2026-03-11T11:30:00.000Z");

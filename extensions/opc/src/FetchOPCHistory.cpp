@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-#include "FetchOpcHistory.h"
+#include "FetchOPCHistory.h"
 
 #include <memory>
 #include <optional>
@@ -200,7 +200,7 @@ core::Record toRecord(const std::string& node_id, const HistoryEntry& entry) {
 }
 
 // Emits all new entries as a single FlowFile written through the configured record set writer.
-void writeAsRecordSet(FetchOpcHistoryContext& context, const std::vector<HistoryEntry>& entries) {
+void writeAsRecordSet(FetchOPCHistoryContext& context, const std::vector<HistoryEntry>& entries) {
   core::RecordSet record_set;
   for (const auto& entry : entries) {
     record_set.push_back(toRecord(context.node_id, entry));
@@ -208,12 +208,12 @@ void writeAsRecordSet(FetchOpcHistoryContext& context, const std::vector<History
 
   auto flow_file = context.session.create();
   context.record_set_writer->write(record_set, flow_file, context.session);
-  context.session.transfer(flow_file, FetchOpcHistory::Success);
+  context.session.transfer(flow_file, FetchOPCHistory::Success);
   ++context.flow_files_transferred;
 }
 
 // Emits each new entry as its own FlowFile whose content is the raw value.
-void writeAsFlowFiles(FetchOpcHistoryContext& context, const std::vector<HistoryEntry>& entries) {
+void writeAsFlowFiles(FetchOPCHistoryContext& context, const std::vector<HistoryEntry>& entries) {
   for (const auto& entry : entries) {
     auto flow_file = context.session.create();
     context.session.write(flow_file, [&entry](const std::shared_ptr<io::OutputStream>& output_stream) -> io::IoResult {
@@ -225,7 +225,7 @@ void writeAsFlowFiles(FetchOpcHistoryContext& context, const std::vector<History
     if (entry.modification_info) {
       addModificationInfo(*flow_file, *entry.modification_info);
     }
-    context.session.transfer(flow_file, FetchOpcHistory::Success);
+    context.session.transfer(flow_file, FetchOPCHistory::Success);
     ++context.flow_files_transferred;
   }
 }
@@ -242,13 +242,13 @@ void updateState(std::unordered_map<std::string, std::string>& state_map, const 
 
 }  // namespace
 
-void FetchOpcHistory::initialize() {
+void FetchOPCHistory::initialize() {
   setSupportedProperties(Properties);
   setSupportedRelationships(Relationships);
 }
 
-void FetchOpcHistory::onSchedule(core::ProcessContext& context, core::ProcessSessionFactory& factory) {
-  logger_->log_trace("FetchOpcHistory::onSchedule");
+void FetchOPCHistory::onSchedule(core::ProcessContext& context, core::ProcessSessionFactory& factory) {
+  logger_->log_trace("FetchOPCHistory::onSchedule");
   BaseOPCProcessor::onSchedule(context, factory);
   node_id_ = utils::parseProperty(context, NodeID);
   parseIdType(context, NodeIDType);
@@ -262,9 +262,9 @@ void FetchOpcHistory::onSchedule(core::ProcessContext& context, core::ProcessSes
   record_set_writer_ = std::dynamic_pointer_cast<core::RecordSetWriter>(context.getControllerService(record_set_writer_name, getUUID()));
 }
 
-UA_Boolean FetchOpcHistory::historyReadCallback(UA_Client* /*client*/, const UA_NodeId* /*node_id*/, UA_Boolean more_data_available,
+UA_Boolean FetchOPCHistory::historyReadCallback(UA_Client* /*client*/, const UA_NodeId* /*node_id*/, UA_Boolean more_data_available,
     const UA_ExtensionObject* data, void* ctx) {
-  auto* opc_history_context = static_cast<FetchOpcHistoryContext*>(ctx);
+  auto* opc_history_context = static_cast<FetchOPCHistoryContext*>(ctx);
   opc_history_context->has_more_data = more_data_available;
 
   auto batch = extractHistoryBatch(data);
@@ -288,8 +288,8 @@ UA_Boolean FetchOpcHistory::historyReadCallback(UA_Client* /*client*/, const UA_
   return false;
 }
 
-void FetchOpcHistory::onTrigger(core::ProcessContext& context, core::ProcessSession& session) {
-  logger_->log_trace("FetchOpcHistory::onTrigger");
+void FetchOPCHistory::onTrigger(core::ProcessContext& context, core::ProcessSession& session) {
+  logger_->log_trace("FetchOPCHistory::onTrigger");
 
   if (!reconnect()) {
     context.yield();
@@ -306,7 +306,7 @@ void FetchOpcHistory::onTrigger(core::ProcessContext& context, core::ProcessSess
   UA_NodeId node = UA_NODEID_STRING(namespace_idx_, const_cast<char*>(node_id_.c_str()));
   bool has_more_data = true;
   size_t flow_files_transferred = 0;
-  FetchOpcHistoryContext history_context{session, record_set_writer_, state_map, has_more_data, flow_files_transferred, node_id_};
+  FetchOPCHistoryContext history_context{session, record_set_writer_, state_map, has_more_data, flow_files_transferred, node_id_};
 
   UA_DateTime ua_start_time = UA_DateTime_fromUnixTime(0);
   UA_DateTime ua_end_time = UA_DateTime_now();
@@ -326,7 +326,7 @@ void FetchOpcHistory::onTrigger(core::ProcessContext& context, core::ProcessSess
   while (has_more_data && (batch_size_ == 0 || flow_files_transferred < batch_size_)) {
     auto retval = connection_->readHistory(history_type_,
         node,
-        &FetchOpcHistory::historyReadCallback,
+        &FetchOPCHistory::historyReadCallback,
         ua_start_time,
         ua_end_time,
         number_of_entries_to_fetch,
@@ -342,6 +342,6 @@ void FetchOpcHistory::onTrigger(core::ProcessContext& context, core::ProcessSess
   state_manager->set(state_map);
 }
 
-REGISTER_RESOURCE(FetchOpcHistory, Processor);
+REGISTER_RESOURCE(FetchOPCHistory, Processor);
 
 }  // namespace org::apache::nifi::minifi::processors

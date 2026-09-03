@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-#include "opc.h"
+#include "OPCCommon.h"
 
 #include <cstdlib>
 #include <memory>
