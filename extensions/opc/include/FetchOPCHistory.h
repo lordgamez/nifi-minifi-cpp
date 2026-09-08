@@ -113,7 +113,6 @@ class FetchOPCHistory final : public BaseOPCProcessor {
   EXTENSIONAPI static constexpr auto RecordSetWriter =
       core::PropertyDefinitionBuilder<>::createProperty("Record Set Writer")
           .withDescription("Specifies the Controller Service to use for writing results to a FlowFile instead of using the default output format.")
-          .isRequired(true)
           .withAllowedTypes<core::RecordSetWriter>()
           .build();
   EXTENSIONAPI static constexpr auto Properties = utils::array_cat(BaseOPCProcessor::Properties,

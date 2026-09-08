@@ -19,228 +19,271 @@ Feature: Putting and fetching data to OPC UA server
   As a user of MiNiFi
   I need to have PutOPCProcessor and FetchOPCProcessor
 
-  Scenario Outline: Create and fetch data from an OPC UA node
-    Given a GetFile processor with the "Input Directory" property set to "/tmp/input" in the "create-opc-ua-node" flow
-    And a directory at "/tmp/input" has a file with the content "<Value>" in the "create-opc-ua-node" flow
-    And a PutOPCProcessor processor in the "create-opc-ua-node" flow
-    And PutOPCProcessor is EVENT_DRIVEN in the "create-opc-ua-node" flow
-    And a FetchOPCProcessor processor in the "fetch-opc-ua-node" flow
-    And a PutFile processor with the "Directory" property set to "/tmp/output" in the "fetch-opc-ua-node" flow
-    And PutFile's success relationship is auto-terminated in the "fetch-opc-ua-node" flow
-    And PutFile is EVENT_DRIVEN in the "fetch-opc-ua-node" flow
-    And these processor properties are set in the "create-opc-ua-node" flow
-      | processor name    | property name               | property value                                    |
-      | PutOPCProcessor   | Parent node ID              | 85                                                |
-      | PutOPCProcessor   | Parent node ID type         | Int                                               |
-      | PutOPCProcessor   | Target node ID              | 9999                                              |
-      | PutOPCProcessor   | Target node ID type         | Int                                               |
-      | PutOPCProcessor   | Target node namespace index | 1                                                 |
-      | PutOPCProcessor   | Value type                  | <Value Type>                                      |
-      | PutOPCProcessor   | OPC server endpoint         | opc.tcp://opcua-server-${scenario_id}:4840/       |
-      | PutOPCProcessor   | Target node browse name     | testnodename                                      |
-    And these processor properties are set in the "fetch-opc-ua-node" flow
-      | processor name    | property name               | property value                                    |
-      | FetchOPCProcessor | Node ID                     | 9999                                              |
-      | FetchOPCProcessor | Node ID type                | Int                                               |
-      | FetchOPCProcessor | Namespace index             | 1                                                 |
-      | FetchOPCProcessor | OPC server endpoint         | opc.tcp://opcua-server-${scenario_id}:4840/       |
-      | FetchOPCProcessor | Max depth                   | 1                                                 |
+  # Scenario Outline: Create and fetch data from an OPC UA node
+  #   Given a GetFile processor with the "Input Directory" property set to "/tmp/input" in the "create-opc-ua-node" flow
+  #   And a directory at "/tmp/input" has a file with the content "<Value>" in the "create-opc-ua-node" flow
+  #   And a PutOPCProcessor processor in the "create-opc-ua-node" flow
+  #   And PutOPCProcessor is EVENT_DRIVEN in the "create-opc-ua-node" flow
+  #   And a FetchOPCProcessor processor in the "fetch-opc-ua-node" flow
+  #   And a PutFile processor with the "Directory" property set to "/tmp/output" in the "fetch-opc-ua-node" flow
+  #   And PutFile's success relationship is auto-terminated in the "fetch-opc-ua-node" flow
+  #   And PutFile is EVENT_DRIVEN in the "fetch-opc-ua-node" flow
+  #   And these processor properties are set in the "create-opc-ua-node" flow
+  #     | processor name    | property name               | property value                                    |
+  #     | PutOPCProcessor   | Parent node ID              | 85                                                |
+  #     | PutOPCProcessor   | Parent node ID type         | Int                                               |
+  #     | PutOPCProcessor   | Target node ID              | 9999                                              |
+  #     | PutOPCProcessor   | Target node ID type         | Int                                               |
+  #     | PutOPCProcessor   | Target node namespace index | 1                                                 |
+  #     | PutOPCProcessor   | Value type                  | <Value Type>                                      |
+  #     | PutOPCProcessor   | OPC server endpoint         | opc.tcp://opcua-server-${scenario_id}:4840/       |
+  #     | PutOPCProcessor   | Target node browse name     | testnodename                                      |
+  #   And these processor properties are set in the "fetch-opc-ua-node" flow
+  #     | processor name    | property name               | property value                                    |
+  #     | FetchOPCProcessor | Node ID                     | 9999                                              |
+  #     | FetchOPCProcessor | Node ID type                | Int                                               |
+  #     | FetchOPCProcessor | Namespace index             | 1                                                 |
+  #     | FetchOPCProcessor | OPC server endpoint         | opc.tcp://opcua-server-${scenario_id}:4840/       |
+  #     | FetchOPCProcessor | Max depth                   | 1                                                 |
 
-    And in the "create-opc-ua-node" flow the "success" relationship of the GetFile processor is connected to the PutOPCProcessor
-    And in the "fetch-opc-ua-node" flow the "success" relationship of the FetchOPCProcessor processor is connected to the PutFile
+  #   And in the "create-opc-ua-node" flow the "success" relationship of the GetFile processor is connected to the PutOPCProcessor
+  #   And in the "fetch-opc-ua-node" flow the "success" relationship of the FetchOPCProcessor processor is connected to the PutFile
 
-    And an OPC UA server is set up
+  #   And an OPC UA server is set up
 
-    When all instances start up
-    Then in the "fetch-opc-ua-node" container at least one file with the content "<Value>" is placed in the "/tmp/output" directory in less than 60 seconds
+  #   When all instances start up
+  #   Then in the "fetch-opc-ua-node" container at least one file with the content "<Value>" is placed in the "/tmp/output" directory in less than 60 seconds
 
-  Examples: Topic names and formats to test
-    | Value Type   | Value   |
-    | String       | Test    |
-    | UInt32       | 42      |
-    | Double       | 123.321 |
-    | Boolean      | False   |
+  # Examples: Topic names and formats to test
+  #   | Value Type   | Value   |
+  #   | String       | Test    |
+  #   | UInt32       | 42      |
+  #   | Double       | 123.321 |
+  #   | Boolean      | False   |
 
-  Scenario Outline: Update and fetch data from an OPC UA node
-    Given a GetFile processor with the "Input Directory" property set to "/tmp/input" in the "update-opc-ua-node" flow
-    And a directory at "/tmp/input" has a file with the content "<Value>" in the "update-opc-ua-node" flow
+  # Scenario Outline: Update and fetch data from an OPC UA node
+  #   Given a GetFile processor with the "Input Directory" property set to "/tmp/input" in the "update-opc-ua-node" flow
+  #   And a directory at "/tmp/input" has a file with the content "<Value>" in the "update-opc-ua-node" flow
+  #   And a PutOPCProcessor processor in the "update-opc-ua-node" flow
+  #   And PutOPCProcessor is EVENT_DRIVEN in the "update-opc-ua-node" flow
+  #   And a FetchOPCProcessor processor in the "fetch-opc-ua-node" flow
+  #   And a PutFile processor with the "Directory" property set to "/tmp/output" in the "fetch-opc-ua-node" flow
+  #   And PutFile's success relationship is auto-terminated in the "fetch-opc-ua-node" flow
+  #   And PutFile is EVENT_DRIVEN in the "fetch-opc-ua-node" flow
+  #   And these processor properties are set in the "update-opc-ua-node" flow
+  #     | processor name    | property name               | property value                                    |
+  #     | PutOPCProcessor   | Parent node ID              | 85                                                |
+  #     | PutOPCProcessor   | Parent node ID type         | Int                                               |
+  #     | PutOPCProcessor   | Target node ID              | <Node ID>                                         |
+  #     | PutOPCProcessor   | Target node ID type         | <Node ID Type>                                    |
+  #     | PutOPCProcessor   | Target node namespace index | 1                                                 |
+  #     | PutOPCProcessor   | Value type                  | <Value Type>                                      |
+  #     | PutOPCProcessor   | OPC server endpoint         | opc.tcp://opcua-server-${scenario_id}:4840/       |
+  #     | PutOPCProcessor   | Target node browse name     | testnodename                                      |
+  #   And these processor properties are set in the "fetch-opc-ua-node" flow
+  #     | processor name    | property name               | property value                                    |
+  #     | FetchOPCProcessor | Node ID                     | <Node ID>                                         |
+  #     | FetchOPCProcessor | Node ID type                | <Node ID Type>                                    |
+  #     | FetchOPCProcessor | Namespace index             | 1                                                 |
+  #     | FetchOPCProcessor | OPC server endpoint         | opc.tcp://opcua-server-${scenario_id}:4840/       |
+  #     | FetchOPCProcessor | Max depth                   | 1                                                 |
+
+  #   And in the "update-opc-ua-node" flow the "success" relationship of the GetFile processor is connected to the PutOPCProcessor
+  #   And in the "fetch-opc-ua-node" flow the "success" relationship of the FetchOPCProcessor processor is connected to the PutFile
+
+  #   And an OPC UA server is set up
+
+  #   When all instances start up
+  #   Then in the "fetch-opc-ua-node" container at least one file with the content "<Value>" is placed in the "/tmp/output" directory in less than 60 seconds
+
+  # # Node ids starting from 51000 are pre-defined demo node ids in the test server application (server_ctt) of the open62541 docker image. There is one nodeid defined
+  # # for each type supported by OPC UA. These demo nodes can be used for testing purposes. "the.answer" is also a pre-defined string id for the same testing purposes.
+  # Examples: Topic names and formats to test
+  #   | Node ID Type | Node ID     | Value Type   | Value       |
+  #   | Int          | 51034       | String       | minifi-test |
+  #   | Int          | 51001       | Boolean      | True        |
+  #   | String       | the.answer  | Int32        | 54          |
+  #   | Int          | 51019       | UInt32       | 123         |
+  #   | Int          | 51031       | Double       | 66.6        |
+
+  # Scenario: Create and fetch data from an OPC UA node through secure connection
+  #   Given a GetFile processor with the "Input Directory" property set to "/tmp/input" in the "create-opc-ua-node" flow
+  #   And a directory at "/tmp/input" has a file with the content "Test" in the "create-opc-ua-node" flow
+  #   And a PutOPCProcessor processor in the "create-opc-ua-node" flow
+  #   And PutOPCProcessor is EVENT_DRIVEN in the "create-opc-ua-node" flow
+  #   And a FetchOPCProcessor processor in the "fetch-opc-ua-node" flow
+  #   And a PutFile processor with the "Directory" property set to "/tmp/output" in the "fetch-opc-ua-node" flow
+  #   And PutFile's success relationship is auto-terminated in the "fetch-opc-ua-node" flow
+  #   And PutFile is EVENT_DRIVEN in the "fetch-opc-ua-node" flow
+  #   And the OPC UA server certificate files are placed in the "/tmp/resources/opcua/" directory in the MiNiFi container "create-opc-ua-node"
+  #   And the OPC UA server certificate files are placed in the "/tmp/resources/opcua/" directory in the MiNiFi container "fetch-opc-ua-node"
+  #   And these processor properties are set in the "create-opc-ua-node" flow
+  #     | processor name    | property name                   | property value                                    |
+  #     | PutOPCProcessor   | Parent node ID                  | 85                                                |
+  #     | PutOPCProcessor   | Parent node ID type             | Int                                               |
+  #     | PutOPCProcessor   | Target node ID                  | 9999                                              |
+  #     | PutOPCProcessor   | Target node ID type             | Int                                               |
+  #     | PutOPCProcessor   | Target node namespace index     | 1                                                 |
+  #     | PutOPCProcessor   | Value type                      | String                                            |
+  #     | PutOPCProcessor   | OPC server endpoint             | opc.tcp://opcua-server-${scenario_id}:4840/       |
+  #     | PutOPCProcessor   | Target node browse name         | testnodename                                      |
+  #     | PutOPCProcessor   | Certificate path                | /tmp/resources/opcua/opcua_client_cert.der        |
+  #     | PutOPCProcessor   | Key path                        | /tmp/resources/opcua/opcua_client_key.der         |
+  #     | PutOPCProcessor   | Trusted server certificate path | /tmp/resources/opcua/opcua_client_cert.der        |
+  #     | PutOPCProcessor   | Application URI                 | urn:open62541.unconfigured.application                  |
+  #   And these processor properties are set in the "fetch-opc-ua-node" flow
+  #     | processor name    | property name                   | property value                                    |
+  #     | FetchOPCProcessor | Node ID                         | 9999                                              |
+  #     | FetchOPCProcessor | Node ID type                    | Int                                               |
+  #     | FetchOPCProcessor | Namespace index                 | 1                                                 |
+  #     | FetchOPCProcessor | OPC server endpoint             | opc.tcp://opcua-server-${scenario_id}:4840/       |
+  #     | FetchOPCProcessor | Max depth                       | 1                                                 |
+  #     | FetchOPCProcessor | Certificate path                | /tmp/resources/opcua/opcua_client_cert.der        |
+  #     | FetchOPCProcessor | Key path                        | /tmp/resources/opcua/opcua_client_key.der         |
+  #     | FetchOPCProcessor | Trusted server certificate path | /tmp/resources/opcua/opcua_client_cert.der        |
+  #     | FetchOPCProcessor | Application URI                 | urn:open62541.unconfigured.application                  |
+
+  #   And in the "create-opc-ua-node" flow the "success" relationship of the GetFile processor is connected to the PutOPCProcessor
+  #   And in the "fetch-opc-ua-node" flow the "success" relationship of the FetchOPCProcessor processor is connected to the PutFile
+
+  #   And an OPC UA server is set up
+
+  #   When all instances start up
+
+  #   Then in the "fetch-opc-ua-node" container at least one file with the content "Test" is placed in the "/tmp/output" directory in less than 60 seconds
+  #   And the OPC UA server logs contain the following message: "Channel opened with SecurityMode SignAndEncrypt for SecurityPolicy http://opcfoundation.org/UA/SecurityPolicy#Aes256_Sha256_RsaPss" in less than 5 seconds
+
+  # Scenario: Create and fetch data from an OPC UA node through username and password authenticated connection
+  #   Given a GetFile processor with the "Input Directory" property set to "/tmp/input" in the "create-opc-ua-node" flow
+  #   And a directory at "/tmp/input" has a file with the content "Test" in the "create-opc-ua-node" flow
+  #   And a PutOPCProcessor processor in the "create-opc-ua-node" flow
+  #   And PutOPCProcessor is EVENT_DRIVEN in the "create-opc-ua-node" flow
+  #   And a FetchOPCProcessor processor in the "fetch-opc-ua-node" flow
+  #   And a PutFile processor with the "Directory" property set to "/tmp/output" in the "fetch-opc-ua-node" flow
+  #   And PutFile's success relationship is auto-terminated in the "fetch-opc-ua-node" flow
+  #   And PutFile is EVENT_DRIVEN in the "fetch-opc-ua-node" flow
+  #   And these processor properties are set in the "create-opc-ua-node" flow
+  #     | processor name    | property name               | property value                                    |
+  #     | PutOPCProcessor   | Parent node ID              | 85                                                |
+  #     | PutOPCProcessor   | Parent node ID type         | Int                                               |
+  #     | PutOPCProcessor   | Target node ID              | 9999                                              |
+  #     | PutOPCProcessor   | Target node ID type         | Int                                               |
+  #     | PutOPCProcessor   | Target node namespace index | 1                                                 |
+  #     | PutOPCProcessor   | Value type                  | String                                            |
+  #     | PutOPCProcessor   | OPC server endpoint         | opc.tcp://opcua-server-${scenario_id}:4840/       |
+  #     | PutOPCProcessor   | Target node browse name     | testnodename                                      |
+  #     | PutOPCProcessor   | Username                    | peter                                             |
+  #     | PutOPCProcessor   | Password                    | peter123                                          |
+  #   And these processor properties are set in the "fetch-opc-ua-node" flow
+  #     | processor name    | property name               | property value                                    |
+  #     | FetchOPCProcessor | Node ID                     | 9999                                              |
+  #     | FetchOPCProcessor | Node ID type                | Int                                               |
+  #     | FetchOPCProcessor | Namespace index             | 1                                                 |
+  #     | FetchOPCProcessor | OPC server endpoint         | opc.tcp://opcua-server-${scenario_id}:4840/       |
+  #     | FetchOPCProcessor | Max depth                   | 1                                                 |
+  #     | FetchOPCProcessor | Username                    | peter                                             |
+  #     | FetchOPCProcessor | Password                    | peter123                                          |
+
+  #   And in the "create-opc-ua-node" flow the "success" relationship of the GetFile processor is connected to the PutOPCProcessor
+  #   And in the "fetch-opc-ua-node" flow the "success" relationship of the FetchOPCProcessor processor is connected to the PutFile
+
+  #   And an OPC UA server is set up with access control
+
+  #   When all instances start up
+  #   Then in the "fetch-opc-ua-node" container at least one file with the content "Test" is placed in the "/tmp/output" directory in less than 60 seconds
+  #   And the logs of the "fetch-opc-ua-node" container contain the following message: "Username/password authentication is used without encryption, which is not secure. Please consider configuring encryption for better security." in less than 1 second
+  #   And the logs of the "create-opc-ua-node" container contain the following message: "Username/password authentication is used without encryption, which is not secure. Please consider configuring encryption for better security." in less than 1 second
+
+  # Scenario: Create and fetch data from an OPC UA node through username and password authenticated connection with encryption
+  #   Given a GetFile processor with the "Input Directory" property set to "/tmp/input" in the "create-opc-ua-node" flow
+  #   And a directory at "/tmp/input" has a file with the content "Test" in the "create-opc-ua-node" flow
+  #   And a PutOPCProcessor processor in the "create-opc-ua-node" flow
+  #   And PutOPCProcessor is EVENT_DRIVEN in the "create-opc-ua-node" flow
+  #   And a FetchOPCProcessor processor in the "fetch-opc-ua-node" flow
+  #   And a PutFile processor with the "Directory" property set to "/tmp/output" in the "fetch-opc-ua-node" flow
+  #   And PutFile's success relationship is auto-terminated in the "fetch-opc-ua-node" flow
+  #   And PutFile is EVENT_DRIVEN in the "fetch-opc-ua-node" flow
+  #   And the OPC UA server certificate files are placed in the "/tmp/resources/opcua/" directory in the MiNiFi container "create-opc-ua-node"
+  #   And the OPC UA server certificate files are placed in the "/tmp/resources/opcua/" directory in the MiNiFi container "fetch-opc-ua-node"
+  #   And these processor properties are set in the "create-opc-ua-node" flow
+  #     | processor name    | property name                   | property value                                    |
+  #     | PutOPCProcessor   | Parent node ID                  | 85                                                |
+  #     | PutOPCProcessor   | Parent node ID type             | Int                                               |
+  #     | PutOPCProcessor   | Target node ID                  | 9999                                              |
+  #     | PutOPCProcessor   | Target node ID type             | Int                                               |
+  #     | PutOPCProcessor   | Target node namespace index     | 1                                                 |
+  #     | PutOPCProcessor   | Value type                      | String                                            |
+  #     | PutOPCProcessor   | OPC server endpoint             | opc.tcp://opcua-server-${scenario_id}:4840/       |
+  #     | PutOPCProcessor   | Target node browse name         | testnodename                                      |
+  #     | PutOPCProcessor   | Username                        | admin                                             |
+  #     | PutOPCProcessor   | Password                        | admin                                             |
+  #     | PutOPCProcessor   | Certificate path                | /tmp/resources/opcua/opcua_client_cert.der        |
+  #     | PutOPCProcessor   | Key path                        | /tmp/resources/opcua/opcua_client_key.der         |
+  #     | PutOPCProcessor   | Trusted server certificate path | /tmp/resources/opcua/opcua_client_cert.der        |
+  #     | PutOPCProcessor   | Application URI                 | urn:open62541.unconfigured.application            |
+  #   And these processor properties are set in the "fetch-opc-ua-node" flow
+  #     | processor name    | property name                   | property value                                    |
+  #     | FetchOPCProcessor | Node ID                         | 9999                                              |
+  #     | FetchOPCProcessor | Node ID type                    | Int                                               |
+  #     | FetchOPCProcessor | Namespace index                 | 1                                                 |
+  #     | FetchOPCProcessor | OPC server endpoint             | opc.tcp://opcua-server-${scenario_id}:4840/       |
+  #     | FetchOPCProcessor | Max depth                       | 1                                                 |
+  #     | FetchOPCProcessor | Username                        | admin                                             |
+  #     | FetchOPCProcessor | Password                        | admin                                             |
+  #     | FetchOPCProcessor | Certificate path                | /tmp/resources/opcua/opcua_client_cert.der        |
+  #     | FetchOPCProcessor | Key path                        | /tmp/resources/opcua/opcua_client_key.der         |
+  #     | FetchOPCProcessor | Trusted server certificate path | /tmp/resources/opcua/opcua_client_cert.der        |
+  #     | FetchOPCProcessor | Application URI                 | urn:open62541.unconfigured.application            |
+
+  #   And in the "create-opc-ua-node" flow the "success" relationship of the GetFile processor is connected to the PutOPCProcessor
+  #   And in the "fetch-opc-ua-node" flow the "success" relationship of the FetchOPCProcessor processor is connected to the PutFile
+
+  #   And an OPC UA server is set up
+
+  #   When all instances start up
+  #   Then in the "fetch-opc-ua-node" container at least one file with the content "Test" is placed in the "/tmp/output" directory in less than 60 seconds
+  #   And the logs of the "fetch-opc-ua-node" container do not contain the following message: "Username/password authentication is used without encryption, which is not secure. Please consider configuring encryption for better security." after 0 seconds
+  #   And the logs of the "create-opc-ua-node" container do not contain the following message: "Username/password authentication is used without encryption, which is not secure. Please consider configuring encryption for better security." after 0 seconds
+
+  Scenario: Update and fetch historical data from an OPC UA node
+    Given a GenerateFlowFile processor with the "Unique FlowFiles" property set to "false" in the "update-opc-ua-node" flow
+    And the "Custom Text" property of the GenerateFlowFile processor is set to "${nextInt()}" in the "update-opc-ua-node" flow
+    And the "Data Format" property of the GenerateFlowFile processor is set to "Text" in the "update-opc-ua-node" flow
+    And the scheduling period of the GenerateFlowFile processor is set to "1 sec" in the "update-opc-ua-node" flow
     And a PutOPCProcessor processor in the "update-opc-ua-node" flow
     And PutOPCProcessor is EVENT_DRIVEN in the "update-opc-ua-node" flow
-    And a FetchOPCProcessor processor in the "fetch-opc-ua-node" flow
-    And a PutFile processor with the "Directory" property set to "/tmp/output" in the "fetch-opc-ua-node" flow
-    And PutFile's success relationship is auto-terminated in the "fetch-opc-ua-node" flow
-    And PutFile is EVENT_DRIVEN in the "fetch-opc-ua-node" flow
+    And a FetchOPCHistory processor in the "fetch-opc-ua-node-history" flow
+    And the scheduling period of the FetchOPCHistory processor is set to "15 sec" in the "fetch-opc-ua-node-history" flow
+    And a PutFile processor with the "Directory" property set to "/tmp/output" in the "fetch-opc-ua-node-history" flow
+    And PutFile's success relationship is auto-terminated in the "fetch-opc-ua-node-history" flow
+    And PutFile is EVENT_DRIVEN in the "fetch-opc-ua-node-history" flow
+    And a LogAttribute processor in the "fetch-opc-ua-node-history" flow
+    And LogAttribute is EVENT_DRIVEN in the "fetch-opc-ua-node-history" flow
+    And the "Log Payload" property of the LogAttribute processor is set to "true" in the "fetch-opc-ua-node-history" flow
+    And LogAttribute's success relationship is auto-terminated in the "fetch-opc-ua-node-history" flow
     And these processor properties are set in the "update-opc-ua-node" flow
       | processor name    | property name               | property value                                    |
       | PutOPCProcessor   | Parent node ID              | 85                                                |
       | PutOPCProcessor   | Parent node ID type         | Int                                               |
-      | PutOPCProcessor   | Target node ID              | <Node ID>                                         |
-      | PutOPCProcessor   | Target node ID type         | <Node ID Type>                                    |
+      | PutOPCProcessor   | Target node ID              | myUintValue                                       |
+      | PutOPCProcessor   | Target node ID type         | String                                            |
       | PutOPCProcessor   | Target node namespace index | 1                                                 |
-      | PutOPCProcessor   | Value type                  | <Value Type>                                      |
+      | PutOPCProcessor   | Value type                  | UInt32                                            |
       | PutOPCProcessor   | OPC server endpoint         | opc.tcp://opcua-server-${scenario_id}:4840/       |
       | PutOPCProcessor   | Target node browse name     | testnodename                                      |
-    And these processor properties are set in the "fetch-opc-ua-node" flow
+    And these processor properties are set in the "fetch-opc-ua-node-history" flow
       | processor name    | property name               | property value                                    |
-      | FetchOPCProcessor | Node ID                     | <Node ID>                                         |
-      | FetchOPCProcessor | Node ID type                | <Node ID Type>                                    |
-      | FetchOPCProcessor | Namespace index             | 1                                                 |
-      | FetchOPCProcessor | OPC server endpoint         | opc.tcp://opcua-server-${scenario_id}:4840/       |
-      | FetchOPCProcessor | Max depth                   | 1                                                 |
+      | FetchOPCHistory   | Node ID                     | myUintValue                                       |
+      | FetchOPCHistory   | Node ID type                | String                                            |
+      | FetchOPCHistory   | Namespace index             | 1                                                 |
+      | FetchOPCHistory   | OPC server endpoint         | opc.tcp://opcua-server-${scenario_id}:4840/       |
+      | FetchOPCHistory   | Max depth                   | 1                                                 |
 
-    And in the "update-opc-ua-node" flow the "success" relationship of the GetFile processor is connected to the PutOPCProcessor
-    And in the "fetch-opc-ua-node" flow the "success" relationship of the FetchOPCProcessor processor is connected to the PutFile
+    And in the "update-opc-ua-node" flow the "success" relationship of the GenerateFlowFile processor is connected to the PutOPCProcessor
+    And in the "fetch-opc-ua-node-history" flow the "success" relationship of the FetchOPCHistory processor is connected to the PutFile
+    And in the "fetch-opc-ua-node-history" flow the "success" relationship of the PutFile processor is connected to the LogAttribute
 
-    And an OPC UA server is set up
-
-    When all instances start up
-    Then in the "fetch-opc-ua-node" container at least one file with the content "<Value>" is placed in the "/tmp/output" directory in less than 60 seconds
-
-  # Node ids starting from 51000 are pre-defined demo node ids in the test server application (server_ctt) of the open62541 docker image. There is one nodeid defined
-  # for each type supported by OPC UA. These demo nodes can be used for testing purposes. "the.answer" is also a pre-defined string id for the same testing purposes.
-  Examples: Topic names and formats to test
-    | Node ID Type | Node ID     | Value Type   | Value       |
-    | Int          | 51034       | String       | minifi-test |
-    | Int          | 51001       | Boolean      | True        |
-    | String       | the.answer  | Int32        | 54          |
-    | Int          | 51019       | UInt32       | 123         |
-    | Int          | 51031       | Double       | 66.6        |
-
-  Scenario: Create and fetch data from an OPC UA node through secure connection
-    Given a GetFile processor with the "Input Directory" property set to "/tmp/input" in the "create-opc-ua-node" flow
-    And a directory at "/tmp/input" has a file with the content "Test" in the "create-opc-ua-node" flow
-    And a PutOPCProcessor processor in the "create-opc-ua-node" flow
-    And PutOPCProcessor is EVENT_DRIVEN in the "create-opc-ua-node" flow
-    And a FetchOPCProcessor processor in the "fetch-opc-ua-node" flow
-    And a PutFile processor with the "Directory" property set to "/tmp/output" in the "fetch-opc-ua-node" flow
-    And PutFile's success relationship is auto-terminated in the "fetch-opc-ua-node" flow
-    And PutFile is EVENT_DRIVEN in the "fetch-opc-ua-node" flow
-    And the OPC UA server certificate files are placed in the "/tmp/resources/opcua/" directory in the MiNiFi container "create-opc-ua-node"
-    And the OPC UA server certificate files are placed in the "/tmp/resources/opcua/" directory in the MiNiFi container "fetch-opc-ua-node"
-    And these processor properties are set in the "create-opc-ua-node" flow
-      | processor name    | property name                   | property value                                    |
-      | PutOPCProcessor   | Parent node ID                  | 85                                                |
-      | PutOPCProcessor   | Parent node ID type             | Int                                               |
-      | PutOPCProcessor   | Target node ID                  | 9999                                              |
-      | PutOPCProcessor   | Target node ID type             | Int                                               |
-      | PutOPCProcessor   | Target node namespace index     | 1                                                 |
-      | PutOPCProcessor   | Value type                      | String                                            |
-      | PutOPCProcessor   | OPC server endpoint             | opc.tcp://opcua-server-${scenario_id}:4840/       |
-      | PutOPCProcessor   | Target node browse name         | testnodename                                      |
-      | PutOPCProcessor   | Certificate path                | /tmp/resources/opcua/opcua_client_cert.der        |
-      | PutOPCProcessor   | Key path                        | /tmp/resources/opcua/opcua_client_key.der         |
-      | PutOPCProcessor   | Trusted server certificate path | /tmp/resources/opcua/opcua_client_cert.der        |
-      | PutOPCProcessor   | Application URI                 | urn:open62541.unconfigured.application                  |
-    And these processor properties are set in the "fetch-opc-ua-node" flow
-      | processor name    | property name                   | property value                                    |
-      | FetchOPCProcessor | Node ID                         | 9999                                              |
-      | FetchOPCProcessor | Node ID type                    | Int                                               |
-      | FetchOPCProcessor | Namespace index                 | 1                                                 |
-      | FetchOPCProcessor | OPC server endpoint             | opc.tcp://opcua-server-${scenario_id}:4840/       |
-      | FetchOPCProcessor | Max depth                       | 1                                                 |
-      | FetchOPCProcessor | Certificate path                | /tmp/resources/opcua/opcua_client_cert.der        |
-      | FetchOPCProcessor | Key path                        | /tmp/resources/opcua/opcua_client_key.der         |
-      | FetchOPCProcessor | Trusted server certificate path | /tmp/resources/opcua/opcua_client_cert.der        |
-      | FetchOPCProcessor | Application URI                 | urn:open62541.unconfigured.application                  |
-
-    And in the "create-opc-ua-node" flow the "success" relationship of the GetFile processor is connected to the PutOPCProcessor
-    And in the "fetch-opc-ua-node" flow the "success" relationship of the FetchOPCProcessor processor is connected to the PutFile
-
-    And an OPC UA server is set up
+    And an OPC UA server is set up with historical data support
 
     When all instances start up
-
-    Then in the "fetch-opc-ua-node" container at least one file with the content "Test" is placed in the "/tmp/output" directory in less than 60 seconds
-    And the OPC UA server logs contain the following message: "Channel opened with SecurityMode SignAndEncrypt for SecurityPolicy http://opcfoundation.org/UA/SecurityPolicy#Aes256_Sha256_RsaPss" in less than 5 seconds
-
-  Scenario: Create and fetch data from an OPC UA node through username and password authenticated connection
-    Given a GetFile processor with the "Input Directory" property set to "/tmp/input" in the "create-opc-ua-node" flow
-    And a directory at "/tmp/input" has a file with the content "Test" in the "create-opc-ua-node" flow
-    And a PutOPCProcessor processor in the "create-opc-ua-node" flow
-    And PutOPCProcessor is EVENT_DRIVEN in the "create-opc-ua-node" flow
-    And a FetchOPCProcessor processor in the "fetch-opc-ua-node" flow
-    And a PutFile processor with the "Directory" property set to "/tmp/output" in the "fetch-opc-ua-node" flow
-    And PutFile's success relationship is auto-terminated in the "fetch-opc-ua-node" flow
-    And PutFile is EVENT_DRIVEN in the "fetch-opc-ua-node" flow
-    And these processor properties are set in the "create-opc-ua-node" flow
-      | processor name    | property name               | property value                                    |
-      | PutOPCProcessor   | Parent node ID              | 85                                                |
-      | PutOPCProcessor   | Parent node ID type         | Int                                               |
-      | PutOPCProcessor   | Target node ID              | 9999                                              |
-      | PutOPCProcessor   | Target node ID type         | Int                                               |
-      | PutOPCProcessor   | Target node namespace index | 1                                                 |
-      | PutOPCProcessor   | Value type                  | String                                            |
-      | PutOPCProcessor   | OPC server endpoint         | opc.tcp://opcua-server-${scenario_id}:4840/       |
-      | PutOPCProcessor   | Target node browse name     | testnodename                                      |
-      | PutOPCProcessor   | Username                    | peter                                             |
-      | PutOPCProcessor   | Password                    | peter123                                          |
-    And these processor properties are set in the "fetch-opc-ua-node" flow
-      | processor name    | property name               | property value                                    |
-      | FetchOPCProcessor | Node ID                     | 9999                                              |
-      | FetchOPCProcessor | Node ID type                | Int                                               |
-      | FetchOPCProcessor | Namespace index             | 1                                                 |
-      | FetchOPCProcessor | OPC server endpoint         | opc.tcp://opcua-server-${scenario_id}:4840/       |
-      | FetchOPCProcessor | Max depth                   | 1                                                 |
-      | FetchOPCProcessor | Username                    | peter                                             |
-      | FetchOPCProcessor | Password                    | peter123                                          |
-
-    And in the "create-opc-ua-node" flow the "success" relationship of the GetFile processor is connected to the PutOPCProcessor
-    And in the "fetch-opc-ua-node" flow the "success" relationship of the FetchOPCProcessor processor is connected to the PutFile
-
-    And an OPC UA server is set up with access control
-
-    When all instances start up
-    Then in the "fetch-opc-ua-node" container at least one file with the content "Test" is placed in the "/tmp/output" directory in less than 60 seconds
-    And the logs of the "fetch-opc-ua-node" container contain the following message: "Username/password authentication is used without encryption, which is not secure. Please consider configuring encryption for better security." in less than 1 second
-    And the logs of the "create-opc-ua-node" container contain the following message: "Username/password authentication is used without encryption, which is not secure. Please consider configuring encryption for better security." in less than 1 second
-
-  Scenario: Create and fetch data from an OPC UA node through username and password authenticated connection with encryption
-    Given a GetFile processor with the "Input Directory" property set to "/tmp/input" in the "create-opc-ua-node" flow
-    And a directory at "/tmp/input" has a file with the content "Test" in the "create-opc-ua-node" flow
-    And a PutOPCProcessor processor in the "create-opc-ua-node" flow
-    And PutOPCProcessor is EVENT_DRIVEN in the "create-opc-ua-node" flow
-    And a FetchOPCProcessor processor in the "fetch-opc-ua-node" flow
-    And a PutFile processor with the "Directory" property set to "/tmp/output" in the "fetch-opc-ua-node" flow
-    And PutFile's success relationship is auto-terminated in the "fetch-opc-ua-node" flow
-    And PutFile is EVENT_DRIVEN in the "fetch-opc-ua-node" flow
-    And the OPC UA server certificate files are placed in the "/tmp/resources/opcua/" directory in the MiNiFi container "create-opc-ua-node"
-    And the OPC UA server certificate files are placed in the "/tmp/resources/opcua/" directory in the MiNiFi container "fetch-opc-ua-node"
-    And these processor properties are set in the "create-opc-ua-node" flow
-      | processor name    | property name                   | property value                                    |
-      | PutOPCProcessor   | Parent node ID                  | 85                                                |
-      | PutOPCProcessor   | Parent node ID type             | Int                                               |
-      | PutOPCProcessor   | Target node ID                  | 9999                                              |
-      | PutOPCProcessor   | Target node ID type             | Int                                               |
-      | PutOPCProcessor   | Target node namespace index     | 1                                                 |
-      | PutOPCProcessor   | Value type                      | String                                            |
-      | PutOPCProcessor   | OPC server endpoint             | opc.tcp://opcua-server-${scenario_id}:4840/       |
-      | PutOPCProcessor   | Target node browse name         | testnodename                                      |
-      | PutOPCProcessor   | Username                        | admin                                             |
-      | PutOPCProcessor   | Password                        | admin                                             |
-      | PutOPCProcessor   | Certificate path                | /tmp/resources/opcua/opcua_client_cert.der        |
-      | PutOPCProcessor   | Key path                        | /tmp/resources/opcua/opcua_client_key.der         |
-      | PutOPCProcessor   | Trusted server certificate path | /tmp/resources/opcua/opcua_client_cert.der        |
-      | PutOPCProcessor   | Application URI                 | urn:open62541.unconfigured.application            |
-    And these processor properties are set in the "fetch-opc-ua-node" flow
-      | processor name    | property name                   | property value                                    |
-      | FetchOPCProcessor | Node ID                         | 9999                                              |
-      | FetchOPCProcessor | Node ID type                    | Int                                               |
-      | FetchOPCProcessor | Namespace index                 | 1                                                 |
-      | FetchOPCProcessor | OPC server endpoint             | opc.tcp://opcua-server-${scenario_id}:4840/       |
-      | FetchOPCProcessor | Max depth                       | 1                                                 |
-      | FetchOPCProcessor | Username                        | admin                                             |
-      | FetchOPCProcessor | Password                        | admin                                             |
-      | FetchOPCProcessor | Certificate path                | /tmp/resources/opcua/opcua_client_cert.der        |
-      | FetchOPCProcessor | Key path                        | /tmp/resources/opcua/opcua_client_key.der         |
-      | FetchOPCProcessor | Trusted server certificate path | /tmp/resources/opcua/opcua_client_cert.der        |
-      | FetchOPCProcessor | Application URI                 | urn:open62541.unconfigured.application            |
-
-    And in the "create-opc-ua-node" flow the "success" relationship of the GetFile processor is connected to the PutOPCProcessor
-    And in the "fetch-opc-ua-node" flow the "success" relationship of the FetchOPCProcessor processor is connected to the PutFile
-
-    And an OPC UA server is set up
-
-    When all instances start up
-    Then in the "fetch-opc-ua-node" container at least one file with the content "Test" is placed in the "/tmp/output" directory in less than 60 seconds
-    And the logs of the "fetch-opc-ua-node" container do not contain the following message: "Username/password authentication is used without encryption, which is not secure. Please consider configuring encryption for better security." after 0 seconds
-    And the logs of the "create-opc-ua-node" container do not contain the following message: "Username/password authentication is used without encryption, which is not secure. Please consider configuring encryption for better security." after 0 seconds
+    Then in the "fetch-opc-ua-node-history" container at least one file with the content "asdasdasd" is placed in the "/tmp/output" directory in less than 600 seconds

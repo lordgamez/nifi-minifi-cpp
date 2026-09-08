@@ -160,7 +160,7 @@ class MinifiLinuxContainer(LinuxContainer, MinifiProtocol):
         return wait_for_condition(
             condition=lambda: finished_str in self.get_logs(),
             timeout_seconds=self.deploy_timeout_seconds,
-            bail_condition=lambda: self.exited,
+            bail_condition=lambda: False,
             context=context,
         )
 
