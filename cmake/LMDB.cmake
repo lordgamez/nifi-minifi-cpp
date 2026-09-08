@@ -18,15 +18,15 @@
 include(FetchContent)
 
 set(PATCH_FILE_1 "${CMAKE_SOURCE_DIR}/thirdparty/lmdb/all/patches/add-cmake-file.patch")
-if (WIN32)
+# if (WIN32)
     set(PATCH_FILE_2 "${CMAKE_SOURCE_DIR}/thirdparty/lmdb/all/patches/fix-windows-symbols.patch")
     set(PC ${Bash_EXECUTABLE}  -c "set -x &&\
         (\\\"${Patch_EXECUTABLE}\\\" -p0 -R -s -f --dry-run -i \\\"${PATCH_FILE_1}\\\" || \\\"${Patch_EXECUTABLE}\\\" -p0 -N -i \\\"${PATCH_FILE_1}\\\") &&\
-        (\\\"${Patch_EXECUTABLE}\\\" -p0 -R -s -f --dry-run -i \\\"${PATCH_FILE_2}\\\" || \\\"${Patch_EXECUTABLE}\\\" -p0 -N -i \\\"${PATCH_FILE_2}\\\")")
-else()
-    set(PC ${Bash_EXECUTABLE}  -c "set -x &&\
-        (\\\"${Patch_EXECUTABLE}\\\" -p0 -R -s -f --dry-run -i \\\"${PATCH_FILE_1}\\\" || \\\"${Patch_EXECUTABLE}\\\" -p0 -N -i \\\"${PATCH_FILE_1}\\\")")
-endif()
+        (\\\"${Patch_EXECUTABLE}\\\" -p1 -R -s -f --dry-run -i \\\"${PATCH_FILE_2}\\\" || \\\"${Patch_EXECUTABLE}\\\" -p1 -N -i \\\"${PATCH_FILE_2}\\\")")
+# else()
+#     set(PC ${Bash_EXECUTABLE}  -c "set -x &&\
+#         (\\\"${Patch_EXECUTABLE}\\\" -p0 -R -s -f --dry-run -i \\\"${PATCH_FILE_1}\\\" || \\\"${Patch_EXECUTABLE}\\\" -p0 -N -i \\\"${PATCH_FILE_1}\\\")")
+# endif()
 
 FetchContent_Declare(
         lmdb
