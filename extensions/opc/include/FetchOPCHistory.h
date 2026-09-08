@@ -56,8 +56,8 @@ struct FetchOPCHistoryContext {
   core::ProcessSession& session;
   std::shared_ptr<core::RecordSetWriter> record_set_writer;
   std::unordered_map<std::string, std::string>& state_map;
-  bool& has_more_data;
-  size_t& flow_files_transferred;
+  size_t& entries_transferred;
+  uint64_t batch_size;
   const std::string& node_id;
   const int32_t namespace_index;
 };

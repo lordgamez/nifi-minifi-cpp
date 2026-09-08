@@ -211,7 +211,7 @@ void writeAsRecordSet(FetchOPCHistoryContext& context, const std::vector<History
   auto flow_file = context.session.create();
   context.record_set_writer->write(record_set, flow_file, context.session);
   context.session.transfer(flow_file, FetchOPCHistory::Success);
-  ++context.flow_files_transferred;
+  context.entries_transferred += entries.size();
 }
 
 // Emits each new entry as its own FlowFile whose content is the raw value.
@@ -229,7 +229,7 @@ void writeAsFlowFiles(FetchOPCHistoryContext& context, const std::vector<History
       addModificationInfo(*flow_file, *entry.modification_info);
     }
     context.session.transfer(flow_file, FetchOPCHistory::Success);
-    ++context.flow_files_transferred;
+    ++context.entries_transferred;
   }
 }
 
@@ -282,27 +282,35 @@ void FetchOPCHistory::onSchedule(core::ProcessContext& context, core::ProcessSes
 UA_Boolean FetchOPCHistory::historyReadCallback(UA_Client* /*client*/, const UA_NodeId* /*node_id*/, UA_Boolean more_data_available,
     const UA_ExtensionObject* data, void* ctx) {
   auto* opc_history_context = static_cast<FetchOPCHistoryContext*>(ctx);
-  opc_history_context->has_more_data = more_data_available;
 
   auto batch = extractHistoryBatch(data);
-  if (!batch || batch->entries.empty()) {
-    return false;
+  if (batch && !batch->entries.empty()) {
+    const auto last_fetched = parseFingerprint(opc_history_context->state_map, batch->has_modification_info);
+    auto new_entries = selectNewEntries(std::move(batch->entries), last_fetched);
+
+    // Only emit up to the remaining batch budget. A single server page may contain more new entries than requested.
+    if (opc_history_context->batch_size != 0) {
+      const auto remaining = opc_history_context->batch_size - opc_history_context->entries_transferred;
+      if (new_entries.size() > remaining) {
+        new_entries.resize(remaining);
+      }
+    }
+
+    if (!new_entries.empty()) {
+      if (opc_history_context->record_set_writer) {
+        writeAsRecordSet(*opc_history_context, new_entries);
+      } else {
+        writeAsFlowFiles(*opc_history_context, new_entries);
+      }
+      updateState(opc_history_context->state_map, new_entries.back());
+    }
   }
 
-  const auto last_fetched = parseFingerprint(opc_history_context->state_map, batch->has_modification_info);
-  const auto new_entries = selectNewEntries(std::move(batch->entries), last_fetched);
-  if (new_entries.empty()) {
-    return false;
-  }
-
-  if (opc_history_context->record_set_writer) {
-    writeAsRecordSet(*opc_history_context, new_entries);
-  } else {
-    writeAsFlowFiles(*opc_history_context, new_entries);
-  }
-
-  updateState(opc_history_context->state_map, new_entries.back());
-  return false;
+  // Returning true lets open62541 follow the continuation point and deliver the next page to this callback.
+  // Stop once the batch budget is reached; the state fingerprint suppresses the already-emitted boundary entry on the next trigger.
+  const bool batch_limit_reached = opc_history_context->batch_size != 0
+      && opc_history_context->entries_transferred >= opc_history_context->batch_size;
+  return more_data_available && !batch_limit_reached;
 }
 
 void FetchOPCHistory::onTrigger(core::ProcessContext& context, core::ProcessSession& session) {
@@ -318,9 +326,8 @@ void FetchOPCHistory::onTrigger(core::ProcessContext& context, core::ProcessSess
 
   state_manager->get(state_map);
 
-  bool has_more_data = true;
-  size_t flow_files_transferred = 0;
-  FetchOPCHistoryContext history_context{session, record_set_writer_, state_map, has_more_data, flow_files_transferred, node_id_, namespace_idx_};
+  size_t entries_transferred = 0;
+  FetchOPCHistoryContext history_context{session, record_set_writer_, state_map, entries_transferred, batch_size_, node_id_, namespace_idx_};
 
   UA_DateTime ua_start_time = UA_DateTime_fromUnixTime(0);
   UA_DateTime ua_end_time = UA_DateTime_now();
@@ -336,21 +343,18 @@ void FetchOPCHistory::onTrigger(core::ProcessContext& context, core::ProcessSess
     ua_end_time = UA_DateTime_fromUnixTime(end_time_seconds);
   }
 
-  auto number_of_entries_to_fetch = batch_size_;
-  while (has_more_data && (batch_size_ == 0 || flow_files_transferred < batch_size_)) {
-    auto retval = connection_->readHistory(history_type_,
-        node_,
-        &FetchOPCHistory::historyReadCallback,
-        ua_start_time,
-        ua_end_time,
-        number_of_entries_to_fetch,
-        (void*)&history_context);
+  // Pass 0 (no server-side limit): the callback pages through the result set via open62541's continuation
+  // points and stops once the batch budget is reached. The trailing entry is persisted so the next trigger resumes after it.
+  auto retval = connection_->readHistory(history_type_,
+      node_,
+      &FetchOPCHistory::historyReadCallback,
+      ua_start_time,
+      ua_end_time,
+      0,
+      (void*)&history_context);
 
-    if (retval != UA_STATUSCODE_GOOD) {
-      // TODO: handle error, possibly yield and log the error
-      break;
-    }
-    number_of_entries_to_fetch *= 2;
+  if (retval != UA_STATUSCODE_GOOD) {
+    logger_->log_error("Failed to read OPC UA node history, status code: {:#010x}", retval);
   }
 
   state_manager->set(state_map);
