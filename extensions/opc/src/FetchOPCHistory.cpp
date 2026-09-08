@@ -21,6 +21,7 @@
 #include <optional>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "core/ProcessSession.h"
@@ -75,11 +76,24 @@ struct HistoryBatch {
   bool has_modification_info = false;
 };
 
-struct Fingerprint {
-  int64_t source_timestamp = 0;
-  std::optional<int64_t> modification_timestamp;
-  std::string value;
+// The already-read entries that share the highest source timestamp seen so far. Entries at that timestamp
+// may be returned in any order on the next read (only ascending time ordering is guaranteed), so we remember
+// the fingerprint of every one already emitted and match by set membership rather than by position.
+struct FetchedState {
+  int64_t timestamp = 0;
+  std::unordered_set<std::string> fingerprints;
 };
+
+// A per-entry fingerprint that distinguishes entries sharing a source timestamp. Hex-encoded so the
+// comma-joined list stored in the state can never collide with a value that itself contains a comma,
+// and so it stays stable across process restarts (unlike std::hash).
+std::string entryFingerprint(const HistoryEntry& entry, bool has_modification_info) {
+  std::string raw = ":" + entry.value;  // the leading separator keeps the hex non-empty even for an empty value
+  if (has_modification_info) {
+    raw = std::to_string(entry.modificationTime()) + raw;
+  }
+  return utils::string::to_hex(raw);
+}
 
 std::optional<HistoryBatch> extractHistoryBatch(const UA_ExtensionObject* data) {
   const UA_DataValue* data_values = nullptr;
@@ -122,50 +136,36 @@ std::optional<HistoryBatch> extractHistoryBatch(const UA_ExtensionObject* data) 
   return batch;
 }
 
-std::optional<Fingerprint> parseFingerprint(const std::unordered_map<std::string, std::string>& state_map, bool has_modification_info) {
+std::optional<FetchedState> parseFetchedState(const std::unordered_map<std::string, std::string>& state_map) {
   // TODO: add namespace to the fingerprint
-  const auto it = state_map.find(LAST_FETCHED_FINGERPRINT_KEY);
-  if (it == state_map.end()) {
+  const auto timestamp_it = state_map.find(LAST_FETCHED_TIMESTAMP_KEY);
+  const auto fingerprints_it = state_map.find(LAST_FETCHED_FINGERPRINT_KEY);
+  if (timestamp_it == state_map.end() || fingerprints_it == state_map.end()) {
     return std::nullopt;
   }
 
-  const auto parts = utils::string::split(it->second, ":");
-  Fingerprint fingerprint;
-  if (has_modification_info) {
-    if (parts.size() != 3) {
-      return std::nullopt;  // TODO: warning
+  FetchedState state;
+  state.timestamp = std::stoll(timestamp_it->second);
+  for (auto& fingerprint : utils::string::split(fingerprints_it->second, ",")) {
+    if (!fingerprint.empty()) {
+      state.fingerprints.insert(std::move(fingerprint));
     }
-    fingerprint.source_timestamp = std::stoll(parts[0]);
-    fingerprint.modification_timestamp = std::stoll(parts[1]);
-    fingerprint.value = parts[2];
-  } else {
-    if (parts.size() != 2) {
-      return std::nullopt;  // TODO: warning
-    }
-    fingerprint.source_timestamp = std::stoll(parts[0]);
-    fingerprint.value = parts[1];
   }
-  return fingerprint;
+  return state;
 }
 
-// Drops the entries that were already emitted on a previous read. Several entries may share the last-fetched
-// source timestamp, so entries at that timestamp are skipped until the previously-emitted one has been passed.
-std::vector<HistoryEntry> selectNewEntries(std::vector<HistoryEntry> entries, const std::optional<Fingerprint>& last_fetched) {
+// Drops the entries that were already emitted on a previous read. Entries at the last-fetched timestamp may be
+// returned in a different order than before, so each is matched against the set of fingerprints already read at
+// that timestamp; entries at any later timestamp are always new.
+std::vector<HistoryEntry> selectNewEntries(std::vector<HistoryEntry> entries, const std::optional<FetchedState>& last_fetched, bool has_modification_info) {
   if (!last_fetched) {
     return entries;
   }
 
   std::vector<HistoryEntry> new_entries;
   new_entries.reserve(entries.size());
-  bool already_fetched_found = false;
   for (auto& entry : entries) {
-    if (!already_fetched_found && entry.source_timestamp == last_fetched->source_timestamp) {
-      const bool matches = last_fetched->modification_timestamp
-          ? entry.modificationTime() == *last_fetched->modification_timestamp && entry.value == last_fetched->value
-          : entry.value == last_fetched->value;
-      if (matches) {
-        already_fetched_found = true;
-      }
+    if (entry.source_timestamp == last_fetched->timestamp && last_fetched->fingerprints.contains(entryFingerprint(entry, has_modification_info))) {
       continue;
     }
     new_entries.push_back(std::move(entry));
@@ -233,14 +233,26 @@ void writeAsFlowFiles(FetchOPCHistoryContext& context, const std::vector<History
   }
 }
 
-void updateState(std::unordered_map<std::string, std::string>& state_map, const HistoryEntry& last_entry) {
-  std::string fingerprint = std::to_string(last_entry.source_timestamp) + ":";
-  if (last_entry.modification_info && last_entry.modification_info->modificationTime > 0) {
-    fingerprint += std::to_string(last_entry.modification_info->modificationTime) + ":";
+// Records the highest source timestamp emitted and the fingerprints of every entry emitted at that timestamp.
+// When the same timestamp carries over from the previous read the fingerprints accumulate, so a later read can
+// still tell an already-read entry from a newly appended one that shares the timestamp. Entries are ascending,
+// so the last one holds the maximum timestamp of this page.
+void updateState(std::unordered_map<std::string, std::string>& state_map, const std::vector<HistoryEntry>& new_entries, bool has_modification_info) {
+  const int64_t new_timestamp = new_entries.back().source_timestamp;
+  const auto previous_state = parseFetchedState(state_map);
+
+  std::unordered_set<std::string> fingerprints;
+  if (previous_state && previous_state->timestamp == new_timestamp) {
+    fingerprints = previous_state->fingerprints;
   }
-  fingerprint += last_entry.value;
-  state_map[LAST_FETCHED_TIMESTAMP_KEY] = std::to_string(last_entry.source_timestamp);
-  state_map[LAST_FETCHED_FINGERPRINT_KEY] = fingerprint;
+  for (const auto& entry : new_entries) {
+    if (entry.source_timestamp == new_timestamp) {
+      fingerprints.insert(entryFingerprint(entry, has_modification_info));
+    }
+  }
+
+  state_map[LAST_FETCHED_TIMESTAMP_KEY] = std::to_string(new_timestamp);
+  state_map[LAST_FETCHED_FINGERPRINT_KEY] = utils::string::join(",", fingerprints);
 }
 
 }  // namespace
@@ -285,8 +297,8 @@ UA_Boolean FetchOPCHistory::historyReadCallback(UA_Client* /*client*/, const UA_
 
   auto batch = extractHistoryBatch(data);
   if (batch && !batch->entries.empty()) {
-    const auto last_fetched = parseFingerprint(opc_history_context->state_map, batch->has_modification_info);
-    auto new_entries = selectNewEntries(std::move(batch->entries), last_fetched);
+    const auto last_fetched = parseFetchedState(opc_history_context->state_map);
+    auto new_entries = selectNewEntries(std::move(batch->entries), last_fetched, batch->has_modification_info);
 
     // Only emit up to the remaining batch budget. A single server page may contain more new entries than requested.
     if (opc_history_context->batch_size != 0) {
@@ -302,7 +314,7 @@ UA_Boolean FetchOPCHistory::historyReadCallback(UA_Client* /*client*/, const UA_
       } else {
         writeAsFlowFiles(*opc_history_context, new_entries);
       }
-      updateState(opc_history_context->state_map, new_entries.back());
+      updateState(opc_history_context->state_map, new_entries, batch->has_modification_info);
     }
   }
 
