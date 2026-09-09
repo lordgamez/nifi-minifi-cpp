@@ -47,7 +47,7 @@ TEST_CASE("Test fetching history of node with a single entry", "[fetchopchistory
 
   const auto contains_modification_attributes = GENERATE(true, false);
   if (contains_modification_attributes) {
-    REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::HistoryReadType.name, "Modified"));
+    REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::HistoryReadType.name, "Audit"));
   }
 
   const auto results = controller.trigger();
@@ -81,7 +81,7 @@ TEST_CASE("Test fetching history of node with a single integer nodeid entry", "[
 
   const auto contains_modification_attributes = GENERATE(true, false);
   if (contains_modification_attributes) {
-    REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::HistoryReadType.name, "Modified"));
+    REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::HistoryReadType.name, "Audit"));
   }
 
   const auto results = controller.trigger();
@@ -116,7 +116,7 @@ TEST_CASE("Test fetching history after a specific timestamp", "[fetchopchistory]
 
   const auto contains_modification_attributes = GENERATE(true, false);
   if (contains_modification_attributes) {
-    REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::HistoryReadType.name, "Modified"));
+    REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::HistoryReadType.name, "Audit"));
   }
 
   const auto results = controller.trigger();
@@ -163,7 +163,7 @@ TEST_CASE("Test fetching history before a specific timestamp", "[fetchopchistory
 
   const auto contains_modification_attributes = GENERATE(true, false);
   if (contains_modification_attributes) {
-    REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::HistoryReadType.name, "Modified"));
+    REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::HistoryReadType.name, "Audit"));
   }
 
   const auto results = controller.trigger();
@@ -210,7 +210,7 @@ TEST_CASE("Test batch size limit", "[fetchopchistory]") {
 
   const auto contains_modification_attributes = GENERATE(true, false);
   if (contains_modification_attributes) {
-    REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::HistoryReadType.name, "Modified"));
+    REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::HistoryReadType.name, "Audit"));
   }
 
   const auto results = controller.trigger();
@@ -244,6 +244,22 @@ TEST_CASE("Test batch size limit", "[fetchopchistory]") {
   }
 }
 
+TEST_CASE("Test non-existing record set writer", "[fetchopchistory]") {
+  OpcUaTestServer server(4841);
+  server.start();
+  SingleProcessorTestController controller{minifi::test::utils::make_processor<processors::FetchOPCHistory>("FetchOPCHistory")};
+  auto json_record_set_writer = controller.plan->addController("JsonRecordSetWriter", "JsonRecordSetWriter");
+  REQUIRE(controller.plan->setProperty(json_record_set_writer, "Output Grouping", "One Line Per Object"));
+  auto fetch_opc_processor = controller.getProcessor();
+  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::OPCServerEndPoint.name, "opc.tcp://127.0.0.1:4841/"));
+  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::NodeIDType.name, "String"));
+  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::NodeID.name, "INT1"));
+  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::NameSpaceIndex.name, std::to_string(server.getNamespaceIndex())));
+  REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::RecordSetWriter.name, "InvalidRecordSetWriter"));
+
+  REQUIRE_THROWS_WITH(controller.trigger(), "Process Schedule Operation: Controller service 'InvalidRecordSetWriter' not found");
+}
+
 TEST_CASE("Test RecordSetWriter with JSON output format", "[fetchopchistory]") {
   OpcUaTestServer server(4841);
   server.start();
@@ -262,7 +278,7 @@ TEST_CASE("Test RecordSetWriter with JSON output format", "[fetchopchistory]") {
     expected_json_content =
       R"({"Value":"1","Sourcetimestamp":"2024-06-15T10:30:00.000Z","NodeID":"INT1","NamespaceIndex":")" + std::to_string(server.getNamespaceIndex()) + "\","
       R"("ModificationUsername":"test_user","ModificationUpdateType":"Replace","ModificationTime":"2024-06-15T10:30:00.000Z"})";
-    REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::HistoryReadType.name, "Modified"));
+    REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::HistoryReadType.name, "Audit"));
   }
 
   SECTION("Fetch raw history") {
@@ -294,7 +310,7 @@ TEST_CASE("Test RecordSetWriter with JSON output format with multiple values", "
       R"("ModificationUsername":"admin_user","ModificationUpdateType":"Update","ModificationTime":"2025-11-11T11:30:00.000Z"}, )"
       R"({"Value":"4","Sourcetimestamp":"2026-03-11T11:30:00.000Z","NodeID":"INT2","NamespaceIndex":")" + std::to_string(server.getNamespaceIndex()) + "\","
       R"("ModificationUsername":"test_user","ModificationUpdateType":"Replace","ModificationTime":"2026-03-11T11:30:00.000Z"}])";
-    REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::HistoryReadType.name, "Modified"));
+    REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::HistoryReadType.name, "Audit"));
   }
 
   SECTION("Fetch raw history") {
@@ -321,7 +337,7 @@ TEST_CASE("Test multiple triggers with state kept in state manager", "[fetchopch
 
   const auto contains_modification_attributes = GENERATE(true, false);
   if (contains_modification_attributes) {
-    REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::HistoryReadType.name, "Modified"));
+    REQUIRE(fetch_opc_processor->setProperty(processors::FetchOPCHistory::HistoryReadType.name, "Audit"));
   }
 
   auto results = controller.trigger();
@@ -375,7 +391,5 @@ TEST_CASE("Test multiple triggers with state kept in state manager", "[fetchopch
     CHECK(flow_file->getAttribute("ModificationTime") == std::nullopt);
   }
 }
-
-// TODO: Add test for non-existing controller service
 
 }  // namespace org::apache::nifi::minifi::test

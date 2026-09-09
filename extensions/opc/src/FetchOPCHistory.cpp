@@ -76,26 +76,20 @@ struct HistoryBatch {
   bool has_modification_info = false;
 };
 
-// The already-read entries that share the highest source timestamp seen so far. Entries at that timestamp
-// may be returned in any order on the next read (only ascending time ordering is guaranteed), so we remember
-// the fingerprint of every one already emitted and match by set membership rather than by position.
 struct FetchedState {
   int64_t timestamp = 0;
   std::unordered_set<std::string> fingerprints;
 };
 
-// A per-entry fingerprint that distinguishes entries sharing a source timestamp. Hex-encoded so the
-// comma-joined list stored in the state can never collide with a value that itself contains a comma,
-// and so it stays stable across process restarts (unlike std::hash).
 std::string entryFingerprint(const HistoryEntry& entry, bool has_modification_info) {
-  std::string raw = ":" + entry.value;  // the leading separator keeps the hex non-empty even for an empty value
+  std::string raw = ":" + entry.value;
   if (has_modification_info) {
     raw = std::to_string(entry.modificationTime()) + raw;
   }
   return utils::string::to_hex(raw);
 }
 
-std::optional<HistoryBatch> extractHistoryBatch(const UA_ExtensionObject* data) {
+std::optional<HistoryBatch> extractHistoryBatch(const UA_ExtensionObject* data, const std::shared_ptr<core::logging::Logger>& logger) {
   const UA_DataValue* data_values = nullptr;
   size_t data_value_size = 0;
   const UA_ModificationInfo* modification_infos = nullptr;
@@ -112,7 +106,7 @@ std::optional<HistoryBatch> extractHistoryBatch(const UA_ExtensionObject* data) 
     modification_infos = modified_data->modificationInfos;
     modification_infos_size = modified_data->modificationInfosSize;
   } else {
-    // TODO: Unexpected data type received in the callback, how to handle this?
+    logger->log_error("Unexpected data type received in the history read callback: {}", data->content.decoded.type->typeName);
     return std::nullopt;
   }
 
@@ -123,13 +117,11 @@ std::optional<HistoryBatch> extractHistoryBatch(const UA_ExtensionObject* data) 
     HistoryEntry entry;
     try {
       entry.value = opc::variantToString(data_values[i].value);
-    } catch (const opc::OPCException&) {
-      // Unsupported value type: leave content empty. An exception must not unwind across the C history-read callback boundary in open62541.
-      // TODO: Log a warning about the unsupported value type.
+    } catch (const opc::OPCException& ex) {
+      logger->log_warn("Failed to convert value at index {} to string, skipping entry: {}", i, ex.what());
+      continue;
     }
     entry.source_timestamp = data_values[i].sourceTimestamp;
-    // modificationInfos is parallel to dataValues by index (OPC UA Part 11):
-    // entry i describes value i, or is absent if the value was never edited.
     entry.modification_info = (modification_infos && i < modification_infos_size) ? &modification_infos[i] : nullptr;
     batch.entries.push_back(std::move(entry));
   }
@@ -137,7 +129,6 @@ std::optional<HistoryBatch> extractHistoryBatch(const UA_ExtensionObject* data) 
 }
 
 std::optional<FetchedState> parseFetchedState(const std::unordered_map<std::string, std::string>& state_map) {
-  // TODO: add namespace to the fingerprint
   const auto timestamp_it = state_map.find(LAST_FETCHED_TIMESTAMP_KEY);
   const auto fingerprints_it = state_map.find(LAST_FETCHED_FINGERPRINT_KEY);
   if (timestamp_it == state_map.end() || fingerprints_it == state_map.end()) {
@@ -154,18 +145,16 @@ std::optional<FetchedState> parseFetchedState(const std::unordered_map<std::stri
   return state;
 }
 
-// Drops the entries that were already emitted on a previous read. Entries at the last-fetched timestamp may be
-// returned in a different order than before, so each is matched against the set of fingerprints already read at
-// that timestamp; entries at any later timestamp are always new.
-std::vector<HistoryEntry> selectNewEntries(std::vector<HistoryEntry> entries, const std::optional<FetchedState>& last_fetched, bool has_modification_info) {
-  if (!last_fetched) {
-    return entries;
-  }
-
+std::vector<HistoryEntry> selectNewEntries(std::vector<HistoryEntry> entries, const std::optional<FetchedState>& last_fetched,
+    bool has_modification_info, std::optional<size_t> max_entries) {
   std::vector<HistoryEntry> new_entries;
-  new_entries.reserve(entries.size());
-  for (auto& entry : entries) {
-    if (entry.source_timestamp == last_fetched->timestamp && last_fetched->fingerprints.contains(entryFingerprint(entry, has_modification_info))) {
+  new_entries.reserve(max_entries ? std::min(*max_entries, entries.size()) : entries.size());
+  for (const auto& entry : entries) {
+    if (max_entries && new_entries.size() >= *max_entries) {
+      break;
+    }
+    if (last_fetched && entry.source_timestamp == last_fetched->timestamp &&
+        last_fetched->fingerprints.contains(entryFingerprint(entry, has_modification_info))) {
       continue;
     }
     new_entries.push_back(std::move(entry));
@@ -201,7 +190,6 @@ core::Record toRecord(const std::string& node_id, const int32_t namespace_index,
   return record;
 }
 
-// Emits all new entries as a single FlowFile written through the configured record set writer.
 void writeAsRecordSet(FetchOPCHistoryContext& context, const std::vector<HistoryEntry>& entries) {
   core::RecordSet record_set;
   for (const auto& entry : entries) {
@@ -214,7 +202,6 @@ void writeAsRecordSet(FetchOPCHistoryContext& context, const std::vector<History
   context.entries_transferred += entries.size();
 }
 
-// Emits each new entry as its own FlowFile whose content is the raw value.
 void writeAsFlowFiles(FetchOPCHistoryContext& context, const std::vector<HistoryEntry>& entries) {
   for (const auto& entry : entries) {
     auto flow_file = context.session.create();
@@ -233,10 +220,6 @@ void writeAsFlowFiles(FetchOPCHistoryContext& context, const std::vector<History
   }
 }
 
-// Records the highest source timestamp emitted and the fingerprints of every entry emitted at that timestamp.
-// When the same timestamp carries over from the previous read the fingerprints accumulate, so a later read can
-// still tell an already-read entry from a newly appended one that shares the timestamp. Entries are ascending,
-// so the last one holds the maximum timestamp of this page.
 void updateState(std::unordered_map<std::string, std::string>& state_map, const std::vector<HistoryEntry>& new_entries, bool has_modification_info) {
   const int64_t new_timestamp = new_entries.back().source_timestamp;
   const auto previous_state = parseFetchedState(state_map);
@@ -253,6 +236,52 @@ void updateState(std::unordered_map<std::string, std::string>& state_map, const 
 
   state_map[LAST_FETCHED_TIMESTAMP_KEY] = std::to_string(new_timestamp);
   state_map[LAST_FETCHED_FINGERPRINT_KEY] = utils::string::join(",", fingerprints);
+}
+
+UA_Boolean historyReadCallback(UA_Client* /*client*/, const UA_NodeId* /*node_id*/, UA_Boolean more_data_available, const UA_ExtensionObject* data,
+    void* ctx) {
+  auto* opc_history_context = static_cast<FetchOPCHistoryContext*>(ctx);
+
+  auto batch = extractHistoryBatch(data, opc_history_context->logger);
+  if (batch && !batch->entries.empty()) {
+    const auto last_fetched = parseFetchedState(opc_history_context->state_map);
+    const std::optional<size_t> remaining = opc_history_context->batch_size != 0
+        ? std::optional<size_t>(opc_history_context->batch_size - opc_history_context->entries_transferred)
+        : std::nullopt;
+    auto new_entries = selectNewEntries(std::move(batch->entries), last_fetched, batch->has_modification_info, remaining);
+
+    if (!new_entries.empty()) {
+      if (opc_history_context->record_set_writer) {
+        writeAsRecordSet(*opc_history_context, new_entries);
+      } else {
+        writeAsFlowFiles(*opc_history_context, new_entries);
+      }
+      updateState(opc_history_context->state_map, new_entries, batch->has_modification_info);
+    }
+  }
+
+  const bool batch_limit_reached = opc_history_context->batch_size != 0 &&
+      opc_history_context->entries_transferred >= opc_history_context->batch_size;
+  return more_data_available && !batch_limit_reached;
+}
+
+UA_DateTime calculateStartTime(const std::unordered_map<std::string, std::string>& state_map,
+    const std::optional<std::chrono::system_clock::time_point>& start_timestamp) {
+  if (state_map.find(LAST_FETCHED_TIMESTAMP_KEY) != state_map.end()) {
+    return std::stoll(state_map.at(LAST_FETCHED_TIMESTAMP_KEY).c_str());
+  } else if (start_timestamp.has_value()) {
+    uint64_t start_time_seconds = std::chrono::duration_cast<std::chrono::seconds>(start_timestamp->time_since_epoch()).count();
+    return UA_DateTime_fromUnixTime(start_time_seconds);
+  }
+  return UA_DateTime_fromUnixTime(0);
+}
+
+UA_DateTime calculateEndTime(const std::optional<std::chrono::system_clock::time_point>& end_timestamp) {
+  if (end_timestamp.has_value()) {
+    uint64_t end_time_seconds = std::chrono::duration_cast<std::chrono::seconds>(end_timestamp->time_since_epoch()).count();
+    return UA_DateTime_fromUnixTime(end_time_seconds);
+  }
+  return UA_DateTime_now();
 }
 
 }  // namespace
@@ -289,44 +318,10 @@ void FetchOPCHistory::onSchedule(core::ProcessContext& context, core::ProcessSes
   batch_size_ = utils::parseOptionalU64Property(context, BatchSize).value_or(0);
   const auto record_set_writer_name = context.getProperty(RecordSetWriter).value_or("");
   auto controller_service = context.getControllerService(record_set_writer_name, getUUID());
-  if (!controller_service) {
+  if (!record_set_writer_name.empty() && !controller_service) {
     throw Exception(PROCESS_SCHEDULE_EXCEPTION, fmt::format("Controller service '{}' not found", record_set_writer_name));
   }
-  record_set_writer_ = std::dynamic_pointer_cast<core::RecordSetWriter>();
-}
-
-UA_Boolean FetchOPCHistory::historyReadCallback(UA_Client* /*client*/, const UA_NodeId* /*node_id*/, UA_Boolean more_data_available,
-    const UA_ExtensionObject* data, void* ctx) {
-  auto* opc_history_context = static_cast<FetchOPCHistoryContext*>(ctx);
-
-  auto batch = extractHistoryBatch(data);
-  if (batch && !batch->entries.empty()) {
-    const auto last_fetched = parseFetchedState(opc_history_context->state_map);
-    auto new_entries = selectNewEntries(std::move(batch->entries), last_fetched, batch->has_modification_info);
-
-    // Only emit up to the remaining batch budget. A single server page may contain more new entries than requested.
-    if (opc_history_context->batch_size != 0) {
-      const auto remaining = opc_history_context->batch_size - opc_history_context->entries_transferred;
-      if (new_entries.size() > remaining) {
-        new_entries.resize(remaining);
-      }
-    }
-
-    if (!new_entries.empty()) {
-      if (opc_history_context->record_set_writer) {
-        writeAsRecordSet(*opc_history_context, new_entries);
-      } else {
-        writeAsFlowFiles(*opc_history_context, new_entries);
-      }
-      updateState(opc_history_context->state_map, new_entries, batch->has_modification_info);
-    }
-  }
-
-  // Returning true lets open62541 follow the continuation point and deliver the next page to this callback.
-  // Stop once the batch budget is reached; the state fingerprint suppresses the already-emitted boundary entry on the next trigger.
-  const bool batch_limit_reached = opc_history_context->batch_size != 0
-      && opc_history_context->entries_transferred >= opc_history_context->batch_size;
-  return more_data_available && !batch_limit_reached;
+  record_set_writer_ = std::dynamic_pointer_cast<core::RecordSetWriter>(controller_service);
 }
 
 void FetchOPCHistory::onTrigger(core::ProcessContext& context, core::ProcessSession& session) {
@@ -343,31 +338,14 @@ void FetchOPCHistory::onTrigger(core::ProcessContext& context, core::ProcessSess
   state_manager->get(state_map);
 
   size_t entries_transferred = 0;
-  FetchOPCHistoryContext history_context{session, record_set_writer_, state_map, entries_transferred, batch_size_, node_id_, namespace_idx_};
+  FetchOPCHistoryContext history_context{session, record_set_writer_, state_map, entries_transferred, batch_size_, node_id_, namespace_idx_, logger_};
 
-  UA_DateTime ua_start_time = UA_DateTime_fromUnixTime(0);
-  UA_DateTime ua_end_time = UA_DateTime_now();
-  if (state_map.find(LAST_FETCHED_TIMESTAMP_KEY) != state_map.end()) {
-    ua_start_time = std::stoll(state_map[LAST_FETCHED_TIMESTAMP_KEY].c_str());
-  } else if (start_timestamp_.has_value()) {
-    uint64_t start_time_seconds = std::chrono::duration_cast<std::chrono::seconds>(start_timestamp_->time_since_epoch()).count();
-    ua_start_time = UA_DateTime_fromUnixTime(start_time_seconds);
-  }
-
-  if (end_timestamp_.has_value()) {
-    uint64_t end_time_seconds = std::chrono::duration_cast<std::chrono::seconds>(end_timestamp_->time_since_epoch()).count();
-    ua_end_time = UA_DateTime_fromUnixTime(end_time_seconds);
-  }
-
-  // Pass 0 (no server-side limit): the callback pages through the result set via open62541's continuation
-  // points and stops once the batch budget is reached. The trailing entry is persisted so the next trigger resumes after it.
   auto retval = connection_->readHistory(history_type_,
       node_,
-      &FetchOPCHistory::historyReadCallback,
-      ua_start_time,
-      ua_end_time,
-      0,
-      (void*)&history_context);
+      &historyReadCallback,
+      calculateStartTime(state_map, start_timestamp_),
+      calculateEndTime(end_timestamp_),
+      static_cast<void*>(&history_context));
 
   if (retval != UA_STATUSCODE_GOOD) {
     logger_->log_error("Failed to read OPC UA node history, status code: {:#010x}", retval);

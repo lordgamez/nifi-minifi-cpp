@@ -22,6 +22,8 @@
 #include <utility>
 #include <vector>
 
+#include "BaseOPCProcessor.h"
+#include "OPCCommon.h"
 #include "core/ProcessSession.h"
 #include "core/PropertyDefinitionBuilder.h"
 #include "core/logging/LoggerFactory.h"
@@ -33,17 +35,10 @@
 #include "minifi-cpp/core/RelationshipDefinition.h"
 #include "minifi-cpp/core/StateManager.h"
 #include "minifi-cpp/utils/gsl.h"
-#include "OPCCommon.h"
-#include "BaseOPCProcessor.h"
 #include "utils/ArrayUtils.h"
 #include "utils/Id.h"
 
 namespace org::apache::nifi::minifi::processors {
-
-enum class OutputFormatOption {
-  Attributes,
-  JSON
-};
 
 struct NodeModificationData {
   std::string value;
@@ -57,9 +52,10 @@ struct FetchOPCHistoryContext {
   std::shared_ptr<core::RecordSetWriter> record_set_writer;
   std::unordered_map<std::string, std::string>& state_map;
   size_t& entries_transferred;
-  uint64_t batch_size;
+  const uint64_t batch_size;
   const std::string& node_id;
   const int32_t namespace_index;
+  std::shared_ptr<core::logging::Logger> logger;
 };
 
 class FetchOPCHistory final : public BaseOPCProcessor {
@@ -67,7 +63,7 @@ class FetchOPCHistory final : public BaseOPCProcessor {
   using BaseOPCProcessor::BaseOPCProcessor;
 
   EXTENSIONAPI static constexpr const char* Description =
-      "Fetches OPC-UA node history after the start timestamp. "
+      "Fetches OPC-UA node history between the start and end timestamps. "
       "A history entry is only fetched once, on every trigger only the not yet fetched entries are returned.";
 
   EXTENSIONAPI static constexpr auto NodeIDType =
@@ -96,7 +92,7 @@ class FetchOPCHistory final : public BaseOPCProcessor {
   EXTENSIONAPI static constexpr auto EndTimestamp =
       core::PropertyDefinitionBuilder<>::createProperty("End timestamp")
           .withDescription(
-              "Timestamp before which the events should be returned. If not specified entries are returned until the end of the history.")
+              "Timestamp before which the events should be returned. If not specified entries are returned until the current time.")
           .build();
   EXTENSIONAPI static constexpr auto BatchSize =
       core::PropertyDefinitionBuilder<>::createProperty("Batch Size")
@@ -123,7 +119,8 @@ class FetchOPCHistory final : public BaseOPCProcessor {
   EXTENSIONAPI static constexpr auto Relationships = std::array{Success};
 
   EXTENSIONAPI static constexpr auto NodeIDAttr = core::OutputAttributeDefinition<>{"NodeID", {Success}, "ID of the node."};
-  EXTENSIONAPI static constexpr auto NamespaceIndexAttr = core::OutputAttributeDefinition<>{"Namespace index", {Success}, "Namespace index of the node."};
+  EXTENSIONAPI static constexpr auto NamespaceIndexAttr = core::OutputAttributeDefinition<>{
+      "Namespace index", {Success}, "Namespace index of the node."};
   EXTENSIONAPI static constexpr auto SourcetimestampAttr = core::OutputAttributeDefinition<>{
       "Sourcetimestamp", {Success}, "The timestamp of when the node was created in the server as 'YYYY-MM-DDTHH:MM:SS.sssZ'."};
   EXTENSIONAPI static constexpr auto ModificationUsernameAttr = core::OutputAttributeDefinition<>{
@@ -148,9 +145,6 @@ class FetchOPCHistory final : public BaseOPCProcessor {
   void initialize() override;
 
  private:
-  static UA_Boolean historyReadCallback(UA_Client* client, const UA_NodeId* node_id, UA_Boolean more_data_available, const UA_ExtensionObject* data,
-      void* ctx);
-
   opc::HistoryReadTypeOption history_type_ = opc::HistoryReadTypeOption::Raw;
   std::optional<std::chrono::system_clock::time_point> start_timestamp_;
   std::optional<std::chrono::system_clock::time_point> end_timestamp_;

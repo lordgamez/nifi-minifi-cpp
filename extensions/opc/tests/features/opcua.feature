@@ -289,6 +289,7 @@ Feature: Putting and fetching data to OPC UA server
 
     When all instances start up
     Then in the "fetch-opc-ua-node-history" container files with at least these contents "0,1,2,3,4" are placed in the "/tmp/output" directory in less than 30 seconds
+    #TODO add checking attributes
 
   Scenario: Update and fetch historical data from an OPC UA node in JSON format
     Given a JsonRecordSetWriter controller service is set up in the "fetch-opc-ua-node-history" flow

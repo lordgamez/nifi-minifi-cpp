@@ -537,7 +537,7 @@ std::string variantToString(const UA_Variant& variant) {
     case UA_DATATYPEKIND_DATETIME:
       return opc::OPCDateTime2String(*static_cast<const UA_DateTime *>(variant.data));
     default:
-      throw OPCException(GENERAL_EXCEPTION, "Data type is not supported ");
+      throw OPCException(GENERAL_EXCEPTION, "Data type is not supported: " + std::string(variant.type->typeName));
   }
 }
 
@@ -579,11 +579,11 @@ std::optional<UA_UInt32> mapOpcReferenceType(const std::string& ref_type) {
 }
 
 UA_StatusCode Client::readHistory(HistoryReadTypeOption history_type, const UA_NodeId& node_id, const HistoryCallback callback, UA_DateTime start_time, UA_DateTime end_time,
-    UA_UInt32 max_items, void* callback_context) {
-  if (history_type == HistoryReadTypeOption::Modified) {
-    return UA_Client_HistoryRead_modified(client_, &node_id, callback, start_time, end_time, UA_STRING_NULL, false, max_items, UA_TIMESTAMPSTORETURN_SOURCE, callback_context);
+    void* callback_context) {
+  if (history_type == HistoryReadTypeOption::Audit) {
+    return UA_Client_HistoryRead_modified(client_, &node_id, callback, start_time, end_time, UA_STRING_NULL, false, 0, UA_TIMESTAMPSTORETURN_SOURCE, callback_context);
   }
-  return UA_Client_HistoryRead_raw(client_, &node_id, callback, start_time, end_time, UA_STRING_NULL, false, max_items, UA_TIMESTAMPSTORETURN_SOURCE, callback_context);
+  return UA_Client_HistoryRead_raw(client_, &node_id, callback, start_time, end_time, UA_STRING_NULL, false, 0, UA_TIMESTAMPSTORETURN_SOURCE, callback_context);
 }
 
 }  // namespace org::apache::nifi::minifi::opc
