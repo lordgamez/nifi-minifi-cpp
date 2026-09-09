@@ -288,7 +288,11 @@ void FetchOPCHistory::onSchedule(core::ProcessContext& context, core::ProcessSes
   end_timestamp_ = utils::parseOptionalProperty(context, EndTimestamp) | utils::andThen(utils::timeutils::parseDateTimeStr);
   batch_size_ = utils::parseOptionalU64Property(context, BatchSize).value_or(0);
   const auto record_set_writer_name = context.getProperty(RecordSetWriter).value_or("");
-  record_set_writer_ = std::dynamic_pointer_cast<core::RecordSetWriter>(context.getControllerService(record_set_writer_name, getUUID()));
+  auto controller_service = context.getControllerService(record_set_writer_name, getUUID());
+  if (!controller_service) {
+    throw Exception(PROCESS_SCHEDULE_EXCEPTION, fmt::format("Controller service '{}' not found", record_set_writer_name));
+  }
+  record_set_writer_ = std::dynamic_pointer_cast<core::RecordSetWriter>();
 }
 
 UA_Boolean FetchOPCHistory::historyReadCallback(UA_Client* /*client*/, const UA_NodeId* /*node_id*/, UA_Boolean more_data_available,
