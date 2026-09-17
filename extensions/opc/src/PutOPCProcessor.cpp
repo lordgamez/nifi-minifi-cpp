@@ -39,16 +39,19 @@ void PutOPCProcessor::onSchedule(core::ProcessContext& context, core::ProcessSes
 
   BaseOPCProcessor::onSchedule(context, session_factory);
 
-  node_id_ = utils::parseProperty(context, ParentNodeID);
-  parseIdType(context, ParentNodeIDType);
-  namespace_idx_ = gsl::narrow<int32_t>(utils::parseI64Property(context, ParentNameSpaceIndex));
-  parseNode(context);
+  parent_node_defined_ = false;
+  if (const auto parent_node_id = utils::parseOptionalProperty(context, ParentNodeID); parent_node_id && !parent_node_id->empty()) {
+    node_id_ = *parent_node_id;
+    parseIdType(context, ParentNodeIDType);
+    namespace_idx_ = gsl::narrow<int32_t>(utils::parseOptionalI64Property(context, ParentNameSpaceIndex).value_or(0));
+    parseNode(context);
+    if (id_type_ == opc::OPCNodeIDType::Path) {
+      readPathReferenceTypes(context, node_id_);
+    }
+    parent_node_defined_ = true;
+  }
 
   node_data_type_ = utils::parseEnumProperty<opc::OPCNodeDataType>(context, ValueType);
-
-  if (id_type_ == opc::OPCNodeIDType::Path) {
-    readPathReferenceTypes(context, node_id_);
-  }
 
   const auto value = context.getProperty(CreateNodeReferenceType).value_or("");
   if (auto ref_type = opc::mapOpcReferenceType(value)) {
@@ -259,7 +262,7 @@ void PutOPCProcessor::onTrigger(core::ProcessContext& context, core::ProcessSess
     return;
   }
 
-  if (id_type_ == opc::OPCNodeIDType::Path && !path_node_id_resolved_) {
+  if (parent_node_defined_ && id_type_ == opc::OPCNodeIDType::Path && !path_node_id_resolved_) {
     std::vector<opc::NodeId> translated_node_ids;
     auto sc = connection_->translateBrowsePathsToNodeIdsRequest(node_id_, translated_node_ids, namespace_idx_, path_reference_types_, logger_);
     if (sc != UA_STATUSCODE_GOOD) {
@@ -292,8 +295,11 @@ void PutOPCProcessor::onTrigger(core::ProcessContext& context, core::ProcessSess
   const auto contentstr = to_string(session.readBuffer(flow_file));
   if (target_node_exists) {
     updateNode(target_node, contentstr, session, flow_file);
-  } else {
+  } else if (parent_node_defined_) {
     createNode(target_node, contentstr, context, session, flow_file);
+  } else {
+    logger_->log_error("Target node does not exist and no parent node is defined to create it under; routing to failure");
+    session.transfer(flow_file, Failure);
   }
 }
 

@@ -42,19 +42,16 @@ class PutOPCProcessor final : public BaseOPCProcessor {
   EXTENSIONAPI static constexpr const char* Description = "Creates/updates OPC nodes";
 
   EXTENSIONAPI static constexpr auto ParentNodeIDType = core::PropertyDefinitionBuilder<magic_enum::enum_count<opc::OPCNodeIDType>()>::createProperty("Parent node ID type")
-      .withDescription("Specifies the type of the provided node ID")
-      .isRequired(true)
+      .withDescription("Specifies the type of the provided node ID. Only required when a new node is created.")
       .withAllowedValues(magic_enum::enum_names<opc::OPCNodeIDType>())
       .build();
   EXTENSIONAPI static constexpr auto ParentNodeID = core::PropertyDefinitionBuilder<>::createProperty("Parent node ID")
-      .withDescription("Specifies the ID of the root node to traverse")
-      .isRequired(true)
+      .withDescription("Specifies the ID of the root node to traverse. Only required when a new node is created.")
       .build();
   EXTENSIONAPI static constexpr auto ParentNameSpaceIndex = core::PropertyDefinitionBuilder<>::createProperty("Parent node namespace index")
-      .withDescription("The index of the namespace of the parent node.")
+      .withDescription("The index of the namespace of the parent node. Only used when a new node is created.")
       .withValidator(core::StandardPropertyValidators::INTEGER_VALIDATOR)
       .withDefaultValue("0")
-      .isRequired(true)
       .build();
   EXTENSIONAPI static constexpr auto ValueType = core::PropertyDefinitionBuilder<magic_enum::enum_count<opc::OPCNodeDataType>()>::createProperty("Value type")
       .withDescription("Set the OPC value type of the created nodes")
@@ -123,6 +120,7 @@ class PutOPCProcessor final : public BaseOPCProcessor {
 
   opc::OPCNodeDataType node_data_type_{};
   UA_UInt32 create_node_reference_type_ = UA_NS0ID_HASCOMPONENT;
+  bool parent_node_defined_ = false;
 };
 
 }  // namespace org::apache::nifi::minifi::processors

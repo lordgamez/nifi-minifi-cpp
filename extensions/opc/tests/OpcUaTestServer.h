@@ -110,6 +110,7 @@ class OpcUaTestServer {
     addStringVariable("StringNode", "the.answer.node", UA_NODEID_NUMERIC(0, UA_NS0ID_OBJECTSFOLDER), 42);
     addIntVariable("666", opc::OPCNodeIDType::Int, device2_node, 256);
     addIntVariable("72962b91-fa75-4ae6-8d28-b404dc7daf63", opc::OPCNodeIDType::Guid, device2_node, 7);
+    addObject("GuidObject", device2_node, UA_NODEID_GUID(ns_index_, UA_GUID("aabbccdd-1122-3344-5566-778899aabbcc")));
 
     setHistory("INT1",
         {HistoryModificationRecord{.value = 1,
@@ -365,13 +366,13 @@ class OpcUaTestServer {
     response->responseHeader.serviceResult = UA_STATUSCODE_GOOD;
   }
 
-  UA_NodeId addObject(const char* name, UA_NodeId parent) {
+  UA_NodeId addObject(const char* name, UA_NodeId parent, UA_NodeId requested_node_id = UA_NODEID_NULL) {
     UA_NodeId object_id;
     UA_ObjectAttributes attr = UA_ObjectAttributes_default;
     attr.displayName = UA_LOCALIZEDTEXT_ALLOC("en-US", name);
 
     auto status = UA_Server_addObjectNode(server_,
-        UA_NODEID_NULL,
+        requested_node_id,
         parent,
         UA_NODEID_NUMERIC(0, UA_NS0ID_ORGANIZES),
         UA_QUALIFIEDNAME(ns_index_, const_cast<char*>(name)),
