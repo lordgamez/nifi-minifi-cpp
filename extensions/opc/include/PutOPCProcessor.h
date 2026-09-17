@@ -41,10 +41,10 @@ class PutOPCProcessor final : public BaseOPCProcessor {
  public:
   EXTENSIONAPI static constexpr const char* Description = "Creates/updates OPC nodes";
 
-  EXTENSIONAPI static constexpr auto ParentNodeIDType = core::PropertyDefinitionBuilder<3>::createProperty("Parent node ID type")
+  EXTENSIONAPI static constexpr auto ParentNodeIDType = core::PropertyDefinitionBuilder<magic_enum::enum_count<opc::OPCNodeIDType>()>::createProperty("Parent node ID type")
       .withDescription("Specifies the type of the provided node ID")
       .isRequired(true)
-      .withAllowedValues({"Path", "Int", "String"})
+      .withAllowedValues(magic_enum::enum_names<opc::OPCNodeIDType>())
       .build();
   EXTENSIONAPI static constexpr auto ParentNodeID = core::PropertyDefinitionBuilder<>::createProperty("Parent node ID")
       .withDescription("Specifies the ID of the root node to traverse")
@@ -117,12 +117,10 @@ class PutOPCProcessor final : public BaseOPCProcessor {
   void initialize() override;
 
  private:
-  bool readParentNodeId();
   std::expected<std::pair<bool, opc::NodeId>, std::string> configureTargetNode(core::ProcessContext& context, core::FlowFile& flow_file) const;
   void updateNode(const UA_NodeId& target_node, const std::string& contentstr, core::ProcessSession& session, const std::shared_ptr<core::FlowFile>& flow_file) const;
   void createNode(const UA_NodeId& target_node, const std::string& contentstr, core::ProcessContext& context, core::ProcessSession& session, const std::shared_ptr<core::FlowFile>& flow_file) const;
 
-  opc::NodeId parent_node_id_;
   opc::OPCNodeDataType node_data_type_{};
   UA_UInt32 create_node_reference_type_ = UA_NS0ID_HASCOMPONENT;
 };

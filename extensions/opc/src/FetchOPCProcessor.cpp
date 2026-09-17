@@ -44,11 +44,10 @@ void FetchOPCProcessor::onSchedule(core::ProcessContext& context, core::ProcessS
   BaseOPCProcessor::onSchedule(context, factory);
 
   node_id_ = utils::parseProperty(context, NodeID);
-  max_depth_ = utils::parseU64Property(context, MaxDepth);
-
   parseIdType(context, NodeIDType);
-
   namespace_idx_ = gsl::narrow<int32_t>(utils::parseI64Property(context, NameSpaceIndex));
+
+  max_depth_ = utils::parseU64Property(context, MaxDepth);
 
   lazy_mode_ = utils::parseEnumProperty<LazyModeOptions>(context, Lazy);
 
@@ -83,6 +82,12 @@ void FetchOPCProcessor::onTrigger(core::ProcessContext& context, core::ProcessSe
       my_id = opc::NodeId{UA_NODEID_NUMERIC(namespace_index, std::stoi(node_id_))};
     } else if (id_type_ == opc::OPCNodeIDType::String) {
       my_id = opc::NodeId{UA_NODEID_STRING_ALLOC(namespace_index, node_id_.c_str())};
+    } else if (id_type_ ==  opc::OPCNodeIDType::Guid) {
+      UA_Guid guid;
+      if (UA_Guid_parse(&guid, UA_STRING(const_cast<char*>(node_id_.c_str()))) != UA_STATUSCODE_GOOD) {
+        throw Exception(PROCESS_SCHEDULE_EXCEPTION, fmt::format("{} cannot be used as a GUID type node ID", node_id_));
+      }
+      my_id = opc::NodeId{UA_NODEID_GUID(namespace_index, guid)};
     } else {
       logger_->log_error("Unhandled id type: '{}'. No flowfiles are generated.", magic_enum::enum_underlying(id_type_));
       context.yield();

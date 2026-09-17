@@ -151,8 +151,6 @@ class FetchOPCHistory final : public BaseOPCProcessor {
   std::optional<std::chrono::system_clock::time_point> end_timestamp_;
   uint64_t batch_size_ = 0;
   std::shared_ptr<core::RecordSetWriter> record_set_writer_;
-  opc::NodeId node_;
-  bool path_node_id_resolved_ = false;
 };
 
 }  // namespace org::apache::nifi::minifi::processors

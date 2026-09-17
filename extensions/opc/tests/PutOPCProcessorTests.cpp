@@ -325,7 +325,7 @@ TEST_CASE("Test invalid parent node id path", "[putopcprocessor]") {
   const auto results = controller.trigger("42");
   REQUIRE(results.at(processors::PutOPCProcessor::Success).empty());
   REQUIRE(results.at(processors::PutOPCProcessor::Failure).empty());
-  REQUIRE(LogTestController::getInstance().contains("to node id, no flow files will be put"));
+  REQUIRE(LogTestController::getInstance().contains("Failed to translate path 'Simulator/Default/Device1/INT99' to a node id: BadNoDataAvailable"));
 }
 
 TEST_CASE("Test missing target node id", "[putopcprocessor]") {
