@@ -17,9 +17,14 @@
 
 #include "OPCCommon.h"
 
+#include <algorithm>
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
+#include <iterator>
 #include <memory>
+#include <mutex>
+#include <utility>
 #include <vector>
 #include <string>
 #include <functional>
@@ -33,6 +38,7 @@
 
 #include "open62541/client_highlevel.h"
 #include "open62541/client_config_default.h"
+#include "open62541/client_subscriptions.h"
 
 extern "C" int mp_vsnprintf(char* s, size_t count, const char* format, va_list arg);
 
@@ -87,6 +93,16 @@ void add_value_to_variant(UA_Variant *variant, float value) {
 void add_value_to_variant(UA_Variant *variant, double value) {
   UA_Double ua_value = value;
   UA_Variant_setScalarCopy(variant, &ua_value, &UA_TYPES[UA_TYPES_DOUBLE]);
+}
+
+template<typename T>
+std::string printToString(UA_StatusCode (*print_func)(const T*, UA_String*), const void* data, std::string_view type_name) {
+  UA_String printed = UA_STRING_NULL;
+  if (print_func(static_cast<const T*>(data), &printed) != UA_STATUSCODE_GOOD) {
+    throw OPCException(GENERAL_EXCEPTION, utils::string::join_pack("Failed to convert a ", type_name, " to string"));
+  }
+  const auto guard = gsl::finally([&printed]() { UA_String_clear(&printed); });
+  return {reinterpret_cast<const char*>(printed.data), printed.length};
 }
 
 core::logging::LOG_LEVEL MapOPCLogLevel(UA_LogLevel ualvl) {
@@ -209,6 +225,8 @@ bool Client::isConnected() {
 }
 
 UA_StatusCode Client::connect(const std::string& url, const std::string& username, const std::string& password) {
+  subscription_id_.reset();
+
   if (username.empty()) {
     return UA_Client_connect(client_, url.c_str());
   } else {
@@ -513,10 +531,22 @@ std::string variantToString(const UA_Variant& variant) {
   }
   switch (variant.type->typeKind) {
     case UA_DATATYPEKIND_STRING:
-    case UA_DATATYPEKIND_LOCALIZEDTEXT:
-    case UA_DATATYPEKIND_BYTESTRING: {
+    case UA_DATATYPEKIND_XMLELEMENT: {
       const auto *value = static_cast<const UA_String *>(variant.data);
       return {reinterpret_cast<const char *>(value->data), value->length};
+    }
+    case UA_DATATYPEKIND_BYTESTRING: {
+      // A byte string holds arbitrary binary data, which is not valid text, so it is hex encoded instead of being copied
+      // over as it is. The EventId of an OPC UA event is a byte string of random bytes, for example.
+      const auto *value = static_cast<const UA_String *>(variant.data);
+      if (value->data == nullptr || value->length == 0) {
+        return {};
+      }
+      return utils::string::to_hex({reinterpret_cast<const char *>(value->data), value->length});
+    }
+    case UA_DATATYPEKIND_LOCALIZEDTEXT: {
+      const auto *value = static_cast<const UA_LocalizedText *>(variant.data);
+      return {reinterpret_cast<const char *>(value->text.data), value->text.length};
     }
     case UA_DATATYPEKIND_BOOLEAN:
       return *static_cast<const UA_Boolean *>(variant.data) ? "True" : "False";
@@ -548,6 +578,16 @@ std::string variantToString(const UA_Variant& variant) {
       throw OPCException(GENERAL_EXCEPTION, "Double is non-standard on this system, OPC data cannot be extracted!");
     case UA_DATATYPEKIND_DATETIME:
       return opc::OPCDateTime2String(*static_cast<const UA_DateTime *>(variant.data));
+    case UA_DATATYPEKIND_NODEID:
+      return printToString(UA_NodeId_print, variant.data, "node id");
+    case UA_DATATYPEKIND_EXPANDEDNODEID:
+      return printToString(UA_ExpandedNodeId_print, variant.data, "expanded node id");
+    case UA_DATATYPEKIND_GUID:
+      return printToString(UA_Guid_print, variant.data, "GUID");
+    case UA_DATATYPEKIND_QUALIFIEDNAME:
+      return printToString(UA_QualifiedName_print, variant.data, "qualified name");
+    case UA_DATATYPEKIND_STATUSCODE:
+      return UA_StatusCode_name(*static_cast<const UA_StatusCode *>(variant.data));
     default:
       throw OPCException(GENERAL_EXCEPTION, "Data type is not supported: " + std::string(variant.type->typeName));
   }
@@ -619,6 +659,131 @@ std::expected<opc::NodeId, std::string> buildNodeId(opc::OPCNodeIDType id_type, 
     default:
       return std::unexpected{fmt::format("Unsupported Node ID type: {}", magic_enum::enum_name(id_type))};
   }
+}
+
+std::string buildEventFilterExpression(const EventFilter& options) {
+  if (!options.filter_expression.empty()) {
+    return options.filter_expression;
+  }
+
+  // The browse paths of the select clauses are written with a leading '/', which is not required from the property. A field
+  // that is prefixed with the node id of an event type keeps its own prefix: such a path starts with the node id, not a '/'.
+  std::string expression = "SELECT ";
+  for (const auto& select_field : options.select_fields) {
+    const bool is_full_path = select_field.starts_with('/') || select_field.contains('=');
+    expression += is_full_path ? select_field : "/" + select_field;
+    expression += ", ";
+  }
+  expression.erase(expression.size() - 2);
+
+  std::vector<std::string> conditions;
+  if (!options.event_type_node_id.empty()) {
+    conditions.push_back("OFTYPE " + options.event_type_node_id);
+  }
+  if (options.minimum_severity) {
+    conditions.push_back("/Severity >= " + std::to_string(*options.minimum_severity));
+  }
+  if (!conditions.empty()) {
+    expression += " WHERE " + utils::string::join(" AND ", conditions);
+  }
+  return expression;
+}
+
+UA_StatusCode Client::subscribeToEvents(const UA_NodeId& node_id, const EventSubscriptionOptions& options) {
+  UA_CreateSubscriptionResponse response = UA_Client_Subscriptions_create(client_, UA_CreateSubscriptionRequest_default(), nullptr, nullptr, nullptr);
+  const auto response_guard = gsl::finally([&response]() { UA_CreateSubscriptionResponse_clear(&response); });
+  if (response.responseHeader.serviceResult != UA_STATUSCODE_GOOD) {
+    return response.responseHeader.serviceResult;
+  }
+  const auto subscription_id = response.subscriptionId;
+
+  UA_MonitoredItemCreateRequest item;
+  UA_MonitoredItemCreateRequest_init(&item);
+  const auto item_guard = gsl::finally([&item]() { UA_MonitoredItemCreateRequest_clear(&item); });
+  UA_NodeId_copy(&node_id, &item.itemToMonitor.nodeId);
+  item.itemToMonitor.attributeId = UA_ATTRIBUTEID_EVENTNOTIFIER;
+  item.monitoringMode = UA_MONITORINGMODE_REPORTING;
+
+  const std::string event_filter = buildEventFilterExpression(options.event_filter);
+  logger_->log_debug("Subscribing with the event filter '{}'", event_filter);
+
+  auto* filter = UA_EventFilter_new();
+  if (filter == nullptr) {
+    UA_Client_Subscriptions_deleteSingle(client_, subscription_id);
+    return UA_STATUSCODE_BADOUTOFMEMORY;
+  }
+  if (auto sc = UA_EventFilter_parse(filter, UA_STRING(const_cast<char*>(event_filter.c_str())), nullptr); sc != UA_STATUSCODE_GOOD) {
+    logger_->log_error("Failed to parse the event filter '{}': {}", event_filter, UA_StatusCode_name(sc));
+    UA_EventFilter_delete(filter);
+    UA_Client_Subscriptions_deleteSingle(client_, subscription_id);
+    return sc;
+  }
+  UA_ExtensionObject_setValue(&item.requestedParameters.filter, filter, &UA_TYPES[UA_TYPES_EVENTFILTER]);
+
+  UA_MonitoredItemCreateResult result = UA_Client_MonitoredItems_createEvent(client_, subscription_id, UA_TIMESTAMPSTORETURN_BOTH, item,
+                                                                            this, eventNotificationCallback, nullptr);
+  const auto result_guard = gsl::finally([&result]() { UA_MonitoredItemCreateResult_clear(&result); });
+  if (result.statusCode != UA_STATUSCODE_GOOD) {
+    UA_Client_Subscriptions_deleteSingle(client_, subscription_id);
+    return result.statusCode;
+  }
+
+  {
+    const std::lock_guard<std::mutex> lock(event_queue_mutex_);
+    max_event_queue_size_ = options.max_queue_size;
+  }
+  subscription_id_ = subscription_id;
+  return UA_STATUSCODE_GOOD;
+}
+
+void Client::eventNotificationCallback(UA_Client* /*client*/, UA_UInt32 /*sub_id*/, void* /*sub_context*/, UA_UInt32 /*mon_id*/, void* mon_context,
+    const UA_KeyValueMap event_fields) {
+  auto* client = static_cast<Client*>(mon_context);
+
+  Event event;
+  for (size_t i = 0; i < event_fields.mapSize; ++i) {
+    const UA_KeyValuePair& field = event_fields.map[i];
+    std::string name{reinterpret_cast<const char*>(field.key.name.data), field.key.name.length};
+    if (name.starts_with('/')) {
+      name.erase(0, 1);
+    }
+    if (UA_Variant_isEmpty(&field.value)) {
+      continue;
+    }
+    try {
+      event.fields[name] = variantToString(field.value);
+    } catch (const OPCException& ex) {
+      client->logger_->log_warn("Failed to convert event field '{}' to string, skipping field: {}", name, ex.what());
+    }
+  }
+  client->pushEvent(std::move(event));
+}
+
+void Client::pushEvent(Event&& event) {
+  const std::lock_guard<std::mutex> lock(event_queue_mutex_);
+  event_queue_.push_back(std::move(event));
+  while (max_event_queue_size_ && event_queue_.size() > *max_event_queue_size_) {
+    event_queue_.pop_front();
+    ++dropped_event_count_;
+  }
+}
+
+UA_StatusCode Client::processSubscriptionNotifications(UA_UInt32 timeout_milliseconds) {
+  return UA_Client_run_iterate(client_, timeout_milliseconds);
+}
+
+std::vector<Event> Client::drainEvents() {
+  std::deque<Event> events;
+  {
+    const std::lock_guard<std::mutex> lock(event_queue_mutex_);
+    events.swap(event_queue_);
+  }
+  return {std::make_move_iterator(events.begin()), std::make_move_iterator(events.end())};
+}
+
+uint64_t Client::getDroppedEventCountSinceLastCall() {
+  const std::lock_guard<std::mutex> lock(event_queue_mutex_);
+  return std::exchange(dropped_event_count_, 0);
 }
 
 }  // namespace org::apache::nifi::minifi::opc
