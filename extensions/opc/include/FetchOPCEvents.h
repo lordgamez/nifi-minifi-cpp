@@ -41,6 +41,8 @@
 #include "utils/Id.h"
 #include "utils/StoppableThread.h"
 
+using namespace std::literals::chrono_literals;
+
 namespace org::apache::nifi::minifi::processors {
 
 class FetchOPCEvents final : public BaseOPCProcessor {
@@ -93,7 +95,8 @@ class FetchOPCEvents final : public BaseOPCProcessor {
           .build();
   EXTENSIONAPI static constexpr auto MinimumSeverity =
       core::PropertyDefinitionBuilder<>::createProperty("Minimum severity")
-          .withDescription("WHERE Severity >= <this> (1..1000). 0 disables the severity filter.")
+          .withDescription("Specifies the minimum severity of events to fetch. 0 disables the severity filter.")
+          .withValidator(core::StandardPropertyValidators::UNSIGNED_INTEGER_VALIDATOR)
           .withDefaultValue("0")
           .isRequired(true)
           .build();
@@ -167,6 +170,7 @@ class FetchOPCEvents final : public BaseOPCProcessor {
   opc::EventSubscriptionOptions subscription_options_;
   std::mutex connection_mutex_;
   std::unique_ptr<utils::StoppableThread> event_thread_;
+  std::chrono::milliseconds retry_interval_ = 1s;
 };
 
 }  // namespace org::apache::nifi::minifi::processors

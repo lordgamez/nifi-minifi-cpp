@@ -30,14 +30,11 @@
 #include "utils/ProcessorConfigUtils.h"
 #include "utils/StringUtils.h"
 
-using namespace std::literals::chrono_literals;
-
 namespace org::apache::nifi::minifi::processors {
 
 namespace {
 // How long one iteration of the event thread waits for notifications to arrive from the server.
 constexpr UA_UInt32 NOTIFICATION_WAIT_TIME_MS = 200;
-constexpr std::chrono::milliseconds RETRY_INTERVAL = 1s;
 }  // namespace
 
 void FetchOPCEvents::initialize() {
@@ -60,6 +57,9 @@ void FetchOPCEvents::onSchedule(core::ProcessContext& context, core::ProcessSess
     throw Exception(PROCESS_SCHEDULE_EXCEPTION, fmt::format("Controller service '{}' not found", record_set_writer_name));
   }
   record_set_writer_ = std::dynamic_pointer_cast<core::RecordSetWriter>(controller_service);
+  if (!record_set_writer_) {
+    throw Exception(PROCESS_SCHEDULE_EXCEPTION, fmt::format("Failed to obtain RecordSetWriter controller service '{}'", record_set_writer_name));
+  }
 
   const auto max_queue_size = utils::parseOptionalU64Property(context, MaxQueueSize);
   subscription_options_.max_queue_size = max_queue_size && *max_queue_size > 0
@@ -84,12 +84,10 @@ void FetchOPCEvents::onSchedule(core::ProcessContext& context, core::ProcessSess
   const auto batch_size = utils::parseOptionalU64Property(context, BatchSize);
   batch_size_ = batch_size && *batch_size > 0 ? std::optional<uint64_t>(*batch_size) : std::nullopt;
 
-  {
-    const std::lock_guard<std::mutex> lock(connection_mutex_);
-    connection_ = opc::Client::createClient(logger_, application_uri_, cert_buffer_, key_buffer_, trust_buffers_);
-    if (!connection_) {
-      throw Exception(PROCESS_SCHEDULE_EXCEPTION, "Failed to create the OPC UA client");
-    }
+
+  connection_ = opc::Client::createClient(logger_, application_uri_, cert_buffer_, key_buffer_, trust_buffers_);
+  if (!connection_) {
+    throw Exception(PROCESS_SCHEDULE_EXCEPTION, "Failed to create the OPC UA client");
   }
 
   gsl_Expects(!event_thread_);
@@ -97,10 +95,17 @@ void FetchOPCEvents::onSchedule(core::ProcessContext& context, core::ProcessSess
 }
 
 void FetchOPCEvents::runEventLoop() {
+  auto retry = [&]() {
+    utils::StoppableThread::waitForStopRequest(retry_interval_);
+    if (retry_interval_ < 64s) {
+      retry_interval_ *= 2;
+    }
+  };
+
   while (!utils::StoppableThread::waitForStopRequest(0ms)) {
     try {
       if (!reconnect()) {
-        utils::StoppableThread::waitForStopRequest(RETRY_INTERVAL);
+        retry();
         continue;
       }
 
@@ -110,14 +115,14 @@ void FetchOPCEvents::runEventLoop() {
                 ->translateBrowsePathsToNodeIdsRequest(node_id_, translated_node_ids, namespace_idx_, path_reference_types_, logger_);
             sc != UA_STATUSCODE_GOOD) {
           logger_->log_error("Failed to translate path '{}' to a node id: {}", node_id_, UA_StatusCode_name(sc));
-          utils::StoppableThread::waitForStopRequest(RETRY_INTERVAL);
+          retry();
           continue;
         }
         if (translated_node_ids.size() != 1) {
           logger_->log_error("Path '{}' resolved to {} node ids; exactly one is required to subscribe to events",
               node_id_,
               translated_node_ids.size());
-          utils::StoppableThread::waitForStopRequest(RETRY_INTERVAL);
+          retry();
           continue;
         }
         node_ = std::move(translated_node_ids[0]);
@@ -127,7 +132,7 @@ void FetchOPCEvents::runEventLoop() {
       if (!connection_->hasEventSubscription()) {
         if (auto sc = connection_->subscribeToEvents(node_, subscription_options_); sc != UA_STATUSCODE_GOOD) {
           logger_->log_error("Failed to subscribe to the events of node '{}': {}", node_id_, UA_StatusCode_name(sc));
-          utils::StoppableThread::waitForStopRequest(RETRY_INTERVAL);
+          retry();
           continue;
         }
         logger_->log_debug("Subscribed to the events of node '{}'", node_id_);
@@ -136,11 +141,12 @@ void FetchOPCEvents::runEventLoop() {
       // Receives the event notifications that arrived since the last call and queues them for onTrigger to take.
       if (auto sc = connection_->processSubscriptionNotifications(NOTIFICATION_WAIT_TIME_MS); sc != UA_STATUSCODE_GOOD) {
         logger_->log_error("Failed to process the OPC UA event notifications: {}", UA_StatusCode_name(sc));
-        utils::StoppableThread::waitForStopRequest(RETRY_INTERVAL);
+        retry();
       }
+      retry_interval_ = 1s;
     } catch (const std::exception& ex) {
       logger_->log_error("Exception while receiving OPC UA events: {}", ex.what());
-      utils::StoppableThread::waitForStopRequest(RETRY_INTERVAL);
+      retry();
     }
   }
 }

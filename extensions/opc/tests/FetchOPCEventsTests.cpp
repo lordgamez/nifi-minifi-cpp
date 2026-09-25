@@ -42,7 +42,7 @@ class FetchOPCEventsTestController {
   }
 
   void setupProcessor(const std::string& node_id_type, const std::string& node_id) {
-    auto json_record_set_writer = controller_.plan->addController("JsonRecordSetWriter", "JsonRecordSetWriter");
+    REQUIRE(controller_.plan->addController("JsonRecordSetWriter", "JsonRecordSetWriter"));
     REQUIRE(controller_.plan->setProperty(processor_, processors::FetchOPCEvents::RecordSetWriter.name, "JsonRecordSetWriter"));
     REQUIRE(processor_->setProperty(processors::FetchOPCEvents::OPCServerEndPoint.name, "opc.tcp://127.0.0.1:4843/"));
     REQUIRE(processor_->setProperty(processors::FetchOPCEvents::NodeIDType.name, node_id_type));
@@ -318,6 +318,24 @@ TEST_CASE_METHOD(FetchOPCEventsTestController, "A select field can be prefixed w
   REQUIRE(controller_.triggerUntil({{processors::FetchOPCEvents::Success, 1}}, result, 10s));
 
   verifyResults(result, {R"([{"Message":"prefixed event","i=2052/ActionTimeStamp":"2026-09-24T10:00:00Z"}])"});
+}
+
+TEST_CASE_METHOD(FetchOPCEventsTestController, "The event subscription is replaced after the connection to the server is lost", "[fetchopcevents]") {
+  server_.start();
+  setupProcessor("String", "EventSource");
+  waitForSubscription();
+
+  server_.stop();
+  server_.start();
+  REQUIRE(utils::verifyLogLinePresenceInPollTime(30s, "Deleting the dead OPC UA event subscription 1 before resubscribing"));
+
+  minifi::test::ProcessorTriggerResult result;
+  REQUIRE(utils::verifyEventHappenedInPollTime(30s, [&]() {
+    server_.triggerEvent("event after the restart", 500);
+    result = controller_.trigger();
+    return !result.at(processors::FetchOPCEvents::Success).empty();
+  }, 200ms));
+  CHECK(controller_.plan->getContent(result.at(processors::FetchOPCEvents::Success)[0]).find("event after the restart") != std::string::npos);
 }
 
 TEST_CASE_METHOD(FetchOPCEventsTestController, "A select field of an event type unknown to the server is rejected", "[fetchopcevents]") {

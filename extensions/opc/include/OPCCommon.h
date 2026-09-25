@@ -111,7 +111,7 @@ class NodeId {
 };
 
 struct Event {
-  std::map<std::string, std::string> fields;
+  std::unordered_map<std::string, std::string> fields;
 };
 
 struct EventFilter {
@@ -155,7 +155,7 @@ class Client {
     void *callback_context);
 
   UA_StatusCode subscribeToEvents(const UA_NodeId& node_id, const EventSubscriptionOptions& options);
-  [[nodiscard]] bool hasEventSubscription() const noexcept { return subscription_id_.has_value(); }
+  [[nodiscard]] bool hasEventSubscription() const noexcept { return subscription_ && subscription_->alive; }
   UA_StatusCode processSubscriptionNotifications(UA_UInt32 timeout_milliseconds);
   std::vector<Event> drainEvents();
   uint64_t getDroppedEventCountSinceLastCall();
@@ -172,13 +172,26 @@ class Client {
   static void eventNotificationCallback(UA_Client *client, UA_UInt32 sub_id, void *sub_context, UA_UInt32 mon_id, void *mon_context,
     const UA_KeyValueMap event_fields);
 
-  // Queues an event, dropping the oldest ones if the queue is already at max_event_queue_size_.
+  static void subscriptionStatusChangeCallback(UA_Client *client, UA_UInt32 sub_id, void *sub_context, UA_StatusChangeNotification *notification);
+  static void subscriptionDeleteCallback(UA_Client *client, UA_UInt32 sub_id, void *sub_context);
+  static void subscriptionInactivityCallback(UA_Client *client, UA_UInt32 sub_id, void *sub_context);
+  void markSubscriptionDead() noexcept {
+    if (subscription_) {
+      subscription_->alive = false;
+    }
+  }
+
   void pushEvent(Event&& event);
+
+  struct EventSubscription {
+    UA_UInt32 id = 0;
+    bool alive = false;
+  };
 
   UA_Client *client_{nullptr};
   std::shared_ptr<core::logging::Logger> logger_;
 
-  std::optional<UA_UInt32> subscription_id_;
+  std::optional<EventSubscription> subscription_;
   std::mutex event_queue_mutex_;
   std::deque<Event> event_queue_;
   std::optional<size_t> max_event_queue_size_;
