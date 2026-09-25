@@ -121,11 +121,6 @@ struct EventFilter {
   std::string filter_expression;
 };
 
-struct EventSubscriptionOptions {
-  EventFilter event_filter;
-  std::optional<size_t> max_queue_size;
-};
-
 std::string buildEventFilterExpression(const EventFilter& options);
 
 struct NodeData;
@@ -154,7 +149,7 @@ class Client {
   UA_StatusCode readHistory(HistoryReadTypeOption history_type, const UA_NodeId& node_id, const HistoryCallback callback, UA_DateTime start_time, UA_DateTime end_time,
     void *callback_context);
 
-  UA_StatusCode subscribeToEvents(const UA_NodeId& node_id, const EventSubscriptionOptions& options);
+  UA_StatusCode subscribeToEvents(const UA_NodeId& node_id, const EventFilter& event_filter);
   [[nodiscard]] bool hasEventSubscription() const noexcept { return subscription_ && subscription_->alive; }
   UA_StatusCode processSubscriptionNotifications(UA_UInt32 timeout_milliseconds);
   std::vector<Event> drainEvents();
@@ -162,12 +157,12 @@ class Client {
 
   static std::unique_ptr<Client> createClient(const std::shared_ptr<core::logging::Logger>& logger, const std::string& application_uri,
                                               const std::vector<char>& cert_buffer, const std::vector<char>& key_buffer,
-                                              const std::vector<std::vector<char>>& trust_buffers);
+                                              const std::vector<std::vector<char>>& trust_buffers, std::optional<size_t> max_event_queue_size);
 
  private:
   Client(const std::shared_ptr<core::logging::Logger>& logger, const std::string& application_uri,
       const std::vector<char>& cert_buffer, const std::vector<char>& key_buffer,
-      const std::vector<std::vector<char>>& trust_buffers);
+      const std::vector<std::vector<char>>& trust_buffers, std::optional<size_t> max_event_queue_size);
 
   static void eventNotificationCallback(UA_Client *client, UA_UInt32 sub_id, void *sub_context, UA_UInt32 mon_id, void *mon_context,
     const UA_KeyValueMap event_fields);

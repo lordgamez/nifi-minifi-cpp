@@ -19,9 +19,6 @@
 #include <memory>
 #include <mutex>
 #include <optional>
-#include <string>
-#include <unordered_map>
-#include <utility>
 #include <vector>
 
 #include "BaseOPCProcessor.h"
@@ -29,16 +26,11 @@
 #include "core/ProcessSession.h"
 #include "core/PropertyDefinitionBuilder.h"
 #include "core/logging/LoggerFactory.h"
-#include "minifi-cpp/FlowFileRecord.h"
 #include "minifi-cpp/controllers/RecordSetWriter.h"
-#include "minifi-cpp/controllers/SSLContextServiceInterface.h"
 #include "minifi-cpp/core/Property.h"
 #include "minifi-cpp/core/PropertyValidator.h"
 #include "minifi-cpp/core/RelationshipDefinition.h"
-#include "minifi-cpp/core/StateManager.h"
-#include "minifi-cpp/utils/gsl.h"
 #include "utils/ArrayUtils.h"
-#include "utils/Id.h"
 #include "utils/StoppableThread.h"
 
 using namespace std::literals::chrono_literals;
@@ -167,7 +159,7 @@ class FetchOPCEvents final : public BaseOPCProcessor {
 
   std::shared_ptr<core::RecordSetWriter> record_set_writer_;
   std::optional<uint64_t> batch_size_;
-  opc::EventSubscriptionOptions subscription_options_;
+  opc::EventFilter event_filter_;
   std::mutex connection_mutex_;
   std::unique_ptr<utils::StoppableThread> event_thread_;
   std::chrono::milliseconds retry_interval_ = 1s;

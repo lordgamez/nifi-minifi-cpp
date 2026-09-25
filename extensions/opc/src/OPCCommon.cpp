@@ -96,9 +96,9 @@ void add_value_to_variant(UA_Variant *variant, double value) {
 }
 
 template<typename T>
-std::string printToString(UA_StatusCode (*print_func)(const T*, UA_String*), const void* data, std::string_view type_name) {
+std::string printToString(UA_StatusCode (*print_func)(const T*, UA_String*), const T& data, std::string_view type_name) {
   UA_String printed = UA_STRING_NULL;
-  if (print_func(static_cast<const T*>(data), &printed) != UA_STATUSCODE_GOOD) {
+  if (print_func(&data, &printed) != UA_STATUSCODE_GOOD) {
     throw OPCException(GENERAL_EXCEPTION, utils::string::join_pack("Failed to convert a ", type_name, " to string"));
   }
   const auto guard = gsl::finally([&printed]() { UA_String_clear(&printed); });
@@ -130,8 +130,9 @@ core::logging::LOG_LEVEL MapOPCLogLevel(UA_LogLevel ualvl) {
 
 Client::Client(const std::shared_ptr<core::logging::Logger>& logger, const std::string& application_uri,
                const std::vector<char>& cert_buffer, const std::vector<char>& key_buffer,
-               const std::vector<std::vector<char>>& trust_buffers)
-    : use_encryption_(!cert_buffer.empty()) {
+               const std::vector<std::vector<char>>& trust_buffers, std::optional<size_t> max_event_queue_size)
+    : max_event_queue_size_(max_event_queue_size),
+      use_encryption_(!cert_buffer.empty()) {
   minifi_ua_logger_ = {logFunc, logger.get(), [](UA_Logger*){}};
 
   // Build the config with our logger pre-installed so that open62541 doesn't allocate a default stdout logger (as it would with UA_Client_new).
@@ -488,9 +489,9 @@ UA_StatusCode Client::update_node(const UA_NodeId node_id, T value) {
 
 std::unique_ptr<Client> Client::createClient(const std::shared_ptr<core::logging::Logger>& logger, const std::string& application_uri,
                                              const std::vector<char>& cert_buffer, const std::vector<char>& key_buffer,
-                                             const std::vector<std::vector<char>>& trust_buffers) {
+                                             const std::vector<std::vector<char>>& trust_buffers, std::optional<size_t> max_event_queue_size) {
   try {
-    return ClientPtr(new Client(logger, application_uri, cert_buffer, key_buffer, trust_buffers));
+    return ClientPtr(new Client(logger, application_uri, cert_buffer, key_buffer, trust_buffers, max_event_queue_size));
   } catch (const std::exception& exception) {
     logger->log_error("Failed to create client: {}", exception.what());
   }
@@ -580,13 +581,13 @@ std::string variantToString(const UA_Variant& variant) {
     case UA_DATATYPEKIND_DATETIME:
       return opc::OPCDateTime2String(*static_cast<const UA_DateTime *>(variant.data));
     case UA_DATATYPEKIND_NODEID:
-      return printToString(UA_NodeId_print, variant.data, "node id");
+      return printToString(UA_NodeId_print, *static_cast<const UA_NodeId *>(variant.data), "node id");
     case UA_DATATYPEKIND_EXPANDEDNODEID:
-      return printToString(UA_ExpandedNodeId_print, variant.data, "expanded node id");
+      return printToString(UA_ExpandedNodeId_print, *static_cast<const UA_ExpandedNodeId *>(variant.data), "expanded node id");
     case UA_DATATYPEKIND_GUID:
-      return printToString(UA_Guid_print, variant.data, "GUID");
+      return printToString(UA_Guid_print, *static_cast<const UA_Guid *>(variant.data), "GUID");
     case UA_DATATYPEKIND_QUALIFIEDNAME:
-      return printToString(UA_QualifiedName_print, variant.data, "qualified name");
+      return printToString(UA_QualifiedName_print, *static_cast<const UA_QualifiedName *>(variant.data), "qualified name");
     case UA_DATATYPEKIND_STATUSCODE:
       return UA_StatusCode_name(*static_cast<const UA_StatusCode *>(variant.data));
     default:
@@ -691,7 +692,7 @@ std::string buildEventFilterExpression(const EventFilter& options) {
   return expression;
 }
 
-UA_StatusCode Client::subscribeToEvents(const UA_NodeId& node_id, const EventSubscriptionOptions& options) {
+UA_StatusCode Client::subscribeToEvents(const UA_NodeId& node_id, const EventFilter& event_filter) {
   if (subscription_) {
     logger_->log_debug("Deleting the dead OPC UA event subscription {} before resubscribing", subscription_->id);
     UA_Client_Subscriptions_deleteSingle(client_, subscription_->id);
@@ -705,6 +706,11 @@ UA_StatusCode Client::subscribeToEvents(const UA_NodeId& node_id, const EventSub
     return response.responseHeader.serviceResult;
   }
   const auto subscription_id = response.subscriptionId;
+  auto subscription_id_guard = gsl::finally([this, &subscription_id]() {
+    if (!subscription_ || subscription_->id != subscription_id) {
+      UA_Client_Subscriptions_deleteSingle(client_, subscription_id);
+    }
+  });
 
   UA_MonitoredItemCreateRequest item;
   UA_MonitoredItemCreateRequest_init(&item);
@@ -713,18 +719,16 @@ UA_StatusCode Client::subscribeToEvents(const UA_NodeId& node_id, const EventSub
   item.itemToMonitor.attributeId = UA_ATTRIBUTEID_EVENTNOTIFIER;
   item.monitoringMode = UA_MONITORINGMODE_REPORTING;
 
-  const std::string event_filter = buildEventFilterExpression(options.event_filter);
-  logger_->log_debug("Subscribing with the event filter '{}'", event_filter);
+  const std::string event_filter_str = buildEventFilterExpression(event_filter);
+  logger_->log_debug("Subscribing with the event filter '{}'", event_filter_str);
 
   auto* filter = UA_EventFilter_new();
   if (filter == nullptr) {
-    UA_Client_Subscriptions_deleteSingle(client_, subscription_id);
     return UA_STATUSCODE_BADOUTOFMEMORY;
   }
-  if (auto sc = UA_EventFilter_parse(filter, UA_STRING(const_cast<char*>(event_filter.c_str())), nullptr); sc != UA_STATUSCODE_GOOD) {
-    logger_->log_error("Failed to parse the event filter '{}': {}", event_filter, UA_StatusCode_name(sc));
+  if (auto sc = UA_EventFilter_parse(filter, UA_STRING(const_cast<char*>(event_filter_str.c_str())), nullptr); sc != UA_STATUSCODE_GOOD) {
+    logger_->log_error("Failed to parse the event filter '{}': {}", event_filter_str, UA_StatusCode_name(sc));
     UA_EventFilter_delete(filter);
-    UA_Client_Subscriptions_deleteSingle(client_, subscription_id);
     return sc;
   }
   UA_ExtensionObject_setValue(&item.requestedParameters.filter, filter, &UA_TYPES[UA_TYPES_EVENTFILTER]);
@@ -733,14 +737,9 @@ UA_StatusCode Client::subscribeToEvents(const UA_NodeId& node_id, const EventSub
                                                                             this, eventNotificationCallback, nullptr);
   const auto result_guard = gsl::finally([&result]() { UA_MonitoredItemCreateResult_clear(&result); });
   if (result.statusCode != UA_STATUSCODE_GOOD) {
-    UA_Client_Subscriptions_deleteSingle(client_, subscription_id);
     return result.statusCode;
   }
 
-  {
-    const std::lock_guard<std::mutex> lock(event_queue_mutex_);
-    max_event_queue_size_ = options.max_queue_size;
-  }
   subscription_ = EventSubscription{.id = subscription_id, .alive = true};
   return UA_STATUSCODE_GOOD;
 }

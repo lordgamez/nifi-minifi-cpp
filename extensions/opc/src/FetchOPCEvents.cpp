@@ -62,30 +62,26 @@ void FetchOPCEvents::onSchedule(core::ProcessContext& context, core::ProcessSess
   }
 
   const auto max_queue_size = utils::parseOptionalU64Property(context, MaxQueueSize);
-  subscription_options_.max_queue_size = max_queue_size && *max_queue_size > 0
+  max_event_queue_size_ = max_queue_size && *max_queue_size > 0
       ? std::optional<size_t>(gsl::narrow<size_t>(*max_queue_size))
       : std::nullopt;
 
   const auto minimum_severity = utils::parseOptionalU64Property(context, MinimumSeverity);
-  subscription_options_.event_filter.minimum_severity = minimum_severity && *minimum_severity > 0 ? minimum_severity : std::nullopt;
+  event_filter_.minimum_severity = minimum_severity && *minimum_severity > 0 ? minimum_severity : std::nullopt;
 
-  subscription_options_.event_filter.event_type_node_id = utils::parseProperty(context, EventTypeNodeId);
-  subscription_options_.event_filter.filter_expression = context.getProperty(EventFilterExpression).value_or("");
+  event_filter_.event_type_node_id = utils::parseProperty(context, EventTypeNodeId);
+  event_filter_.filter_expression = context.getProperty(EventFilterExpression).value_or("");
 
-  subscription_options_.event_filter.select_fields.clear();
-  for (const auto& select_field : utils::string::splitAndTrimRemovingEmpty(utils::parseProperty(context, SelectFields), ",")) {
-    subscription_options_.event_filter.select_fields.push_back(select_field);
-  }
-  if (subscription_options_.event_filter.select_fields.empty() && subscription_options_.event_filter.filter_expression.empty()) {
+  event_filter_.select_fields = utils::string::splitAndTrimRemovingEmpty(utils::parseProperty(context, SelectFields), ",");
+  if (event_filter_.select_fields.empty() && event_filter_.filter_expression.empty()) {
     throw Exception(PROCESS_SCHEDULE_EXCEPTION,
         fmt::format("At least one field must be set in '{}', otherwise the events would carry no data", SelectFields.name));
   }
 
   const auto batch_size = utils::parseOptionalU64Property(context, BatchSize);
-  batch_size_ = batch_size && *batch_size > 0 ? std::optional<uint64_t>(*batch_size) : std::nullopt;
+  batch_size_ = batch_size && *batch_size > 0 ? batch_size : std::nullopt;
 
-
-  connection_ = opc::Client::createClient(logger_, application_uri_, cert_buffer_, key_buffer_, trust_buffers_);
+  connection_ = opc::Client::createClient(logger_, application_uri_, cert_buffer_, key_buffer_, trust_buffers_, max_event_queue_size_);
   if (!connection_) {
     throw Exception(PROCESS_SCHEDULE_EXCEPTION, "Failed to create the OPC UA client");
   }
@@ -130,7 +126,7 @@ void FetchOPCEvents::runEventLoop() {
       }
 
       if (!connection_->hasEventSubscription()) {
-        if (auto sc = connection_->subscribeToEvents(node_, subscription_options_); sc != UA_STATUSCODE_GOOD) {
+        if (auto sc = connection_->subscribeToEvents(node_, event_filter_); sc != UA_STATUSCODE_GOOD) {
           logger_->log_error("Failed to subscribe to the events of node '{}': {}", node_id_, UA_StatusCode_name(sc));
           retry();
           continue;
@@ -167,13 +163,11 @@ FetchOPCEvents::~FetchOPCEvents() {
 
 void FetchOPCEvents::createFlowFiles(core::ProcessSession& session, const std::vector<opc::Event>& events) const {
   core::RecordSet record_set;
-  size_t events_pushed = 0;
-  const auto writeToFlowFile = [&, this]() {
+  const auto writeToFlowFile = [&]() {
     auto flow_file = session.create();
     record_set_writer_->write(record_set, flow_file, session);
 
     session.transfer(flow_file, Success);
-    events_pushed = 0;
     record_set.clear();
   };
 
@@ -183,14 +177,13 @@ void FetchOPCEvents::createFlowFiles(core::ProcessSession& session, const std::v
       record.emplace(name, core::RecordField(value));
     }
     record_set.push_back(std::move(record));
-    ++events_pushed;
 
-    if (batch_size_ && *batch_size_ > 0 && events_pushed >= *batch_size_) {
+    if (batch_size_ && *batch_size_ > 0 && record_set.size() >= *batch_size_) {
       writeToFlowFile();
     }
   }
 
-  if (events_pushed > 0) {
+  if (!record_set.empty()) {
     writeToFlowFile();
   }
 }
