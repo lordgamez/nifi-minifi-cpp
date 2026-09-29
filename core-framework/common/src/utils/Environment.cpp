@@ -107,6 +107,7 @@ bool Environment::unsetEnvironmentVariable(const char* name) {
 
   Environment::accessEnvironment([&success, name](){
 #ifdef WIN32
+    _putenv_s(name, "");
     success = SetEnvironmentVariableA(name, nullptr);
 #else
     int ret = unsetenv(name);
