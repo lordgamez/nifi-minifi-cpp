@@ -506,6 +506,44 @@ std::expected<NodeId, UA_StatusCode> Client::findChild(const UA_NodeId& parent_n
   return NodeId::copyOf(response.results[0].targets[0].targetId.nodeId);
 }
 
+std::expected<NodeId, UA_StatusCode> Client::findChildByBrowseName(const UA_NodeId& parent_node_id, std::string_view browse_name,
+    UA_UInt32 ref_type_id) {
+  UA_BrowseRequest browse_request;
+  UA_BrowseRequest_init(&browse_request);
+  browse_request.nodesToBrowse = UA_BrowseDescription_new();
+  browse_request.nodesToBrowseSize = 1;
+  UA_NodeId_copy(&parent_node_id, &browse_request.nodesToBrowse[0].nodeId);
+  browse_request.nodesToBrowse[0].referenceTypeId = UA_NODEID_NUMERIC(0, ref_type_id);
+  browse_request.nodesToBrowse[0].includeSubtypes = true;
+  browse_request.nodesToBrowse[0].browseDirection = UA_BROWSEDIRECTION_FORWARD;
+  browse_request.nodesToBrowse[0].nodeClassMask = UA_NODECLASS_OBJECT;
+  browse_request.nodesToBrowse[0].resultMask = UA_BROWSERESULTMASK_BROWSENAME;
+
+  UA_BrowseResponse browse_response = UA_Client_Service_browse(client_, browse_request);
+  const auto guard = gsl::finally([&browse_request, &browse_response]() {
+    UA_BrowseRequest_clear(&browse_request);
+    UA_BrowseResponse_clear(&browse_response);
+  });
+
+  if (browse_response.responseHeader.serviceResult != UA_STATUSCODE_GOOD) {
+    return std::unexpected{browse_response.responseHeader.serviceResult};
+  }
+  if (browse_response.resultsSize != 1) {
+    return std::unexpected{UA_STATUSCODE_BADUNEXPECTEDERROR};
+  }
+  if (browse_response.results[0].statusCode != UA_STATUSCODE_GOOD) {
+    return std::unexpected{browse_response.results[0].statusCode};
+  }
+
+  for (size_t i = 0; i < browse_response.results[0].referencesSize; ++i) {
+    const auto& ref = browse_response.results[0].references[i];
+    if (std::string_view(reinterpret_cast<const char*>(ref.browseName.name.data), ref.browseName.name.length) == browse_name) {
+      return NodeId::copyOf(ref.nodeId.nodeId);
+    }
+  }
+  return std::unexpected{UA_STATUSCODE_BADNOMATCH};
+}
+
 std::expected<MethodOutput, UA_StatusCode> Client::callMethod(const UA_NodeId& object_id, const UA_NodeId& method_id,
     std::span<const UA_Variant> inputs) {
   MethodOutput output;

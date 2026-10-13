@@ -193,6 +193,7 @@ class Client {
   uint64_t getDroppedEventCountSinceLastCall();
 
   std::expected<NodeId, UA_StatusCode> findChild(const UA_NodeId& parent_node_id, std::string_view browse_name, UA_UInt16 browse_name_namespace_index, UA_UInt32 ref_type_id);
+  std::expected<NodeId, UA_StatusCode> findChildByBrowseName(const UA_NodeId& parent_node_id, std::string_view browse_name, UA_UInt32 ref_type_id);
   std::expected<MethodOutput, UA_StatusCode> callMethod(const UA_NodeId& object_id, const UA_NodeId& method_id, std::span<const UA_Variant> inputs);
   std::expected<std::string, UA_StatusCode> readBrowseName(const UA_NodeId& node_id);
   std::expected<UA_UInt32, UA_StatusCode> readUInt32Value(const UA_NodeId& node_id);

@@ -19,8 +19,8 @@
  * OPC UA test server exposing the files of a directory through the FileType and FileDirectoryType object types.
  *
  * The "Files" FileDirectoryType node (ns=1;s=Files) contains a FileType node (ns=1;s=<file name>) for every regular file
- * found in the directory at startup. The files are read-only.
- * The FileType methods only define an interface, so their behavior is implemented here.
+ * found in the directory at startup. Files created with the CreateFile method get a node id assigned by the server.
+ * The FileType and FileDirectoryType methods only define an interface, so their behavior is implemented here.
  */
 
 #include <open62541/server.h>
@@ -30,13 +30,17 @@
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #define MAX_OPEN_HANDLES 16
 
 /* Open mode bits of the FileType Open method (OPC UA Part 20, 4.2.2) */
 #define FILE_MODE_READ 0x01
 #define FILE_MODE_WRITE 0x02
+#define FILE_MODE_ERASE_EXISTING 0x04
+#define FILE_MODE_APPEND 0x08
 
 typedef struct {
     UA_UInt32 id;
@@ -67,10 +71,21 @@ findHandle(FileContext *context, UA_UInt32 handle_id) {
 
 static UA_StatusCode
 openHandle(FileContext *context, UA_Byte mode, UA_UInt32 *handle_id) {
-    if(mode & FILE_MODE_WRITE)
-        return UA_STATUSCODE_BADNOTWRITABLE;
-    if(!(mode & FILE_MODE_READ))
+    const char *fopen_mode;
+    if(mode & FILE_MODE_WRITE) {
+        if(access(context->path, W_OK) != 0)
+            return UA_STATUSCODE_BADNOTWRITABLE;
+        if(mode & FILE_MODE_ERASE_EXISTING)
+            fopen_mode = (mode & FILE_MODE_READ) ? "w+b" : "wb";
+        else if(mode & FILE_MODE_APPEND)
+            fopen_mode = (mode & FILE_MODE_READ) ? "a+b" : "ab";
+        else
+            fopen_mode = "r+b";
+    } else if(mode & FILE_MODE_READ) {
+        fopen_mode = "rb";
+    } else {
         return UA_STATUSCODE_BADINVALIDARGUMENT;
+    }
 
     OpenHandle *handle = NULL;
     for(size_t i = 0; i < MAX_OPEN_HANDLES && !handle; ++i) {
@@ -80,7 +95,7 @@ openHandle(FileContext *context, UA_Byte mode, UA_UInt32 *handle_id) {
     if(!handle)
         return UA_STATUSCODE_BADTOOMANYOPERATIONS;
 
-    FILE *file = fopen(context->path, "rb");
+    FILE *file = fopen(context->path, fopen_mode);
     if(!file)
         return UA_STATUSCODE_BADINTERNALERROR;
     handle->id = next_handle_id++;
@@ -156,6 +171,23 @@ readMethod(UA_Server *server, const UA_NodeId *session_id, void *session_context
 }
 
 static UA_StatusCode
+writeMethod(UA_Server *server, const UA_NodeId *session_id, void *session_context, const UA_NodeId *method_id, void *method_context,
+            const UA_NodeId *object_id, void *object_context, size_t input_size, const UA_Variant *input, size_t output_size,
+            UA_Variant *output) {
+    FileContext *context = (FileContext *)object_context;
+    if(!context)
+        return UA_STATUSCODE_BADNOTFOUND;
+    OpenHandle *handle = findHandle(context, *(const UA_UInt32 *)input[0].data);
+    const UA_ByteString *data = (const UA_ByteString *)input[1].data;
+    if(!handle || !(handle->mode & FILE_MODE_WRITE))
+        return UA_STATUSCODE_BADINVALIDSTATE;
+    if(data->length > 0 && fwrite(data->data, 1, data->length, handle->file) != data->length)
+        return UA_STATUSCODE_BADINTERNALERROR;
+    UA_LOG_INFO(logger, UA_LOGCATEGORY_USERLAND, "Wrote %lu bytes to %s", (unsigned long)data->length, context->path);
+    return UA_STATUSCODE_GOOD;
+}
+
+static UA_StatusCode
 getPositionMethod(UA_Server *server, const UA_NodeId *session_id, void *session_context, const UA_NodeId *method_id, void *method_context,
                   const UA_NodeId *object_id, void *object_context, size_t input_size, const UA_Variant *input, size_t output_size,
                   UA_Variant *output) {
@@ -189,7 +221,7 @@ setPositionMethod(UA_Server *server, const UA_NodeId *session_id, void *session_
 }
 
 static UA_StatusCode
-addFileNode(UA_Server *server, const char *name, const UA_NodeId requested_node_id) {
+addFileNode(UA_Server *server, const char *name, const UA_NodeId requested_node_id, UA_NodeId *file_node_id, FileContext **file_context) {
     FileContext *context = (FileContext *)calloc(1, sizeof(FileContext));
     if(!context)
         return UA_STATUSCODE_BADOUTOFMEMORY;
@@ -199,15 +231,59 @@ addFileNode(UA_Server *server, const char *name, const UA_NodeId requested_node_
     attr.displayName = UA_LOCALIZEDTEXT("en-US", (char *)name);
     const UA_StatusCode status =
         UA_Server_addObjectNode(server, requested_node_id, files_node_id, UA_NODEID_NUMERIC(0, UA_NS0ID_ORGANIZES),
-                                UA_QUALIFIEDNAME(1, (char *)name), UA_NODEID_NUMERIC(0, UA_NS0ID_FILETYPE), attr, context, NULL);
+                                UA_QUALIFIEDNAME(1, (char *)name), UA_NODEID_NUMERIC(0, UA_NS0ID_FILETYPE), attr, context, file_node_id);
     if(status != UA_STATUSCODE_GOOD) {
         free(context);
         return status;
     }
     context->next = file_contexts;
     file_contexts = context;
+    if(file_context)
+        *file_context = context;
     UA_LOG_INFO(logger, UA_LOGCATEGORY_USERLAND, "Added file node for %s", context->path);
     return UA_STATUSCODE_GOOD;
+}
+
+static UA_StatusCode
+createFileMethod(UA_Server *server, const UA_NodeId *session_id, void *session_context, const UA_NodeId *method_id, void *method_context,
+                 const UA_NodeId *object_id, void *object_context, size_t input_size, const UA_Variant *input, size_t output_size,
+                 UA_Variant *output) {
+    const UA_String *ua_name = (const UA_String *)input[0].data;
+    const UA_Boolean request_file_open = *(const UA_Boolean *)input[1].data;
+    if(ua_name->length == 0 || ua_name->length >= NAME_MAX || memchr(ua_name->data, '/', ua_name->length))
+        return UA_STATUSCODE_BADINVALIDARGUMENT;
+    char name[NAME_MAX];
+    memcpy(name, ua_name->data, ua_name->length);
+    name[ua_name->length] = '\0';
+    if(strcmp(name, ".") == 0 || strcmp(name, "..") == 0)
+        return UA_STATUSCODE_BADINVALIDARGUMENT;
+
+    char path[PATH_MAX];
+    snprintf(path, sizeof(path), "%s/%s", data_dir, name);
+    struct stat file_stat;
+    if(stat(path, &file_stat) == 0)
+        return UA_STATUSCODE_BADBROWSENAMEDUPLICATED;
+    FILE *file = fopen(path, "wb");
+    if(!file)
+        return UA_STATUSCODE_BADINTERNALERROR;
+    fclose(file);
+
+    UA_NodeId file_node_id;
+    FileContext *context = NULL;
+    UA_StatusCode status = addFileNode(server, name, UA_NODEID_NUMERIC(1, 0), &file_node_id, &context);
+    if(status != UA_STATUSCODE_GOOD)
+        return status;
+
+    UA_UInt32 handle_id = 0;
+    if(request_file_open)
+        status = openHandle(context, FILE_MODE_READ | FILE_MODE_WRITE, &handle_id);
+    if(status == UA_STATUSCODE_GOOD)
+        status = UA_Variant_setScalarCopy(&output[0], &file_node_id, &UA_TYPES[UA_TYPES_NODEID]);
+    if(status == UA_STATUSCODE_GOOD)
+        status = UA_Variant_setScalarCopy(&output[1], &handle_id, &UA_TYPES[UA_TYPES_UINT32]);
+    UA_NodeId_clear(&file_node_id);
+    UA_LOG_INFO(logger, UA_LOGCATEGORY_USERLAND, "CreateFile %s: %s", path, UA_StatusCode_name(status));
+    return status;
 }
 
 static UA_StatusCode
@@ -225,7 +301,7 @@ addExistingFiles(UA_Server *server) {
         struct stat file_stat;
         if(stat(path, &file_stat) != 0 || !S_ISREG(file_stat.st_mode))
             continue;
-        status = addFileNode(server, entry->d_name, UA_NODEID_STRING(1, entry->d_name));
+        status = addFileNode(server, entry->d_name, UA_NODEID_STRING(1, entry->d_name), NULL, NULL);
     }
     closedir(dir);
     return status;
@@ -247,8 +323,10 @@ setupAddressSpace(UA_Server *server) {
         {UA_NS0ID_FILETYPE_OPEN, openMethod},
         {UA_NS0ID_FILETYPE_CLOSE, closeMethod},
         {UA_NS0ID_FILETYPE_READ, readMethod},
+        {UA_NS0ID_FILETYPE_WRITE, writeMethod},
         {UA_NS0ID_FILETYPE_GETPOSITION, getPositionMethod},
         {UA_NS0ID_FILETYPE_SETPOSITION, setPositionMethod},
+        {UA_NS0ID_FILEDIRECTORYTYPE_CREATEFILE, createFileMethod},
     };
     for(size_t i = 0; status == UA_STATUSCODE_GOOD && i < sizeof(methods) / sizeof(methods[0]); ++i)
         status = UA_Server_setMethodNodeCallback(server, UA_NODEID_NUMERIC(0, methods[i].method_id), methods[i].callback);
