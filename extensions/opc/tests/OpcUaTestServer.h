@@ -21,10 +21,13 @@
 #include <open62541/server_config_default.h>
 
 #include <algorithm>
+#include <array>
 #include <cinttypes>
 #include <cstring>
+#include <map>
 #include <mutex>
 #include <optional>
+#include <span>
 #include <string>
 #include <thread>
 #include <unordered_map>
@@ -46,6 +49,13 @@ struct HistoryModificationRecord {
   UA_HistoryUpdateType update_type = UA_HISTORYUPDATETYPE_INSERT;
   UA_DateTime modification_time = 0;
   std::optional<std::vector<uint8_t>> byte_string_value = std::nullopt;
+};
+
+enum class FileMethod {
+  Open,
+  Close,
+  Read,
+  Write
 };
 
 class OpcUaTestServer {
@@ -257,7 +267,248 @@ class OpcUaTestServer {
     }
   }
 
+  opc::NodeId addFile(const std::string& name, UA_NodeId requested_node_id, UA_NodeId parent, const std::string& content, bool writable = true,
+      std::optional<UA_UInt32> max_byte_string_length = std::nullopt) {
+    TestFile* file = nullptr;
+    {
+      std::lock_guard<std::mutex> lock(files_mutex_);
+      file = &files_[name];
+      file->content = content;
+      file->writable = writable;
+    }
+
+    UA_ObjectAttributes attr = UA_ObjectAttributes_default;
+    attr.displayName = UA_LOCALIZEDTEXT(const_cast<char*>("en-US"), const_cast<char*>(name.c_str()));
+    UA_NodeId file_node_id;
+    auto status = UA_Server_addObjectNode(server_, requested_node_id, parent, UA_NODEID_NUMERIC(0, UA_NS0ID_HASCOMPONENT),
+        UA_QUALIFIEDNAME(ns_index_, const_cast<char*>(name.c_str())), UA_NODEID_NUMERIC(0, UA_NS0ID_BASEOBJECTTYPE), attr, file, &file_node_id);
+    if (status != UA_STATUSCODE_GOOD) {
+      throw std::runtime_error("Failed to add file node");
+    }
+
+    std::array<UA_Argument, 1> mode_arguments{makeArgument("Mode", UA_TYPES_BYTE)};
+    std::array<UA_Argument, 1> handle_arguments{makeArgument("FileHandle", UA_TYPES_UINT32)};
+    std::array<UA_Argument, 2> read_arguments{makeArgument("FileHandle", UA_TYPES_UINT32), makeArgument("Length", UA_TYPES_INT32)};
+    std::array<UA_Argument, 2> write_arguments{makeArgument("FileHandle", UA_TYPES_UINT32), makeArgument("Data", UA_TYPES_BYTESTRING)};
+    std::array<UA_Argument, 1> data_arguments{makeArgument("Data", UA_TYPES_BYTESTRING)};
+    addMethod(file_node_id, "Open", &OpcUaTestServer::fileOpenCallback, mode_arguments, handle_arguments);
+    addMethod(file_node_id, "Close", &OpcUaTestServer::fileCloseCallback, handle_arguments, {});
+    addMethod(file_node_id, "Read", &OpcUaTestServer::fileReadCallback, read_arguments, data_arguments);
+    addMethod(file_node_id, "Write", &OpcUaTestServer::fileWriteCallback, write_arguments, {});
+
+    if (max_byte_string_length) {
+      UA_VariableAttributes property_attr = UA_VariableAttributes_default;
+      property_attr.displayName = UA_LOCALIZEDTEXT(const_cast<char*>("en-US"), const_cast<char*>("MaxByteStringLength"));
+      UA_UInt32 value = *max_byte_string_length;
+      UA_Variant_setScalar(&property_attr.value, &value, &UA_TYPES[UA_TYPES_UINT32]);
+      status = UA_Server_addVariableNode(server_, UA_NODEID_NUMERIC(ns_index_, 0), file_node_id, UA_NODEID_NUMERIC(0, UA_NS0ID_HASPROPERTY),
+          UA_QUALIFIEDNAME(0, const_cast<char*>("MaxByteStringLength")), UA_NODEID_NUMERIC(0, UA_NS0ID_PROPERTYTYPE), property_attr, nullptr, nullptr);
+      if (status != UA_STATUSCODE_GOOD) {
+        throw std::runtime_error("Failed to add MaxByteStringLength property");
+      }
+    }
+    return opc::NodeId{file_node_id};
+  }
+
+  opc::NodeId addFileDirectory(const std::string& name, UA_NodeId requested_node_id, UA_NodeId parent) {
+    UA_ObjectAttributes attr = UA_ObjectAttributes_default;
+    attr.displayName = UA_LOCALIZEDTEXT(const_cast<char*>("en-US"), const_cast<char*>(name.c_str()));
+    UA_NodeId directory_node_id;
+    auto status = UA_Server_addObjectNode(server_, requested_node_id, parent, UA_NODEID_NUMERIC(0, UA_NS0ID_ORGANIZES),
+        UA_QUALIFIEDNAME(ns_index_, const_cast<char*>(name.c_str())), UA_NODEID_NUMERIC(0, UA_NS0ID_BASEOBJECTTYPE), attr, nullptr, &directory_node_id);
+    if (status != UA_STATUSCODE_GOOD) {
+      throw std::runtime_error("Failed to add file directory node");
+    }
+
+    std::array<UA_Argument, 2> create_file_arguments{makeArgument("FileName", UA_TYPES_STRING), makeArgument("RequestFileOpen", UA_TYPES_BOOLEAN)};
+    std::array<UA_Argument, 2> create_file_outputs{makeArgument("FileNodeId", UA_TYPES_NODEID), makeArgument("FileHandle", UA_TYPES_UINT32)};
+    addMethod(directory_node_id, "CreateFile", &OpcUaTestServer::createFileCallback, create_file_arguments, create_file_outputs);
+    return opc::NodeId{directory_node_id};
+  }
+
+  std::optional<std::string> getFileContent(const std::string& name) {
+    std::lock_guard<std::mutex> lock(files_mutex_);
+    auto it = files_.find(name);
+    if (it == files_.end()) {
+      return std::nullopt;
+    }
+    return it->second.content;
+  }
+
+  size_t getOpenFileHandleCount(const std::string& name) {
+    std::lock_guard<std::mutex> lock(files_mutex_);
+    return files_.at(name).handles.size();
+  }
+
+  size_t getMaxTransferredChunkSize(const std::string& name) {
+    std::lock_guard<std::mutex> lock(files_mutex_);
+    return files_.at(name).max_chunk_size;
+  }
+
+  // Makes the given method of the file fail with the status code after it succeeded the given number of times
+  void setFileFailure(const std::string& name, FileMethod method, UA_StatusCode status, size_t successful_calls_before_failure = 0) {
+    std::lock_guard<std::mutex> lock(files_mutex_);
+    files_.at(name).failures[method] = TestFile::Failure{.status = status, .remaining_successful_calls = successful_calls_before_failure};
+  }
+
  private:
+  struct TestFile {
+    struct OpenHandle {
+      UA_Byte mode = 0;
+      size_t position = 0;
+    };
+
+    struct Failure {
+      UA_StatusCode status = UA_STATUSCODE_GOOD;
+      size_t remaining_successful_calls = 0;
+    };
+
+    std::string content;
+    bool writable = true;
+    std::unordered_map<UA_UInt32, OpenHandle> handles;
+    size_t max_chunk_size = 0;
+    std::unordered_map<FileMethod, Failure> failures;
+
+    UA_StatusCode injectedFailure(FileMethod method) {
+      auto it = failures.find(method);
+      if (it == failures.end()) {
+        return UA_STATUSCODE_GOOD;
+      }
+      if (it->second.remaining_successful_calls > 0) {
+        --it->second.remaining_successful_calls;
+        return UA_STATUSCODE_GOOD;
+      }
+      return it->second.status;
+    }
+  };
+
+  static constexpr UA_Byte FILE_MODE_READ = 0x01;
+  static constexpr UA_Byte FILE_MODE_WRITE = 0x02;
+  static constexpr UA_Byte FILE_MODE_ERASE_EXISTING = 0x04;
+  static constexpr UA_Byte FILE_MODE_APPEND = 0x08;
+
+  static UA_Argument makeArgument(const char* name, size_t type_index) {
+    UA_Argument argument;
+    UA_Argument_init(&argument);
+    argument.name = UA_STRING(const_cast<char*>(name));
+    argument.dataType = UA_TYPES[type_index].typeId;
+    argument.valueRank = UA_VALUERANK_SCALAR;
+    return argument;
+  }
+
+  void addMethod(const UA_NodeId& object_node_id, const char* name, UA_MethodCallback callback, std::span<const UA_Argument> inputs,
+      std::span<const UA_Argument> outputs) {
+    UA_MethodAttributes attr = UA_MethodAttributes_default;
+    attr.displayName = UA_LOCALIZEDTEXT(const_cast<char*>("en-US"), const_cast<char*>(name));
+    attr.executable = true;
+    attr.userExecutable = true;
+    auto status = UA_Server_addMethodNode(server_, UA_NODEID_NUMERIC(ns_index_, 0), object_node_id, UA_NODEID_NUMERIC(0, UA_NS0ID_HASCOMPONENT),
+        UA_QUALIFIEDNAME(0, const_cast<char*>(name)), attr, callback, inputs.size(), inputs.data(), outputs.size(), outputs.data(), this, nullptr);
+    if (status != UA_STATUSCODE_GOOD) {
+      throw std::runtime_error(std::string("Failed to add method node ") + name);
+    }
+  }
+
+  static UA_StatusCode fileOpenCallback(UA_Server* /*server*/, const UA_NodeId* /*session_id*/, void* /*session_context*/, const UA_NodeId* /*method_id*/,
+      void* method_context, const UA_NodeId* /*object_id*/, void* object_context, size_t /*input_size*/, const UA_Variant* input, size_t /*output_size*/,
+      UA_Variant* output) {
+    auto* self = static_cast<OpcUaTestServer*>(method_context);
+    auto* file = static_cast<TestFile*>(object_context);
+    const auto mode = *static_cast<const UA_Byte*>(input[0].data);
+    std::lock_guard<std::mutex> lock(self->files_mutex_);
+    if (auto status = file->injectedFailure(FileMethod::Open); status != UA_STATUSCODE_GOOD) {
+      return status;
+    }
+    if ((mode & FILE_MODE_WRITE) && !file->writable) {
+      return UA_STATUSCODE_BADNOTWRITABLE;
+    }
+    if (mode & FILE_MODE_ERASE_EXISTING) {
+      file->content.clear();
+    }
+    UA_UInt32 handle = self->next_file_handle_++;
+    file->handles[handle] = TestFile::OpenHandle{.mode = mode, .position = (mode & FILE_MODE_APPEND) ? file->content.size() : 0};
+    return UA_Variant_setScalarCopy(&output[0], &handle, &UA_TYPES[UA_TYPES_UINT32]);
+  }
+
+  static UA_StatusCode fileCloseCallback(UA_Server* /*server*/, const UA_NodeId* /*session_id*/, void* /*session_context*/, const UA_NodeId* /*method_id*/,
+      void* method_context, const UA_NodeId* /*object_id*/, void* object_context, size_t /*input_size*/, const UA_Variant* input, size_t /*output_size*/,
+      UA_Variant* /*output*/) {
+    auto* self = static_cast<OpcUaTestServer*>(method_context);
+    auto* file = static_cast<TestFile*>(object_context);
+    const auto handle = *static_cast<const UA_UInt32*>(input[0].data);
+    std::lock_guard<std::mutex> lock(self->files_mutex_);
+    if (auto status = file->injectedFailure(FileMethod::Close); status != UA_STATUSCODE_GOOD) {
+      return status;
+    }
+    return file->handles.erase(handle) == 1 ? UA_STATUSCODE_GOOD : UA_STATUSCODE_BADINVALIDARGUMENT;
+  }
+
+  static UA_StatusCode fileReadCallback(UA_Server* /*server*/, const UA_NodeId* /*session_id*/, void* /*session_context*/, const UA_NodeId* /*method_id*/,
+      void* method_context, const UA_NodeId* /*object_id*/, void* object_context, size_t /*input_size*/, const UA_Variant* input, size_t /*output_size*/,
+      UA_Variant* output) {
+    auto* self = static_cast<OpcUaTestServer*>(method_context);
+    auto* file = static_cast<TestFile*>(object_context);
+    const auto handle = *static_cast<const UA_UInt32*>(input[0].data);
+    const auto length = *static_cast<const UA_Int32*>(input[1].data);
+    std::lock_guard<std::mutex> lock(self->files_mutex_);
+    if (auto status = file->injectedFailure(FileMethod::Read); status != UA_STATUSCODE_GOOD) {
+      return status;
+    }
+    auto it = file->handles.find(handle);
+    if (it == file->handles.end() || !(it->second.mode & FILE_MODE_READ) || length < 0) {
+      return UA_STATUSCODE_BADINVALIDSTATE;
+    }
+    file->max_chunk_size = std::max(file->max_chunk_size, gsl::narrow<size_t>(length));
+    auto& position = it->second.position;
+    const auto data = file->content.substr(std::min(position, file->content.size()), gsl::narrow<size_t>(length));
+    position += data.size();
+    UA_ByteString byte_string{data.size(), reinterpret_cast<UA_Byte*>(const_cast<char*>(data.data()))};
+    return UA_Variant_setScalarCopy(&output[0], &byte_string, &UA_TYPES[UA_TYPES_BYTESTRING]);
+  }
+
+  static UA_StatusCode fileWriteCallback(UA_Server* /*server*/, const UA_NodeId* /*session_id*/, void* /*session_context*/, const UA_NodeId* /*method_id*/,
+      void* method_context, const UA_NodeId* /*object_id*/, void* object_context, size_t /*input_size*/, const UA_Variant* input, size_t /*output_size*/,
+      UA_Variant* /*output*/) {
+    auto* self = static_cast<OpcUaTestServer*>(method_context);
+    auto* file = static_cast<TestFile*>(object_context);
+    const auto handle = *static_cast<const UA_UInt32*>(input[0].data);
+    const auto* data = static_cast<const UA_ByteString*>(input[1].data);
+    std::lock_guard<std::mutex> lock(self->files_mutex_);
+    if (auto status = file->injectedFailure(FileMethod::Write); status != UA_STATUSCODE_GOOD) {
+      return status;
+    }
+    auto it = file->handles.find(handle);
+    if (it == file->handles.end() || !(it->second.mode & FILE_MODE_WRITE)) {
+      return UA_STATUSCODE_BADINVALIDSTATE;
+    }
+    file->max_chunk_size = std::max(file->max_chunk_size, data->length);
+    auto& position = it->second.position;
+    file->content.replace(position, data->length, reinterpret_cast<const char*>(data->data), data->length);
+    position += data->length;
+    return UA_STATUSCODE_GOOD;
+  }
+
+  static UA_StatusCode createFileCallback(UA_Server* /*server*/, const UA_NodeId* /*session_id*/, void* /*session_context*/, const UA_NodeId* /*method_id*/,
+      void* method_context, const UA_NodeId* object_id, void* /*object_context*/, size_t /*input_size*/, const UA_Variant* input, size_t /*output_size*/,
+      UA_Variant* output) {
+    auto* self = static_cast<OpcUaTestServer*>(method_context);
+    const auto* ua_file_name = static_cast<const UA_String*>(input[0].data);
+    const std::string file_name(reinterpret_cast<const char*>(ua_file_name->data), ua_file_name->length);
+    {
+      std::lock_guard<std::mutex> lock(self->files_mutex_);
+      if (self->files_.contains(file_name)) {
+        return UA_STATUSCODE_BADBROWSENAMEDUPLICATED;
+      }
+    }
+    const auto file_node_id = self->addFile(file_name, UA_NODEID_NUMERIC(self->ns_index_, 0), *object_id, "");
+    UA_UInt32 file_handle = 0;
+    auto status = UA_Variant_setScalarCopy(&output[0], &file_node_id.get(), &UA_TYPES[UA_TYPES_NODEID]);
+    if (status != UA_STATUSCODE_GOOD) {
+      return status;
+    }
+    return UA_Variant_setScalarCopy(&output[1], &file_handle, &UA_TYPES[UA_TYPES_UINT32]);
+  }
+
   void raiseEvent(const UA_NodeId& source_node, const std::string& message, UA_UInt16 severity, UA_UInt32 event_type, const UA_KeyValueMap* fields) {
     UA_LocalizedText message_text = UA_LOCALIZEDTEXT(const_cast<char*>("en-US"), const_cast<char*>(message.c_str()));
     auto status = UA_Server_createEvent(server_, source_node, UA_NODEID_NUMERIC(0, event_type), severity, message_text, fields, nullptr, nullptr);
@@ -577,6 +828,9 @@ class OpcUaTestServer {
   std::mutex history_mutex_;
   std::unordered_map<std::string, std::vector<HistoryModificationRecord>> history_records_;
   size_t history_page_size_ = 0;
+  std::mutex files_mutex_;
+  std::map<std::string, TestFile> files_;  // node based container, the addresses are used as node contexts
+  UA_UInt32 next_file_handle_ = 1;
 };
 
 }  // namespace org::apache::nifi::minifi::test
