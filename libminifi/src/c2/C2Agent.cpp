@@ -52,10 +52,27 @@ using namespace std::literals::chrono_literals;
 
 namespace org::apache::nifi::minifi::c2 {
 
+namespace {
+std::optional<std::chrono::milliseconds> parseTimeoutPeriod(const std::shared_ptr<Configure>& configuration, const std::string& config_param,
+    const std::shared_ptr<core::logging::Logger>& logger) {
+  return configuration->get(config_param) |
+      utils::andThen([configuration, config_param, logger](const auto& timeout_str) -> std::optional<std::chrono::milliseconds> {
+        auto duration = parsing::parseDuration<std::chrono::milliseconds>(timeout_str) | utils::toOptional();
+        if (!duration) {
+          logger->log_error("Failed to parse C2 configuration parameter '{}': '{}'", config_param, timeout_str);
+        }
+        if (duration && *duration <= 0ms) {
+          return std::nullopt;
+        }
+        return duration;
+      });
+}
+}  // namespace
+
 C2Agent::C2Agent(std::shared_ptr<Configure> configuration,
                  std::weak_ptr<state::response::NodeReporter> node_reporter,
                  std::shared_ptr<utils::file::FileSystem> filesystem,
-                 std::function<void()> request_restart,
+                 minifi::RequestShutdownCallback request_shutdown,
                  utils::file::AssetManager* asset_manager)
     : heart_beat_period_(3s),
       max_c2_responses(5),
@@ -63,9 +80,12 @@ C2Agent::C2Agent(std::shared_ptr<Configure> configuration,
       node_reporter_(std::move(node_reporter)),
       filesystem_(std::move(filesystem)),
       thread_pool_(2, "C2 threadpool"),
-      request_restart_(std::move(request_restart)),
+      request_shutdown_(std::move(request_shutdown)),
       last_run_(std::chrono::steady_clock::now()),
       asset_manager_(asset_manager) {
+  c2_connection_timeout_ = parseTimeoutPeriod(configuration_, std::string{Configuration::nifi_c2_connection_timeout}, logger_);
+  c2_connection_timeout_check_period_ =
+      parseTimeoutPeriod(configuration_, std::string{Configuration::nifi_c2_connection_timeout_check_period}, logger_).value_or(60s);
   if (!configuration_->getAgentClass()) {
     logger_->log_info("Agent class is not predefined");
   }
@@ -109,6 +129,9 @@ void C2Agent::start() {
   if (controller_running_) {
     return;
   }
+  if (c2_connection_timeout_) {
+    connection_watchdog_.emplace(*c2_connection_timeout_, c2_connection_timeout_check_period_, request_shutdown_);
+  }
   task_ids_.clear();
   for (const auto& function : functions_) {
     utils::Identifier uuid = utils::IdGenerator::getIdGenerator()->generate();
@@ -130,6 +153,7 @@ void C2Agent::stop() {
     thread_pool_.stopTasks(id.to_string());
   }
   thread_pool_.shutdown();
+  connection_watchdog_.reset();
   logger_->log_info("C2 agent stopped");
 }
 
@@ -233,6 +257,10 @@ void C2Agent::performHeartBeat() {
     payload.addPayload(std::move(child_metric_payload));
   }
   C2Payload response = protocol_->consumePayload(payload);
+
+  if (connection_watchdog_ && response.getStatus().getState() != state::UpdateState::READ_ERROR) {
+    connection_watchdog_->heartBeatHappened();
+  }
 
   enqueue_c2_server_response(std::move(response));
 
@@ -944,7 +972,7 @@ utils::TaskRescheduleInfo C2Agent::produce() {
 
     if (restart_needed_ && requests.empty()) {
       configuration_->commitChanges();
-      request_restart_();
+      request_shutdown_(minifi::ShutdownType::RESTART, std::nullopt);
       return utils::TaskRescheduleInfo::Done();
     }
 
