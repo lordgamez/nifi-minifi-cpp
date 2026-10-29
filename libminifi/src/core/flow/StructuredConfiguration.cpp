@@ -48,6 +48,7 @@ std::unique_ptr<core::ProcessGroup> StructuredConfiguration::getRoot() {
   }
   auto process_group = getRootFromPayload(configuration.value());
   gsl_Expects(process_group);
+  verifyRelationshipTerminations(process_group.get());
   persist(*process_group);
   return process_group;
 }
@@ -1143,6 +1144,44 @@ void StructuredConfiguration::addNewId(const std::string& uuid) {
 std::string StructuredConfiguration::serialize(const core::ProcessGroup& process_group) {
   gsl_Expects(flow_serializer_);
   return flow_serializer_->serialize(process_group, schema_, sensitive_values_encryptor_, {}, parameter_contexts_);
+}
+
+void StructuredConfiguration::verifyRelationshipTerminations(ProcessGroup* process_group) {
+  std::map<std::string, Connectable*> connections;
+  process_group->getConnections(connections);
+  std::vector<Processor*> processors;
+  process_group->getAllProcessors(processors);
+
+  for (auto processor : processors) {
+    for (const auto& relationship : processor->getSupportedRelationships()) {
+      bool terminated = false;
+      if (processor->isAutoTerminated(relationship)) {
+        terminated = true;
+      } else {
+        for (const auto& connectable : connections) {
+          auto connection = dynamic_cast<Connection*>(connectable.second);
+          if (!connection) {
+            continue;
+          }
+          auto conn_relationships = connection->getRelationships();
+          auto source_processor = dynamic_cast<Processor*>(connection->getSource());
+          if (!source_processor) {
+            continue;
+          }
+          for (const auto& conn_relationship : conn_relationships) {
+            if (source_processor == processor && conn_relationship == relationship) {
+              terminated = true;
+              break;
+            }
+          }
+        }
+      }
+
+      if (!terminated) {
+        throw Exception(ExceptionType::GENERAL_EXCEPTION, "Relationship '" + relationship.getName() + "' of processor '" + processor->getName() + "' is not terminated by any connection");
+      }
+    }
+  }
 }
 
 }  // namespace org::apache::nifi::minifi::core::flow

@@ -242,6 +242,7 @@ class StructuredConfiguration : public FlowConfiguration {
   void parseParameterContextsNode(const Node& parameter_contexts_node);
   void parseParameterContextInheritance(const Node& parameter_contexts_node);
   void verifyNoInheritanceCycles() const;
+  void verifyRelationshipTerminations(ProcessGroup* process_group);
 };
 
 }  // namespace org::apache::nifi::minifi::core::flow
