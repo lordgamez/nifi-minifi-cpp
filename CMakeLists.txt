@@ -832,8 +832,9 @@ endif()
 
 include(BuildDocs)
 
+include(CppLint)
 add_custom_target(linter COMMAND
-        python3 ${CMAKE_SOURCE_DIR}/thirdparty/google-styleguide/run_linter.py -q -i ${CMAKE_SOURCE_DIR}/controller/ ${CMAKE_SOURCE_DIR}/core-framework/ ${CMAKE_SOURCE_DIR}/encrypt-config/ ${CMAKE_SOURCE_DIR}/extension-framework/ ${CMAKE_SOURCE_DIR}/extensions/ ${CMAKE_SOURCE_DIR}/libminifi/ ${CMAKE_SOURCE_DIR}/minifi-api/ ${CMAKE_SOURCE_DIR}/minifi_main/)
+        python3 ${CPPLINT_DIR}/run_linter.py -q -i ${CMAKE_SOURCE_DIR}/controller/ ${CMAKE_SOURCE_DIR}/core-framework/ ${CMAKE_SOURCE_DIR}/encrypt-config/ ${CMAKE_SOURCE_DIR}/extension-framework/ ${CMAKE_SOURCE_DIR}/extensions/ ${CMAKE_SOURCE_DIR}/libminifi/ ${CMAKE_SOURCE_DIR}/minifi-api/ ${CMAKE_SOURCE_DIR}/minifi_main/)
 set_target_properties(linter PROPERTIES EXCLUDE_FROM_DEFAULT_BUILD TRUE)
 
 if(NOT WIN32)
