@@ -199,6 +199,7 @@ add_minifi_multi_option(MINIFI_IODBC_SOURCE "Retrieves iODBC from provided sourc
 add_minifi_multi_option(MINIFI_SOCI_SOURCE "Retrieves SOCI from provided source" "BUILD;CONAN" "${MINIFI_DEFAULT_DEPENDENCY_SOURCE}")
 add_minifi_multi_option(MINIFI_LMDB_SOURCE "Retrieves LMDB from provided source" "BUILD;CONAN" "${MINIFI_DEFAULT_DEPENDENCY_SOURCE}")
 add_minifi_multi_option(MINIFI_RAPIDJSON_SOURCE "Retrieves RapidJSON from provided source" "BUILD;CONAN" "${MINIFI_DEFAULT_DEPENDENCY_SOURCE}")
+add_minifi_multi_option(MINIFI_CONCURRENTQUEUE_SOURCE "Retrieves concurrentqueue from provided source" "BUILD;CONAN" "${MINIFI_DEFAULT_DEPENDENCY_SOURCE}")
 
 # Docker options
 
