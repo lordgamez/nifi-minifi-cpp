@@ -34,7 +34,6 @@
 #endif
 
 #include <fcntl.h>
-#include <semaphore.h>
 #include <sodium.h>
 #include <cstdio>
 #include <csignal>
@@ -78,16 +77,6 @@ namespace utils = minifi::utils;
 
 static std::atomic_flag flow_controller_running;
 static std::atomic_flag process_running;
-
-/**
- * Removed the stop command from the signal handler so that we could trigger
- * unload after we exit the semaphore controlled critical section in main.
- *
- * Semaphores are a portable choice when using signal handlers. Threads,
- * mutexes, and condition variables are not guaranteed to work within
- * a signal handler. Consequently, we will use the semaphore to avoid thread
- * safety issues.
- */
 
 #ifdef WIN32
 BOOL WINAPI consoleSignalHandler(DWORD signal) {

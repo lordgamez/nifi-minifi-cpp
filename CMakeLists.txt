@@ -261,11 +261,6 @@ if (ENABLE_BZIP2 AND (ENABLE_LIBARCHIVE OR (ENABLE_ROCKSDB AND NOT WIN32)))
     list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/bzip2/dummy")
 endif()
 
-# Simple-Windows-Posix-Semaphore
-if (WIN32)
-     add_subdirectory("thirdparty/Simple-Windows-Posix-Semaphore")
-endif()
-
 # ossp-uuid
 if(NOT WIN32)
     include(GetOSSPUUID)
