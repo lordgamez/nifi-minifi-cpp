@@ -198,6 +198,7 @@ add_minifi_multi_option(MINIFI_AWS_SDK_CPP_SOURCE "Retrieves AWS SDK for C++ fro
 add_minifi_multi_option(MINIFI_IODBC_SOURCE "Retrieves iODBC from provided source" "BUILD;CONAN" "${MINIFI_DEFAULT_DEPENDENCY_SOURCE}")
 add_minifi_multi_option(MINIFI_SOCI_SOURCE "Retrieves SOCI from provided source" "BUILD;CONAN" "${MINIFI_DEFAULT_DEPENDENCY_SOURCE}")
 add_minifi_multi_option(MINIFI_LMDB_SOURCE "Retrieves LMDB from provided source" "BUILD;CONAN" "${MINIFI_DEFAULT_DEPENDENCY_SOURCE}")
+add_minifi_multi_option(MINIFI_RAPIDJSON_SOURCE "Retrieves RapidJSON from provided source" "BUILD;CONAN" "${MINIFI_DEFAULT_DEPENDENCY_SOURCE}")
 
 # Docker options
 

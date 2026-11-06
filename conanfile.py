@@ -42,6 +42,7 @@ shared_requires = (
     "range-v3/0.12.0",
     "magic_enum/0.9.8@minifi/develop",
     "date/3.0.4",
+    "rapidjson/cci.20250205"
 )
 
 shared_sources = (
