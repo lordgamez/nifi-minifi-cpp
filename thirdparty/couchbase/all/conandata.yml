@@ -28,3 +28,6 @@ patches:
     - patch_file: "patches/remove-thirdparty.patch"
       patch_description: "Remove third-party dependencies from the source tree"
       patch_type: "portability"
+    - patch_file: "patches/fix_tm_format.patch"
+      patch_description: "Fix tm formatting issue"
+      patch_type: "portability"
