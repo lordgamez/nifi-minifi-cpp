@@ -38,13 +38,11 @@ endif()
 set(PATCH_FILE_1 "${CMAKE_SOURCE_DIR}/thirdparty/couchbase/all/patches/remove-thirdparty.patch")
 set(PATCH_FILE_2 "${CMAKE_SOURCE_DIR}/thirdparty/couchbase/all/patches/c++23_fixes.patch")
 set(PATCH_FILE_3 "${CMAKE_SOURCE_DIR}/thirdparty/couchbase/all/patches/use_fmt_instead_of_spdlog_fmt.patch")
-set(PATCH_FILE_4 "${CMAKE_SOURCE_DIR}/thirdparty/couchbase/all/patches/fix_tm_format.patch")
 
 set(PC ${Bash_EXECUTABLE}  -c "set -x &&\
             (\\\"${Patch_EXECUTABLE}\\\" -p1 -R -s -f --dry-run -i \\\"${PATCH_FILE_1}\\\" || \\\"${Patch_EXECUTABLE}\\\" -p1 -N -i \\\"${PATCH_FILE_1}\\\") &&\
             (\\\"${Patch_EXECUTABLE}\\\" -p1 -R -s -f --dry-run -i \\\"${PATCH_FILE_2}\\\" || \\\"${Patch_EXECUTABLE}\\\" -p1 -N -i \\\"${PATCH_FILE_2}\\\") &&\
-            (\\\"${Patch_EXECUTABLE}\\\" -p1 -R -s -f --dry-run -i \\\"${PATCH_FILE_3}\\\" || \\\"${Patch_EXECUTABLE}\\\" -p1 -N -i \\\"${PATCH_FILE_3}\\\") &&\
-            (\\\"${Patch_EXECUTABLE}\\\" -p1 -R -s -f --dry-run -i \\\"${PATCH_FILE_4}\\\" || \\\"${Patch_EXECUTABLE}\\\" -p1 -N -i \\\"${PATCH_FILE_4}\\\")")
+            (\\\"${Patch_EXECUTABLE}\\\" -p1 -R -s -f --dry-run -i \\\"${PATCH_FILE_3}\\\" || \\\"${Patch_EXECUTABLE}\\\" -p1 -N -i \\\"${PATCH_FILE_3}\\\")")
 
 FetchContent_Declare(couchbase-cxx-client
     URL      https://github.com/couchbase/couchbase-cxx-client/archive/refs/tags/1.3.1.tar.gz
