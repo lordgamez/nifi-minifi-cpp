@@ -161,7 +161,7 @@ index 6d7eb7ff..a275ac8b 100644
  #include <tl/expected.hpp>
  
 diff --git a/core/design_document_namespace_fmt.hxx b/core/design_document_namespace_fmt.hxx
-index 5d83dc2c..a55db36f 100644
+index 5d83dc2c..43bbb49b 100644
 --- a/core/design_document_namespace_fmt.hxx
 +++ b/core/design_document_namespace_fmt.hxx
 @@ -19,7 +19,7 @@
@@ -173,8 +173,16 @@ index 5d83dc2c..a55db36f 100644
  
  template<>
  struct fmt::formatter<couchbase::core::design_document_namespace> {
+@@ -42,6 +42,6 @@ struct fmt::formatter<couchbase::core::design_document_namespace> {
+         name = "production";
+         break;
+     }
+-    return format_to(ctx.out(), "{}", name);
++    return fmt::format_to(ctx.out(), "{}", name);
+   }
+ };
 diff --git a/core/diagnostics_fmt.hxx b/core/diagnostics_fmt.hxx
-index fabad446..e80e3a85 100644
+index fabad446..d1b8a7e6 100644
 --- a/core/diagnostics_fmt.hxx
 +++ b/core/diagnostics_fmt.hxx
 @@ -19,7 +19,7 @@
@@ -186,6 +194,32 @@ index fabad446..e80e3a85 100644
  
  template<>
  struct fmt::formatter<couchbase::core::diag::cluster_state> {
+@@ -46,7 +46,7 @@ struct fmt::formatter<couchbase::core::diag::cluster_state> {
+         name = "offline";
+         break;
+     }
+-    return format_to(ctx.out(), "{}", name);
++    return fmt::format_to(ctx.out(), "{}", name);
+   }
+ };
+ 
+@@ -79,7 +79,7 @@ struct fmt::formatter<couchbase::core::diag::endpoint_state> {
+         name = "disconnecting";
+         break;
+     }
+-    return format_to(ctx.out(), "{}", name);
++    return fmt::format_to(ctx.out(), "{}", name);
+   }
+ };
+ 
+@@ -108,6 +108,6 @@ struct fmt::formatter<couchbase::core::diag::ping_state> {
+         name = "error";
+         break;
+     }
+-    return format_to(ctx.out(), "{}", name);
++    return fmt::format_to(ctx.out(), "{}", name);
+   }
+ };
 diff --git a/core/document_id.cxx b/core/document_id.cxx
 index 05d8844c..6f20d74f 100644
 --- a/core/document_id.cxx
@@ -200,7 +234,7 @@ index 05d8844c..6f20d74f 100644
  #include <algorithm>
  #include <cstddef>
 diff --git a/core/document_id_fmt.hxx b/core/document_id_fmt.hxx
-index 394c5e6e..2c6cdd13 100644
+index 394c5e6e..effdd81b 100644
 --- a/core/document_id_fmt.hxx
 +++ b/core/document_id_fmt.hxx
 @@ -19,7 +19,7 @@
@@ -212,6 +246,14 @@ index 394c5e6e..2c6cdd13 100644
  
  template<>
  struct fmt::formatter<couchbase::core::document_id> {
+@@ -32,6 +32,6 @@ struct fmt::formatter<couchbase::core::document_id> {
+   template<typename FormatContext>
+   auto format(const couchbase::core::document_id& id, FormatContext& ctx) const
+   {
+-    return format_to(ctx.out(), "{}/{}/{}", id.bucket(), id.collection_path(), id.key());
++    return fmt::format_to(ctx.out(), "{}/{}/{}", id.bucket(), id.collection_path(), id.key());
+   }
+ };
 diff --git a/core/error_context/analytics_json.hxx b/core/error_context/analytics_json.hxx
 index b84f1b5c..7e776da1 100644
 --- a/core/error_context/analytics_json.hxx
@@ -265,7 +307,7 @@ index 5d57e99a..1f2f411c 100644
  
  #include "key_value_json.hxx"
 diff --git a/core/fmt/key_value_error_map_attribute.hxx b/core/fmt/key_value_error_map_attribute.hxx
-index 12f30301..534de945 100644
+index 12f30301..49575ea8 100644
 --- a/core/fmt/key_value_error_map_attribute.hxx
 +++ b/core/fmt/key_value_error_map_attribute.hxx
 @@ -19,7 +19,7 @@
@@ -277,8 +319,16 @@ index 12f30301..534de945 100644
  
  template<>
  struct fmt::formatter<couchbase::core::key_value_error_map_attribute> {
+@@ -95,6 +95,6 @@ struct fmt::formatter<couchbase::core::key_value_error_map_attribute> {
+         name = "no-retry";
+         break;
+     }
+-    return format_to(ctx.out(), "{}", name);
++    return fmt::format_to(ctx.out(), "{}", name);
+   }
+ };
 diff --git a/core/fmt/key_value_extended_error_info.hxx b/core/fmt/key_value_extended_error_info.hxx
-index cbac9168..60d5307e 100644
+index cbac9168..9931a61e 100644
 --- a/core/fmt/key_value_extended_error_info.hxx
 +++ b/core/fmt/key_value_extended_error_info.hxx
 @@ -19,7 +19,7 @@
@@ -290,8 +340,27 @@ index cbac9168..60d5307e 100644
  
  /**
   * Helper for fmtlib to format @ref couchbase::key_value_extended_error_info objects.
+@@ -39,14 +39,14 @@ struct fmt::formatter<couchbase::core::key_value_extended_error_info> {
+   auto format(const couchbase::core::key_value_extended_error_info& error, FormatContext& ctx) const
+   {
+     if (!error.reference().empty() && !error.context().empty()) {
+-      return format_to(ctx.out(), R"((ref: "{}", ctx: "{}"))", error.reference(), error.context());
++      return fmt::format_to(ctx.out(), R"((ref: "{}", ctx: "{}"))", error.reference(), error.context());
+     }
+     if (!error.reference().empty()) {
+-      return format_to(ctx.out(), R"((ref: "{}"))", error.reference());
++      return fmt::format_to(ctx.out(), R"((ref: "{}"))", error.reference());
+     }
+     if (!error.context().empty()) {
+-      return format_to(ctx.out(), R"((ctx: "{}"))", error.context());
++      return fmt::format_to(ctx.out(), R"((ctx: "{}"))", error.context());
+     }
+-    return format_to(ctx.out(), "");
++    return fmt::format_to(ctx.out(), "");
+   }
+ };
 diff --git a/core/fmt/key_value_status_code.hxx b/core/fmt/key_value_status_code.hxx
-index f0b0f61a..03828bba 100644
+index f0b0f61a..2264d323 100644
 --- a/core/fmt/key_value_status_code.hxx
 +++ b/core/fmt/key_value_status_code.hxx
 @@ -19,7 +19,7 @@
@@ -303,6 +372,14 @@ index f0b0f61a..03828bba 100644
  
  /**
   * Helper for fmtlib to format @ref couchbase::core::key_value_status_code objects.
+@@ -264,6 +264,6 @@ struct fmt::formatter<couchbase::core::key_value_status_code> {
+         name = "unknown (0xffff)";
+         break;
+     }
+-    return format_to(ctx.out(), "{}", name);
++    return fmt::format_to(ctx.out(), "{}", name);
+   }
+ };
 diff --git a/core/http_component.cxx b/core/http_component.cxx
 index 411d453b..6d6644e0 100644
 --- a/core/http_component.cxx
@@ -670,6 +747,24 @@ index afc56132..cbd271fe 100644
  
  #include <functional>
  #include <utility>
+diff --git a/core/io/mcbp_session.cxx b/core/io/mcbp_session.cxx
+index 92c0c37b..1972d7fa 100644
+--- a/core/io/mcbp_session.cxx
++++ b/core/io/mcbp_session.cxx
+@@ -134,11 +134,11 @@ struct fmt::formatter<mcbp_header_view<Container>> {
+   auto format(const mcbp_header_view<Container>& view, FormatContext& ctx) const
+   {
+     if (view.buf_.size() < sizeof(couchbase::core::io::binary_header)) {
+-      return format_to(ctx.out(), "{:n}", spdlog::to_hex(view.buf_));
++      return fmt::format_to(ctx.out(), "{:n}", spdlog::to_hex(view.buf_));
+     }
+ 
+     const auto* header = reinterpret_cast<const mcbp_header_layout*>(view.buf_.data());
+-    return format_to(ctx.out(),
++    return fmt::format_to(ctx.out(),
+                      "{{magic=0x{:x}, opcode=0x{:x}, fextlen={}, keylen={}, extlen={}, "
+                      "datatype={}, {}={}, bodylen={}, "
+                      "opaque={}, cas={}}}",
 diff --git a/core/key_value_config.cxx b/core/key_value_config.cxx
 index 3abb173c..71f4cc62 100644
 --- a/core/key_value_config.cxx
@@ -699,7 +794,7 @@ index d62069b4..960a43b8 100644
  
  #include <memory>
 diff --git a/core/management/rbac_fmt.hxx b/core/management/rbac_fmt.hxx
-index 7108c2ec..d3eaec1e 100644
+index 7108c2ec..ce4f588a 100644
 --- a/core/management/rbac_fmt.hxx
 +++ b/core/management/rbac_fmt.hxx
 @@ -19,7 +19,7 @@
@@ -711,6 +806,14 @@ index 7108c2ec..d3eaec1e 100644
  
  template<>
  struct fmt::formatter<couchbase::core::management::rbac::auth_domain> {
+@@ -44,6 +44,6 @@ struct fmt::formatter<couchbase::core::management::rbac::auth_domain> {
+         name = "external";
+         break;
+     }
+-    return format_to(ctx.out(), "{}", name);
++    return fmt::format_to(ctx.out(), "{}", name);
+   }
+ };
 diff --git a/core/mcbp/operation_queue.cxx b/core/mcbp/operation_queue.cxx
 index 1896f666..d00603df 100644
 --- a/core/mcbp/operation_queue.cxx
@@ -1377,7 +1480,7 @@ index e0a404fa..85c00eea 100644
  #include <tao/json.hpp>
  
 diff --git a/core/protocol/client_opcode_fmt.hxx b/core/protocol/client_opcode_fmt.hxx
-index f33db36b..22d57294 100644
+index f33db36b..d105b35f 100644
 --- a/core/protocol/client_opcode_fmt.hxx
 +++ b/core/protocol/client_opcode_fmt.hxx
 @@ -19,7 +19,7 @@
@@ -1389,6 +1492,23 @@ index f33db36b..22d57294 100644
  
  template<>
  struct fmt::formatter<couchbase::core::protocol::client_opcode> {
+@@ -254,7 +254,7 @@ struct fmt::formatter<couchbase::core::protocol::client_opcode> {
+         name = "range_scan_cancel (0xdc)";
+         break;
+     }
+-    return format_to(ctx.out(), "{}", name);
++    return fmt::format_to(ctx.out(), "{}", name);
+   }
+ };
+ 
+@@ -320,6 +320,6 @@ struct fmt::formatter<couchbase::core::protocol::subdoc_opcode> {
+         name = "remove_doc (0x04)";
+         break;
+     }
+-    return format_to(ctx.out(), "{}", name);
++    return fmt::format_to(ctx.out(), "{}", name);
+   }
+ };
 diff --git a/core/protocol/client_response.hxx b/core/protocol/client_response.hxx
 index 9a3f9aef..c8165830 100644
 --- a/core/protocol/client_response.hxx
@@ -1403,7 +1523,7 @@ index 9a3f9aef..c8165830 100644
  #include <cmath>
  #include <cstring>
 diff --git a/core/protocol/frame_info_id_fmt.hxx b/core/protocol/frame_info_id_fmt.hxx
-index b947ec71..58dbcf3a 100644
+index b947ec71..bf47cb2e 100644
 --- a/core/protocol/frame_info_id_fmt.hxx
 +++ b/core/protocol/frame_info_id_fmt.hxx
 @@ -19,7 +19,7 @@
@@ -1415,8 +1535,25 @@ index b947ec71..58dbcf3a 100644
  
  template<>
  struct fmt::formatter<couchbase::core::protocol::request_frame_info_id> {
+@@ -53,7 +53,7 @@ struct fmt::formatter<couchbase::core::protocol::request_frame_info_id> {
+         name = "preserve_ttl";
+         break;
+     }
+-    return format_to(ctx.out(), "{}", name);
++    return fmt::format_to(ctx.out(), "{}", name);
+   }
+ };
+ 
+@@ -74,6 +74,6 @@ struct fmt::formatter<couchbase::core::protocol::response_frame_info_id> {
+         name = "server_duration";
+         break;
+     }
+-    return format_to(ctx.out(), "{}", name);
++    return fmt::format_to(ctx.out(), "{}", name);
+   }
+ };
 diff --git a/core/protocol/hello_feature_fmt.hxx b/core/protocol/hello_feature_fmt.hxx
-index 5ffd9987..5f00575d 100644
+index 5ffd9987..05aa19fe 100644
 --- a/core/protocol/hello_feature_fmt.hxx
 +++ b/core/protocol/hello_feature_fmt.hxx
 @@ -19,7 +19,7 @@
@@ -1428,8 +1565,16 @@ index 5ffd9987..5f00575d 100644
  
  template<>
  struct fmt::formatter<couchbase::core::protocol::hello_feature> {
+@@ -116,6 +116,6 @@ struct fmt::formatter<couchbase::core::protocol::hello_feature> {
+         name = "subdoc_binary_xattr";
+         break;
+     }
+-    return format_to(ctx.out(), "{}", name);
++    return fmt::format_to(ctx.out(), "{}", name);
+   }
+ };
 diff --git a/core/protocol/magic_fmt.hxx b/core/protocol/magic_fmt.hxx
-index fa932943..55df5cda 100644
+index fa932943..1d1f92f1 100644
 --- a/core/protocol/magic_fmt.hxx
 +++ b/core/protocol/magic_fmt.hxx
 @@ -19,7 +19,7 @@
@@ -1441,8 +1586,16 @@ index fa932943..55df5cda 100644
  
  template<>
  struct fmt::formatter<couchbase::core::protocol::magic> {
+@@ -53,6 +53,6 @@ struct fmt::formatter<couchbase::core::protocol::magic> {
+         name = "server_response (0x83)";
+         break;
+     }
+-    return format_to(ctx.out(), "{}", name);
++    return fmt::format_to(ctx.out(), "{}", name);
+   }
+ };
 diff --git a/core/protocol/server_opcode_fmt.hxx b/core/protocol/server_opcode_fmt.hxx
-index 7ad704f5..2b4c7fed 100644
+index 7ad704f5..e3f960bf 100644
 --- a/core/protocol/server_opcode_fmt.hxx
 +++ b/core/protocol/server_opcode_fmt.hxx
 @@ -19,7 +19,7 @@
@@ -1454,6 +1607,14 @@ index 7ad704f5..2b4c7fed 100644
  
  template<>
  struct fmt::formatter<couchbase::core::protocol::server_opcode> {
+@@ -41,6 +41,6 @@ struct fmt::formatter<couchbase::core::protocol::server_opcode> {
+         name = "invalid (0xff)";
+         break;
+     }
+-    return format_to(ctx.out(), "{}", name);
++    return fmt::format_to(ctx.out(), "{}", name);
+   }
+ };
 diff --git a/core/query_context.hxx b/core/query_context.hxx
 index 788c5f1b..3d045cd4 100644
 --- a/core/query_context.hxx
@@ -1481,7 +1642,7 @@ index c1a08177..df8d7c8c 100644
  namespace couchbase::core
  {
 diff --git a/core/sasl/error_fmt.h b/core/sasl/error_fmt.h
-index 48bfd308..07e60421 100644
+index 48bfd308..7dec2859 100644
 --- a/core/sasl/error_fmt.h
 +++ b/core/sasl/error_fmt.h
 @@ -19,7 +19,7 @@
@@ -1493,6 +1654,14 @@ index 48bfd308..07e60421 100644
  
  template<>
  struct fmt::formatter<couchbase::core::sasl::error> {
+@@ -65,6 +65,6 @@ struct fmt::formatter<couchbase::core::sasl::error> {
+         name = "auth_provider_died";
+         break;
+     }
+-    return format_to(ctx.out(), "{}", name);
++    return fmt::format_to(ctx.out(), "{}", name);
+   }
+ };
 diff --git a/core/sasl/oauthbearer/oauthbearer.cc b/core/sasl/oauthbearer/oauthbearer.cc
 index 86c8aeb2..8a101f5e 100644
 --- a/core/sasl/oauthbearer/oauthbearer.cc
@@ -1522,7 +1691,7 @@ index 79d127b0..61c703cf 100644
  namespace couchbase::core
  {
 diff --git a/core/service_type_fmt.hxx b/core/service_type_fmt.hxx
-index c2329f23..f446efc3 100644
+index c2329f23..2a97120b 100644
 --- a/core/service_type_fmt.hxx
 +++ b/core/service_type_fmt.hxx
 @@ -19,7 +19,7 @@
@@ -1534,8 +1703,16 @@ index c2329f23..f446efc3 100644
  
  template<>
  struct fmt::formatter<couchbase::core::service_type> {
+@@ -56,6 +56,6 @@ struct fmt::formatter<couchbase::core::service_type> {
+         name = "eventing";
+         break;
+     }
+-    return format_to(ctx.out(), "{}", name);
++    return fmt::format_to(ctx.out(), "{}", name);
+   }
+ };
 diff --git a/core/topology/capabilities_fmt.hxx b/core/topology/capabilities_fmt.hxx
-index 33368a3f..2ba9984d 100644
+index 33368a3f..b966f8f3 100644
 --- a/core/topology/capabilities_fmt.hxx
 +++ b/core/topology/capabilities_fmt.hxx
 @@ -19,7 +19,7 @@
@@ -1547,8 +1724,25 @@ index 33368a3f..2ba9984d 100644
  
  template<>
  struct fmt::formatter<couchbase::core::bucket_capability> {
+@@ -101,7 +101,7 @@ struct fmt::formatter<couchbase::core::bucket_capability> {
+         name = "mobile_system_collection";
+         break;
+     }
+-    return format_to(ctx.out(), "{}", name);
++    return fmt::format_to(ctx.out(), "{}", name);
+   }
+ };
+ 
+@@ -143,6 +143,6 @@ struct fmt::formatter<couchbase::core::cluster_capability> {
+         name = "search_scoped_search_index";
+         break;
+     }
+-    return format_to(ctx.out(), "{}", name);
++    return fmt::format_to(ctx.out(), "{}", name);
+   }
+ };
 diff --git a/core/topology/collections_manifest_fmt.hxx b/core/topology/collections_manifest_fmt.hxx
-index f0b72808..f2372136 100644
+index f0b72808..8e2bb7b1 100644
 --- a/core/topology/collections_manifest_fmt.hxx
 +++ b/core/topology/collections_manifest_fmt.hxx
 @@ -21,7 +21,7 @@
@@ -1560,8 +1754,17 @@ index f0b72808..f2372136 100644
  
  #include <vector>
  
+@@ -45,7 +45,7 @@ struct fmt::formatter<couchbase::core::topology::collections_manifest> {
+       }
+     }
+ 
+-    return format_to(ctx.out(),
++    return fmt::format_to(ctx.out(),
+                      R"(#<manifest:{} uid={}, collections({})=[{}]>)",
+                      couchbase::core::uuid::to_string(manifest.id),
+                      manifest.uid,
 diff --git a/core/topology/configuration_fmt.hxx b/core/topology/configuration_fmt.hxx
-index b20bf830..f0947db8 100644
+index b20bf830..07d90971 100644
 --- a/core/topology/configuration_fmt.hxx
 +++ b/core/topology/configuration_fmt.hxx
 @@ -22,7 +22,7 @@
@@ -1573,6 +1776,24 @@ index b20bf830..f0947db8 100644
  
  template<>
  struct fmt::formatter<couchbase::core::topology::configuration::node> {
+@@ -131,7 +131,7 @@ struct fmt::formatter<couchbase::core::topology::configuration::node> {
+         alternate_addresses.emplace_back(network);
+       }
+     }
+-    return format_to(ctx.out(),
++    return fmt::format_to(ctx.out(),
+                      R"(#<node:{} hostname="{}", plain=({}), tls=({}), alt=[{}]>)",
+                      node.index,
+                      node.hostname,
+@@ -152,7 +152,7 @@ struct fmt::formatter<couchbase::core::topology::configuration> {
+   template<typename FormatContext>
+   auto format(const couchbase::core::topology::configuration& config, FormatContext& ctx) const
+   {
+-    return format_to(
++    return fmt::format_to(
+       ctx.out(),
+       R"(#<config:{} rev={}{}{}{}{}, nodes({})=[{}], bucket_caps=[{}], cluster_caps=[{}]>)",
+       couchbase::core::uuid::to_string(config.id),
 diff --git a/core/transactions/async_attempt_context.cxx b/core/transactions/async_attempt_context.cxx
 index 4eb5d487..bb18465f 100644
 --- a/core/transactions/async_attempt_context.cxx
@@ -1600,7 +1821,7 @@ index b762096b..16becb0a 100644
  namespace couchbase::transactions
  {
 diff --git a/core/transactions/exceptions_fmt.hxx b/core/transactions/exceptions_fmt.hxx
-index 928b3602..33aebb46 100644
+index 928b3602..8dbdf7c1 100644
 --- a/core/transactions/exceptions_fmt.hxx
 +++ b/core/transactions/exceptions_fmt.hxx
 @@ -18,7 +18,7 @@
@@ -1612,8 +1833,16 @@ index 928b3602..33aebb46 100644
  
  template<>
  struct fmt::formatter<couchbase::core::transactions::external_exception> {
+@@ -103,6 +103,6 @@ struct fmt::formatter<couchbase::core::transactions::external_exception> {
+         name = "DOCUMENT_UNRETRIEVABLE_EXCEPTION";
+         break;
+     }
+-    return format_to(ctx.out(), "{}", name);
++    return fmt::format_to(ctx.out(), "{}", name);
+   }
+ };
 diff --git a/core/transactions/internal/atr_cleanup_entry.hxx b/core/transactions/internal/atr_cleanup_entry.hxx
-index b7178fa2..470f5b7b 100644
+index b7178fa2..bec0d559 100644
 --- a/core/transactions/internal/atr_cleanup_entry.hxx
 +++ b/core/transactions/internal/atr_cleanup_entry.hxx
 @@ -21,7 +21,7 @@
@@ -1625,8 +1854,17 @@ index b7178fa2..470f5b7b 100644
  
  #include <chrono>
  #include <memory>
+@@ -163,7 +163,7 @@ public:
+   template<typename FormatContext>
+   auto format(const couchbase::core::transactions::atr_cleanup_entry& e, FormatContext& ctx) const
+   {
+-    return format_to(
++    return fmt::format_to(
+       ctx.out(),
+       "atr_cleanup_entry{{ atr_id: {}, attempt_id: {}, check_if_expired: {}, min_start_time: {} }}",
+       e.atr_id(),
 diff --git a/core/transactions/internal/client_record.hxx b/core/transactions/internal/client_record.hxx
-index 3571b624..8eba4a34 100644
+index 3571b624..f9cf010b 100644
 --- a/core/transactions/internal/client_record.hxx
 +++ b/core/transactions/internal/client_record.hxx
 @@ -15,7 +15,7 @@
@@ -1638,8 +1876,17 @@ index 3571b624..8eba4a34 100644
  
  #include <string>
  #include <vector>
+@@ -72,7 +72,7 @@ public:
+   auto format(const couchbase::core::transactions::client_record_details& r,
+               FormatContext& ctx) const
+   {
+-    return format_to(
++    return fmt::format_to(
+       ctx.out(),
+       "client_record:{{ client_uuid:: {}, active_clients: {}, index_of_this_client: {}, "
+       "existing_clients: {}, "
 diff --git a/core/transactions/internal/doc_record_fmt.hxx b/core/transactions/internal/doc_record_fmt.hxx
-index d377b9f3..7257ef73 100644
+index d377b9f3..0fffbf48 100644
 --- a/core/transactions/internal/doc_record_fmt.hxx
 +++ b/core/transactions/internal/doc_record_fmt.hxx
 @@ -17,7 +17,7 @@
@@ -1651,8 +1898,17 @@ index d377b9f3..7257ef73 100644
  
  template<>
  struct fmt::formatter<couchbase::core::transactions::doc_record> {
+@@ -32,7 +32,7 @@ public:
+   constexpr auto format(const couchbase::core::transactions::doc_record& r,
+                         FormatContext& ctx) const
+   {
+-    return format_to(ctx.out(),
++    return fmt::format_to(ctx.out(),
+                      "doc_record:{{ bucket: {}, scope: {}, collection: {}, key: {} }}",
+                      r.document_id().bucket(),
+                      r.document_id().scope(),
 diff --git a/core/transactions/internal/exceptions_internal_fmt.hxx b/core/transactions/internal/exceptions_internal_fmt.hxx
-index 1620e16d..8cb6c7a6 100644
+index 1620e16d..3ac39454 100644
 --- a/core/transactions/internal/exceptions_internal_fmt.hxx
 +++ b/core/transactions/internal/exceptions_internal_fmt.hxx
 @@ -16,7 +16,7 @@
@@ -1664,6 +1920,23 @@ index 1620e16d..8cb6c7a6 100644
  
  template<>
  struct fmt::formatter<couchbase::core::transactions::error_class> {
+@@ -68,7 +68,7 @@ struct fmt::formatter<couchbase::core::transactions::error_class> {
+         name = "FAIL_EXPIRY";
+         break;
+     }
+-    return format_to(ctx.out(), "{}", name);
++    return fmt::format_to(ctx.out(), "{}", name);
+   }
+ };
+ 
+@@ -98,6 +98,6 @@ struct fmt::formatter<couchbase::core::transactions::final_error> {
+         name = "AMBIGUOUS";
+         break;
+     }
+-    return format_to(ctx.out(), "{}", name);
++    return fmt::format_to(ctx.out(), "{}", name);
+   }
+ };
 diff --git a/core/transactions/internal/logging.hxx b/core/transactions/internal/logging.hxx
 index 8819b188..c827142b 100644
 --- a/core/transactions/internal/logging.hxx
@@ -1678,7 +1951,7 @@ index 8819b188..c827142b 100644
  namespace couchbase::core::transactions
  {
 diff --git a/core/transactions/result_fmt.hxx b/core/transactions/result_fmt.hxx
-index db5a7b77..2cde5790 100644
+index db5a7b77..74b90288 100644
 --- a/core/transactions/result_fmt.hxx
 +++ b/core/transactions/result_fmt.hxx
 @@ -18,7 +18,7 @@
@@ -1690,8 +1963,30 @@ index db5a7b77..2cde5790 100644
  
  template<>
  struct fmt::formatter<couchbase::core::transactions::result> {
+@@ -32,7 +32,7 @@ public:
+   template<typename FormatContext>
+   constexpr auto format(const couchbase::core::transactions::result& r, FormatContext& ctx) const
+   {
+-    return format_to(ctx.out(),
++    return fmt::format_to(ctx.out(),
+                      "result:{{ rc: {}, strerror: {}, cas: {}, is_deleted: {}, datatype: {}, "
+                      "flags: {}, raw_value: {:.{}} }}",
+                      r.rc,
+diff --git a/core/transactions/transaction_get_result.hxx b/core/transactions/transaction_get_result.hxx
+index 53aabe60..0b21f76d 100644
+--- a/core/transactions/transaction_get_result.hxx
++++ b/core/transactions/transaction_get_result.hxx
+@@ -241,7 +241,7 @@ public:
+   constexpr auto format(const couchbase::core::transactions::transaction_get_result& r,
+                         FormatContext& ctx) const
+   {
+-    return format_to(ctx.out(),
++    return fmt::format_to(ctx.out(),
+                      "transaction_get_result:{{ id: {}, cas: {}, links: }}",
+                      r.id(),
+                      r.cas(),
 diff --git a/core/transactions/transaction_links.hxx b/core/transactions/transaction_links.hxx
-index d34258c8..96328ad8 100644
+index d34258c8..1b4c7907 100644
 --- a/core/transactions/transaction_links.hxx
 +++ b/core/transactions/transaction_links.hxx
 @@ -18,7 +18,7 @@
@@ -1703,6 +1998,15 @@ index d34258c8..96328ad8 100644
  #include <tao/json/value.hpp>
  
  #include <optional>
+@@ -222,7 +222,7 @@ public:
+   constexpr auto format(const couchbase::core::transactions::transaction_links& r,
+                         FormatContext& ctx) const
+   {
+-    return format_to(ctx.out(),
++    return fmt::format_to(ctx.out(),
+                      "transaction_links:{{ atr: {}.{}.{}.{}, txn_id: {}, attempt_id: {}, "
+                      "operation_id: {}, crc32_of_staging: {} }}",
+                      r.atr_bucket_name().value_or("none"),
 diff --git a/core/utils/join_strings.hxx b/core/utils/join_strings.hxx
 index 1c75c55c..30982769 100644
 --- a/core/utils/join_strings.hxx
@@ -1755,6 +2059,211 @@ index 4e48af21..9a9f0b52 100644
  
  #include <algorithm>
  #include <array>
+diff --git a/couchbase/fmt/analytics_scan_consistency.hxx b/couchbase/fmt/analytics_scan_consistency.hxx
+index 456b74f8..f8112dcc 100644
+--- a/couchbase/fmt/analytics_scan_consistency.hxx
++++ b/couchbase/fmt/analytics_scan_consistency.hxx
+@@ -45,6 +45,6 @@ struct fmt::formatter<couchbase::analytics_scan_consistency> {
+         name = "request_plus";
+         break;
+     }
+-    return format_to(ctx.out(), "{}", name);
++    return fmt::format_to(ctx.out(), "{}", name);
+   }
+ };
+diff --git a/couchbase/fmt/analytics_status.hxx b/couchbase/fmt/analytics_status.hxx
+index bf143b1b..2b7a2d33 100644
+--- a/couchbase/fmt/analytics_status.hxx
++++ b/couchbase/fmt/analytics_status.hxx
+@@ -69,6 +69,6 @@ struct fmt::formatter<couchbase::analytics_status> {
+         name = "unknown";
+         break;
+     }
+-    return format_to(ctx.out(), "{}", name);
++    return fmt::format_to(ctx.out(), "{}", name);
+   }
+ };
+diff --git a/couchbase/fmt/cas.hxx b/couchbase/fmt/cas.hxx
+index 8feea98e..684d5fe2 100644
+--- a/couchbase/fmt/cas.hxx
++++ b/couchbase/fmt/cas.hxx
+@@ -42,6 +42,6 @@ struct fmt::formatter<couchbase::cas> {
+   template<typename FormatContext>
+   auto format(const couchbase::cas& cas, FormatContext& ctx) const
+   {
+-    return format_to(ctx.out(), "{:016x}", cas.value());
++    return fmt::format_to(ctx.out(), "{:016x}", cas.value());
+   }
+ };
+diff --git a/couchbase/fmt/durability_level.hxx b/couchbase/fmt/durability_level.hxx
+index 3d4661ea..745d17e3 100644
+--- a/couchbase/fmt/durability_level.hxx
++++ b/couchbase/fmt/durability_level.hxx
+@@ -51,6 +51,6 @@ struct fmt::formatter<couchbase::durability_level> {
+         name = "persist_to_majority";
+         break;
+     }
+-    return format_to(ctx.out(), "{}", name);
++    return fmt::format_to(ctx.out(), "{}", name);
+   }
+ };
+diff --git a/couchbase/fmt/error.hxx b/couchbase/fmt/error.hxx
+index a4fb85bf..026d54ba 100644
+--- a/couchbase/fmt/error.hxx
++++ b/couchbase/fmt/error.hxx
+@@ -38,14 +38,14 @@ struct fmt::formatter<couchbase::error> {
+   {
+     if (err.message().empty()) {
+       if (err.ctx()) {
+-        return format_to(ctx.out(), "{} | {}", err.ec().message(), err.ctx().to_json());
++        return fmt::format_to(ctx.out(), "{} | {}", err.ec().message(), err.ctx().to_json());
+       }
+-      return format_to(ctx.out(), "{}", err.ec().message());
++      return fmt::format_to(ctx.out(), "{}", err.ec().message());
+     }
+     if (err.ctx()) {
+-      return format_to(
++      return fmt::format_to(
+         ctx.out(), "{} - {} | {}", err.ec().message(), err.message(), err.ctx().to_json());
+     }
+-    return format_to(ctx.out(), "{} - {}", err.ec().message(), err.message());
++    return fmt::format_to(ctx.out(), "{} - {}", err.ec().message(), err.message());
+   }
+ };
+diff --git a/couchbase/fmt/error_context.hxx b/couchbase/fmt/error_context.hxx
+index 0548cacc..bc34f3fa 100644
+--- a/couchbase/fmt/error_context.hxx
++++ b/couchbase/fmt/error_context.hxx
+@@ -36,6 +36,6 @@ struct fmt::formatter<couchbase::error_context> {
+   template<typename FormatContext>
+   auto format(const couchbase::error_context& err_ctx, FormatContext& ctx) const
+   {
+-    return format_to(ctx.out(), err_ctx.to_json());
++    return fmt::format_to(ctx.out(), err_ctx.to_json());
+   }
+ };
+diff --git a/couchbase/fmt/mutation_token.hxx b/couchbase/fmt/mutation_token.hxx
+index 15db5fdf..131b5424 100644
+--- a/couchbase/fmt/mutation_token.hxx
++++ b/couchbase/fmt/mutation_token.hxx
+@@ -36,7 +36,7 @@ struct fmt::formatter<couchbase::mutation_token> {
+   template<typename FormatContext>
+   auto format(const couchbase::mutation_token& token, FormatContext& ctx) const
+   {
+-    return format_to(ctx.out(),
++    return fmt::format_to(ctx.out(),
+                      "{}:{}:{}:{}",
+                      token.bucket_name(),
+                      token.partition_id(),
+diff --git a/couchbase/fmt/persist_to.hxx b/couchbase/fmt/persist_to.hxx
+index 785bf5f6..6dc96284 100644
+--- a/couchbase/fmt/persist_to.hxx
++++ b/couchbase/fmt/persist_to.hxx
+@@ -57,6 +57,6 @@ struct fmt::formatter<couchbase::persist_to> {
+         name = "four";
+         break;
+     }
+-    return format_to(ctx.out(), "{}", name);
++    return fmt::format_to(ctx.out(), "{}", name);
+   }
+ };
+diff --git a/couchbase/fmt/query_profile.hxx b/couchbase/fmt/query_profile.hxx
+index abf9fd08..83a849a8 100644
+--- a/couchbase/fmt/query_profile.hxx
++++ b/couchbase/fmt/query_profile.hxx
+@@ -48,6 +48,6 @@ struct fmt::formatter<couchbase::query_profile> {
+         name = "timings";
+         break;
+     }
+-    return format_to(ctx.out(), "{}", name);
++    return fmt::format_to(ctx.out(), "{}", name);
+   }
+ };
+diff --git a/couchbase/fmt/query_scan_consistency.hxx b/couchbase/fmt/query_scan_consistency.hxx
+index 2bfc8a49..f680d5ee 100644
+--- a/couchbase/fmt/query_scan_consistency.hxx
++++ b/couchbase/fmt/query_scan_consistency.hxx
+@@ -45,6 +45,6 @@ struct fmt::formatter<couchbase::query_scan_consistency> {
+         name = "request_plus";
+         break;
+     }
+-    return format_to(ctx.out(), "{}", name);
++    return fmt::format_to(ctx.out(), "{}", name);
+   }
+ };
+diff --git a/couchbase/fmt/query_status.hxx b/couchbase/fmt/query_status.hxx
+index 776bddf7..67b7131a 100644
+--- a/couchbase/fmt/query_status.hxx
++++ b/couchbase/fmt/query_status.hxx
+@@ -69,6 +69,6 @@ struct fmt::formatter<couchbase::query_status> {
+         name = "unknown";
+         break;
+     }
+-    return format_to(ctx.out(), "{}", name);
++    return fmt::format_to(ctx.out(), "{}", name);
+   }
+ };
+diff --git a/couchbase/fmt/replicate_to.hxx b/couchbase/fmt/replicate_to.hxx
+index c3f02e7a..61d434b4 100644
+--- a/couchbase/fmt/replicate_to.hxx
++++ b/couchbase/fmt/replicate_to.hxx
+@@ -51,6 +51,6 @@ struct fmt::formatter<couchbase::replicate_to> {
+         name = "three";
+         break;
+     }
+-    return format_to(ctx.out(), "{}", name);
++    return fmt::format_to(ctx.out(), "{}", name);
+   }
+ };
+diff --git a/couchbase/fmt/retry_reason.hxx b/couchbase/fmt/retry_reason.hxx
+index 069c313e..776cda0c 100644
+--- a/couchbase/fmt/retry_reason.hxx
++++ b/couchbase/fmt/retry_reason.hxx
+@@ -108,6 +108,6 @@ struct fmt::formatter<couchbase::retry_reason> {
+         name = "views_no_active_partition";
+         break;
+     }
+-    return format_to(ctx.out(), "{}", name);
++    return fmt::format_to(ctx.out(), "{}", name);
+   }
+ };
+diff --git a/couchbase/fmt/search_scan_consistency.hxx b/couchbase/fmt/search_scan_consistency.hxx
+index e6c101a6..2d037cb5 100644
+--- a/couchbase/fmt/search_scan_consistency.hxx
++++ b/couchbase/fmt/search_scan_consistency.hxx
+@@ -42,6 +42,6 @@ struct fmt::formatter<couchbase::search_scan_consistency> {
+         name = "not_bounded";
+         break;
+     }
+-    return format_to(ctx.out(), "{}", name);
++    return fmt::format_to(ctx.out(), "{}", name);
+   }
+ };
+diff --git a/couchbase/fmt/tls_verify_mode.hxx b/couchbase/fmt/tls_verify_mode.hxx
+index 036a90df..0812cdc0 100644
+--- a/couchbase/fmt/tls_verify_mode.hxx
++++ b/couchbase/fmt/tls_verify_mode.hxx
+@@ -45,6 +45,6 @@ struct fmt::formatter<couchbase::tls_verify_mode> {
+         name = "peer";
+         break;
+     }
+-    return format_to(ctx.out(), "{}", name);
++    return fmt::format_to(ctx.out(), "{}", name);
+   }
+ };
+diff --git a/couchbase/fmt/transaction_keyspace.hxx b/couchbase/fmt/transaction_keyspace.hxx
+index f9bf2989..687e1009 100644
+--- a/couchbase/fmt/transaction_keyspace.hxx
++++ b/couchbase/fmt/transaction_keyspace.hxx
+@@ -30,7 +30,7 @@ public:
+   template<typename FormatContext>
+   auto format(const couchbase::transactions::transaction_keyspace& k, FormatContext& ctx) const
+   {
+-    return format_to(ctx.out(),
++    return fmt::format_to(ctx.out(),
+                      "transaction_keyspace:{{ bucket: {}, scope: {}, collection: {} }}",
+                      k.bucket,
+                      k.scope,
 diff --git a/examples/async_game_server.cxx b/examples/async_game_server.cxx
 index 439a6294..878808a2 100644
 --- a/examples/async_game_server.cxx
