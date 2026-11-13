@@ -154,6 +154,11 @@ def _conan_build_env_prefix(minifi_options: MinifiOptions) -> str:
     return ""
 
 
+def _cargo_path_prefix() -> str:
+    cargo_bin = os.path.expanduser("~/.cargo/bin")
+    return f'export PATH="{cargo_bin}:$PATH" && '
+
+
 def run_cmake(minifi_options: MinifiOptions, package_manager: PackageManager):
     if not os.path.exists(minifi_options.build_dir):
         os.mkdir(minifi_options.build_dir)
@@ -167,14 +172,17 @@ def run_cmake(minifi_options: MinifiOptions, package_manager: PackageManager):
 
 
 def do_build(minifi_options: MinifiOptions, package_manager: PackageManager):
-    build_cmd = f'{_conan_build_env_prefix(minifi_options)}cmake --build "{minifi_options.build_dir!s}" {minifi_options.create_cmake_build_flags_str()}'
+    build_cmd = (
+        f'{_cargo_path_prefix()}{_conan_build_env_prefix(minifi_options)}'
+        f'echo "user=$(id -un) PATH=$PATH" && cmake --build "{minifi_options.build_dir!s}" {minifi_options.create_cmake_build_flags_str()}'
+    )
     res = package_manager.run_cmd(build_cmd)
     print("Build was successful" if res else "Build was unsuccessful")
     return res
 
 
 def do_package(minifi_options: MinifiOptions, package_manager: PackageManager):
-    build_cmd = f'{_conan_build_env_prefix(minifi_options)}cmake --build "{minifi_options.build_dir!s}" --target package {minifi_options.create_cmake_build_flags_str()}'
+    build_cmd = f'{_cargo_path_prefix()}{_conan_build_env_prefix(minifi_options)}cmake --build "{minifi_options.build_dir!s}" --target package {minifi_options.create_cmake_build_flags_str()}'
     return package_manager.run_cmd(build_cmd)
 
 

@@ -15,6 +15,7 @@
 import os
 import pathlib
 import platform
+import shutil
 import subprocess
 import sys
 from enum import Enum
@@ -42,9 +43,31 @@ def _query_yes_no(question: str, no_confirm: bool) -> bool:
             print("Please respond with 'yes' or 'no' (or 'y' or 'n').")
 
 
+def _is_rust_installed() -> bool:
+    cargo_bin = os.path.expanduser("~/.cargo/bin")
+    search_path = os.environ.get("PATH", "") + os.pathsep + cargo_bin
+    rustc = shutil.which("rustc", path=search_path)
+    cargo = shutil.which("cargo", path=search_path)
+    if not rustc or not cargo:
+        return False
+
+    try:
+        subprocess.run([rustc, "--version"], check=True, capture_output=True)
+        subprocess.run([cargo, "--version"], check=True, capture_output=True)
+    except (subprocess.CalledProcessError, OSError):
+        return False
+    return True
+
+
 def _run_command_with_confirm(command: str, no_confirm: bool) -> bool:
     if _query_yes_no(f"Running {command}", no_confirm):
         return os.system(command) == 0
+
+
+def _install_rust_on_unix(no_confirm: bool) -> bool:
+    if _is_rust_installed():
+        return True
+    return _run_command_with_confirm("curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y", no_confirm)
 
 
 class PackageManager:
@@ -93,11 +116,16 @@ class BrewPackageManager(PackageManager):
         PackageManager.__init__(self, no_confirm)
 
     def install(self, dependencies: dict[str, set[str]]) -> bool:
-        return self._install(
+        install_result = self._install(
             dependencies=dependencies,
             install_cmd="brew install",
-            replace_dict={"patch": set()},
+            replace_dict={"patch": set(), "rust": {"curl", "llvm"}},
         )
+        if not install_result:
+            return False
+        if "rust" in dependencies and not _install_rust_on_unix(self.no_confirm):
+            return False
+        return True
 
     def install_compiler(self) -> str:
         self.install({"compiler": set()})
@@ -120,11 +148,17 @@ class AptPackageManager(PackageManager):
         PackageManager.__init__(self, no_confirm)
 
     def install(self, dependencies: dict[str, set[str]]) -> bool:
-        return self._install(
+
+        install_result = self._install(
             dependencies=dependencies,
             install_cmd="sudo apt install -y",
-            replace_dict={"libarchive": {"liblzma-dev"}, "python": {"libpython3-dev"}},
+            replace_dict={"libarchive": {"liblzma-dev"}, "python": {"libpython3-dev"}, "rust": {"curl", "libclang-dev", "clang"}},
         )
+        if not install_result:
+            return False
+        if "rust" in dependencies and not _install_rust_on_unix(self.no_confirm):
+            return False
+        return True
 
     def _get_installed_packages(self) -> set[str]:
         result = subprocess.run(["dpkg", "--get-selections"], text=True, capture_output=True, check=True)
@@ -147,11 +181,21 @@ class DnfPackageManager(PackageManager):
             install_cmd = "sudo dnf --enablerepo=crb install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm"
         else:
             install_cmd = "sudo dnf install -y"
-        return self._install(
+
+        rust_replacement_set = {"clang", "clang-devel"}
+        if not shutil.which("curl"):
+            rust_replacement_set.add("curl")
+
+        install_result = self._install(
             dependencies=dependencies,
             install_cmd=install_cmd,
-            replace_dict={"python": {"python3-devel"}},
+            replace_dict={"python": {"python3-devel"}, "rust": rust_replacement_set},
         )
+        if not install_result:
+            return False
+        if "rust" in dependencies and not _install_rust_on_unix(self.no_confirm):
+            return False
+        return True
 
     def _get_installed_packages(self) -> set[str]:
         result = subprocess.run(["dnf", "list", "installed"], text=True, capture_output=True, check=True)
@@ -169,11 +213,16 @@ class PacmanPackageManager(PackageManager):
         PackageManager.__init__(self, no_confirm)
 
     def install(self, dependencies: dict[str, set[str]]) -> bool:
-        return self._install(
+        install_result = self._install(
             dependencies=dependencies,
             install_cmd="sudo pacman --noconfirm -S",
-            replace_dict={},
+            replace_dict={"rust": {"curl", "clang"}},
         )
+        if not install_result:
+            return False
+        if "rust" in dependencies and not _install_rust_on_unix(self.no_confirm):
+            return False
+        return True
 
     def _get_installed_packages(self) -> set[str]:
         result = subprocess.run(["pacman", "-Qq"], text=True, capture_output=True, check=True)
@@ -189,14 +238,20 @@ class ZypperPackageManager(PackageManager):
         PackageManager.__init__(self, no_confirm)
 
     def install(self, dependencies: dict[str, set[str]]) -> bool:
-        return self._install(
+        install_result = self._install(
             dependencies=dependencies,
             install_cmd="sudo zypper install -y",
             replace_dict={
                 "libarchive": {"libarchive-devel"},
                 "python": {"python3-devel"},
+                "rust": {"curl", "clang", "clang-devel"},
             },
         )
+        if not install_result:
+            return False
+        if "rust" in dependencies and not _install_rust_on_unix(self.no_confirm):
+            return False
+        return True
 
     def _get_installed_packages(self) -> set[str]:
         result = subprocess.run(
@@ -228,11 +283,16 @@ class ApkPackageManager(PackageManager):
         PackageManager.__init__(self, no_confirm)
 
     def install(self, dependencies: dict[str, set[str]]) -> bool:
-        return self._install(
+        install_result = self._install(
             dependencies=dependencies,
             install_cmd="sudo apk add --no-cache",
-            replace_dict={"libarchive": {"libarchive-dev"}, "python": {"python3-dev"}},
+            replace_dict={"libarchive": {"libarchive-dev"}, "python": {"python3-dev"}, "rust": {"curl", "clang-dev"}},
         )
+        if not install_result:
+            return False
+        if "rust" in dependencies and not _install_rust_on_unix(self.no_confirm):
+            return False
+        return True
 
     def _get_installed_packages(self) -> set[str]:
         result = subprocess.run(["apk", "info"], text=True, capture_output=True, check=True)
@@ -312,8 +372,12 @@ class ChocolateyPackageManager(PackageManager):
                 "make": set(),
                 "m4": {"gnuwin32-m4"},
                 "perl": {"strawberryperl", "NASM"},
+                "rust": {"rustup"},
             },
         )
+        if "rust" in dependencies:
+            if not self.run_cmd("rustup default stable"):
+                return False
         return True
 
     def _get_installed_packages(self) -> set[str]:
